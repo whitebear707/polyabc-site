@@ -145,27 +145,18 @@ if (IS_TEACHER) {
   document.getElementById('my-controls').style.display = 'none';
 }
 
-// ── ICE with multiple TURN providers for reliability ──
-const ICE_CONFIG = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    // Primary TURN
-    { urls: 'turn:openrelay.metered.ca:80',                     username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443',                    username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp',      username: 'openrelayproject', credential: 'openrelayproject' },
-    // Backup TURN
-    { urls: 'turn:relay1.expressturn.com:3478',                 username: 'efUN6S3LHCWX8GDAAQ', credential: 'tTEHNp4OtUEfbEJm' },
-  ]
-};
-
-let localStream = null;
+let localStream   = null;
 let myMicOn = true, myCamOn = true;
-const peers        = {};
 const remoteRoles  = {};
 const remoteNames  = {};
 const studentSlots = {};
 let teacherSocketId = null;
+
+// ── Canvas capture for video relay ──
+const capCanvas = document.createElement('canvas');
+capCanvas.width = 320; capCanvas.height = 240;
+const capCtx = capCanvas.getContext('2d');
+let captureInterval = null;
 
 async function startMedia() {
   try {
@@ -200,6 +191,8 @@ function connectSocket() {
     document.getElementById('status-bar').style.color = '#69f0ae';
     if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
     initWhiteboard(socket);
+    startVideoCapture(socket);
+    startAudioRelay(socket);
   });
 
   socket.on('room-error', (msg) => {
@@ -207,43 +200,37 @@ function connectSocket() {
     window.location.href = 'index.html';
   });
 
+  // Someone joined — set up their video slot
+  socket.on('user-joined', ({ socketId, role, name }) => {
+    remoteRoles[socketId] = role;
+    remoteNames[socketId] = name;
+    createVideoSlot(socketId, role, name);
+  });
+
+  // Existing users when we join
   socket.on('existing-users', (users) => {
     users.forEach(({ socketId, role, name }) => {
       remoteRoles[socketId] = role;
       remoteNames[socketId] = name;
-      callPeer(socket, socketId);
+      createVideoSlot(socketId, role, name);
     });
   });
 
-  socket.on('user-joined', ({ socketId, role, name }) => {
-    remoteRoles[socketId] = role;
-    remoteNames[socketId] = name;
+  // Receive video frame from another user
+  socket.on('video-frame', ({ socketId, frame }) => {
+    const img = document.getElementById(`vimg-${socketId}`);
+    if (img) img.src = frame;
   });
 
-  socket.on('offer', async ({ from, offer }) => {
-    const pc = getOrCreatePeer(socket, from);
+  // Receive audio chunk
+  socket.on('audio-chunk', ({ socketId, chunk }) => {
+    if (!myCamOn && !myMicOn) return;
     try {
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('answer', { to: from, answer: pc.localDescription });
-    } catch(e) { console.error('offer error', e); }
-  });
-
-  socket.on('answer', async ({ from, answer }) => {
-    const pc = peers[from];
-    if (pc && pc.signalingState !== 'stable') {
-      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); }
-      catch(e) { console.error('answer error', e); }
-    }
-  });
-
-  socket.on('ice-candidate', async ({ from, candidate }) => {
-    const pc = peers[from];
-    if (pc) {
-      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
-      catch(e) {}
-    }
+      const blob = new Blob([new Uint8Array(chunk)], { type: 'audio/webm;codecs=opus' });
+      const url  = URL.createObjectURL(blob);
+      const a    = new Audio(url);
+      a.play().then(() => setTimeout(() => URL.revokeObjectURL(url), 1000)).catch(() => {});
+    } catch(e) {}
   });
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
@@ -270,61 +257,29 @@ function connectSocket() {
   });
 }
 
-function getOrCreatePeer(socket, targetId) {
-  if (peers[targetId]) return peers[targetId];
-  const pc = new RTCPeerConnection(ICE_CONFIG);
-  if (!pc._remoteStream) pc._remoteStream = new MediaStream();
-
-  if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
-  pc.onicecandidate = (e) => {
-    if (e.candidate) socket.emit('ice-candidate', { to: targetId, candidate: e.candidate });
-  };
-
-  pc.ontrack = (e) => {
-    pc._remoteStream.addTrack(e.track);
-    const stream = (e.streams && e.streams[0]) || pc._remoteStream;
-    const role   = remoteRoles[targetId];
-    if (!IS_TEACHER && role === 'teacher') {
-      teacherSocketId = targetId;
-      const v = document.getElementById('left-video');
-      v.srcObject = stream;
-      v.muted = false;
-      v.play().catch(() => {});
-      document.getElementById('left-label').textContent = `👩‍🏫 ${remoteNames[targetId] || 'Teacher'}`;
-    } else {
-      showStudentVideo(targetId, stream);
+// ── Create a video slot for a remote user ──
+function createVideoSlot(socketId, role, name) {
+  if (!IS_TEACHER && role === 'teacher') {
+    // Student sees teacher in left panel
+    teacherSocketId = socketId;
+    const box = document.getElementById('left-video').parentElement;
+    // Replace video with img for canvas relay
+    document.getElementById('left-video').style.display = 'none';
+    let img = document.getElementById(`vimg-${socketId}`);
+    if (!img) {
+      img = document.createElement('img');
+      img.id = `vimg-${socketId}`;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;';
+      box.appendChild(img);
     }
-  };
-
-  pc.onconnectionstatechange = () => {
-    const s = document.getElementById('status-bar');
-    if (pc.connectionState === 'connected') {
-      s.textContent = '🟢 In Class'; s.style.color = '#69f0ae';
-    } else if (pc.connectionState === 'failed') {
-      s.textContent = '🔴 Retrying...'; s.style.color = '#ffd740';
-      pc.restartIce();
-    }
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    if (pc.iceConnectionState === 'failed') pc.restartIce();
-  };
-
-  peers[targetId] = pc;
-  return pc;
+    document.getElementById('left-label').textContent = `👩‍🏫 ${name || 'Teacher'}`;
+  } else {
+    // Show in right panel student slot
+    showStudentSlot(socketId, name);
+  }
 }
 
-async function callPeer(socket, targetId) {
-  const pc = getOrCreatePeer(socket, targetId);
-  try {
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit('offer', { to: targetId, offer: pc.localDescription });
-  } catch(e) { console.error('callPeer error', e); }
-}
-
-function showStudentVideo(socketId, stream) {
+function showStudentSlot(socketId, name) {
   if (!studentSlots[socketId]) {
     const used = Object.values(studentSlots);
     for (let i = 1; i <= 4; i++) {
@@ -334,30 +289,68 @@ function showStudentVideo(socketId, stream) {
   const slotNum = studentSlots[socketId];
   if (!slotNum) return;
   const slot = document.getElementById(`slot-${slotNum}`);
-  const name = remoteNames[socketId] || `Student ${slotNum}`;
+  const displayName = name || `Student ${slotNum}`;
   slot.className = 'student-box';
   slot.innerHTML = `
-    <video autoplay playsinline></video>
-    <div class="student-label" id="name-${socketId}">${name}</div>
+    <img id="vimg-${socketId}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+    <div class="student-label">${displayName}</div>
     ${IS_TEACHER ? `
       <button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button>
       <button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button>
     ` : ''}
   `;
-  const v = slot.querySelector('video');
-  v.srcObject = stream;
-  v.muted = false;
-  v.play().catch(() => {});
   if (IS_TEACHER) {
     slot.querySelector('.mute-student-btn').style.display = 'block';
     slot.querySelector('.cam-student-btn').style.display = 'block';
   }
 }
 
+// ── Video capture and relay ──
+function startVideoCapture(socket) {
+  const srcVideo = IS_TEACHER
+    ? document.getElementById('left-video')
+    : document.getElementById('pip-video');
+
+  captureInterval = setInterval(() => {
+    if (!localStream || !myCamOn) return;
+    try {
+      capCtx.drawImage(srcVideo, 0, 0, 320, 240);
+      const frame = capCanvas.toDataURL('image/jpeg', 0.45);
+      socket.emit('video-frame', { room: ROOM, frame });
+    } catch(e) {}
+  }, 150); // ~7fps
+}
+
+// ── Audio relay via MediaRecorder ──
+let mediaRecorder = null;
+function startAudioRelay(socket) {
+  if (!localStream) return;
+  const audioStream = new MediaStream(localStream.getAudioTracks());
+  try {
+    mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder.ondataavailable = async (e) => {
+      if (e.data.size > 0 && myMicOn) {
+        const buf = await e.data.arrayBuffer();
+        socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
+      }
+    };
+    mediaRecorder.start(200); // 200ms chunks
+  } catch(e) {
+    console.log('Audio relay not supported:', e);
+  }
+}
+
+// showStudentVideo kept for compatibility but now uses canvas relay
+function showStudentVideo(socketId, stream) {
+  showStudentSlot(socketId, remoteNames[socketId]);
+}
+
 function removeRemote(socketId) {
   if (socketId === teacherSocketId) {
     teacherSocketId = null;
-    document.getElementById('left-video').srcObject = null;
+    const img = document.getElementById(`vimg-${socketId}`);
+    if (img) img.remove();
+    document.getElementById('left-video').style.display = 'block';
     document.getElementById('left-label').textContent = 'Waiting for teacher...';
   }
   const slotNum = studentSlots[socketId];
@@ -366,17 +359,16 @@ function removeRemote(socketId) {
     slot.className = 'empty-slot'; slot.innerHTML = 'Waiting...';
     delete studentSlots[socketId];
   }
-  if (peers[socketId]) { peers[socketId].close(); delete peers[socketId]; }
   delete remoteRoles[socketId]; delete remoteNames[socketId];
 }
 
-// Student's own cam in slot-1
+// Student's own cam in slot-1 (using pip video as source)
 function setupOwnSlot() {
   if (!IS_TEACHER && localStream) {
     const slot = document.getElementById('slot-1');
     slot.className = 'student-box';
-    slot.innerHTML = `<video autoplay muted playsinline></video><div class="student-label">${MY_NAME} (You)</div>`;
-    slot.querySelector('video').srcObject = localStream;
+    slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
+    document.getElementById('self-slot-video').srcObject = localStream;
     studentSlots['__self__'] = 1;
   }
 }
@@ -416,6 +408,8 @@ function toggleStudentCam(socketId, btn) {
 
 function leaveClass() {
   if (confirm('Are you sure you want to leave the class?')) {
+    if (captureInterval) clearInterval(captureInterval);
+    if (mediaRecorder) mediaRecorder.stop();
     if (window._socket) window._socket.disconnect();
     window.location.href = 'index.html';
   }
