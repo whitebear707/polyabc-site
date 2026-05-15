@@ -143,15 +143,13 @@ if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
 } else {
   document.getElementById('my-controls').style.display = 'none';
-  // Reserve slot 1 immediately so existing users don't steal it
-  studentSlots['__self__'] = 1;
 }
 
 let localStream   = null;
 let myMicOn = true, myCamOn = true;
 const remoteRoles  = {};
 const remoteNames  = {};
-const studentSlots = {};
+const studentSlots = IS_TEACHER ? {} : { '__self__': 1 }; // reserve slot 1 for student's own cam
 let teacherSocketId = null;
 
 // ── Canvas capture for video relay ──
