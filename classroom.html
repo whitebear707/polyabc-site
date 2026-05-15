@@ -141,7 +141,7 @@ document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
 } else {
-  document.getElementById('my-pip').style.display = 'block';
+  // own cam shown in slot-1, no pip needed
   document.getElementById('my-controls').style.display = 'none';
 }
 
