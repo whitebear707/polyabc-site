@@ -49,8 +49,9 @@
 
     #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-left: 2px solid #0f3460; overflow-y: auto; }
     #right-panel-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; text-align: center; }
-    .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; }
+    .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; width: 100%; }
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
     .student-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 5px; }
     .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; }
     .mute-student-btn:hover { background: #e53935; }
@@ -141,8 +142,9 @@ document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
 } else {
-  // own cam shown in slot-1, no pip needed
   document.getElementById('my-controls').style.display = 'none';
+  // Reserve slot 1 immediately so existing users don't steal it
+  studentSlots['__self__'] = 1;
 }
 
 let localStream   = null;
@@ -292,7 +294,7 @@ function showStudentSlot(socketId, name) {
   const displayName = name || `Student ${slotNum}`;
   slot.className = 'student-box';
   slot.innerHTML = `
-    <img id="vimg-${socketId}" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+    <img id="vimg-${socketId}"/>
     <div class="student-label">${displayName}</div>
     ${IS_TEACHER ? `
       <button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button>
