@@ -150,8 +150,6 @@ function startJitsi() {
   api.addEventListener('videoConferenceJoined', () => {
     document.getElementById('status-bar').textContent = '🟢 In Class';
     document.getElementById('status-bar').style.color = '#69f0ae';
-    connectWhiteboard();
-    document.getElementById('connecting-screen').style.display = 'none';
   });
 
   api.addEventListener('videoConferenceLeft', () => {
@@ -171,12 +169,20 @@ function connectWhiteboard() {
   });
 
   socket.on('whiteboard-ready', () => {
+    // Hide connecting screen as soon as server confirms we're in
+    document.getElementById('connecting-screen').style.display = 'none';
     initWhiteboard();
   });
 
   socket.on('whiteboard-error', (msg) => {
-    console.error('Whiteboard error:', msg);
+    alert('Could not join classroom: ' + msg);
+    window.location.href = 'index.html';
   });
+
+  // Fallback: hide connecting screen after 5 seconds no matter what
+  setTimeout(() => {
+    document.getElementById('connecting-screen').style.display = 'none';
+  }, 5000);
 
   socket.on('whiteboard-path', ({ path }) => {
     suppressSync = true;
@@ -277,8 +283,9 @@ function leaveClass() {
   }
 }
 
-// ── Start Jitsi ──
+// ── Start everything ──
 startJitsi();
+connectWhiteboard();
 </script>
 </body>
 </html>
