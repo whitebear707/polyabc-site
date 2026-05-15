@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f0f7ff;
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    #login-screen img { height: 120px; margin-bottom: 10px; }
+
+    .tagline {
+      font-size: 1rem;
+      color: #888;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 36px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #1a73e8;
+      margin-bottom: 22px;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #1a73e8; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 18px rgba(0,0,0,0.1); }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-danger  { background: #e53935; color: white; }
+    .btn-outline {
+      background: white;
+      color: #1a73e8;
+      border: 2px solid #1a73e8;
+      padding: 10px;
+      font-size: 0.95rem;
+    }
+    .btn-sm {
+      width: auto;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+    }
+
+    .error-msg {
+      color: #e53935;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      text-align: center;
+      display: none;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      color: #aaa;
+      font-size: 0.88rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #1a73e8; }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; }
+
+    #topbar {
+      background: #16213e;
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #topbar img { height: 40px; }
+    #topbar-right { display: flex; align-items: center; gap: 14px; }
+    #role-badge {
+      background: #1a73e8;
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 20px;
+    }
+    #logout-btn {
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #content {
+      max-width: 860px;
+      margin: 36px auto;
+      padding: 0 20px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+    }
+
+    /* Room cards */
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+
+    .room-card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+      border-left: 5px solid #1a73e8;
+    }
+
+    .room-card h3 {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      margin-bottom: 12px;
+    }
+
+    .room-info {
+      font-size: 0.88rem;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .room-info span {
+      font-weight: 700;
+      color: #333;
+    }
+
+    .room-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .no-rooms {
+      color: #aaa;
+      font-size: 1rem;
+      text-align: center;
+      padding: 30px;
+      background: white;
+      border-radius: 18px;
+    }
+
+    /* Add room form */
+    .add-card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+      margin-bottom: 30px;
+    }
+
+    .add-card .card-title {
+      text-align: left;
+      margin-bottom: 18px;
+      font-size: 1.1rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 500px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    /* Teacher panel */
+    .teacher-card {
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+      max-width: 460px;
+    }
+
+    .success-msg {
+      color: #2e7d32;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      text-align: center;
+      display: none;
+    }
+
+    /* Modal */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+
+    #modal {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      margin: 20px;
+    }
+
+    #modal h3 {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .student-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    #student-modal-overlay.open { display: flex; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div id="login-screen">
+  <img src="LOGO.png" alt="PolyABC"/>
+  <p class="tagline">Admin & Teacher Panel</p>
+
+  <div class="card">
+    <div class="card-title">🔐 Login</div>
+    <div class="error-msg" id="login-error">Incorrect password. Please try again.</div>
+
+    <label for="login-pass">Password</label>
+    <input type="password" id="login-pass" placeholder="Enter your password"/>
+
+    <button class="btn btn-primary" onclick="doLogin()">Login →</button>
+  </div>
+
+  <a class="back-link" href="index.html">← Back to main page</a>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="dashboard">
+
+  <div id="topbar">
+    <img src="LOGO.png" alt="PolyABC"/>
+    <div id="topbar-right">
+      <span id="role-badge">Admin</span>
+      <button id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ADMIN VIEW -->
+    <div id="admin-view">
+      <p class="section-title">📋 Manage Rooms</p>
+
+      <div class="rooms-grid" id="rooms-grid">
+        <div class="no-rooms">No rooms yet. Create one below!</div>
+      </div>
+
+      <!-- Add New Room -->
+      <div class="add-card">
+        <div class="card-title">➕ Create New Room</div>
+        <div class="error-msg" id="add-error">Please fill in all fields.</div>
+
+        <div class="form-row">
+          <div>
+            <label>Room Number</label>
+            <input type="text" id="new-room" placeholder="e.g. 001" maxlength="10"/>
+          </div>
+          <div>
+            <label>Teacher Name</label>
+            <input type="text" id="new-teacher-name" placeholder="e.g. Ms. Garcia"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Teacher Password</label>
+            <input type="text" id="new-teacher-pass" placeholder="e.g. teach#001"/>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="createRoom()" style="margin-top:8px;">Create Room</button>
+      </div>
+    </div>
+
+    <!-- TEACHER VIEW -->
+    <div id="teacher-view" style="display:none;">
+      <p class="section-title">👩‍🏫 My Settings</p>
+
+      <div class="teacher-card">
+        <div class="success-msg" id="teacher-success">Changes saved successfully!</div>
+        <div class="error-msg" id="teacher-error">Please fill in all fields.</div>
+
+        <label>My Room</label>
+        <input type="text" id="teacher-room-display" disabled style="background:#f5f5f5; color:#888;"/>
+
+        <label>Display Name</label>
+        <input type="text" id="teacher-name-input" placeholder="Your name"/>
+
+        <label>New Teacher Password</label>
+        <input type="password" id="teacher-new-pass" placeholder="Leave blank to keep current"/>
+
+        <label>Confirm New Password</label>
+        <input type="password" id="teacher-confirm-pass" placeholder="Confirm new password"/>
+
+        <button class="btn btn-primary" onclick="saveTeacherSettings()">Save Changes</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ STUDENT MANAGEMENT MODAL ══════════════ -->
+<div id="student-modal-overlay" onclick="closeStudentModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:28px;width:100%;max-width:480px;margin:20px;max-height:80vh;overflow-y:auto;">
+    <h3 id="student-modal-title" style="font-size:1.2rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">👥 Students</h3>
+    <div id="students-list" style="margin-bottom:20px;"></div>
+    <div style="border-top:2px solid #eee;padding-top:16px;">
+      <div style="font-weight:700;color:#444;margin-bottom:10px;">➕ Add Student</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Name</label>
+          <input type="text" id="new-student-name" placeholder="e.g. Juan" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Password</label>
+          <input type="text" id="new-student-pass2" placeholder="e.g. juan123" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" style="flex:1;padding:12px;" onclick="addStudent()">Add Student</button>
+        <button class="btn btn-outline" style="flex:1;padding:12px;" onclick="closeStudentModal()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ EDIT ROOM MODAL ══════════════ -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <h3>✏️ Edit Room</h3>
+
+    <input type="hidden" id="edit-room-id"/>
+
+    <label>Teacher Name</label>
+    <input type="text" id="edit-teacher-name" placeholder="Teacher name"/>
+
+    <label>Teacher Password</label>
+    <input type="text" id="edit-teacher-pass" placeholder="Teacher password"/>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Save</button>
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──
+  const SERVER_URL = "https://polyabc-server.onrender.com";
+
+  let currentRole  = null; // 'admin' or 'teacher'
+  let currentToken = null;
+  let currentRoom  = null; // for teacher
+  let rooms        = [];
+
+  // ── LOGIN ──
+  async function doLogin() {
+    const pass = document.getElementById('login-pass').value.trim();
+    if (!pass) return;
+
+    try {
+      const res  = await fetch(`${SERVER_URL}/admin-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        document.getElementById('login-error').style.display = 'block';
+        return;
+      }
+
+      currentRole  = data.role;   // 'admin' or 'teacher'
+      currentToken = data.token;
+      currentRoom  = data.room || null;
+
+      showDashboard();
+
+    } catch(e) {
+      alert('Could not connect to server.');
+    }
+  }
+
+  function showDashboard() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display    = 'block';
+    document.getElementById('role-badge').textContent     = currentRole === 'admin' ? '👑 Admin' : '👩‍🏫 Teacher';
+
+    if (currentRole === 'admin') {
+      document.getElementById('admin-view').style.display   = 'block';
+      document.getElementById('teacher-view').style.display = 'none';
+      loadRooms();
+    } else {
+      document.getElementById('admin-view').style.display   = 'none';
+      document.getElementById('teacher-view').style.display = 'block';
+      loadTeacherInfo();
+    }
+  }
+
+  function logout() {
+    currentRole = currentToken = currentRoom = null;
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('dashboard').style.display    = 'none';
+  }
+
+  // ── ADMIN: LOAD ROOMS ──
+  async function loadRooms() {
+    try {
+      const res  = await fetch(`${SERVER_URL}/rooms`, {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      rooms = await res.json();
+      renderRooms();
+    } catch(e) {
+      alert('Could not load rooms.');
+    }
+  }
+
+  function renderRooms() {
+    const grid = document.getElementById('rooms-grid');
+    if (rooms.length === 0) {
+      grid.innerHTML = '<div class="no-rooms">No rooms yet. Create one below!</div>';
+      return;
+    }
+    grid.innerHTML = rooms.map(r => `
+      <div class="room-card">
+        <h3>Room ${r.room}</h3>
+        <div class="room-info">👩‍🏫 Teacher: <span>${r.teacherName || '—'}</span></div>
+        <div class="room-info">🔑 Teacher Password: <span>${r.teacherPassword}</span></div>
+        <div class="room-info">🎓 Students: <span>${(r.students||[]).length} enrolled</span></div>
+        <div class="room-actions">
+          <button class="btn btn-outline btn-sm" onclick="openEdit('${r.room}')">✏️ Edit</button>
+          <button class="btn btn-primary btn-sm" onclick="openStudents('${r.room}')">👥 Students</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRoom('${r.room}')">🗑️ Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── ADMIN: CREATE ROOM ──
+  async function createRoom() {
+    const room        = document.getElementById('new-room').value.trim();
+    const teacherName = document.getElementById('new-teacher-name').value.trim();
+    const teacherPass = document.getElementById('new-teacher-pass').value.trim();
+
+    if (!room || !teacherPass) {
+      document.getElementById('add-error').style.display = 'block';
+      return;
+    }
+    document.getElementById('add-error').style.display = 'none';
+
+    try {
+      const res  = await fetch(`${SERVER_URL}/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+        body: JSON.stringify({ room, teacherName, teacherPassword: teacherPass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('new-room').value = '';
+        document.getElementById('new-teacher-name').value = '';
+        document.getElementById('new-teacher-pass').value = '';
+        loadRooms();
+      } else {
+        alert(data.message || 'Could not create room.');
+      }
+    } catch(e) {
+      alert('Could not connect to server.');
+    }
+  }
+
+  // ── Student management ──
+  let currentStudentRoom = null;
+
+  async function openStudents(roomId) {
+    currentStudentRoom = roomId;
+    document.getElementById('student-modal-title').textContent = `👥 Students — Room ${roomId}`;
+    await loadStudents(roomId);
+    document.getElementById('student-modal-overlay').style.display = 'flex';
+  }
+
+  function closeStudentModal(e) {
+    if (!e || e.target === document.getElementById('student-modal-overlay')) {
+      document.getElementById('student-modal-overlay').style.display = 'none';
+    }
+  }
+
+  async function loadStudents(roomId) {
+    try {
+      const res  = await fetch(`${SERVER_URL}/rooms/${roomId}/students`, {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      const students = await res.json();
+      renderStudents(students);
+    } catch(e) { alert('Could not load students.'); }
+  }
+
+  function renderStudents(students) {
+    const list = document.getElementById('students-list');
+    if (students.length === 0) {
+      list.innerHTML = '<div style="color:#aaa;text-align:center;padding:16px;">No students yet. Add one below!</div>';
+      return;
+    }
+    list.innerHTML = students.map((s, i) => `
+      <div class="student-row">
+        <div>
+          <div style="font-weight:700;color:#1a1a2e;">${s.name}</div>
+          <div style="font-size:0.85rem;color:#888;">Password: ${s.password}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="editStudent(${i}, '${s.name}', '${s.password}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent(${i})">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function addStudent() {
+    const name = document.getElementById('new-student-name').value.trim();
+    const pass = document.getElementById('new-student-pass2').value.trim();
+    if (!name || !pass) { alert('Please enter both name and password.'); return; }
+    try {
+      await fetch(`${SERVER_URL}/rooms/${currentStudentRoom}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+        body: JSON.stringify({ name, password: pass })
+      });
+      document.getElementById('new-student-name').value = '';
+      document.getElementById('new-student-pass2').value = '';
+      await loadStudents(currentStudentRoom);
+      loadRooms(); // refresh room card count
+    } catch(e) { alert('Could not add student.'); }
+  }
+
+  async function deleteStudent(idx) {
+    if (!confirm('Remove this student?')) return;
+    try {
+      await fetch(`${SERVER_URL}/rooms/${currentStudentRoom}/students/${idx}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      await loadStudents(currentStudentRoom);
+      loadRooms();
+    } catch(e) { alert('Could not delete student.'); }
+  }
+
+  async function editStudent(idx, currentName, currentPass) {
+    const name = prompt('Student name:', currentName);
+    if (!name) return;
+    const pass = prompt('Student password:', currentPass);
+    if (!pass) return;
+    try {
+      await fetch(`${SERVER_URL}/rooms/${currentStudentRoom}/students/${idx}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+        body: JSON.stringify({ name: name.trim(), password: pass.trim() })
+      });
+      await loadStudents(currentStudentRoom);
+    } catch(e) { alert('Could not update student.'); }
+  }
+
+  // ── ADMIN: DELETE ROOM ──
+  async function deleteRoom(roomId) {
+    if (!confirm(`Delete Room ${roomId}? This cannot be undone.`)) return;
+    try {
+      await fetch(`${SERVER_URL}/rooms/${roomId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      loadRooms();
+    } catch(e) {
+      alert('Could not delete room.');
+    }
+  }
+
+  // ── ADMIN: EDIT ROOM MODAL ──
+  function openEdit(roomId) {
+    const r = rooms.find(r => r.room === roomId);
+    if (!r) return;
+    document.getElementById('edit-room-id').value      = roomId;
+    document.getElementById('edit-teacher-name').value = r.teacherName || '';
+    document.getElementById('edit-student-pass').value = r.studentPassword;
+    document.getElementById('edit-teacher-pass').value = r.teacherPassword;
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modal-overlay')) {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+  }
+
+  async function saveEdit() {
+    const roomId      = document.getElementById('edit-room-id').value;
+    const teacherName = document.getElementById('edit-teacher-name').value.trim();
+    const teacherPass = document.getElementById('edit-teacher-pass').value.trim();
+    if (!teacherPass) { alert('Teacher password cannot be empty.'); return; }
+    try {
+      await fetch(`${SERVER_URL}/rooms/${roomId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
+        body: JSON.stringify({ teacherName, teacherPassword: teacherPass })
+      });
+      closeModal();
+      loadRooms();
+    } catch(e) { alert('Could not save changes.'); }
+  }
+
+  // ── TEACHER: LOAD INFO ──
+  async function loadTeacherInfo() {
+    try {
+      const res  = await fetch(`${SERVER_URL}/teacher-info`, {
+        headers: { 'Authorization': `Bearer ${currentToken}` }
+      });
+      const data = await res.json();
+      document.getElementById('teacher-room-display').value = `Room ${data.room}`;
+      document.getElementById('teacher-name-input').value   = data.teacherName || '';
+    } catch(e) {
+      alert('Could not load teacher info.');
+    }
+  }
+
+  // ── TEACHER: SAVE SETTINGS ──
+  async function saveTeacherSettings() {
+    const name        = document.getElementById('teacher-name-input').value.trim();
+    const newPass     = document.getElementById('teacher-new-pass').value.trim();
+    const confirmPass = document.getElementById('teacher-confirm-pass').value.trim();
+
+    if (!name) {
+      document.getElementById('teacher-error').style.display = 'block';
+      document.getElementById('teacher-success').style.display = 'none';
+      return;
+    }
+
+    if (newPass && newPass !== confirmPass) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    document.getElementById('teacher-error').style.display = 'none';
+
+    try {
+      const res  = await fetch(`${SERVER_URL}/teacher-settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`
+        },
+        body: JSON.stringify({ teacherName: name, newPassword: newPass || null })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('teacher-success').style.display = 'block';
+        document.getElementById('teacher-new-pass').value = '';
+        document.getElementById('teacher-confirm-pass').value = '';
+      }
+    } catch(e) {
+      alert('Could not save settings.');
+    }
+  }
+
+  // Allow Enter key on login
+  document.getElementById('login-pass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC Classroom</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; }
+    #topbar img { height: 70px; }
+    #room-label { font-size: 1rem; font-weight: 700; color: #a0c4ff; }
+    #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
+    #leave-btn { background: #e53935; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    #leave-btn:hover { background: #c62828; }
+
+    #main { display: flex; flex: 1; overflow: hidden; }
+
+    /* LEFT — Jitsi video panel */
+    #left-panel { width: 260px; flex-shrink: 0; background: #0f3460; display: flex; flex-direction: column; border-right: 2px solid #0f3460; }
+    #jitsi-container { flex: 1; }
+    #jitsi-container iframe { width: 100%; height: 100%; border: none; }
+
+    /* CENTER — Whiteboard */
+    #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #e8e8e8; }
+    #whiteboard-canvas { display: block; }
+
+    #toolbar { background: #16213e; border-top: 2px solid #0f3460; padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+    .tool-btn { background: #0f3460; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .tool-btn:hover { background: #1a73e8; }
+    .tool-btn.selected { background: #1a73e8; outline: 2px solid #a0c4ff; }
+    #color-picker { width: 36px; height: 36px; border-radius: 8px; border: 3px solid #0f3460; cursor: pointer; padding: 0; }
+    #brush-size { width: 90px; accent-color: #1a73e8; }
+    .tool-separator { width: 2px; height: 30px; background: #0f3460; border-radius: 2px; }
+    #teacher-only { display: none; gap: 8px; }
+
+    /* Connecting screen */
+    #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 16px; }
+    #connecting-screen img { height: 80px; margin-bottom: 10px; }
+    #connecting-screen p { font-size: 1.2rem; font-weight: 700; color: #a0c4ff; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="connecting-screen">
+  <img src="LOGO.png" alt="PolyABC"/>
+  <div class="spinner"></div>
+  <p id="connect-msg">Connecting to classroom...</p>
+</div>
+
+<div id="topbar">
+  <img src="LOGO.png" alt="PolyABC"/>
+  <span id="room-label">Room: —</span>
+  <span id="status-bar">Connecting...</span>
+  <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
+</div>
+
+<div id="main">
+  <!-- LEFT: Jitsi video -->
+  <div id="left-panel">
+    <div id="jitsi-container"></div>
+  </div>
+
+  <!-- CENTER: Whiteboard -->
+  <div id="center-panel">
+    <div id="whiteboard-wrap">
+      <canvas id="whiteboard-canvas"></canvas>
+    </div>
+    <div id="toolbar">
+      <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
+      <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">🧹 Erase</button>
+      <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
+      <div class="tool-separator"></div>
+      <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
+      <input type="range" id="brush-size" min="2" max="30" value="5" onchange="setBrushSize(this.value)"/>
+      <div class="tool-separator"></div>
+      <div id="teacher-only">
+        <button class="tool-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+        <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
+        <button class="tool-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVER_URL = "https://polyabc-server.onrender.com";
+const params     = new URLSearchParams(window.location.search);
+const ROOM       = params.get('room') || '001';
+const IS_TEACHER = !!localStorage.getItem('adminToken');
+const MY_TOKEN   = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
+const MY_NAME    = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
+
+document.getElementById('room-label').textContent = `Room: ${ROOM}`;
+if (IS_TEACHER) document.getElementById('teacher-only').style.display = 'flex';
+
+// ── Jitsi Meet setup ──
+// Use a hashed room name so outsiders can't easily guess it
+const jitsiRoom = 'PolyABC-' + btoa('room-' + ROOM + '-polyabc2024').replace(/[^a-zA-Z0-9]/g, '');
+
+function startJitsi() {
+  const domain = 'meet.jit.si';
+  const options = {
+    roomName: jitsiRoom,
+    parentNode: document.getElementById('jitsi-container'),
+    width: '100%',
+    height: '100%',
+    configOverwrite: {
+      startWithAudioMuted: !IS_TEACHER, // students start muted
+      startWithVideoMuted: false,
+      disableDeepLinking: true,
+      prejoinPageEnabled: false,       // skip prejoin screen
+      disableInviteFunctions: true,
+      enableWelcomePage: false,
+    },
+    interfaceConfigOverwrite: {
+      SHOW_JITSI_WATERMARK: false,
+      SHOW_WATERMARK_FOR_GUESTS: false,
+      SHOW_BRAND_WATERMARK: false,
+      DEFAULT_REMOTE_DISPLAY_NAME: 'Student',
+      TOOLBAR_BUTTONS: IS_TEACHER
+        ? ['microphone', 'camera', 'hangup', 'tileview']
+        : ['microphone', 'camera', 'hangup'],
+      HIDE_INVITE_MORE_HEADER: true,
+    },
+    userInfo: {
+      displayName: MY_NAME
+    }
+  };
+
+  const api = new JitsiMeetExternalAPI(domain, options);
+  window._jitsiApi = api;
+
+  // Teacher can mute participants via Jitsi API
+  if (IS_TEACHER) {
+    api.addEventListener('participantJoined', (e) => {
+      console.log('Participant joined:', e);
+    });
+  }
+
+  // When Jitsi is ready, connect whiteboard
+  api.addEventListener('videoConferenceJoined', () => {
+    document.getElementById('status-bar').textContent = '🟢 In Class';
+    document.getElementById('status-bar').style.color = '#69f0ae';
+    connectWhiteboard();
+    document.getElementById('connecting-screen').style.display = 'none';
+  });
+
+  api.addEventListener('videoConferenceLeft', () => {
+    window.location.href = 'index.html';
+  });
+}
+
+// ── Whiteboard via Socket.io ──
+let socket, canvas, currentTool = 'draw', suppressSync = false;
+const CANVAS_W = 1440, CANVAS_H = 810;
+
+function connectWhiteboard() {
+  socket = io(SERVER_URL);
+
+  socket.on('connect', () => {
+    socket.emit('join-whiteboard', { room: ROOM, token: MY_TOKEN });
+  });
+
+  socket.on('whiteboard-ready', () => {
+    initWhiteboard();
+  });
+
+  socket.on('whiteboard-error', (msg) => {
+    console.error('Whiteboard error:', msg);
+  });
+
+  socket.on('whiteboard-path', ({ path }) => {
+    suppressSync = true;
+    fabric.util.enlivenObjects([path], (objs) => {
+      objs.forEach(o => canvas.add(o));
+      canvas.renderAll();
+      suppressSync = false;
+    });
+  });
+
+  socket.on('whiteboard-sync', ({ json }) => {
+    suppressSync = true;
+    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
+  });
+
+  socket.on('whiteboard-clear', () => {
+    suppressSync = true;
+    canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll();
+    suppressSync = false;
+  });
+}
+
+function initWhiteboard() {
+  canvas = new fabric.Canvas('whiteboard-canvas', {
+    width: CANVAS_W, height: CANVAS_H,
+    isDrawingMode: true, backgroundColor: '#ffffff'
+  });
+  canvas.freeDrawingBrush.color = '#000000';
+  canvas.freeDrawingBrush.width = 5;
+  scaleCanvas();
+  window.addEventListener('resize', scaleCanvas);
+
+  canvas.on('path:created', (e) => {
+    if (suppressSync) return;
+    socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
+  });
+  canvas.on('object:modified', () => {
+    if (suppressSync) return;
+    socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+  });
+}
+
+function scaleCanvas() {
+  const wrap  = document.getElementById('whiteboard-wrap');
+  const scale = Math.min(wrap.clientWidth / CANVAS_W, wrap.clientHeight / CANVAS_H);
+  const container = document.querySelector('.canvas-container');
+  if (container) { container.style.transform = `scale(${scale})`; container.style.transformOrigin = 'top left'; }
+}
+
+function setTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById(`tool-${tool}`).classList.add('selected');
+  if (tool === 'draw') {
+    canvas.isDrawingMode = true;
+    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+    canvas.freeDrawingBrush.color = document.getElementById('color-picker').value;
+    canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value);
+  } else if (tool === 'erase') {
+    canvas.isDrawingMode = true;
+    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+    canvas.freeDrawingBrush.color = '#ffffff';
+    canvas.freeDrawingBrush.width = 20;
+  } else { canvas.isDrawingMode = false; }
+}
+
+function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
+function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
+
+function clearBoard() {
+  if (!IS_TEACHER) return;
+  canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll();
+  if (socket) socket.emit('whiteboard-clear', { room: ROOM });
+}
+
+function uploadImage(event) {
+  if (!IS_TEACHER) return;
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    fabric.Image.fromURL(e.target.result, (img) => {
+      const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
+      img.scale(scale).set({ left: 40, top: 40, selectable: true });
+      canvas.add(img); canvas.renderAll();
+      if (socket) socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+    });
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function leaveClass() {
+  if (confirm('Are you sure you want to leave the class?')) {
+    if (window._jitsiApi) window._jitsiApi.dispose();
+    if (socket) socket.disconnect();
+    window.location.href = 'index.html';
+  }
+}
+
+// ── Start Jitsi ──
+startJitsi();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Learn English Online</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f0f7ff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .logo img {
+      height: 180px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .tagline {
+      font-size: 1.1rem;
+      color: #666;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    .view-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #1a73e8;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: 2px solid #ddd;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #1a73e8; }
+
+    .btn-join {
+      display: block;
+      width: 100%;
+      padding: 22px;
+      border-radius: 16px;
+      border: none;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #1a73e8;
+      color: white;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-join:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .btn-join:active { transform: translateY(0); }
+
+    .error-msg {
+      color: #e53935;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    .admin-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #bbb;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .admin-link:hover { color: #1a73e8; }
+  </style>
+</head>
+<body>
+
+  <div class="logo"><img src="LOGO.png" alt="PolyABC"/></div>
+  <p class="tagline">Learn English from anywhere</p>
+
+  <div class="card">
+    <div class="view-title">📚 Join a Class</div>
+    <div class="error-msg" id="join-error">Wrong room number or password. Please try again.</div>
+
+    <label for="room-input">Classroom Number</label>
+    <input type="text" id="room-input" placeholder="e.g. 001 or classA" maxlength="10"/>
+
+    <label for="pass-input">Password</label>
+    <input type="password" id="pass-input" placeholder="Enter your password"/>
+
+    <button class="btn-join" onclick="joinClass()">Enter Class →</button>
+  </div>
+
+  <!-- Small discreet link for admin/teacher to go to their panel -->
+  <a class="admin-link" href="admin.html">Admin / Teacher Panel</a>
+
+  <script>
+    // ---- Your backend server URL goes here ----
+    const SERVER_URL = "https://polyabc-server.onrender.com";
+
+    async function joinClass() {
+      const room = document.getElementById('room-input').value.trim();
+      const pass = document.getElementById('pass-input').value.trim();
+
+      if (!room || !pass) {
+        alert('Please enter both a room number and password.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${SERVER_URL}/validate-room`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room, password: pass })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.role === 'teacher') {
+            localStorage.setItem('adminToken', data.token);
+            localStorage.removeItem('studentToken');
+          } else {
+            localStorage.removeItem('adminToken');
+            localStorage.setItem('studentToken', data.token);
+            localStorage.setItem('studentName', data.name);
+          }
+          window.location.href = `classroom.html?room=${room}`;
+        } else {
+          document.getElementById('join-error').style.display = 'block';
+        }
+
+      } catch(e) {
+        alert('Could not connect to server. Please try again later.');
+      }
+    }
+
+    // Allow pressing Enter to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') joinClass();
+    });
+  </script>
+
+</body>
+</html>
