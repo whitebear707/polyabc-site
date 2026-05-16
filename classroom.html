@@ -190,13 +190,20 @@ function connectSocket() {
   });
 
   socket.on('room-joined', ({ name }) => {
-    // Store name for when user clicks enter
-    window._joinedName = name;
+    window._joinedName   = name;
     window._joinedSocket = socket;
-    // Hide spinner, show enter button
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('connect-msg').textContent = 'Ready!';
+    // Personalized welcome message
+    document.getElementById('connect-msg').textContent = IS_TEACHER
+      ? `Welcome, ${name}!`
+      : `Welcome, ${name}! 👋`;
     document.getElementById('enter-btn').style.display = 'block';
+    // Teachers skip fullscreen and enter directly
+    if (IS_TEACHER) {
+      document.getElementById('enter-btn').textContent = '▶ Enter Classroom';
+    } else {
+      document.getElementById('enter-btn').textContent = '▶ Enter Classroom (Fullscreen)';
+    }
   });
 
   socket.on('room-error', (msg) => {
@@ -418,9 +425,11 @@ function toggleStudentCam(socketId, btn) {
 function enterFullscreen() {
   const name   = window._joinedName;
   const socket = window._joinedSocket;
-  // Go fullscreen on user click
-  document.documentElement.requestFullscreen().catch(() => {});
-  // Now show classroom
+  // Only go fullscreen for students
+  if (!IS_TEACHER) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  // Show classroom
   document.getElementById('connecting-screen').style.display = 'none';
   document.getElementById('status-bar').textContent = '🟢 Connected';
   document.getElementById('status-bar').style.color = '#69f0ae';
