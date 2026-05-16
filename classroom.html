@@ -251,6 +251,38 @@ function connectSocket() {
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
 
+  // Whiteboard sync listeners
+  socket.on('whiteboard-path', ({ path }) => {
+    if (!canvas) return;
+    suppressSync = true;
+    fabric.util.enlivenObjects([path], (objs) => {
+      objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false;
+    });
+  });
+  socket.on('whiteboard-sync', ({ json }) => {
+    if (!canvas) return;
+    suppressSync = true;
+    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
+  });
+  socket.on('whiteboard-clear', () => {
+    if (!canvas) return;
+    suppressSync = true;
+    canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
+  });
+  socket.on('canvas-state', ({ json }) => {
+    if (!canvas) return;
+    suppressSync = true;
+    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
+  });
+  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
+    if (!canvas) return;
+    suppressSync = true;
+    fabric.Image.fromURL(dataUrl, (img) => {
+      img.scale(scale).set({ left, top, selectable: false });
+      canvas.add(img); canvas.renderAll(); suppressSync = false;
+    });
+  });
+
   // If socket disconnects unexpectedly, rejoin the room automatically
   socket.on('disconnect', () => {
     document.getElementById('status-bar').textContent = '🟡 Reconnecting...';
@@ -488,42 +520,11 @@ function initWhiteboard(socket) {
 
   canvas.on('path:created', (e) => {
     if (suppressSync) return;
-    socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
+    window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
   });
   canvas.on('object:modified', () => {
     if (suppressSync) return;
-    socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
-  });
-
-  socket.on('whiteboard-path', ({ path }) => {
-    suppressSync = true;
-    fabric.util.enlivenObjects([path], (objs) => {
-      objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false;
-    });
-  });
-  socket.on('whiteboard-sync', ({ json }) => {
-    suppressSync = true;
-    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
-  });
-  socket.on('whiteboard-clear', () => {
-    suppressSync = true;
-    canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
-  });
-
-  // Receive full canvas state when joining late
-  socket.on('canvas-state', ({ json }) => {
-    suppressSync = true;
-    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
-  });
-
-  // Receive image from teacher
-  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
-    suppressSync = true;
-    fabric.Image.fromURL(dataUrl, (img) => {
-      img.scale(scale).set({ left, top, selectable: false });
-      canvas.add(img); canvas.renderAll();
-      suppressSync = false;
-    });
+    window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
   });
 }
 
