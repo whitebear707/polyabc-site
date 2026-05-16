@@ -205,6 +205,11 @@ function connectSocket() {
     remoteRoles[socketId] = role;
     remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
+    // If we are the teacher, send current canvas state to the new joiner
+    if (IS_TEACHER && canvas) {
+      const json = canvas.toJSON();
+      socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json });
+    }
   });
 
   // Existing users when we join
@@ -453,6 +458,22 @@ function initWhiteboard(socket) {
     suppressSync = true;
     canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
   });
+
+  // Receive full canvas state when joining late
+  socket.on('canvas-state', ({ json }) => {
+    suppressSync = true;
+    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
+  });
+
+  // Receive image from teacher
+  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
+    suppressSync = true;
+    fabric.Image.fromURL(dataUrl, (img) => {
+      img.scale(scale).set({ left, top, selectable: false });
+      canvas.add(img); canvas.renderAll();
+      suppressSync = false;
+    });
+  });
 }
 
 function scaleCanvas() {
@@ -493,11 +514,15 @@ function uploadImage(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    fabric.Image.fromURL(e.target.result, (img) => {
+    const dataUrl = e.target.result;
+    fabric.Image.fromURL(dataUrl, (img) => {
       const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
       img.scale(scale).set({ left: 40, top: 40, selectable: true });
       canvas.add(img); canvas.renderAll();
-      if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+      // Send image URL separately then sync canvas
+      if (window._socket) {
+        window._socket.emit('whiteboard-image', { room: ROOM, dataUrl, scale, left: 40, top: 40 });
+      }
     });
   };
   reader.readAsDataURL(file);
