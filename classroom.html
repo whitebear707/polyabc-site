@@ -251,6 +251,19 @@ function connectSocket() {
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
 
+  // If socket disconnects unexpectedly, rejoin the room automatically
+  socket.on('disconnect', () => {
+    document.getElementById('status-bar').textContent = '🟡 Reconnecting...';
+    document.getElementById('status-bar').style.color = '#ffd740';
+  });
+
+  socket.on('reconnect', () => {
+    document.getElementById('status-bar').textContent = '🟢 Connected';
+    document.getElementById('status-bar').style.color = '#69f0ae';
+    // Rejoin room after reconnect
+    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+  });
+
   socket.on('you-are-muted', () => {
     if (localStream) {
       localStream.getAudioTracks().forEach(t => t.enabled = false);
@@ -461,6 +474,8 @@ const CANVAS_W = 1440, CANVAS_H = 810;
 let canvas, currentTool = 'draw', suppressSync = false;
 
 function initWhiteboard(socket) {
+  if (window._whiteboardInit) return; // prevent double init
+  window._whiteboardInit = true;
   canvas = new fabric.Canvas('whiteboard-canvas', {
     width: CANVAS_W, height: CANVAS_H,
     isDrawingMode: true, backgroundColor: '#ffffff'
