@@ -68,12 +68,12 @@
 </head>
 <body>
 
-<div id="connecting-screen">
-  <img src="LOGO.png" alt="PolyABC"/>
+<div id="connecting-screen" style="position:fixed;inset:0;background:#1a1a2e;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100vw;height:100vh;">
+  <img src="LOGO.png" alt="PolyABC" style="height:280px;display:block;margin:0 auto 40px auto;"/>
   <div class="spinner" id="spinner"></div>
-  <p id="connect-msg">Starting camera...</p>
-  <button id="enter-btn" onclick="enterFullscreen()" style="display:none;margin-top:20px;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);">
-    ▶ Enter Classroom
+  <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:30px auto;width:100%;"></p>
+  <button id="enter-btn" onclick="enterFullscreen()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
+    ▶ Enter Class
   </button>
 </div>
 
