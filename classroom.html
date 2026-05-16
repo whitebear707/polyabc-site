@@ -70,8 +70,11 @@
 
 <div id="connecting-screen">
   <img src="LOGO.png" alt="PolyABC"/>
-  <div class="spinner"></div>
+  <div class="spinner" id="spinner"></div>
   <p id="connect-msg">Starting camera...</p>
+  <button id="enter-btn" onclick="enterFullscreen()" style="display:none;margin-top:16px;background:#1a73e8;color:white;border:none;padding:18px 40px;border-radius:16px;font-family:Nunito,sans-serif;font-size:1.2rem;font-weight:700;cursor:pointer;">
+    ▶ Enter Classroom
+  </button>
 </div>
 
 <div id="topbar">
@@ -187,17 +190,13 @@ function connectSocket() {
   });
 
   socket.on('room-joined', ({ name }) => {
-    document.getElementById('connecting-screen').style.display = 'none';
-    document.getElementById('status-bar').textContent = '🟢 Connected';
-    document.getElementById('status-bar').style.color = '#69f0ae';
-    if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
-    initWhiteboard(socket);
-    startVideoCapture(socket);
-    startAudioRelay(socket);
-    // Go fullscreen automatically
-    try {
-      document.documentElement.requestFullscreen();
-    } catch(e) {}
+    // Store name for when user clicks enter
+    window._joinedName = name;
+    window._joinedSocket = socket;
+    // Hide spinner, show enter button
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('connect-msg').textContent = 'Ready!';
+    document.getElementById('enter-btn').style.display = 'block';
   });
 
   socket.on('room-error', (msg) => {
@@ -414,6 +413,21 @@ function toggleStudentCam(socketId, btn) {
   btn.dataset.camoff = !isOff;
   btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
+}
+
+function enterFullscreen() {
+  const name   = window._joinedName;
+  const socket = window._joinedSocket;
+  // Go fullscreen on user click
+  document.documentElement.requestFullscreen().catch(() => {});
+  // Now show classroom
+  document.getElementById('connecting-screen').style.display = 'none';
+  document.getElementById('status-bar').textContent = '🟢 Connected';
+  document.getElementById('status-bar').style.color = '#69f0ae';
+  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
+  initWhiteboard(socket);
+  startVideoCapture(socket);
+  startAudioRelay(socket);
 }
 
 function toggleFullscreen() {
