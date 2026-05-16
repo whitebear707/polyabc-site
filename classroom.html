@@ -477,10 +477,18 @@ function initWhiteboard(socket) {
 }
 
 function scaleCanvas() {
-  const wrap = document.getElementById('whiteboard-wrap');
+  const wrap  = document.getElementById('whiteboard-wrap');
   const scale = Math.min(wrap.clientWidth / CANVAS_W, wrap.clientHeight / CANVAS_H);
   const container = document.querySelector('.canvas-container');
-  if (container) { container.style.transform = `scale(${scale})`; container.style.transformOrigin = 'top left'; }
+  if (container) {
+    container.style.transform       = `scale(${scale})`;
+    container.style.transformOrigin = 'top left';
+  }
+  // Set wrap height to exactly match scaled canvas so no grey shows
+  const scaledH = CANVAS_H * scale;
+  wrap.style.height    = scaledH + 'px';
+  wrap.style.flexShrink = '0';
+  wrap.style.overflow  = 'hidden';
 }
 
 function setTool(tool) {
