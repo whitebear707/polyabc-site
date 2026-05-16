@@ -60,7 +60,7 @@
     .empty-slot { aspect-ratio: 4/3; background: #0f3460; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a0c4ff; font-size: 0.8rem; font-weight: 700; opacity: 0.5; }
 
     #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 24px; width: 100vw; height: 100vh; }
-    #connecting-screen img { height: 220px; margin-bottom: 20px; }
+    #connecting-screen img { height: 320px; margin-bottom: 20px; }
     #connecting-screen p { font-size: 2rem; font-weight: 900; color: #a0c4ff; text-align: center; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -200,9 +200,9 @@ function connectSocket() {
     document.getElementById('enter-btn').style.display = 'block';
     // Teachers skip fullscreen and enter directly
     if (IS_TEACHER) {
-      document.getElementById('enter-btn').textContent = '▶ Enter Classroom';
+      document.getElementById('enter-btn').textContent = '▶ Enter Class';
     } else {
-      document.getElementById('enter-btn').textContent = '▶ Enter Classroom (Fullscreen)';
+      document.getElementById('enter-btn').textContent = '▶ Enter Class';
     }
   });
 
