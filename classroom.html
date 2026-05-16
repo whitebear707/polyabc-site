@@ -77,6 +77,7 @@
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
+  <button onclick="toggleFullscreen()" style="background:#0f3460;border:none;color:#a0c4ff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-family:Nunito,sans-serif;font-weight:700;">⛶ Fullscreen</button>
   <span id="status-bar">Connecting...</span>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
 </div>
@@ -193,6 +194,10 @@ function connectSocket() {
     initWhiteboard(socket);
     startVideoCapture(socket);
     startAudioRelay(socket);
+    // Go fullscreen automatically
+    try {
+      document.documentElement.requestFullscreen();
+    } catch(e) {}
   });
 
   socket.on('room-error', (msg) => {
@@ -409,6 +414,14 @@ function toggleStudentCam(socketId, btn) {
   btn.dataset.camoff = !isOff;
   btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
 }
 
 function leaveClass() {
