@@ -77,6 +77,14 @@
   </button>
 </div>
 
+<!-- WAITING SCREEN for early students -->
+<div id="waiting-screen" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:998;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+  <img src="LOGO.png" style="height:180px;margin-bottom:30px;"/>
+  <p style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class hasn't started yet</p>
+  <p style="font-size:1.1rem;color:#666;margin-bottom:40px;">Please wait for your teacher to open the class.</p>
+  <div class="spinner" style="width:40px;height:40px;border:4px solid #0f3460;border-top-color:#1a73e8;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+</div>
+
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
@@ -121,6 +129,7 @@
         <button class="tool-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
+        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
       </div>
     </div>
   </div>
@@ -207,8 +216,14 @@ function connectSocket() {
   });
 
   socket.on('room-error', (msg) => {
-    alert(msg || 'Could not join room.');
-    window.location.href = 'index.html';
+    if (msg === 'CLASS_NOT_OPEN') {
+      // Show waiting screen instead of error
+      document.getElementById('connecting-screen').style.display = 'none';
+      document.getElementById('waiting-screen').style.display = 'flex';
+    } else {
+      alert(msg || 'Could not join room.');
+      window.location.href = 'index.html';
+    }
   });
 
   // Someone joined — set up their video slot
@@ -250,6 +265,43 @@ function connectSocket() {
   });
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
+
+  // Class opened by teacher — let waiting students in
+  socket.on('class-opened', () => {
+    if (!IS_TEACHER) {
+      const waitingScreen = document.getElementById('waiting-screen');
+      if (waitingScreen && waitingScreen.style.display !== 'none') {
+        waitingScreen.style.display = 'none';
+        document.getElementById('enter-btn').style.display = 'block';
+        document.getElementById('connect-msg').textContent = `Welcome, ${MY_NAME}! 👋`;
+        document.getElementById('connecting-screen').style.display = 'flex';
+      }
+    }
+  });
+
+  // Class closed by teacher
+  socket.on('class-closed', () => {
+    if (!IS_TEACHER) {
+      alert('Class has ended. See you next time!');
+      window.location.href = 'index.html';
+    }
+  });
+
+  // Teacher lost connection — warn students
+  socket.on('teacher-disconnected', () => {
+    if (!IS_TEACHER) {
+      document.getElementById('status-bar').textContent = '⚠️ Teacher disconnected — waiting up to 5 min...';
+      document.getElementById('status-bar').style.color = '#ffd740';
+    }
+  });
+
+  // Teacher came back!
+  socket.on('teacher-reconnected', () => {
+    if (!IS_TEACHER) {
+      document.getElementById('status-bar').textContent = '🟢 In Class';
+      document.getElementById('status-bar').style.color = '#69f0ae';
+    }
+  });
 
   // Whiteboard sync listeners
   socket.on('whiteboard-path', ({ path }) => {
@@ -482,6 +534,22 @@ function enterFullscreen() {
   initWhiteboard(socket);
   startVideoCapture(socket);
   startAudioRelay(socket);
+}
+
+let classIsOpen = false;
+
+function toggleClassOpen() {
+  classIsOpen = !classIsOpen;
+  const btn = document.getElementById('open-class-btn');
+  if (classIsOpen) {
+    btn.textContent = '🔒 Close Class';
+    btn.style.background = '#e53935';
+    if (window._socket) window._socket.emit('class-opened', { room: ROOM });
+  } else {
+    btn.textContent = '🔓 Open Class';
+    btn.style.background = '#2e7d32';
+    if (window._socket) window._socket.emit('class-closed', { room: ROOM });
+  }
 }
 
 function toggleFullscreen() {
