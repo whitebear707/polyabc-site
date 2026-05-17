@@ -201,18 +201,19 @@ function connectSocket() {
   socket.on('room-joined', ({ name }) => {
     window._joinedName   = name;
     window._joinedSocket = socket;
+    // Hide waiting screen if it was showing
+    const wasWaiting = document.getElementById('waiting-screen').style.display !== 'none';
+    document.getElementById('waiting-screen').style.display = 'none';
+    // Show welcome screen
+    document.getElementById('connecting-screen').style.display = 'flex';
+    // Play chime if student was waiting
+    if (!IS_TEACHER && wasWaiting) playChime();
     document.getElementById('spinner').style.display = 'none';
-    // Personalized welcome message
     document.getElementById('connect-msg').textContent = IS_TEACHER
       ? `Welcome, ${name}!`
       : `Welcome, ${name}! 👋`;
     document.getElementById('enter-btn').style.display = 'block';
-    // Teachers skip fullscreen and enter directly
-    if (IS_TEACHER) {
-      document.getElementById('enter-btn').textContent = '▶ Enter Class';
-    } else {
-      document.getElementById('enter-btn').textContent = '▶ Enter Class';
-    }
+    document.getElementById('enter-btn').textContent = '▶ Enter Class';
   });
 
   socket.on('room-error', (msg) => {
@@ -550,6 +551,13 @@ function toggleClassOpen() {
     btn.style.background = '#2e7d32';
     if (window._socket) window._socket.emit('class-closed', { room: ROOM });
   }
+}
+
+function playChime() {
+  try {
+    const audio = new Audio('data:audio/mp3;base64,');
+    audio.play().catch(() => {});
+  } catch(e) {}
 }
 
 function toggleFullscreen() {
