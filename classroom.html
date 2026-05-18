@@ -585,9 +585,10 @@ function unlockAndWait(btn) {
 
 function playChime() {
   try {
+    console.log('Playing chime...');
     const audio = new Audio('intro.mp3');
-    audio.play().catch(() => {});
-  } catch(e) {}
+    audio.play().then(() => console.log('Chime played!')).catch(e => console.log('Chime blocked:', e));
+  } catch(e) { console.log('Chime error:', e); }
 }
 
 function toggleFullscreen() {
