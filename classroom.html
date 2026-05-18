@@ -446,9 +446,9 @@ function startAudioRelay(socket) {
   try {
     mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
     mediaRecorder.ondataavailable = async (e) => {
-      if (e.data.size > 0 && myMicOn) {
+      if (e.data.size > 0 && myMicOn && window._socket) {
         const buf = await e.data.arrayBuffer();
-        socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
+        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
       }
     };
     mediaRecorder.start(200); // 200ms chunks
@@ -567,7 +567,7 @@ function toggleClassOpen() {
 }
 
 function unlockAndWait(btn) {
-  // Unlock audio on user click then play chime immediately
+  // Unlock audio on user click
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const buf = ctx.createBuffer(1, 1, 22050);
@@ -581,6 +581,8 @@ function unlockAndWait(btn) {
   btn.textContent = '✅ Waiting for teacher...';
   btn.disabled = true;
   btn.style.background = '#2e7d32';
+  // When class opens, enterFullscreen will be called which plays chime
+  window._waitingForTeacher = true;
 }
 
 function playChime() {
