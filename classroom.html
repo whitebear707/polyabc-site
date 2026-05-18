@@ -208,8 +208,8 @@ function connectSocket() {
     document.getElementById('waiting-screen').style.display = 'none';
     // Show welcome screen
     document.getElementById('connecting-screen').style.display = 'flex';
-    // Play chime if student was waiting
-    if (!IS_TEACHER && wasWaiting) playChime();
+    // Store if student was waiting so we can play chime when they click Enter
+    window._wasWaiting = !IS_TEACHER && wasWaiting;
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('connect-msg').textContent = IS_TEACHER
       ? `Welcome, ${name}!`
@@ -526,7 +526,7 @@ function toggleStudentCam(socketId, btn) {
 function enterFullscreen() {
   const name   = window._joinedName;
   const socket = window._joinedSocket;
-  // Unlock audio by playing a silent sound on user click
+  // Unlock audio
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const buf = ctx.createBuffer(1, 1, 22050);
@@ -567,7 +567,7 @@ function toggleClassOpen() {
 }
 
 function unlockAndWait(btn) {
-  // Unlock audio on user click
+  // Unlock audio on user click then play chime immediately
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const buf = ctx.createBuffer(1, 1, 22050);
