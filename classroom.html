@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC Classroom</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -587,10 +588,12 @@ function unlockAndWait(btn) {
 
 function playChime() {
   try {
-    console.log('Playing chime...');
+    console.log('Playing chime NOW...');
     const audio = new Audio('intro.mp3');
-    audio.play().then(() => console.log('Chime played!')).catch(e => console.log('Chime blocked:', e));
-  } catch(e) { console.log('Chime error:', e); }
+    audio.volume = 1.0;
+    const playPromise = audio.play();
+    if (playPromise) playPromise.then(() => console.log('SUCCESS!')).catch(e => console.log('BLOCKED:', e.message));
+  } catch(e) { console.log('ERROR:', e); }
 }
 
 function toggleFullscreen() {
