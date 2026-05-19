@@ -60,6 +60,20 @@
     #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes borderGlow {
+      0%   { box-shadow: 4px 0 0 0 #ffd740; border-color: #ffd740; }
+      25%  { box-shadow: 4px 4px 0 0 #ffd740; border-color: #ffaa00; }
+      50%  { box-shadow: 0 4px 0 0 #ffd740; border-color: #ffd740; }
+      75%  { box-shadow: -4px 4px 0 0 #ffd740; border-color: #ffaa00; }
+      100% { box-shadow: 4px 0 0 0 #ffd740; border-color: #ffd740; }
+    }
+    .waiting-box {
+      font-size: 1.3rem; font-weight: 900; color: #ffd740;
+      margin-bottom: 30px; padding: 12px 24px; border-radius: 12px;
+      border: 3px solid #ffd740;
+      background: rgba(255,215,64,0.1);
+      animation: borderGlow 1.5s linear infinite;
+    }
 
     #waiting-screen { display: none; position: fixed; inset: 0; background: #1a1a2e; z-index: 998; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
   </style>
@@ -70,8 +84,7 @@
 <div id="waiting-screen">
   <img src="LOGO.png" style="height:100px;margin-bottom:20px;"/>
   <p id="waiting-name" style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Welcome!</p>
-  <p style="font-size:1.3rem;font-weight:900;color:#ffd740;margin-bottom:30px;background:rgba(255,215,64,0.1);padding:12px 24px;border-radius:12px;border:2px solid #ffd740;">⏳ Waiting for teacher to open the class...</p>
-  <div class="spinner"></div>
+  <p class="waiting-box">⏳ Waiting for teacher to open the class...</p>
 </div>
 
 <!-- CONNECTING SCREEN -->
