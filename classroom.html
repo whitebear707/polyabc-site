@@ -319,8 +319,10 @@ function connectSocket() {
     remoteRoles[socketId] = role;
     remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
-    if (IS_TEACHER && canvas) {
-      socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() });
+    if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
+      setTimeout(() => {
+        socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() });
+      }, 1500); // wait for student to fully connect
     }
   });
 
