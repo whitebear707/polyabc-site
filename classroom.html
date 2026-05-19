@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><!-- v2.5 -->
+  <meta charset="UTF-8"/>
   <link rel="icon" type="image/png" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC Classroom</title>
@@ -35,9 +35,6 @@
     #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #e8e8e8; }
     #whiteboard-canvas { display: block; }
-    #my-pip { position: absolute; bottom: 80px; left: 10px; width: 110px; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; z-index: 10; border: 2px solid #1a73e8; display: none; }
-    #my-pip video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    #my-pip-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.7rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 1px 6px; border-radius: 4px; }
 
     #toolbar { background: #16213e; border-top: 2px solid #0f3460; padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
     .tool-btn { background: #0f3460; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
@@ -53,24 +50,32 @@
     .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; width: 100%; }
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
-    .student-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 5px; }
-    .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; }
+    .student-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 5px; z-index: 2; }
+    .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 2; }
     .mute-student-btn:hover { background: #e53935; }
-    .cam-student-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; }
+    .cam-student-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 2; }
     .cam-student-btn:hover { background: #e53935; }
     .empty-slot { aspect-ratio: 4/3; background: #0f3460; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a0c4ff; font-size: 0.8rem; font-weight: 700; opacity: 0.5; }
 
-    #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 0; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
-    #connecting-screen img { height: 280px; display: block; margin: 0 auto 40px auto; }
-    #connecting-screen p { font-size: 2rem; font-weight: 900; color: #a0c4ff; text-align: center; margin: 30px 0; }
+    #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    #waiting-screen { display: none; position: fixed; inset: 0; background: #1a1a2e; z-index: 998; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
 
-<div id="connecting-screen" style="position:fixed;inset:0;background:#1a1a2e;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100vw;height:100vh;">
-  <img src="LOGO.png" alt="PolyABC" style="height:200px;display:block;margin:0 auto 20px auto;"/>
+<!-- WAITING SCREEN -->
+<div id="waiting-screen">
+  <img src="LOGO.png" style="height:180px;margin-bottom:30px;"/>
+  <p id="waiting-name" style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:30px;">Welcome!</p>
+  <div class="spinner"></div>
+</div>
+
+<!-- CONNECTING SCREEN -->
+<div id="connecting-screen">
+  <img src="LOGO.png" alt="PolyABC" style="height:280px;display:block;margin:0 auto 40px auto;"/>
   <div class="spinner" id="spinner"></div>
   <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:60px auto;width:100%;"></p>
   <button id="enter-btn" onclick="enterFullscreen()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
@@ -78,20 +83,9 @@
   </button>
 </div>
 
-<!-- WAITING SCREEN for early students -->
-<div id="waiting-screen" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:998;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
-  <img src="LOGO.png" style="height:180px;margin-bottom:30px;"/>
-  <p id="waiting-name" style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:30px;">Welcome!</p>
-  <button onclick="unlockAndWait(this)" style="background:#1a73e8;color:white;border:none;padding:16px 40px;border-radius:14px;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:700;cursor:pointer;margin-bottom:30px;">
-    ▶ Enter Class
-  </button>
-  <div class="spinner" style="width:40px;height:40px;border:4px solid #0f3460;border-top-color:#1a73e8;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-</div>
-
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
-  <button onclick="toggleFullscreen()" style="background:#0f3460;border:none;color:#a0c4ff;padding:4px 10px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-family:Nunito,sans-serif;font-weight:700;">⛶ Fullscreen</button>
   <span id="status-bar">Connecting...</span>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
 </div>
@@ -115,10 +109,6 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
-      <div id="my-pip">
-        <video id="pip-video" autoplay muted playsinline></video>
-        <div id="my-pip-label">You</div>
-      </div>
     </div>
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
@@ -153,6 +143,7 @@ const ROOM        = params.get('room') || '001';
 const IS_TEACHER  = !!localStorage.getItem('adminToken');
 const MY_TOKEN    = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
 const MY_NAME     = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
+const studentSlots = IS_TEACHER ? {} : { '__self__': 1 };
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
@@ -161,18 +152,17 @@ if (IS_TEACHER) {
   document.getElementById('my-controls').style.display = 'none';
 }
 
-let localStream   = null;
-let myMicOn = true, myCamOn = true;
-const remoteRoles  = {};
-const remoteNames  = {};
-const studentSlots = IS_TEACHER ? {} : { '__self__': 1 }; // reserve slot 1 for student's own cam
-let teacherSocketId = null;
-
-// ── Canvas capture for video relay ──
 const capCanvas = document.createElement('canvas');
 capCanvas.width = 320; capCanvas.height = 240;
 const capCtx = capCanvas.getContext('2d');
 let captureInterval = null;
+let localStream = null;
+let myMicOn = true, myCamOn = true;
+const remoteRoles = {};
+const remoteNames = {};
+let teacherSocketId = null;
+let mediaRecorder = null;
+let classIsOpen = false;
 
 async function startMedia() {
   try {
@@ -183,10 +173,9 @@ async function startMedia() {
       document.getElementById('left-video').muted = true;
       document.getElementById('left-label').textContent = `👩‍🏫 ${MY_NAME} (You)`;
     } else {
-      document.getElementById('pip-video').srcObject = localStream;
       document.getElementById('left-label').textContent = 'Waiting for teacher...';
     }
-    document.getElementById('connect-msg').textContent = 'Connecting to classroom...';
+    document.getElementById('connect-msg').textContent = 'Connecting...';
     connectSocket();
   } catch(e) {
     alert('Camera/mic access denied. Please allow and refresh.');
@@ -204,47 +193,25 @@ function connectSocket() {
   socket.on('room-joined', ({ name }) => {
     window._joinedName   = name;
     window._joinedSocket = socket;
-    // Hide waiting screen if it was showing
-    const wasWaiting = document.getElementById('waiting-screen').style.display !== 'none';
     document.getElementById('waiting-screen').style.display = 'none';
-    // Show welcome screen
     document.getElementById('connecting-screen').style.display = 'flex';
-    // Store if student was waiting so we can play chime when they click Enter
-    window._wasWaiting = !IS_TEACHER && wasWaiting;
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('connect-msg').textContent = IS_TEACHER
-      ? `Welcome, ${name}!`
-      : `Welcome, ${name}! 👋`;
+    document.getElementById('connect-msg').textContent = IS_TEACHER ? `Welcome, ${name}!` : `Welcome, ${name}! 👋`;
     document.getElementById('enter-btn').style.display = 'block';
     document.getElementById('enter-btn').textContent = '▶ Enter Class';
   });
 
   socket.on('room-error', (msg) => {
     if (msg === 'CLASS_NOT_OPEN') {
-      // Show waiting screen instead of error
       document.getElementById('connecting-screen').style.display = 'none';
       document.getElementById('waiting-screen').style.display = 'flex';
       document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
-
     } else {
       alert(msg || 'Could not join room.');
       window.location.href = 'index.html';
     }
   });
 
-  // Someone joined — set up their video slot
-  socket.on('user-joined', ({ socketId, role, name }) => {
-    remoteRoles[socketId] = role;
-    remoteNames[socketId] = name;
-    createVideoSlot(socketId, role, name);
-    // If we are the teacher, send current canvas state to the new joiner
-    if (IS_TEACHER && canvas) {
-      const json = canvas.toJSON();
-      socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json });
-    }
-  });
-
-  // Existing users when we join
   socket.on('existing-users', (users) => {
     users.forEach(({ socketId, role, name }) => {
       remoteRoles[socketId] = role;
@@ -253,15 +220,21 @@ function connectSocket() {
     });
   });
 
-  // Receive video frame from another user
+  socket.on('user-joined', ({ socketId, role, name }) => {
+    remoteRoles[socketId] = role;
+    remoteNames[socketId] = name;
+    createVideoSlot(socketId, role, name);
+    if (IS_TEACHER && canvas) {
+      socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() });
+    }
+  });
+
   socket.on('video-frame', ({ socketId, frame }) => {
     const img = document.getElementById(`vimg-${socketId}`);
     if (img) img.src = frame;
   });
 
-  // Receive audio chunk
   socket.on('audio-chunk', ({ socketId, chunk }) => {
-    if (!myCamOn && !myMicOn) return;
     try {
       const blob = new Blob([new Uint8Array(chunk)], { type: 'audio/webm;codecs=opus' });
       const url  = URL.createObjectURL(blob);
@@ -272,20 +245,36 @@ function connectSocket() {
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
 
-  // Class opened by teacher — let waiting students in
+  socket.on('you-are-muted', () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(t => t.enabled = false);
+      myMicOn = false;
+      const btn = document.getElementById('mic-btn');
+      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Muted'; }
+      document.getElementById('my-mute-icon').style.display = 'flex';
+    }
+  });
+
+  socket.on('your-cam-toggled', ({ camOn }) => {
+    if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+  });
+
+  socket.on('teacher-cam', ({ camOn }) => {
+    if (!IS_TEACHER) {
+      const logo = document.getElementById('cam-off-logo');
+      if (logo) logo.style.display = camOn ? 'none' : 'flex';
+    }
+  });
+
   socket.on('class-opened', () => {
     if (!IS_TEACHER) {
-      const waitingScreen = document.getElementById('waiting-screen');
-      if (waitingScreen && waitingScreen.style.display !== 'none') {
-        waitingScreen.style.display = 'none';
-        document.getElementById('enter-btn').style.display = 'block';
-        document.getElementById('connect-msg').textContent = `Welcome, ${MY_NAME}! 👋`;
-        document.getElementById('connecting-screen').style.display = 'flex';
+      const ws = document.getElementById('waiting-screen');
+      if (ws && ws.style.display !== 'none') {
+        socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
       }
     }
   });
 
-  // Class closed by teacher
   socket.on('class-closed', () => {
     if (!IS_TEACHER) {
       alert('Class has ended. See you next time!');
@@ -293,7 +282,6 @@ function connectSocket() {
     }
   });
 
-  // Teacher lost connection — warn students
   socket.on('teacher-disconnected', () => {
     if (!IS_TEACHER) {
       document.getElementById('status-bar').textContent = '⚠️ Teacher disconnected — waiting up to 5 min...';
@@ -301,7 +289,6 @@ function connectSocket() {
     }
   });
 
-  // Teacher came back!
   socket.on('teacher-reconnected', () => {
     if (!IS_TEACHER) {
       document.getElementById('status-bar').textContent = '🟢 In Class';
@@ -309,7 +296,31 @@ function connectSocket() {
     }
   });
 
-  // Whiteboard sync listeners
+  socket.on('room-full', () => {
+    if (IS_TEACHER) {
+      const btn = document.getElementById('open-class-btn');
+      if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; }
+    }
+  });
+
+  socket.on('room-unlocked', () => {
+    if (IS_TEACHER) {
+      const btn = document.getElementById('open-class-btn');
+      if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    document.getElementById('status-bar').textContent = '🟡 Reconnecting...';
+    document.getElementById('status-bar').style.color = '#ffd740';
+  });
+
+  socket.on('reconnect', () => {
+    document.getElementById('status-bar').textContent = '🟢 Connected';
+    document.getElementById('status-bar').style.color = '#69f0ae';
+    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+  });
+
   socket.on('whiteboard-path', ({ path }) => {
     if (!canvas) return;
     suppressSync = true;
@@ -340,60 +351,21 @@ function connectSocket() {
       canvas.add(img); canvas.renderAll(); suppressSync = false;
     });
   });
-
-  // If socket disconnects unexpectedly, rejoin the room automatically
-  socket.on('disconnect', () => {
-    document.getElementById('status-bar').textContent = '🟡 Reconnecting...';
-    document.getElementById('status-bar').style.color = '#ffd740';
-  });
-
-  socket.on('reconnect', () => {
-    document.getElementById('status-bar').textContent = '🟢 Connected';
-    document.getElementById('status-bar').style.color = '#69f0ae';
-    // Rejoin room after reconnect
-    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
-  });
-
-  socket.on('you-are-muted', () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(t => t.enabled = false);
-      myMicOn = false;
-      const btn = document.getElementById('mic-btn');
-      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Muted'; }
-      document.getElementById('my-mute-icon').style.display = 'flex';
-    }
-  });
-
-  socket.on('your-cam-toggled', ({ camOn }) => {
-    if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
-  });
-
-  socket.on('teacher-cam', ({ camOn }) => {
-    if (!IS_TEACHER) {
-      const logo = document.getElementById('cam-off-logo');
-      if (logo) logo.style.display = camOn ? 'none' : 'flex';
-    }
-  });
 }
 
-// ── Create a video slot for a remote user ──
 function createVideoSlot(socketId, role, name) {
   if (!IS_TEACHER && role === 'teacher') {
-    // Student sees teacher in left panel
     teacherSocketId = socketId;
-    const box = document.getElementById('left-video').parentElement;
-    // Replace video with img for canvas relay
     document.getElementById('left-video').style.display = 'none';
     let img = document.getElementById(`vimg-${socketId}`);
     if (!img) {
       img = document.createElement('img');
       img.id = `vimg-${socketId}`;
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;';
-      box.appendChild(img);
+      document.getElementById('left-video').parentElement.appendChild(img);
     }
     document.getElementById('left-label').textContent = `👩‍🏫 ${name || 'Teacher'}`;
   } else {
-    // Show in right panel student slot
     showStudentSlot(socketId, name);
   }
 }
@@ -408,11 +380,10 @@ function showStudentSlot(socketId, name) {
   const slotNum = studentSlots[socketId];
   if (!slotNum) return;
   const slot = document.getElementById(`slot-${slotNum}`);
-  const displayName = name || `Student ${slotNum}`;
   slot.className = 'student-box';
   slot.innerHTML = `
     <img id="vimg-${socketId}"/>
-    <div class="student-label">${displayName}</div>
+    <div class="student-label">${name || `Student ${slotNum}`}</div>
     ${IS_TEACHER ? `
       <button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button>
       <button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button>
@@ -424,46 +395,6 @@ function showStudentSlot(socketId, name) {
   }
 }
 
-// ── Video capture and relay ──
-function startVideoCapture(socket) {
-  const srcVideo = IS_TEACHER
-    ? document.getElementById('left-video')
-    : document.getElementById('pip-video');
-
-  captureInterval = setInterval(() => {
-    if (!localStream || !myCamOn) return;
-    try {
-      capCtx.drawImage(srcVideo, 0, 0, 320, 240);
-      const frame = capCanvas.toDataURL('image/jpeg', 0.45);
-      socket.emit('video-frame', { room: ROOM, frame });
-    } catch(e) {}
-  }, 150); // ~7fps
-}
-
-// ── Audio relay via MediaRecorder ──
-let mediaRecorder = null;
-function startAudioRelay(socket) {
-  if (!localStream) return;
-  const audioStream = new MediaStream(localStream.getAudioTracks());
-  try {
-    mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
-    mediaRecorder.ondataavailable = async (e) => {
-      if (e.data.size > 0 && myMicOn && window._socket) {
-        const buf = await e.data.arrayBuffer();
-        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
-      }
-    };
-    mediaRecorder.start(200); // 200ms chunks
-  } catch(e) {
-    console.log('Audio relay not supported:', e);
-  }
-}
-
-// showStudentVideo kept for compatibility but now uses canvas relay
-function showStudentVideo(socketId, stream) {
-  showStudentSlot(socketId, remoteNames[socketId]);
-}
-
 function removeRemote(socketId) {
   if (socketId === teacherSocketId) {
     teacherSocketId = null;
@@ -473,7 +404,7 @@ function removeRemote(socketId) {
     document.getElementById('left-label').textContent = 'Waiting for teacher...';
   }
   const slotNum = studentSlots[socketId];
-  if (slotNum) {
+  if (slotNum && slotNum !== 1) {
     const slot = document.getElementById(`slot-${slotNum}`);
     slot.className = 'empty-slot'; slot.innerHTML = 'Waiting...';
     delete studentSlots[socketId];
@@ -481,15 +412,85 @@ function removeRemote(socketId) {
   delete remoteRoles[socketId]; delete remoteNames[socketId];
 }
 
-// Student's own cam in slot-1 (using pip video as source)
+function startVideoCapture(socket) {
+  if (IS_TEACHER) {
+    const srcVideo = document.getElementById('left-video');
+    captureInterval = setInterval(() => {
+      if (!localStream || !myCamOn) return;
+      try {
+        capCtx.drawImage(srcVideo, 0, 0, 320, 240);
+        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+      } catch(e) {}
+    }, 150);
+  } else {
+    const pipVid = document.createElement('video');
+    pipVid.srcObject = localStream;
+    pipVid.muted = true;
+    pipVid.autoplay = true;
+    pipVid.play();
+    captureInterval = setInterval(() => {
+      if (!localStream || !myCamOn) return;
+      try {
+        capCtx.drawImage(pipVid, 0, 0, 320, 240);
+        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+      } catch(e) {}
+    }, 150);
+  }
+}
+
+function startAudioRelay(socket) {
+  if (!localStream) return;
+  try {
+    mediaRecorder = new MediaRecorder(new MediaStream(localStream.getAudioTracks()), { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder.ondataavailable = async (e) => {
+      if (e.data.size > 0 && myMicOn && window._socket) {
+        const buf = await e.data.arrayBuffer();
+        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
+      }
+    };
+    mediaRecorder.start(200);
+  } catch(e) {}
+}
+
 function setupOwnSlot() {
   if (!IS_TEACHER && localStream) {
     const slot = document.getElementById('slot-1');
     slot.className = 'student-box';
     slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
     document.getElementById('self-slot-video').srcObject = localStream;
-    studentSlots['__self__'] = 1;
   }
+}
+
+function enterFullscreen() {
+  const socket = window._joinedSocket;
+  const name   = window._joinedName;
+  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
+  document.getElementById('connecting-screen').style.display = 'none';
+  document.getElementById('status-bar').textContent = '🟢 Connected';
+  document.getElementById('status-bar').style.color = '#69f0ae';
+  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
+  initWhiteboard(socket);
+  startVideoCapture(socket);
+  startAudioRelay(socket);
+}
+
+function toggleClassOpen() {
+  classIsOpen = !classIsOpen;
+  const btn = document.getElementById('open-class-btn');
+  if (classIsOpen) {
+    btn.textContent = '🔒 Close Class';
+    btn.style.background = '#e53935';
+    if (window._socket) window._socket.emit('class-opened', { room: ROOM });
+  } else {
+    btn.textContent = '🔓 Open Class';
+    btn.style.background = '#2e7d32';
+    if (window._socket) window._socket.emit('class-closed', { room: ROOM });
+  }
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+  else document.exitFullscreen().catch(() => {});
 }
 
 function toggleMic() {
@@ -525,89 +526,20 @@ function toggleStudentCam(socketId, btn) {
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
 }
 
-async function enterFullscreen() {
-  const name   = window._joinedName;
-  const socket = window._joinedSocket;
-  // Unlock audio
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const buf = ctx.createBuffer(1, 1, 22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-    window._audioCtxUnlocked = true;
-  } catch(e) {}
-  // Only go fullscreen for students
-  if (!IS_TEACHER) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  }
-  // Show classroom
-  document.getElementById('connecting-screen').style.display = 'none';
-  document.getElementById('status-bar').textContent = '🟢 Connected';
-  document.getElementById('status-bar').style.color = '#69f0ae';
-  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
-  initWhiteboard(socket);
-  startVideoCapture(socket);
-  startAudioRelay(socket);
-}
-
-let classIsOpen = false;
-
-function toggleClassOpen() {
-  classIsOpen = !classIsOpen;
-  const btn = document.getElementById('open-class-btn');
-  if (classIsOpen) {
-    btn.textContent = '🔒 Close Class';
-    btn.style.background = '#e53935';
-    if (window._socket) window._socket.emit('class-opened', { room: ROOM });
-  } else {
-    btn.textContent = '🔓 Open Class';
-    btn.style.background = '#2e7d32';
-    if (window._socket) window._socket.emit('class-closed', { room: ROOM });
-  }
-}
-
-function unlockAndWait(btn) {
-  btn.textContent = '✅ Waiting for teacher...';
-  btn.disabled = true;
-  btn.style.background = '#2e7d32';
-  window._waitingForTeacher = true;
-}
-
-function playChime() {
-  try {
-    console.log('Playing chime NOW...');
-    const audio = new Audio('intro.mp3');
-    audio.volume = 1.0;
-    const playPromise = audio.play();
-    if (playPromise) playPromise.then(() => console.log('SUCCESS!')).catch(e => console.log('BLOCKED:', e.message));
-  } catch(e) { console.log('ERROR:', e); }
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
-  } else {
-    document.exitFullscreen().catch(() => {});
-  }
-}
-
 function leaveClass() {
   if (confirm('Are you sure you want to leave the class?')) {
     if (captureInterval) clearInterval(captureInterval);
-    if (mediaRecorder) mediaRecorder.stop();
+    if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
     if (window._socket) window._socket.disconnect();
     window.location.href = 'index.html';
   }
 }
 
-// ── Whiteboard ──
 const CANVAS_W = 1440, CANVAS_H = 810;
 let canvas, currentTool = 'draw', suppressSync = false;
 
 function initWhiteboard(socket) {
-  if (window._whiteboardInit) return; // prevent double init
+  if (window._whiteboardInit) return;
   window._whiteboardInit = true;
   canvas = new fabric.Canvas('whiteboard-canvas', {
     width: CANVAS_W, height: CANVAS_H,
@@ -618,7 +550,6 @@ function initWhiteboard(socket) {
   scaleCanvas();
   window.addEventListener('resize', scaleCanvas);
   setupOwnSlot();
-
   canvas.on('path:created', (e) => {
     if (suppressSync) return;
     window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
@@ -632,16 +563,10 @@ function initWhiteboard(socket) {
 function scaleCanvas() {
   const wrap  = document.getElementById('whiteboard-wrap');
   const scale = Math.min(wrap.clientWidth / CANVAS_W, wrap.clientHeight / CANVAS_H);
-  const container = document.querySelector('.canvas-container');
-  if (container) {
-    container.style.transform       = `scale(${scale})`;
-    container.style.transformOrigin = 'top left';
-  }
-  // Set wrap height to exactly match scaled canvas so no grey shows
-  const scaledH = CANVAS_H * scale;
-  wrap.style.height    = scaledH + 'px';
+  wrap.style.height = (CANVAS_H * scale) + 'px';
   wrap.style.flexShrink = '0';
-  wrap.style.overflow  = 'hidden';
+  const container = document.querySelector('.canvas-container');
+  if (container) { container.style.transform = `scale(${scale})`; container.style.transformOrigin = 'top left'; }
 }
 
 function setTool(tool) {
@@ -675,25 +600,17 @@ function uploadImage(event) {
   const file = event.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    fabric.Image.fromURL(dataUrl, (img) => {
+    fabric.Image.fromURL(e.target.result, (img) => {
       const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
       img.scale(scale).set({ left: 40, top: 40, selectable: true });
       canvas.add(img); canvas.renderAll();
-      // Send image URL separately then sync canvas
-      if (window._socket) {
-        window._socket.emit('whiteboard-image', { room: ROOM, dataUrl, scale, left: 40, top: 40 });
-      }
+      if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl: e.target.result, scale, left: 40, top: 40 });
     });
   };
   reader.readAsDataURL(file);
   event.target.value = '';
 }
 
-// Request notification permission early
-if ('Notification' in window && Notification.permission === 'default') {
-  Notification.requestPermission();
-}
 startMedia();
 </script>
 </body>
