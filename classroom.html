@@ -266,9 +266,9 @@ function getFriendlyError(e) {
   if (name === 'NotReadableError' || name === 'TrackStartError')
     return '⚠️ Camera or mic is already in use by another app. Please close it and try again.';
   if (name === 'OverconstrainedError')
-    return '⚙️ Your camera doesn't support the required settings. Try a different browser.';
+    return "⚙️ Your camera does not support the required settings. Try a different browser.";
   if (msg.includes('secure') || msg.includes('https'))
-    return '🔒 Camera requires a secure connection (HTTPS). Please make sure you're on the correct website.';
+    return "🔒 Camera requires a secure connection (HTTPS). Please make sure you are on the correct website.";
   return `❌ Could not access camera/mic: ${e.message || 'Unknown error'}. Please refresh and try again.`;
 }
 
