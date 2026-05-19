@@ -866,6 +866,52 @@ setTimeout(() => {
   }
 }, 15000);
 
+
+let screenStream = null;
+let isSharing = false;
+
+async function toggleScreenShare() {
+  if (isSharing) { stopScreenShare(); return; }
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
+    isSharing = true;
+    const vid = document.getElementById('screenshare-video');
+    vid.srcObject = screenStream;
+    vid.style.display = 'block';
+    const cc = document.querySelector('.canvas-container');
+    if (cc) cc.style.display = 'none';
+    const btn = document.getElementById('screenshare-btn');
+    if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
+    const capCv = document.createElement('canvas');
+    capCv.width = 1280; capCv.height = 720;
+    const capCx = capCv.getContext('2d');
+    window._shareInterval = setInterval(() => {
+      if (!isSharing) return;
+      try {
+        capCx.drawImage(vid, 0, 0, 1280, 720);
+        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) });
+      } catch(e) {}
+    }, 150);
+    if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
+    screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message);
+  }
+}
+
+function stopScreenShare() {
+  isSharing = false;
+  if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
+  if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+  const vid = document.getElementById('screenshare-video');
+  vid.style.display = 'none'; vid.srcObject = null;
+  const cc = document.querySelector('.canvas-container');
+  if (cc) cc.style.display = 'block';
+  const btn = document.getElementById('screenshare-btn');
+  if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
+  if (window._socket) window._socket.emit('screenshare-stop', { room: ROOM });
+}
+
 startMedia();
 </script>
 <!-- LEAVE CLASS MODAL -->
