@@ -101,9 +101,7 @@
         <img src="LOGO.png" style="width:75%;object-fit:contain;"/>
       </div>
     </div>
-    <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">
-      ⚠️ Teacher disconnected...
-    </div>
+    <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">⚠️ Teacher disconnected...</div>
     <div id="my-controls">
       <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic</button>
       <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam</button>
@@ -443,7 +441,7 @@ function createVideoSlot(socketId, role, name) {
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;';
       document.getElementById('left-video').parentElement.appendChild(img);
     }
-    document.getElementById('left-label').textContent = `👩‍🏫 ${name || 'Teacher'}`;
+    document.getElementById('left-label').textContent = `${name || 'Teacher'}`;
   } else {
     showStudentSlot(socketId, name);
   }
