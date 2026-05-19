@@ -105,7 +105,7 @@
 <div id="connecting-screen">
   <img src="LOGO.png" alt="PolyABC" style="height:100px;display:block;margin:0 auto 20px auto;"/>
   <div class="spinner" id="spinner"></div>
-  <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:60px auto;width:100%;"></p>
+  <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:30px auto;width:100%;">Starting up...</p>
   <button id="enter-btn" onclick="enterClass()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
     ▶ Enter Class
   </button>
@@ -815,6 +815,16 @@ function uploadImage(event) {
   reader.readAsDataURL(file);
   event.target.value = '';
 }
+
+// Show help button after 15 seconds if still loading
+setTimeout(() => {
+  const spinner = document.getElementById('spinner');
+  const helpBtn = document.querySelector('#connecting-screen button:last-of-type');
+  if (spinner && spinner.style.display !== 'none') {
+    document.getElementById('connect-msg').textContent = 'Taking too long?';
+    document.getElementById('connect-msg').style.fontSize = '1.2rem';
+  }
+}, 15000);
 
 startMedia();
 </script>
