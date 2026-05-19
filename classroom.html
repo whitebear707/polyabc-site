@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8"/><!-- v2.5 -->
   <link rel="icon" type="image/png" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC Classroom</title>
@@ -225,6 +225,10 @@ function connectSocket() {
       document.getElementById('connecting-screen').style.display = 'none';
       document.getElementById('waiting-screen').style.display = 'flex';
       document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
+      // Ask for notification permission
+      if ('Notification' in window) {
+        Notification.requestPermission();
+      }
     } else {
       alert(msg || 'Could not join room.');
       window.location.href = 'index.html';
@@ -568,21 +572,19 @@ function toggleClassOpen() {
 }
 
 function unlockAndWait(btn) {
-  // Unlock audio on user click
+  // Play the chime right on the click — browser allows it!
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const buf = ctx.createBuffer(1, 1, 22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-    window._audioUnlocked = true;
+    const audio = new Audio('intro.mp3');
+    audio.volume = 1.0;
+    audio.play().then(() => {
+      console.log('Sound played on click!');
+    }).catch(e => console.log('blocked:', e));
   } catch(e) {}
   // Change button to waiting state
   btn.textContent = '✅ Waiting for teacher...';
   btn.disabled = true;
   btn.style.background = '#2e7d32';
-  // When class opens, enterFullscreen will be called which plays chime
+  window._audioUnlocked = true;
   window._waitingForTeacher = true;
 }
 
