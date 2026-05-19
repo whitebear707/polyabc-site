@@ -294,9 +294,18 @@ function connectSocket() {
   });
 
   socket.on('class-closed', () => {
+    // Just locks door - students already inside stay
+  });
+
+  socket.on('class-ended', () => {
     if (!IS_TEACHER) {
-      alert('Class has ended. See you next time!');
-      window.location.href = 'index.html';
+      document.body.innerHTML = `
+        <div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
+          <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
+          <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
+          <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
+          <a href="index.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+        </div>`;
     }
   });
 
@@ -446,7 +455,7 @@ function createVideoSlot(socketId, role, name) {
     }
     // Show teacher name in label (z-index 3 so it's above the img)
     const lbl = document.getElementById('left-label');
-    lbl.textContent = name || 'Teacher';
+    lbl.textContent = `Teacher ${name || ''}`.trim();
     lbl.style.zIndex = '3';
   } else {
     showStudentSlot(socketId, name);
@@ -553,12 +562,35 @@ function toggleStudentCam(socketId, btn) {
 }
 
 function leaveClass() {
-  if (confirm('Are you sure you want to leave the class?')) {
+  if (!IS_TEACHER) {
+    // Students just leave
     if (captureInterval) clearInterval(captureInterval);
     if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
     if (window._socket) window._socket.disconnect();
     window.location.href = 'index.html';
+    return;
   }
+  // Teacher gets two options
+  document.getElementById('leave-modal').style.display = 'flex';
+}
+
+function teacherBRB() {
+  document.getElementById('leave-modal').style.display = 'none';
+  if (captureInterval) clearInterval(captureInterval);
+  if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
+  if (window._socket) window._socket.disconnect();
+  window.location.href = 'index.html';
+}
+
+function teacherEndClass() {
+  document.getElementById('leave-modal').style.display = 'none';
+  if (window._socket) window._socket.emit('end-class', { room: ROOM });
+  setTimeout(() => {
+    if (captureInterval) clearInterval(captureInterval);
+    if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
+    if (window._socket) window._socket.disconnect();
+    window.location.href = 'index.html';
+  }, 500);
 }
 
 // ── Whiteboard ──
@@ -649,5 +681,21 @@ function uploadImage(event) {
 
 startMedia();
 </script>
+<!-- LEAVE CLASS MODAL -->
+<div id="leave-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#16213e;border-radius:20px;padding:36px;width:100%;max-width:400px;margin:20px;text-align:center;font-family:Nunito,sans-serif;">
+    <p style="font-size:1.3rem;font-weight:900;color:white;margin-bottom:8px;">Leaving class?</p>
+    <p style="font-size:0.95rem;color:#888;margin-bottom:28px;">Choose what happens to your students</p>
+    <button onclick="teacherBRB()" style="display:block;width:100%;padding:16px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">
+      ⏱️ I'll be back in 5 minutes
+    </button>
+    <button onclick="teacherEndClass()" style="display:block;width:100%;padding:16px;background:#e53935;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">
+      🏁 End Class
+    </button>
+    <button onclick="document.getElementById('leave-modal').style.display='none'" style="display:block;width:100%;padding:12px;background:none;color:#888;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;cursor:pointer;">
+      Cancel
+    </button>
+  </div>
+</div>
 </body>
 </html>
