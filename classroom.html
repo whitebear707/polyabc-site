@@ -569,15 +569,9 @@ function toggleClassOpen() {
 }
 
 function unlockAndWait(btn) {
-  // Request notification permission on user click
-  if ('Notification' in window) {
-    Notification.requestPermission();
-  }
-  // Change button to waiting state
   btn.textContent = '✅ Waiting for teacher...';
   btn.disabled = true;
   btn.style.background = '#2e7d32';
-  window._audioUnlocked = true;
   window._waitingForTeacher = true;
 }
 
@@ -696,6 +690,10 @@ function uploadImage(event) {
   event.target.value = '';
 }
 
+// Request notification permission early
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
 startMedia();
 </script>
 </body>
