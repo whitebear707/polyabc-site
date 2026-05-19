@@ -24,7 +24,7 @@
     #left-panel { width: 220px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
     .video-box { position: relative; background: #0f3460; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; }
     .video-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .video-label { position: absolute; bottom: 6px; left: 8px; font-size: 0.8rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 6px; }
+    .video-label { position: absolute; bottom: 6px; left: 8px; font-size: 0.8rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 6px; z-index: 3; }
     .teacher-border { border: 3px solid #1a73e8; }
     .mute-overlay { position: absolute; top: 6px; right: 6px; background: rgba(229,57,53,0.85); border-radius: 50%; width: 26px; height: 26px; display: none; align-items: center; justify-content: center; font-size: 0.8rem; }
     #my-controls { display: flex; gap: 8px; }
@@ -556,7 +556,7 @@ function leaveClass() {
 }
 
 // ── Whiteboard ──
-const CANVAS_W = 1440, CANVAS_H = 810;
+const CANVAS_W = 1440, CANVAS_H = 760;
 let canvas, currentTool = 'draw', suppressSync = false;
 
 function initWhiteboard(socket) {
