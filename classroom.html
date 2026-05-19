@@ -60,19 +60,33 @@
     #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes borderGlow {
-      0%   { box-shadow: 4px 0 0 0 #ffd740; border-color: #ffd740; }
-      25%  { box-shadow: 4px 4px 0 0 #ffd740; border-color: #ffaa00; }
-      50%  { box-shadow: 0 4px 0 0 #ffd740; border-color: #ffd740; }
-      75%  { box-shadow: -4px 4px 0 0 #ffd740; border-color: #ffaa00; }
-      100% { box-shadow: 4px 0 0 0 #ffd740; border-color: #ffd740; }
+    @property --angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
     }
+    @keyframes chase { to { --angle: 360deg; } }
     .waiting-box {
+      position: relative;
       font-size: 1.3rem; font-weight: 900; color: #ffd740;
       margin-bottom: 30px; padding: 12px 24px; border-radius: 12px;
-      border: 3px solid #ffd740;
-      background: rgba(255,215,64,0.1);
-      animation: borderGlow 1.5s linear infinite;
+      background: rgba(255,215,64,0.08);
+    }
+    .waiting-box::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 14px;
+      background: conic-gradient(
+        from var(--angle, 0deg),
+        #2ecc40 0deg 90deg,
+        #ffd740 90deg 360deg
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      padding: 3px;
+      animation: chase 2s linear infinite;
     }
 
     #waiting-screen { display: none; position: fixed; inset: 0; background: #1a1a2e; z-index: 998; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
