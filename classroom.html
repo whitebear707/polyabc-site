@@ -524,7 +524,7 @@ function toggleStudentCam(socketId, btn) {
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
 }
 
-function enterFullscreen() {
+async function enterFullscreen() {
   const name   = window._joinedName;
   const socket = window._joinedSocket;
   // Unlock audio
