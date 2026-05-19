@@ -109,6 +109,11 @@
   <button id="enter-btn" onclick="enterClass()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
     ▶ Enter Class
   </button>
+  <div id="device-error" style="display:none;margin-top:20px;background:rgba(229,57,53,0.15);border:2px solid #e53935;border-radius:12px;padding:14px 24px;max-width:400px;text-align:center;">
+    <p id="device-error-msg" style="color:#ff8a80;font-size:1rem;font-weight:700;margin-bottom:10px;"></p>
+    <button onclick="requestDevices()" style="background:#1a73e8;color:white;border:none;padding:10px 24px;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">🔄 Try Again</button>
+  </div>
+  <button onclick="requestDevices()" style="margin-top:30px;background:none;border:2px solid #444;color:#888;padding:8px 20px;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">❓ Camera / Mic Help</button>
 </div>
 
 <div id="topbar">
@@ -160,10 +165,7 @@
 
   <div id="right-panel">
     <div id="right-panel-title">Students</div>
-    <div class="empty-slot" id="slot-1">Waiting...</div>
-    <div class="empty-slot" id="slot-2">Waiting...</div>
-    <div class="empty-slot" id="slot-3">Waiting...</div>
-    <div class="empty-slot" id="slot-4">Waiting...</div>
+    <!-- Student slots added dynamically -->
   </div>
 </div>
 
@@ -174,7 +176,8 @@ const ROOM         = params.get('room') || '001';
 const IS_TEACHER   = !!localStorage.getItem('adminToken');
 const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
-const studentSlots = IS_TEACHER ? {} : { '__self__': 1 };
+const studentSlots = {}; // dynamic slots
+const drawEnabled = {}; // socketId -> bool
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
@@ -202,6 +205,7 @@ async function startMedia() {
   try {
     document.getElementById('connect-msg').textContent = 'Starting camera...';
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('device-error') && (document.getElementById('device-error').style.display = 'none');
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
       document.getElementById('left-video').muted = true;
@@ -212,8 +216,60 @@ async function startMedia() {
     document.getElementById('connect-msg').textContent = 'Connecting...';
     connectSocket();
   } catch(e) {
-    alert('Camera/mic access denied. Please allow and refresh.');
+    showDeviceError(e);
   }
+}
+
+async function requestDevices() {
+  const errDiv = document.getElementById('device-error');
+  if (errDiv) errDiv.style.display = 'none';
+  document.getElementById('connect-msg').textContent = 'Requesting camera & mic...';
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('enter-btn').style.display = 'none';
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (errDiv) errDiv.style.display = 'none';
+    if (IS_TEACHER) {
+      document.getElementById('left-video').srcObject = localStream;
+      document.getElementById('left-video').muted = true;
+      document.getElementById('left-label').textContent = `👩‍🏫 ${MY_NAME} (You)`;
+    } else {
+      document.getElementById('left-label').textContent = 'Waiting for teacher...';
+    }
+    document.getElementById('connect-msg').textContent = 'Connecting...';
+    if (!window._socket) connectSocket();
+  } catch(e) {
+    showDeviceError(e);
+  }
+}
+
+function showDeviceError(e) {
+  const errDiv = document.getElementById('device-error');
+  const errMsg = document.getElementById('device-error-msg');
+  if (!errDiv || !errMsg) {
+    alert(getFriendlyError(e));
+    return;
+  }
+  errMsg.textContent = getFriendlyError(e);
+  errDiv.style.display = 'block';
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('connect-msg').textContent = 'Camera or mic issue';
+}
+
+function getFriendlyError(e) {
+  const name = e.name || '';
+  const msg  = (e.message || '').toLowerCase();
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError')
+    return '🚫 Camera & mic access was blocked. Please click the camera icon in your browser address bar and allow access, then try again.';
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError')
+    return '📷 No camera or microphone detected. Please plug one in and try again.';
+  if (name === 'NotReadableError' || name === 'TrackStartError')
+    return '⚠️ Camera or mic is already in use by another app. Please close it and try again.';
+  if (name === 'OverconstrainedError')
+    return '⚙️ Your camera doesn't support the required settings. Try a different browser.';
+  if (msg.includes('secure') || msg.includes('https'))
+    return '🔒 Camera requires a secure connection (HTTPS). Please make sure you're on the correct website.';
+  return `❌ Could not access camera/mic: ${e.message || 'Unknown error'}. Please refresh and try again.`;
 }
 
 // ── STEP 2: Connect socket ──
@@ -293,6 +349,18 @@ function connectSocket() {
 
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+  });
+
+  socket.on('your-draw-toggled', ({ canDraw }) => {
+    window._canDraw = canDraw;
+    if (canvas) {
+      if (!IS_TEACHER) {
+        canvas.isDrawingMode = canDraw;
+        // Visual indicator
+        const toolbar = document.getElementById('toolbar');
+        if (toolbar) toolbar.style.opacity = canDraw ? '1' : '0.4';
+      }
+    }
   });
 
   socket.on('teacher-cam', ({ camOn }) => {
@@ -490,36 +558,74 @@ function createVideoSlot(socketId, role, name) {
 }
 
 function showStudentSlot(socketId, name) {
-  if (!studentSlots[socketId]) {
-    const used = Object.values(studentSlots);
-    for (let i = 1; i <= 4; i++) {
-      if (!used.includes(i)) { studentSlots[socketId] = i; break; }
-    }
-  }
-  const slotNum = studentSlots[socketId];
-  if (!slotNum) return;
-  const slot = document.getElementById(`slot-${slotNum}`);
+  if (studentSlots[socketId]) return; // already exists
+  // Create new slot dynamically
+  const slot = document.createElement('div');
   slot.className = 'student-box';
+  slot.id = `slot-${socketId}`;
   slot.innerHTML = `
     <img id="vimg-${socketId}"/>
-    <div class="student-label">${name || `Student ${slotNum}`}</div>
+    <div class="student-label">${name || 'Student'}</div>
     ${IS_TEACHER ? `
       <button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button>
       <button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button>
     ` : ''}
   `;
+  document.getElementById('right-panel').appendChild(slot);
   if (IS_TEACHER) {
     slot.querySelector('.mute-student-btn').style.display = 'block';
     slot.querySelector('.cam-student-btn').style.display = 'block';
+    // Add draw control button under teacher webcam
+    drawEnabled[socketId] = true;
+    addDrawControlBtn(socketId, name);
   }
+  studentSlots[socketId] = socketId; // use socketId as key
+  resizeStudentSlots();
+}
+
+function addDrawControlBtn(socketId, name) {
+  let drawControls = document.getElementById('draw-controls');
+  if (!drawControls) {
+    drawControls = document.createElement('div');
+    drawControls.id = 'draw-controls';
+    drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;';
+    document.getElementById('left-panel').appendChild(drawControls);
+  }
+  const btn = document.createElement('button');
+  btn.id = `draw-btn-${socketId}`;
+  btn.style.cssText = 'padding:5px 8px;border-radius:8px;border:none;font-family:Nunito,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:#2e7d32;color:white;text-align:left;';
+  btn.textContent = `✏️ ${name || 'Student'}`;
+  btn.onclick = () => toggleStudentDraw(socketId, btn);
+  drawControls.appendChild(btn);
+}
+
+function toggleStudentDraw(socketId, btn) {
+  drawEnabled[socketId] = !drawEnabled[socketId];
+  btn.style.background = drawEnabled[socketId] ? '#2e7d32' : '#e53935';
+  btn.textContent = `${drawEnabled[socketId] ? '✏️' : '🚫'} ${remoteNames[socketId] || 'Student'}`;
+  if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: drawEnabled[socketId] });
+}
+
+function resizeStudentSlots() {
+  const count = Object.keys(studentSlots).length;
+  const panel = document.getElementById('right-panel');
+  // Slots resize based on count
+  const slots = panel.querySelectorAll('.student-box');
+  slots.forEach(s => {
+    s.style.width = '100%';
+  });
 }
 
 function setupOwnSlot() {
   if (!IS_TEACHER && localStream) {
-    const slot = document.getElementById('slot-1');
+    const slot = document.createElement('div');
     slot.className = 'student-box';
+    slot.id = 'slot-self';
     slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
+    document.getElementById('right-panel').appendChild(slot);
     document.getElementById('self-slot-video').srcObject = localStream;
+    studentSlots['__self__'] = '__self__';
+    resizeStudentSlots();
   }
 }
 
@@ -531,11 +637,15 @@ function removeRemote(socketId) {
     document.getElementById('left-video').style.display = 'block';
     document.getElementById('left-label').textContent = 'Waiting for teacher...';
   }
-  const slotNum = studentSlots[socketId];
-  if (slotNum && slotNum !== 1) {
-    const slot = document.getElementById(`slot-${slotNum}`);
-    slot.className = 'empty-slot'; slot.innerHTML = 'Waiting...';
+  if (studentSlots[socketId]) {
+    const slot = document.getElementById(`slot-${socketId}`);
+    if (slot) slot.remove();
     delete studentSlots[socketId];
+    delete drawEnabled[socketId];
+    // Remove draw control button
+    const drawBtn = document.getElementById(`draw-btn-${socketId}`);
+    if (drawBtn) drawBtn.remove();
+    resizeStudentSlots();
   }
   delete remoteRoles[socketId]; delete remoteNames[socketId];
 }
