@@ -340,7 +340,10 @@ function connectSocket() {
   socket.on('reconnect', () => {
     document.getElementById('status-bar').textContent = '🟢 Connected';
     document.getElementById('status-bar').style.color = '#69f0ae';
-    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    // Only rejoin if we were already in the classroom (not waiting)
+    if (window._whiteboardInit) {
+      socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    }
   });
 
   // Whiteboard listeners
@@ -438,10 +441,13 @@ function createVideoSlot(socketId, role, name) {
     if (!img) {
       img = document.createElement('img');
       img.id = `vimg-${socketId}`;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
       document.getElementById('left-video').parentElement.appendChild(img);
     }
-    document.getElementById('left-label').textContent = `${name || 'Teacher'}`;
+    // Show teacher name in label (z-index 3 so it's above the img)
+    const lbl = document.getElementById('left-label');
+    lbl.textContent = name || 'Teacher';
+    lbl.style.zIndex = '3';
   } else {
     showStudentSlot(socketId, name);
   }
