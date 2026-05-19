@@ -32,8 +32,8 @@
     .ctrl-btn:hover { background: #1a73e8; }
     .ctrl-btn.active { background: #e53935; }
 
-    #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #e8e8e8; }
+    #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+    #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #ffffff; min-height: 0; }
     #whiteboard-canvas { display: block; }
 
     #toolbar { background: #16213e; border-top: 2px solid #0f3460; padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
@@ -129,7 +129,7 @@
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
       </div>
       <div class="tool-separator"></div>
-      <button class="tool-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶ Fullscreen</button>
+      <button class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" title="Fullscreen">⛶ Fullscreen</button>
     </div>
   </div>
 
@@ -585,11 +585,20 @@ function initWhiteboard(socket) {
 
 function scaleCanvas() {
   const wrap  = document.getElementById('whiteboard-wrap');
-  const scale = Math.min(wrap.clientWidth / CANVAS_W, wrap.clientHeight / CANVAS_H);
-  wrap.style.height = (CANVAS_H * scale) + 'px';
-  wrap.style.flexShrink = '0';
+  // Let wrap fill all available space
+  wrap.style.height = '';
+  wrap.style.flexShrink = '';
+  wrap.style.flex = '1';
+  const scaleX = wrap.clientWidth  / CANVAS_W;
+  const scaleY = wrap.clientHeight / CANVAS_H;
+  const scale  = Math.min(scaleX, scaleY);
   const container = document.querySelector('.canvas-container');
-  if (container) { container.style.transform = `scale(${scale})`; container.style.transformOrigin = 'top left'; }
+  if (container) {
+    container.style.transform = `scale(${scale})`;
+    container.style.transformOrigin = 'top left';
+    // Remove grey gap by setting wrap background to white
+    wrap.style.background = '#ffffff';
+  }
 }
 
 function setTool(tool) {
