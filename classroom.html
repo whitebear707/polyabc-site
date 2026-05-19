@@ -12,9 +12,9 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; }
-    #topbar img { height: 70px; }
-    #room-label { font-size: 1rem; font-weight: 700; color: #a0c4ff; }
+    #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; position: relative; }
+    #topbar img { height: 55px; }
+    #room-label { font-size: 1rem; font-weight: 700; color: #a0c4ff; position: absolute; left: 50%; transform: translateX(-50%); }
     #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
     #leave-btn { background: #e53935; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
     #leave-btn:hover { background: #c62828; }
@@ -125,6 +125,8 @@
         <button class="tool-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
       </div>
+      <div class="tool-separator"></div>
+      <button class="tool-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶ Fullscreen</button>
     </div>
   </div>
 
