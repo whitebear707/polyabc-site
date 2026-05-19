@@ -143,6 +143,8 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
+      <!-- Screen share overlay -->
+      <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
@@ -157,6 +159,7 @@
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
+        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
       <div class="tool-separator"></div>
       <button class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" title="Fullscreen">⛶ Fullscreen</button>
@@ -349,6 +352,41 @@ function connectSocket() {
 
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+  });
+
+  // Screen share from teacher
+  socket.on('screenshare-start', () => {
+    if (!IS_TEACHER) {
+      document.getElementById('screenshare-video').style.display = 'block';
+      document.getElementById('whiteboard-canvas').style.display = 'none';
+    }
+  });
+
+  socket.on('screenshare-stop', () => {
+    if (!IS_TEACHER) {
+      const img = document.getElementById('screenshare-img');
+      if (img) img.style.display = 'none';
+      document.getElementById('whiteboard-canvas').style.display = 'block';
+    }
+  });
+
+  socket.on('screenshare-frame', ({ frame }) => {
+    if (!IS_TEACHER) {
+      const vid = document.getElementById('screenshare-video');
+      if (vid.style.display !== 'none') {
+        // Use img instead of video for frame relay
+        let img = document.getElementById('screenshare-img');
+        if (!img) {
+          img = document.createElement('img');
+          img.id = 'screenshare-img';
+          img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;';
+          document.getElementById('whiteboard-wrap').appendChild(img);
+        }
+        img.src = frame;
+        img.style.display = 'block';
+        document.getElementById('whiteboard-canvas').style.display = 'none';
+      }
+    }
   });
 
   socket.on('your-draw-toggled', ({ canDraw }) => {
