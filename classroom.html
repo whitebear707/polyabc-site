@@ -78,7 +78,7 @@
   <img src="LOGO.png" alt="PolyABC" style="height:280px;display:block;margin:0 auto 40px auto;"/>
   <div class="spinner" id="spinner"></div>
   <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:60px auto;width:100%;"></p>
-  <button id="enter-btn" onclick="enterFullscreen()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
+  <button id="enter-btn" onclick="enterClass()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
     ▶ Enter Class
   </button>
 </div>
@@ -137,12 +137,12 @@
 </div>
 
 <script>
-const SERVER_URL  = "https://polyabc-server.onrender.com";
-const params      = new URLSearchParams(window.location.search);
-const ROOM        = params.get('room') || '001';
-const IS_TEACHER  = !!localStorage.getItem('adminToken');
-const MY_TOKEN    = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
-const MY_NAME     = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
+const SERVER_URL   = "https://polyabc-server.onrender.com";
+const params       = new URLSearchParams(window.location.search);
+const ROOM         = params.get('room') || '001';
+const IS_TEACHER   = !!localStorage.getItem('adminToken');
+const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
+const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
 const studentSlots = IS_TEACHER ? {} : { '__self__': 1 };
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
@@ -154,16 +154,19 @@ if (IS_TEACHER) {
 
 const capCanvas = document.createElement('canvas');
 capCanvas.width = 320; capCanvas.height = 240;
-const capCtx = capCanvas.getContext('2d');
+const capCtx    = capCanvas.getContext('2d');
 let captureInterval = null;
-let localStream = null;
+let localStream     = null;
 let myMicOn = true, myCamOn = true;
-const remoteRoles = {};
-const remoteNames = {};
+const remoteRoles   = {};
+const remoteNames   = {};
 let teacherSocketId = null;
-let mediaRecorder = null;
-let classIsOpen = false;
+let mediaRecorder   = null;
+let classIsOpen     = false;
+let _joinedSocket   = null;
+let _joinedName     = null;
 
+// ── STEP 1: Get camera, then connect ──
 async function startMedia() {
   try {
     document.getElementById('connect-msg').textContent = 'Starting camera...';
@@ -182,6 +185,7 @@ async function startMedia() {
   }
 }
 
+// ── STEP 2: Connect socket ──
 function connectSocket() {
   const socket = io(SERVER_URL);
   window._socket = socket;
@@ -191,14 +195,15 @@ function connectSocket() {
   });
 
   socket.on('room-joined', ({ name }) => {
-    window._joinedName   = name;
-    window._joinedSocket = socket;
+    _joinedName   = name;
+    _joinedSocket = socket;
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('connect-msg').textContent = IS_TEACHER ? `Welcome, ${name}!` : `Welcome, ${name}! 👋`;
+    document.getElementById('connect-msg').textContent = IS_TEACHER
+      ? `Welcome, ${name}!`
+      : `Welcome, ${name}! 👋`;
     document.getElementById('enter-btn').style.display = 'block';
-    document.getElementById('enter-btn').textContent = '▶ Enter Class';
   });
 
   socket.on('room-error', (msg) => {
@@ -275,6 +280,15 @@ function connectSocket() {
     }
   });
 
+  socket.on('spot-available', () => {
+    if (!IS_TEACHER) {
+      const ws = document.getElementById('waiting-screen');
+      if (ws && ws.style.display !== 'none') {
+        socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+      }
+    }
+  });
+
   socket.on('class-closed', () => {
     if (!IS_TEACHER) {
       alert('Class has ended. See you next time!');
@@ -321,6 +335,7 @@ function connectSocket() {
     socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
   });
 
+  // Whiteboard listeners
   socket.on('whiteboard-path', ({ path }) => {
     if (!canvas) return;
     suppressSync = true;
@@ -353,6 +368,60 @@ function connectSocket() {
   });
 }
 
+// ── Enter Class button ──
+function enterClass() {
+  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
+  document.getElementById('connecting-screen').style.display = 'none';
+  document.getElementById('status-bar').textContent = '🟢 Connected';
+  document.getElementById('status-bar').style.color = '#69f0ae';
+  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${_joinedName} (You)`;
+  initWhiteboard(_joinedSocket);
+  startVideoCapture(_joinedSocket);
+  startAudioRelay(_joinedSocket);
+}
+
+// ── Video relay ──
+function startVideoCapture(socket) {
+  if (IS_TEACHER) {
+    const src = document.getElementById('left-video');
+    captureInterval = setInterval(() => {
+      if (!localStream || !myCamOn) return;
+      try {
+        capCtx.drawImage(src, 0, 0, 320, 240);
+        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+      } catch(e) {}
+    }, 150);
+  } else {
+    const pipVid = document.createElement('video');
+    pipVid.srcObject = localStream;
+    pipVid.muted = true;
+    pipVid.autoplay = true;
+    pipVid.play();
+    captureInterval = setInterval(() => {
+      if (!localStream || !myCamOn) return;
+      try {
+        capCtx.drawImage(pipVid, 0, 0, 320, 240);
+        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+      } catch(e) {}
+    }, 150);
+  }
+}
+
+function startAudioRelay(socket) {
+  if (!localStream) return;
+  try {
+    mediaRecorder = new MediaRecorder(new MediaStream(localStream.getAudioTracks()), { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder.ondataavailable = async (e) => {
+      if (e.data.size > 0 && myMicOn && window._socket) {
+        const buf = await e.data.arrayBuffer();
+        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
+      }
+    };
+    mediaRecorder.start(200);
+  } catch(e) {}
+}
+
+// ── Video slots ──
 function createVideoSlot(socketId, role, name) {
   if (!IS_TEACHER && role === 'teacher') {
     teacherSocketId = socketId;
@@ -395,6 +464,15 @@ function showStudentSlot(socketId, name) {
   }
 }
 
+function setupOwnSlot() {
+  if (!IS_TEACHER && localStream) {
+    const slot = document.getElementById('slot-1');
+    slot.className = 'student-box';
+    slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
+    document.getElementById('self-slot-video').srcObject = localStream;
+  }
+}
+
 function removeRemote(socketId) {
   if (socketId === teacherSocketId) {
     teacherSocketId = null;
@@ -412,68 +490,7 @@ function removeRemote(socketId) {
   delete remoteRoles[socketId]; delete remoteNames[socketId];
 }
 
-function startVideoCapture(socket) {
-  if (IS_TEACHER) {
-    const srcVideo = document.getElementById('left-video');
-    captureInterval = setInterval(() => {
-      if (!localStream || !myCamOn) return;
-      try {
-        capCtx.drawImage(srcVideo, 0, 0, 320, 240);
-        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
-      } catch(e) {}
-    }, 150);
-  } else {
-    const pipVid = document.createElement('video');
-    pipVid.srcObject = localStream;
-    pipVid.muted = true;
-    pipVid.autoplay = true;
-    pipVid.play();
-    captureInterval = setInterval(() => {
-      if (!localStream || !myCamOn) return;
-      try {
-        capCtx.drawImage(pipVid, 0, 0, 320, 240);
-        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
-      } catch(e) {}
-    }, 150);
-  }
-}
-
-function startAudioRelay(socket) {
-  if (!localStream) return;
-  try {
-    mediaRecorder = new MediaRecorder(new MediaStream(localStream.getAudioTracks()), { mimeType: 'audio/webm;codecs=opus' });
-    mediaRecorder.ondataavailable = async (e) => {
-      if (e.data.size > 0 && myMicOn && window._socket) {
-        const buf = await e.data.arrayBuffer();
-        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
-      }
-    };
-    mediaRecorder.start(200);
-  } catch(e) {}
-}
-
-function setupOwnSlot() {
-  if (!IS_TEACHER && localStream) {
-    const slot = document.getElementById('slot-1');
-    slot.className = 'student-box';
-    slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
-    document.getElementById('self-slot-video').srcObject = localStream;
-  }
-}
-
-function enterFullscreen() {
-  const socket = window._joinedSocket;
-  const name   = window._joinedName;
-  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
-  document.getElementById('connecting-screen').style.display = 'none';
-  document.getElementById('status-bar').textContent = '🟢 Connected';
-  document.getElementById('status-bar').style.color = '#69f0ae';
-  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${name} (You)`;
-  initWhiteboard(socket);
-  startVideoCapture(socket);
-  startAudioRelay(socket);
-}
-
+// ── Controls ──
 function toggleClassOpen() {
   classIsOpen = !classIsOpen;
   const btn = document.getElementById('open-class-btn');
@@ -486,11 +503,6 @@ function toggleClassOpen() {
     btn.style.background = '#2e7d32';
     if (window._socket) window._socket.emit('class-closed', { room: ROOM });
   }
-}
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
-  else document.exitFullscreen().catch(() => {});
 }
 
 function toggleMic() {
@@ -535,6 +547,7 @@ function leaveClass() {
   }
 }
 
+// ── Whiteboard ──
 const CANVAS_W = 1440, CANVAS_H = 810;
 let canvas, currentTool = 'draw', suppressSync = false;
 
