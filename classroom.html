@@ -101,6 +101,9 @@
         <img src="LOGO.png" style="width:75%;object-fit:contain;"/>
       </div>
     </div>
+    <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">
+      ⚠️ Teacher disconnected...
+    </div>
     <div id="my-controls">
       <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic</button>
       <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam</button>
@@ -301,13 +304,17 @@ function connectSocket() {
 
   socket.on('teacher-disconnected', () => {
     if (!IS_TEACHER) {
-      document.getElementById('status-bar').textContent = '⚠️ Teacher disconnected — waiting up to 5 min...';
+      const ts = document.getElementById('teacher-status');
+      if (ts) ts.style.display = 'block';
+      document.getElementById('status-bar').textContent = '🟡 Waiting...';
       document.getElementById('status-bar').style.color = '#ffd740';
     }
   });
 
   socket.on('teacher-reconnected', () => {
     if (!IS_TEACHER) {
+      const ts = document.getElementById('teacher-status');
+      if (ts) ts.style.display = 'none';
       document.getElementById('status-bar').textContent = '🟢 In Class';
       document.getElementById('status-bar').style.color = '#69f0ae';
     }
