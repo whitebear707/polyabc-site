@@ -869,21 +869,21 @@ function initWhiteboard(socket) {
 }
 
 function scaleCanvas() {
-  const wrap  = document.getElementById('whiteboard-wrap');
-  // Let wrap fill all available space
-  wrap.style.height = '';
-  wrap.style.flexShrink = '';
-  wrap.style.flex = '1';
-  const scaleX = wrap.clientWidth  / CANVAS_W;
-  const scaleY = wrap.clientHeight / CANVAS_H;
-  const scale  = Math.min(scaleX, scaleY);
+  const wrap = document.getElementById('whiteboard-wrap');
+  const wrapW = wrap.clientWidth;
+  const wrapH = wrap.clientHeight;
+  // Scale to fill width exactly, crop height if needed
+  const scale = wrapW / CANVAS_W;
+  const scaledH = CANVAS_H * scale;
   const container = document.querySelector('.canvas-container');
   if (container) {
     container.style.transform = `scale(${scale})`;
     container.style.transformOrigin = 'top left';
-    // Remove grey gap by setting wrap background to white
-    wrap.style.background = '#ffffff';
   }
+  // Set wrap height to exactly the scaled canvas height - no extra space
+  wrap.style.height = Math.min(scaledH, wrapH) + 'px';
+  wrap.style.overflow = 'hidden';
+  wrap.style.background = '#ffffff';
 }
 
 function setTool(tool) {
