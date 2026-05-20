@@ -52,13 +52,15 @@
 
     #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-left: 2px solid #0f3460; overflow-y: auto; }
     #right-panel-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; text-align: center; }
+    .student-wrap { display: flex; flex-direction: column; gap: 2px; width: 100%; }
     .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; width: 100%; }
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
-    .student-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 5px; z-index: 2; }
-    .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 5; }
+    .student-label { font-size: 0.75rem; font-weight: 700; color: #a0c4ff; text-align: center; padding: 2px 0; }
+    .student-controls { display: none; justify-content: center; gap: 4px; }
+    .mute-student-btn { background: #0f3460; border: none; color: white; font-size: 0.7rem; border-radius: 6px; padding: 3px 6px; cursor: pointer; }
     .mute-student-btn:hover { background: #e53935; }
-    .cam-student-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 5; }
+    .cam-student-btn { background: #0f3460; border: none; color: white; font-size: 0.7rem; border-radius: 6px; padding: 3px 6px; cursor: pointer; }
     .cam-student-btn:hover { background: #e53935; }
     .empty-slot { aspect-ratio: 4/3; background: #0f3460; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a0c4ff; font-size: 0.8rem; font-weight: 700; opacity: 0.5; }
 
@@ -130,7 +132,10 @@
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
   <span id="status-bar">Connecting...</span>
-  <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button id="mute-all-btn" onclick="muteAll()" style="display:none;background:#e65100;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🔇 Mute All</button>
+    <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
+  </div>
 </div>
 
 <div id="main">
@@ -212,6 +217,7 @@ const studentSlots = {};
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
+  document.getElementById('mute-all-btn').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
 }
@@ -615,6 +621,20 @@ function toggleCam() {
   btn.classList.toggle('active', !myCamOn);
   const logo = document.getElementById('cam-off-logo'); if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
   if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
+}
+
+function muteAll() {
+  const slots = Object.keys(studentSlots);
+  slots.forEach(socketId => {
+    if (socketId === '__self__') return;
+    if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: true });
+    // Update button state
+    const wrap = document.getElementById(`wrap-${socketId}`);
+    if (wrap) {
+      const btn = wrap.querySelector('.mute-student-btn');
+      if (btn) btn.textContent = '🔊 Unmute';
+    }
+  });
 }
 
 function muteStudent(socketId) {
