@@ -5,7 +5,7 @@
   <link rel="icon" type="image/png" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    @media screen and (orientation: portrait) and (max-width: 768px) {
+    @media screen and (orientation: portrait) and (max-width: 1024px) {
       #rotate-msg {
         display: flex !important;
       }
@@ -111,13 +111,18 @@
         gap: 6px;
       }
 
-      /* Hide text labels from mic/cam buttons */
+      /* Hide text labels from mic/cam buttons - works for both teacher and student */
       #my-controls { gap: 4px; }
-      .ctrl-btn { font-size: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; }
-      .ctrl-btn::before { font-size: 1.1rem; }
+      .ctrl-btn { font-size: 0 !important; width: 36px; height: 36px; padding: 0; border-radius: 50%; flex: none; display: flex !important; align-items: center; justify-content: center; }
+      .ctrl-btn::before { font-size: 1.2rem; }
+      #mic-btn { background: #2e7d32 !important; }
       #mic-btn::before { content: '🎤'; }
+      #mic-btn.active { background: #e53935 !important; }
+      #mic-btn.active::before { content: '🔇'; }
+      #cam-btn { background: #2e7d32 !important; }
       #cam-btn::before { content: '📷'; }
-      .ctrl-btn.active::before { content: '🔇'; }
+      #cam-btn.active { background: #e53935 !important; }
+      #cam-btn.active::before { content: '🚫'; }
 
       /* Left panel smaller */
       #left-panel { width: 90px; padding: 4px; gap: 4px; }
