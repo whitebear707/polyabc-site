@@ -203,6 +203,18 @@ let classIsOpen     = false;
 let _joinedSocket   = null;
 let _joinedName     = null;
 
+// WebRTC audio peers
+const audioPeers = {};
+const ICE_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  ]
+};
+
 // ── STEP 1: Get camera, then connect ──
 async function startMedia() {
   try {
@@ -312,6 +324,8 @@ function connectSocket() {
       remoteRoles[socketId] = role;
       remoteNames[socketId] = name;
       createVideoSlot(socketId, role, name);
+      // Start WebRTC audio with existing users
+      setTimeout(() => callAudioPeer(socketId, socket), 1000);
     });
   });
 
@@ -331,14 +345,7 @@ function connectSocket() {
     if (img) img.src = frame;
   });
 
-  socket.on('audio-chunk', ({ socketId, chunk }) => {
-    try {
-      const blob = new Blob([new Uint8Array(chunk)], { type: 'audio/webm;codecs=opus' });
-      const url  = URL.createObjectURL(blob);
-      const a    = new Audio(url);
-      a.play().then(() => setTimeout(() => URL.revokeObjectURL(url), 1000)).catch(() => {});
-    } catch(e) {}
-  });
+  // Audio handled via WebRTC
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
 
@@ -360,7 +367,8 @@ function connectSocket() {
   socket.on('screenshare-start', () => {
     if (!IS_TEACHER) {
       document.getElementById('screenshare-video').style.display = 'block';
-      document.getElementById('whiteboard-canvas').style.display = 'none';
+      const cc = document.querySelector('.canvas-container');
+      if (cc) cc.style.visibility = 'hidden';
     }
   });
 
@@ -368,9 +376,9 @@ function connectSocket() {
     if (!IS_TEACHER) {
       const img = document.getElementById('screenshare-img');
       if (img) { img.style.display = 'none'; img.src = ''; }
-      // Show canvas container properly
+      document.getElementById('screenshare-video').style.display = 'none';
       const cc = document.querySelector('.canvas-container');
-      if (cc) { cc.style.display = 'block'; cc.style.visibility = 'visible'; }
+      if (cc) cc.style.visibility = 'visible';
       if (canvas) canvas.renderAll();
     }
   });
@@ -574,16 +582,70 @@ function startVideoCapture(socket) {
 
 function startAudioRelay(socket) {
   if (!localStream) return;
-  try {
-    mediaRecorder = new MediaRecorder(new MediaStream(localStream.getAudioTracks()), { mimeType: 'audio/webm;codecs=opus' });
-    mediaRecorder.ondataavailable = async (e) => {
-      if (e.data.size > 0 && myMicOn && window._socket) {
-        const buf = await e.data.arrayBuffer();
-        window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) });
-      }
-    };
-    mediaRecorder.start(200);
-  } catch(e) {}
+  // Use WebRTC for audio - much more reliable than socket relay
+  // Audio peers will be created when users join
+  window._audioSocket = socket;
+
+  // Listen for audio WebRTC signals
+  socket.on('audio-offer', async ({ from, offer }) => {
+    const pc = createAudioPeer(from, socket);
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('audio-answer', { to: from, answer: pc.localDescription });
+  });
+
+  socket.on('audio-answer', async ({ from, answer }) => {
+    const pc = audioPeers[from];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  socket.on('audio-ice', async ({ from, candidate }) => {
+    const pc = audioPeers[from];
+    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+  });
+}
+
+function createAudioPeer(targetId, socket) {
+  if (audioPeers[targetId]) return audioPeers[targetId];
+  const pc = new RTCPeerConnection(ICE_CONFIG);
+
+  // Add audio track only
+  if (localStream) {
+    localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
+  }
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) socket.emit('audio-ice', { to: targetId, candidate: e.candidate });
+  };
+
+  pc.ontrack = (e) => {
+    const audio = new Audio();
+    audio.srcObject = e.streams[0];
+    audio.autoplay = true;
+    audio.play().catch(() => {});
+    document.body.appendChild(audio);
+    audio.id = `audio-${targetId}`;
+  };
+
+  audioPeers[targetId] = pc;
+  return pc;
+}
+
+async function callAudioPeer(targetId, socket) {
+  const pc = createAudioPeer(targetId, socket);
+  const offer = await pc.createOffer({ offerToReceiveAudio: true });
+  await pc.setLocalDescription(offer);
+  socket.emit('audio-offer', { to: targetId, offer: pc.localDescription });
+}
+
+function removeAudioPeer(socketId) {
+  if (audioPeers[socketId]) {
+    audioPeers[socketId].close();
+    delete audioPeers[socketId];
+    const audio = document.getElementById(`audio-${socketId}`);
+    if (audio) audio.remove();
+  }
 }
 
 // ── Video slots ──
@@ -698,6 +760,7 @@ function removeRemote(socketId) {
     resizeStudentSlots();
   }
   delete remoteRoles[socketId]; delete remoteNames[socketId];
+  removeAudioPeer(socketId);
 }
 
 // ── Controls ──
@@ -891,7 +954,7 @@ async function toggleScreenShare() {
     vid.srcObject = screenStream;
     vid.style.display = 'block';
     const cc = document.querySelector('.canvas-container');
-    if (cc) cc.style.display = 'none';
+    if (cc) cc.style.visibility = 'hidden';
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
     const capCv = document.createElement('canvas');
@@ -920,8 +983,8 @@ function stopScreenShare() {
   vid.style.display = 'none'; vid.srcObject = null;
   // Show canvas properly
   const cc = document.querySelector('.canvas-container');
-  if (cc) { cc.style.display = 'block'; cc.style.visibility = 'visible'; }
-  if (canvas) canvas.renderAll();
+  if (cc) { cc.style.visibility = 'visible'; }
+  if (canvas) { canvas.renderAll(); }
   const btn = document.getElementById('screenshare-btn');
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
   if (window._socket) window._socket.emit('screenshare-stop', { room: ROOM });
