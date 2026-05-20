@@ -364,6 +364,13 @@ function connectSocket() {
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
     window._selfCamOff = !camOn;
+    // If cam is turned back on, reset muted state visually
+    if (camOn) window._selfMuted = false;
+    updateSelfMonkey();
+  });
+
+  socket.on('you-are-unmuted', () => {
+    window._selfMuted = false;
     updateSelfMonkey();
   });
 
@@ -808,11 +815,13 @@ function toggleCam() {
 function muteStudent(socketId) {
   const slot = document.getElementById(`slot-${socketId}`);
   const btn = slot ? slot.querySelector('.mute-student-btn') : null;
+  let muting = true;
   if (btn) {
     const isMuted = btn.textContent.includes('Unmute');
+    muting = !isMuted;
     btn.textContent = isMuted ? '🔇 Mute' : '🔊 Unmute';
   }
-  if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId });
+  if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: muting });
   updateMonkey(socketId);
 }
 
@@ -980,6 +989,7 @@ setTimeout(() => {
 // Initialize self state
 window._selfCamOff = false;
 window._selfMuted  = false;
+setTimeout(() => { window._selfMuted = false; }, 500);
 
 function updateSelfMonkey() {
   const selfSlot = document.getElementById('slot-self');
