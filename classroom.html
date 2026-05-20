@@ -358,33 +358,13 @@ function connectSocket() {
       document.getElementById('my-mute-icon').style.display = 'flex';
     }
     window._selfMuted = true;
-    if (window._selfCamOff) {
-      const selfSlot = document.getElementById('slot-self');
-      const monkey = selfSlot ? selfSlot.querySelector('.monkey-overlay') : null;
-      if (monkey) { monkey.src = 'noseeandhear.png'; monkey.style.display = 'block'; }
-    }
+    updateSelfMonkey();
   });
 
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
-    // Show/hide monkey on own slot
-    const selfSlot = document.getElementById('slot-self');
-    if (selfSlot) {
-      let monkey = selfSlot.querySelector('.monkey-overlay');
-      if (!monkey) {
-        monkey = document.createElement('img');
-        monkey.className = 'monkey-overlay';
-        monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
-        selfSlot.appendChild(monkey);
-      }
-      if (!camOn) {
-        monkey.src = window._selfMuted ? 'noseeandhear.png' : 'nosee.png';
-        monkey.style.display = 'block';
-      } else {
-        monkey.style.display = 'none';
-      }
-      window._selfCamOff = !camOn;
-    }
+    window._selfCamOff = !camOn;
+    updateSelfMonkey();
   });
 
 
@@ -996,6 +976,31 @@ setTimeout(() => {
   }
 }, 15000);
 
+
+// Initialize self state
+window._selfCamOff = false;
+window._selfMuted  = false;
+
+function updateSelfMonkey() {
+  const selfSlot = document.getElementById('slot-self');
+  if (!selfSlot) return;
+  let monkey = selfSlot.querySelector('.monkey-overlay');
+  if (!monkey) {
+    monkey = document.createElement('img');
+    monkey.className = 'monkey-overlay';
+    monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
+    selfSlot.appendChild(monkey);
+  }
+  if (window._selfCamOff && window._selfMuted) {
+    monkey.src = 'noseeandhear.png';
+    monkey.style.display = 'block';
+  } else if (window._selfCamOff) {
+    monkey.src = 'nosee.png';
+    monkey.style.display = 'block';
+  } else {
+    monkey.style.display = 'none';
+  }
+}
 
 let screenStream = null;
 let isSharing = false;
