@@ -51,9 +51,9 @@
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
     .student-label { position: absolute; bottom: 4px; left: 6px; font-size: 0.75rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 5px; z-index: 2; }
-    .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 2; }
+    .mute-student-btn { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 5; }
     .mute-student-btn:hover { background: #e53935; }
-    .cam-student-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 2; }
+    .cam-student-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.5); border: none; color: white; font-size: 0.75rem; border-radius: 6px; padding: 2px 5px; cursor: pointer; display: none; z-index: 5; }
     .cam-student-btn:hover { background: #e53935; }
     .empty-slot { aspect-ratio: 4/3; background: #0f3460; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #a0c4ff; font-size: 0.8rem; font-weight: 700; opacity: 0.5; }
 
@@ -357,11 +357,37 @@ function connectSocket() {
       if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Muted'; }
       document.getElementById('my-mute-icon').style.display = 'flex';
     }
+    window._selfMuted = true;
+    if (window._selfCamOff) {
+      const selfSlot = document.getElementById('slot-self');
+      const monkey = selfSlot ? selfSlot.querySelector('.monkey-overlay') : null;
+      if (monkey) { monkey.src = 'noseeandhear.png'; monkey.style.display = 'block'; }
+    }
   });
 
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+    // Show/hide monkey on own slot
+    const selfSlot = document.getElementById('slot-self');
+    if (selfSlot) {
+      let monkey = selfSlot.querySelector('.monkey-overlay');
+      if (!monkey) {
+        monkey = document.createElement('img');
+        monkey.className = 'monkey-overlay';
+        monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
+        selfSlot.appendChild(monkey);
+      }
+      if (!camOn) {
+        monkey.src = window._selfMuted ? 'noseeandhear.png' : 'nosee.png';
+        monkey.style.display = 'block';
+      } else {
+        monkey.style.display = 'none';
+      }
+      window._selfCamOff = !camOn;
+    }
   });
+
+
 
   // Screen share from teacher
   socket.on('screenshare-start', () => {
@@ -825,7 +851,7 @@ function updateMonkey(socketId) {
   if (!monkey) {
     monkey = document.createElement('img');
     monkey.className = 'monkey-overlay';
-    monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;display:none;';
+    monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
     slot.appendChild(monkey);
   }
   const camBtn = slot.querySelector('.cam-student-btn');
