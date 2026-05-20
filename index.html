@@ -156,11 +156,21 @@
         return;
       }
 
-      // Show loading state
+      // Show countdown immediately
       const btn = document.querySelector('.btn-join');
-      btn.innerHTML = '<span class="btn-spinner"></span> Going to Room ' + room + '...';
       btn.disabled = true;
       document.getElementById('join-error').style.display = 'none';
+      let secs = 45;
+      btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
+      const countdown = setInterval(() => {
+        secs--;
+        if (secs > 0) {
+          btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
+        } else {
+          clearInterval(countdown);
+        }
+      }, 1000);
+      window._loginCountdown = countdown;
 
       try {
         const res = await fetch(`${SERVER_URL}/validate-room`, {
@@ -171,6 +181,7 @@
 
         const data = await res.json();
 
+        clearInterval(window._loginCountdown);
         if (data.success) {
           if (data.role === 'teacher') {
             localStorage.setItem('adminToken', data.token);
@@ -182,6 +193,7 @@
           }
           window.location.href = `classroom.html?room=${room}`;
         } else {
+          clearInterval(window._loginCountdown);
           document.getElementById('join-error').style.display = 'block';
           btn.innerHTML = 'Enter Class →';
           btn.disabled = false;
