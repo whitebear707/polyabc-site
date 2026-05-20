@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    @media screen and (orientation: portrait) and (max-width: 768px) {
+      #rotate-msg {
+        display: flex !important;
+      }
+    }
+  </style>
   <title>PolyABC - Learn English Online</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
   <style>
@@ -160,7 +167,7 @@
       const btn = document.querySelector('.btn-join');
       btn.disabled = true;
       document.getElementById('join-error').style.display = 'none';
-      let secs = 25;
+      let secs = 55;
       btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
       const countdown = setInterval(() => {
         secs--;
@@ -210,5 +217,13 @@
     });
   </script>
 
+
+<!-- Rotate device overlay -->
+<div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+  <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
+  <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
+  <p style="font-size:1rem;color:#666;">This app works best in landscape mode</p>
+  <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
+</div>
 </body>
 </html>
