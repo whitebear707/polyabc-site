@@ -135,8 +135,8 @@
     </div>
     <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">⚠️ Teacher disconnected...</div>
     <div id="my-controls">
-      <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic</button>
-      <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam</button>
+      <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()" title="Microphone">🎤 Mic ON</button>
+      <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()" title="Camera">📷 Cam ON</button>
     </div>
   </div>
 
@@ -354,7 +354,7 @@ function connectSocket() {
       localStream.getAudioTracks().forEach(t => t.enabled = false);
       myMicOn = false;
       const btn = document.getElementById('mic-btn');
-      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Muted'; }
+      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Mic OFF'; }
       document.getElementById('my-mute-icon').style.display = 'flex';
     }
     window._selfMuted = true;
@@ -795,7 +795,7 @@ function toggleMic() {
   myMicOn = !myMicOn;
   localStream.getAudioTracks().forEach(t => t.enabled = myMicOn);
   const btn = document.getElementById('mic-btn');
-  btn.textContent = myMicOn ? '🎤 Mic' : '🔇 Mic';
+  btn.textContent = myMicOn ? '🎤 Mic ON' : '🔇 Mic OFF';
   btn.classList.toggle('active', !myMicOn);
   document.getElementById('my-mute-icon').style.display = myMicOn ? 'none' : 'flex';
 }
@@ -805,7 +805,7 @@ function toggleCam() {
   myCamOn = !myCamOn;
   localStream.getVideoTracks().forEach(t => t.enabled = myCamOn);
   const btn = document.getElementById('cam-btn');
-  btn.textContent = myCamOn ? '📷 Cam' : '🚫 Cam';
+  btn.textContent = myCamOn ? '📷 Cam ON' : '🚫 Cam OFF';
   btn.classList.toggle('active', !myCamOn);
   const logo = document.getElementById('cam-off-logo');
   if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
