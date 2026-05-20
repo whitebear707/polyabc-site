@@ -100,9 +100,11 @@
 
     /* ── MOBILE LANDSCAPE ── */
     @media screen and (max-width: 1200px) and (orientation: landscape) {
-      #topbar img { height: 32px; }
-      #room-label { font-size: 0.8rem; padding: 3px 10px; }
-      #leave-btn { padding: 6px 12px; font-size: 0.8rem; }
+      #topbar { padding: 3px 8px; min-height: 44px; }
+      #topbar img { height: 28px; }
+      #room-label { display: none !important; }
+      #status-bar { display: none !important; }
+      #leave-btn { padding: 5px 10px; font-size: 0.75rem; }
 
       /* Mobile top controls bar */
       #mobile-controls {
@@ -111,18 +113,13 @@
         gap: 6px;
       }
 
-      /* Hide text labels from mic/cam buttons - works for both teacher and student */
-      #my-controls { gap: 4px; }
-      .ctrl-btn { font-size: 0 !important; width: 36px; height: 36px; padding: 0; border-radius: 50%; flex: none; display: flex !important; align-items: center; justify-content: center; }
-      .ctrl-btn::before { font-size: 1.2rem; }
-      #mic-btn { background: #2e7d32 !important; }
-      #mic-btn::before { content: '🎤'; }
+      /* Topbar controls on mobile - small circles */
+      #topbar-controls { gap: 4px; }
+      #topbar-controls .ctrl-btn { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 0.75rem; flex: none; }
+      #mic-btn { background: #2e7d32 !important; color: white; }
       #mic-btn.active { background: #e53935 !important; }
-      #mic-btn.active::before { content: '🔇'; }
-      #cam-btn { background: #2e7d32 !important; }
-      #cam-btn::before { content: '📷'; }
+      #cam-btn { background: #2e7d32 !important; color: white; }
       #cam-btn.active { background: #e53935 !important; }
-      #cam-btn.active::before { content: '🚫'; }
 
       /* Left panel smaller */
       #left-panel { width: 90px; padding: 4px; gap: 4px; }
@@ -180,13 +177,19 @@
 
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
+  <div id="topbar-controls" style="display:flex;align-items:center;gap:6px;">
+    <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic ON</button>
+    <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam ON</button>
+    <button class="ctrl-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" style="background:#0f3460;">⛶</button>
+  </div>
   <span id="room-label">Room: —</span>
-  <span id="status-bar" class="hide-mobile">Connecting...</span>
+  <span id="status-bar">Connecting...</span>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
 </div>
 
 <div id="main">
   <div id="left-panel">
+    <div id="teacher-name-above" style="display:none;font-size:0.8rem;font-weight:700;color:#a0c4ff;text-align:center;padding:4px 0;"></div>
     <div class="video-box teacher-border" style="position:relative;">
       <video id="left-video" autoplay playsinline></video>
       <div class="video-label" id="left-label">...</div>
@@ -196,10 +199,7 @@
       </div>
     </div>
     <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">⚠️ Teacher disconnected...</div>
-    <div id="my-controls">
-      <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()" title="Microphone">🎤 Mic ON</button>
-      <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()" title="Camera">📷 Cam ON</button>
-    </div>
+    <div id="my-controls" style="display:none;"></div>
   </div>
 
   <div id="center-panel">
@@ -223,8 +223,7 @@
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" data-mobile-id="open-class-btn-inner" style="background:#2e7d32;">🔓 Open Class</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" data-mobile-id="screenshare-btn-inner" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
-      <div class="tool-separator"></div>
-      <button class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" title="Fullscreen">⛶ Fullscreen</button>
+
     </div>
   </div>
 
@@ -286,7 +285,7 @@ async function startMedia() {
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
       document.getElementById('left-video').muted = true;
-      document.getElementById('left-label').textContent = `👩‍🏫 ${MY_NAME} (You)`;
+      document.getElementById('left-label').textContent = '';
     } else {
       document.getElementById('left-label').textContent = 'Waiting for teacher...';
     }
@@ -309,7 +308,7 @@ async function requestDevices() {
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
       document.getElementById('left-video').muted = true;
-      document.getElementById('left-label').textContent = `👩‍🏫 ${MY_NAME} (You)`;
+      document.getElementById('left-label').textContent = '';
     } else {
       document.getElementById('left-label').textContent = 'Waiting for teacher...';
     }
