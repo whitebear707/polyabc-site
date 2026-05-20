@@ -22,7 +22,7 @@
     #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 16px; position: relative; }
     #topbar img { height: 40px; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
-    #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
+    #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; } @media (max-width:900px) { #status-bar { display: none; } }
     #leave-btn { background: #e53935; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
     #leave-btn:hover { background: #c62828; }
 
@@ -97,6 +97,56 @@
     }
 
     #waiting-screen { display: none; position: fixed; inset: 0; background: #1a1a2e; z-index: 998; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+
+    /* ── MOBILE LANDSCAPE ── */
+    @media screen and (max-width: 900px) and (orientation: landscape) {
+      #topbar img { height: 32px; }
+      #room-label { font-size: 0.8rem; padding: 3px 10px; }
+      #leave-btn { padding: 6px 12px; font-size: 0.8rem; }
+
+      /* Mobile top controls bar */
+      #mobile-controls {
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Hide text labels from mic/cam buttons */
+      #my-controls { gap: 4px; }
+      .ctrl-btn { font-size: 0; width: 36px; height: 36px; padding: 0; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; }
+      .ctrl-btn::before { font-size: 1.1rem; }
+      #mic-btn::before { content: '🎤'; }
+      #cam-btn::before { content: '📷'; }
+      .ctrl-btn.active::before { content: '🔇'; }
+
+      /* Left panel smaller */
+      #left-panel { width: 130px; padding: 6px; gap: 6px; }
+
+      /* Teacher only toolbar - icon only circles */
+      #teacher-only { flex-wrap: wrap; gap: 4px; }
+      #teacher-only .tool-btn { font-size: 0; width: 34px; height: 34px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+      #teacher-only .tool-btn::before { font-size: 1rem; }
+      #upload-slide-btn::before { content: '🖼️'; }
+      #clear-btn::before { content: '🗑️'; }
+      #open-class-btn-inner::before { content: '🔓'; }
+      #screenshare-btn-inner::before { content: '🖥️'; }
+
+      /* Bottom toolbar compact */
+      #toolbar { padding: 4px 8px; gap: 4px; }
+      .tool-btn { padding: 6px 10px; font-size: 0.8rem; }
+      #brush-size { width: 60px; }
+
+      /* Right panel thinner */
+      #right-panel { width: 110px; padding: 6px; gap: 6px; }
+      #right-panel-title { font-size: 0.75rem; }
+
+      /* Student boxes smaller */
+      .student-box img, .student-box video { object-fit: cover; }
+
+      /* Draw controls under teacher cam - scrollable */
+      #draw-controls { max-height: 80px; overflow-y: auto; }
+      #draw-controls button { font-size: 0.7rem; padding: 3px 6px; }
+    }
   </style>
 </head>
 <body>
@@ -126,7 +176,7 @@
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
-  <span id="status-bar">Connecting...</span>
+  <span id="status-bar" class="hide-mobile">Connecting...</span>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
 </div>
 
@@ -162,11 +212,11 @@
       <input type="range" id="brush-size" min="2" max="30" value="5" onchange="setBrushSize(this.value)"/>
       <div class="tool-separator"></div>
       <div id="teacher-only">
-        <button class="tool-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+        <button class="tool-btn" style="background:#1a73e8;" id="upload-slide-btn" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
-        <button class="tool-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
-        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
-        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
+        <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
+        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" data-mobile-id="open-class-btn-inner" style="background:#2e7d32;">🔓 Open Class</button>
+        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" data-mobile-id="screenshare-btn-inner" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
       <div class="tool-separator"></div>
       <button class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" title="Fullscreen">⛶ Fullscreen</button>
