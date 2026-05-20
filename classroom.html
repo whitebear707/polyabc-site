@@ -367,8 +367,11 @@ function connectSocket() {
   socket.on('screenshare-stop', () => {
     if (!IS_TEACHER) {
       const img = document.getElementById('screenshare-img');
-      if (img) img.style.display = 'none';
-      document.getElementById('whiteboard-canvas').style.display = 'block';
+      if (img) { img.style.display = 'none'; img.src = ''; }
+      // Show canvas container properly
+      const cc = document.querySelector('.canvas-container');
+      if (cc) { cc.style.display = 'block'; cc.style.visibility = 'visible'; }
+      if (canvas) canvas.renderAll();
     }
   });
 
@@ -912,10 +915,13 @@ function stopScreenShare() {
   isSharing = false;
   if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+  // Hide screen share video
   const vid = document.getElementById('screenshare-video');
   vid.style.display = 'none'; vid.srcObject = null;
+  // Show canvas properly
   const cc = document.querySelector('.canvas-container');
-  if (cc) cc.style.display = 'block';
+  if (cc) { cc.style.display = 'block'; cc.style.visibility = 'visible'; }
+  if (canvas) canvas.renderAll();
   const btn = document.getElementById('screenshare-btn');
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
   if (window._socket) window._socket.emit('screenshare-stop', { room: ROOM });
