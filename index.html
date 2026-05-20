@@ -160,7 +160,7 @@
       const btn = document.querySelector('.btn-join');
       btn.disabled = true;
       document.getElementById('join-error').style.display = 'none';
-      let secs = 45;
+      let secs = 25;
       btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
       const countdown = setInterval(() => {
         secs--;

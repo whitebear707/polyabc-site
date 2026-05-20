@@ -393,13 +393,20 @@ function connectSocket() {
 
   socket.on('your-draw-toggled', ({ canDraw }) => {
     window._canDraw = canDraw;
-    if (canvas) {
-      if (!IS_TEACHER) {
-        canvas.isDrawingMode = canDraw;
-        // Visual indicator
-        const toolbar = document.getElementById('toolbar');
-        if (toolbar) toolbar.style.opacity = canDraw ? '1' : '0.4';
-      }
+    if (canvas && !IS_TEACHER) {
+      // Lock/unlock all canvas interactions
+      canvas.isDrawingMode = canDraw;
+      canvas.selection = canDraw;
+      canvas.forEachObject(obj => {
+        obj.selectable = canDraw;
+        obj.evented = canDraw;
+      });
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      // Dim toolbar so student knows drawing is off
+      const toolbar = document.getElementById('toolbar');
+      if (toolbar) toolbar.style.opacity = canDraw ? '1' : '0.4';
+      if (toolbar) toolbar.style.pointerEvents = canDraw ? 'auto' : 'none';
     }
   });
 
@@ -815,6 +822,8 @@ function scaleCanvas() {
 }
 
 function setTool(tool) {
+  // If student drawing is disabled, don't allow tool changes
+  if (!IS_TEACHER && window._canDraw === false) return;
   currentTool = tool;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById(`tool-${tool}`).classList.add('selected');
