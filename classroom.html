@@ -987,7 +987,13 @@ function stopScreenShare() {
   if (canvas) { canvas.renderAll(); }
   const btn = document.getElementById('screenshare-btn');
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
-  if (window._socket) window._socket.emit('screenshare-stop', { room: ROOM });
+  if (window._socket) {
+    window._socket.emit('screenshare-stop', { room: ROOM });
+    // Resend canvas state to all students
+    setTimeout(() => {
+      if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+    }, 300);
+  }
 }
 
 startMedia();
