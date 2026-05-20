@@ -6,9 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     @media screen and (orientation: portrait) and (max-width: 1200px) {
-      #rotate-msg {
-        display: flex !important;
-      }
+      #rotate-msg { display: flex !important; }
     }
   </style>
   <title>PolyABC Classroom</title>
@@ -19,10 +17,10 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 16px; position: relative; }
+    #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; position: relative; }
     #topbar img { height: 40px; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
-    #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; } @media (max-width:900px) { #status-bar { display: none; } }
+    #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
     #leave-btn { background: #e53935; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
     #leave-btn:hover { background: #c62828; }
 
@@ -67,35 +65,20 @@
     #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @property --angle {
-      syntax: '<angle>';
-      initial-value: 0deg;
-      inherits: false;
-    }
+    @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
     @keyframes chase { to { --angle: 360deg; } }
     .waiting-box {
-      position: relative;
-      font-size: 1.3rem; font-weight: 900; color: #ffd740;
+      position: relative; font-size: 1.3rem; font-weight: 900; color: #ffd740;
       margin-bottom: 30px; padding: 12px 24px; border-radius: 12px;
       background: rgba(255,215,64,0.08);
     }
     .waiting-box::before {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 14px;
-      background: conic-gradient(
-        from var(--angle, 0deg),
-        #2ecc40 0deg 90deg,
-        #ffd740 90deg 360deg
-      );
+      content: ''; position: absolute; inset: -3px; border-radius: 14px;
+      background: conic-gradient(from var(--angle, 0deg), #2ecc40 0deg 90deg, #ffd740 90deg 360deg);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      padding: 3px;
+      -webkit-mask-composite: xor; mask-composite: exclude; padding: 3px;
       animation: chase 2s linear infinite;
     }
-
     #waiting-screen { display: none; position: fixed; inset: 0; background: #1a1a2e; z-index: 998; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
 
     /* ── MOBILE LANDSCAPE ── */
@@ -105,50 +88,14 @@
       #room-label { display: none !important; }
       #status-bar { display: none !important; }
       #leave-btn { padding: 5px 10px; font-size: 0.75rem; }
-      #topbar-controls { display: flex !important; }
-      #my-controls { display: none !important; }
-      #fullscreen-toolbar-btn { display: none !important; }
-
-      /* Mobile top controls bar */
-      #mobile-controls {
-        display: flex !important;
-        align-items: center;
-        gap: 6px;
-      }
-
-      /* Topbar controls on mobile - small circles */
-      #topbar-controls { gap: 4px; }
-      #topbar-controls .ctrl-btn { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 0.75rem; flex: none; }
-      #mic-btn { background: #2e7d32 !important; color: white; }
-      #mic-btn.active { background: #e53935 !important; }
-      #cam-btn { background: #2e7d32 !important; color: white; }
-      #cam-btn.active { background: #e53935 !important; }
-
-      /* Left panel smaller */
       #left-panel { width: 90px; padding: 4px; gap: 4px; }
-
-      /* Teacher only toolbar - icon only circles */
-      #teacher-only { flex-wrap: wrap; gap: 3px; margin-top: 2px; }
-      #teacher-only .tool-btn { font-size: 0; width: 34px; height: 34px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-      #teacher-only .tool-btn::before { font-size: 1rem; }
-      #upload-slide-btn::before { content: '🖼️'; }
-      #clear-btn::before { content: '🗑️'; }
-      #open-class-btn-inner::before { content: '🔓'; }
-      #screenshare-btn-inner::before { content: '🖥️'; }
-
-      /* Bottom toolbar compact */
+      #right-panel { width: 80px; padding: 4px; gap: 4px; }
+      #right-panel-title { font-size: 0.75rem; }
+      #teacher-only { flex-wrap: wrap; gap: 3px; }
+      #teacher-only .tool-btn { padding: 5px 8px; font-size: 0.75rem; }
       #toolbar { padding: 4px 8px; gap: 4px; }
       .tool-btn { padding: 6px 10px; font-size: 0.8rem; }
       #brush-size { width: 60px; }
-
-      /* Right panel thinner */
-      #right-panel { width: 80px; padding: 4px; gap: 4px; }
-      #right-panel-title { font-size: 0.75rem; }
-
-      /* Student boxes smaller */
-      .student-box img, .student-box video { object-fit: cover; }
-
-      /* Draw controls under teacher cam - scrollable */
       #draw-controls { max-height: 80px; overflow-y: auto; }
       #draw-controls button { font-size: 0.7rem; padding: 3px 6px; }
     }
@@ -160,12 +107,13 @@
 <div id="waiting-screen">
   <img src="LOGO.png" style="height:100px;margin-bottom:20px;"/>
   <p id="waiting-name" style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Welcome!</p>
-  <p class="waiting-box">⏳ Waiting for teacher to open the class...</p>
+  <div class="waiting-box">⏳ Waiting for teacher to open the class...</div>
+  <div class="spinner"></div>
 </div>
 
 <!-- CONNECTING SCREEN -->
 <div id="connecting-screen">
-  <img src="LOGO.png" alt="PolyABC" style="height:100px;display:block;margin:0 auto 20px auto;"/>
+  <img src="LOGO.png" alt="PolyABC" style="height:100px;display:block;margin:0 auto 40px auto;"/>
   <div class="spinner" id="spinner"></div>
   <p id="connect-msg" style="font-size:2rem;font-weight:900;color:#a0c4ff;text-align:center;margin:30px auto;width:100%;">Starting up...</p>
   <button id="enter-btn" onclick="enterClass()" style="display:none;background:#1a73e8;color:white;border:none;padding:24px 60px;border-radius:20px;font-family:Nunito,sans-serif;font-size:1.6rem;font-weight:900;cursor:pointer;box-shadow:0 8px 30px rgba(26,115,232,0.4);margin:0 auto;">
@@ -182,12 +130,6 @@
   <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
   <span id="status-bar">Connecting...</span>
-  <!-- Mobile only controls in topbar -->
-  <div id="topbar-controls" style="display:none;align-items:center;gap:6px;">
-    <button class="ctrl-btn" id="mic-btn-mobile" onclick="toggleMic()">🎤</button>
-    <button class="ctrl-btn" id="cam-btn-mobile" onclick="toggleCam()">📷</button>
-    <button class="ctrl-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" style="background:#0f3460;font-size:1rem;">⛶</button>
-  </div>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
 </div>
 
@@ -201,8 +143,8 @@
       <div id="cam-off-logo" style="display:none;position:absolute;inset:0;background:#0f3460;border-radius:10px;align-items:center;justify-content:center;z-index:2;">
         <img src="LOGO.png" style="width:75%;object-fit:contain;"/>
       </div>
+      <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;position:absolute;bottom:0;left:0;right:0;z-index:4;">⚠️ Teacher disconnected...</div>
     </div>
-    <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;">⚠️ Teacher disconnected...</div>
     <div id="my-controls">
       <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic ON</button>
       <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam ON</button>
@@ -212,7 +154,6 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
-      <!-- Screen share overlay -->
       <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
     <div id="toolbar">
@@ -224,20 +165,39 @@
       <input type="range" id="brush-size" min="2" max="30" value="5" onchange="setBrushSize(this.value)"/>
       <div class="tool-separator"></div>
       <div id="teacher-only">
-        <button class="tool-btn" style="background:#1a73e8;" id="upload-slide-btn" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+        <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
-        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" data-mobile-id="open-class-btn-inner" style="background:#2e7d32;">🔓 Open Class</button>
-        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" data-mobile-id="screenshare-btn-inner" style="background:#6a1b9a;">🖥️ Share Screen</button>
+        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
+        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
-
+      <div class="tool-separator"></div>
+      <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
     </div>
   </div>
 
   <div id="right-panel">
     <div id="right-panel-title">Students</div>
-    <!-- Student slots added dynamically -->
   </div>
+</div>
+
+<!-- LEAVE CLASS MODAL -->
+<div id="leave-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#16213e;border-radius:20px;padding:36px;width:100%;max-width:400px;margin:20px;text-align:center;font-family:Nunito,sans-serif;">
+    <p style="font-size:1.3rem;font-weight:900;color:white;margin-bottom:8px;">Leaving class?</p>
+    <p style="font-size:0.95rem;color:#888;margin-bottom:28px;">Choose what happens to your students</p>
+    <button onclick="teacherBRB()" style="display:block;width:100%;padding:16px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">⏱️ I'll be back in 5 minutes</button>
+    <button onclick="teacherEndClass()" style="display:block;width:100%;padding:16px;background:#e53935;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">🏁 End Class</button>
+    <button onclick="document.getElementById('leave-modal').style.display='none'" style="display:block;width:100%;padding:12px;background:none;color:#888;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;cursor:pointer;">Cancel</button>
+  </div>
+</div>
+
+<!-- Rotate device overlay -->
+<div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+  <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
+  <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
+  <p style="font-size:1rem;color:#666;">This app works best in landscape mode</p>
+  <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
 </div>
 
 <script>
@@ -247,8 +207,7 @@ const ROOM         = params.get('room') || '001';
 const IS_TEACHER   = !!localStorage.getItem('adminToken');
 const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
-const studentSlots = {}; // dynamic slots
-const drawEnabled = {}; // socketId -> bool
+const studentSlots = {};
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
@@ -271,7 +230,7 @@ let classIsOpen     = false;
 let _joinedSocket   = null;
 let _joinedName     = null;
 
-// WebRTC audio peers
+// WebRTC audio
 const audioPeers = {};
 const ICE_CONFIG = {
   iceServers: [
@@ -283,800 +242,6 @@ const ICE_CONFIG = {
   ]
 };
 
-// ── STEP 1: Get camera, then connect ──
-async function startMedia() {
-  try {
-    document.getElementById('connect-msg').textContent = 'Starting camera...';
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    document.getElementById('device-error') && (document.getElementById('device-error').style.display = 'none');
-    if (IS_TEACHER) {
-      document.getElementById('left-video').srcObject = localStream;
-      document.getElementById('left-video').muted = true;
-      document.getElementById('left-label').textContent = '';
-    } else {
-      document.getElementById('left-label').textContent = 'Waiting for teacher...';
-    }
-    document.getElementById('connect-msg').textContent = 'Connecting...';
-    connectSocket();
-  } catch(e) {
-    showDeviceError(e);
-  }
-}
-
-async function requestDevices() {
-  const errDiv = document.getElementById('device-error');
-  if (errDiv) errDiv.style.display = 'none';
-  document.getElementById('connect-msg').textContent = 'Requesting camera & mic...';
-  document.getElementById('spinner').style.display = 'block';
-  document.getElementById('enter-btn').style.display = 'none';
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    if (errDiv) errDiv.style.display = 'none';
-    if (IS_TEACHER) {
-      document.getElementById('left-video').srcObject = localStream;
-      document.getElementById('left-video').muted = true;
-      document.getElementById('left-label').textContent = '';
-    } else {
-      document.getElementById('left-label').textContent = 'Waiting for teacher...';
-    }
-    document.getElementById('connect-msg').textContent = 'Connecting...';
-    if (!window._socket) connectSocket();
-  } catch(e) {
-    showDeviceError(e);
-  }
-}
-
-function showDeviceError(e) {
-  const errDiv = document.getElementById('device-error');
-  const errMsg = document.getElementById('device-error-msg');
-  if (!errDiv || !errMsg) {
-    alert(getFriendlyError(e));
-    return;
-  }
-  errMsg.textContent = getFriendlyError(e);
-  errDiv.style.display = 'block';
-  document.getElementById('spinner').style.display = 'none';
-  document.getElementById('connect-msg').textContent = 'Camera or mic issue';
-}
-
-function getFriendlyError(e) {
-  const name = e.name || '';
-  const msg  = (e.message || '').toLowerCase();
-  if (name === 'NotAllowedError' || name === 'PermissionDeniedError')
-    return '🚫 Camera & mic access was blocked. Please click the camera icon in your browser address bar and allow access, then try again.';
-  if (name === 'NotFoundError' || name === 'DevicesNotFoundError')
-    return '📷 No camera or microphone detected. Please plug one in and try again.';
-  if (name === 'NotReadableError' || name === 'TrackStartError')
-    return '⚠️ Camera or mic is already in use by another app. Please close it and try again.';
-  if (name === 'OverconstrainedError')
-    return "⚙️ Your camera does not support the required settings. Try a different browser.";
-  if (msg.includes('secure') || msg.includes('https'))
-    return "🔒 Camera requires a secure connection (HTTPS). Please make sure you are on the correct website.";
-  return `❌ Could not access camera/mic: ${e.message || 'Unknown error'}. Please refresh and try again.`;
-}
-
-// ── STEP 2: Connect socket ──
-function connectSocket() {
-  const socket = io(SERVER_URL);
-  window._socket = socket;
-
-  socket.on('connect', () => {
-    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
-  });
-
-  socket.on('room-joined', ({ name }) => {
-    _joinedName   = name;
-    _joinedSocket = socket;
-    document.getElementById('waiting-screen').style.display = 'none';
-    document.getElementById('connecting-screen').style.display = 'flex';
-    document.getElementById('spinner').style.display = 'none';
-    document.getElementById('connect-msg').textContent = IS_TEACHER
-      ? `Welcome, ${name}!`
-      : `Welcome, ${name}! 👋`;
-    document.getElementById('enter-btn').style.display = 'block';
-  });
-
-  socket.on('room-error', (msg) => {
-    if (msg === 'CLASS_NOT_OPEN') {
-      document.getElementById('connecting-screen').style.display = 'none';
-      document.getElementById('waiting-screen').style.display = 'flex';
-      document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
-    } else {
-      alert(msg || 'Could not join room.');
-      window.location.href = 'index.html';
-    }
-  });
-
-  socket.on('existing-users', (users) => {
-    users.forEach(({ socketId, role, name }) => {
-      remoteRoles[socketId] = role;
-      remoteNames[socketId] = name;
-      createVideoSlot(socketId, role, name);
-      // Start WebRTC audio with existing users
-      setTimeout(() => callAudioPeer(socketId, socket), 1000);
-    });
-  });
-
-  socket.on('user-joined', ({ socketId, role, name }) => {
-    remoteRoles[socketId] = role;
-    remoteNames[socketId] = name;
-    createVideoSlot(socketId, role, name);
-    if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
-      setTimeout(() => {
-        socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() });
-      }, 1500); // wait for student to fully connect
-    }
-  });
-
-  socket.on('video-frame', ({ socketId, frame }) => {
-    const img = document.getElementById(`vimg-${socketId}`);
-    if (img) img.src = frame;
-  });
-
-  // Audio handled via WebRTC
-
-  socket.on('user-left', (socketId) => removeRemote(socketId));
-
-  socket.on('you-are-muted', () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach(t => t.enabled = false);
-      myMicOn = false;
-      const btn = document.getElementById('mic-btn');
-      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Mic OFF'; }
-    const mbtn = document.getElementById('mic-btn-mobile'); if(mbtn) { mbtn.classList.add('active'); mbtn.textContent = '🔇'; }
-      document.getElementById('my-mute-icon').style.display = 'flex';
-    }
-    window._selfMuted = true;
-    updateSelfMonkey();
-  });
-
-  socket.on('your-cam-toggled', ({ camOn }) => {
-    if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
-    window._selfCamOff = !camOn;
-    // If cam is turned back on, reset muted state visually
-    if (camOn) window._selfMuted = false;
-    updateSelfMonkey();
-  });
-
-  socket.on('you-are-unmuted', () => {
-    window._selfMuted = false;
-    updateSelfMonkey();
-  });
-
-
-
-  // Screen share from teacher
-  socket.on('screenshare-start', () => {
-    if (!IS_TEACHER) {
-      // Don't hide canvas - screenshare-img will cover it with z-index
-      // Just wait for frames to arrive
-    }
-  });
-
-  socket.on('screenshare-stop', () => {
-    if (!IS_TEACHER) {
-      // Fully remove screenshare img
-      const img = document.getElementById('screenshare-img');
-      if (img) img.remove();
-      // Hide screenshare video
-      const vid = document.getElementById('screenshare-video');
-      vid.style.display = 'none';
-      // Show canvas
-      const cc = document.querySelector('.canvas-container');
-      if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = '1'; }
-      // Force canvas redraw after a moment
-      setTimeout(() => { if (canvas) canvas.renderAll(); }, 100);
-    }
-  });
-
-  socket.on('screenshare-frame', ({ frame }) => {
-    if (!IS_TEACHER) {
-      let img = document.getElementById('screenshare-img');
-      if (!img) {
-        img = document.createElement('img');
-        img.id = 'screenshare-img';
-        img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:20;display:block;';
-        document.getElementById('whiteboard-wrap').appendChild(img);
-      }
-      img.src = frame;
-      img.style.display = 'block';
-    }
-  });
-
-  socket.on('your-draw-toggled', ({ canDraw }) => {
-    window._canDraw = canDraw;
-    if (canvas && !IS_TEACHER) {
-      // Lock/unlock all canvas interactions
-      canvas.isDrawingMode = canDraw;
-      canvas.selection = canDraw;
-      canvas.forEachObject(obj => {
-        obj.selectable = canDraw;
-        obj.evented = canDraw;
-      });
-      canvas.discardActiveObject();
-      canvas.renderAll();
-      // Dim toolbar so student knows drawing is off
-      const toolbar = document.getElementById('toolbar');
-      if (toolbar) toolbar.style.opacity = canDraw ? '1' : '0.4';
-      if (toolbar) toolbar.style.pointerEvents = canDraw ? 'auto' : 'none';
-    }
-  });
-
-  socket.on('teacher-cam', ({ camOn }) => {
-    if (!IS_TEACHER) {
-      const logo = document.getElementById('cam-off-logo');
-      if (logo) logo.style.display = camOn ? 'none' : 'flex';
-    }
-  });
-
-  socket.on('class-opened', () => {
-    if (!IS_TEACHER) {
-      const ws = document.getElementById('waiting-screen');
-      if (ws && ws.style.display !== 'none') {
-        socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
-      }
-    }
-  });
-
-  socket.on('spot-available', () => {
-    if (!IS_TEACHER) {
-      const ws = document.getElementById('waiting-screen');
-      if (ws && ws.style.display !== 'none') {
-        socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
-      }
-    }
-  });
-
-  socket.on('class-closed', () => {
-    // Just locks door - students already inside stay
-  });
-
-  socket.on('class-ended', () => {
-    if (!IS_TEACHER) {
-      document.body.innerHTML = `
-        <div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
-          <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
-          <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
-          <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
-          <a href="index.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
-        </div>`;
-    }
-  });
-
-  socket.on('teacher-disconnected', () => {
-    if (!IS_TEACHER) {
-      const ts = document.getElementById('teacher-status');
-      if (ts) ts.style.display = 'block';
-      document.getElementById('status-bar').textContent = '🟡 Waiting...';
-      document.getElementById('status-bar').style.color = '#ffd740';
-    }
-  });
-
-  socket.on('teacher-reconnected', () => {
-    if (!IS_TEACHER) {
-      const ts = document.getElementById('teacher-status');
-      if (ts) ts.style.display = 'none';
-      document.getElementById('status-bar').textContent = '🟢 In Class';
-      document.getElementById('status-bar').style.color = '#69f0ae';
-    }
-  });
-
-  socket.on('room-full', () => {
-    if (IS_TEACHER) {
-      const btn = document.getElementById('open-class-btn');
-      if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; }
-    }
-  });
-
-  socket.on('room-unlocked', () => {
-    if (IS_TEACHER) {
-      const btn = document.getElementById('open-class-btn');
-      if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; }
-    }
-  });
-
-  socket.on('disconnect', () => {
-    document.getElementById('status-bar').textContent = '🟡 Reconnecting...';
-    document.getElementById('status-bar').style.color = '#ffd740';
-  });
-
-  socket.on('reconnect', () => {
-    document.getElementById('status-bar').textContent = '🟢 Connected';
-    document.getElementById('status-bar').style.color = '#69f0ae';
-    // Only rejoin if we were already in the classroom (not waiting)
-    if (window._whiteboardInit) {
-      socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
-    }
-  });
-
-  // Whiteboard listeners
-  socket.on('whiteboard-path', ({ path }) => {
-    if (!canvas) return;
-    suppressSync = true;
-    fabric.util.enlivenObjects([path], (objs) => {
-      objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false;
-    });
-  });
-  socket.on('whiteboard-sync', ({ json }) => {
-    if (!canvas) return;
-    suppressSync = true;
-    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
-  });
-  socket.on('whiteboard-clear', () => {
-    if (!canvas) return;
-    suppressSync = true;
-    canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
-  });
-  socket.on('canvas-state', ({ json }) => {
-    if (!canvas) return;
-    suppressSync = true;
-    canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; });
-  });
-  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
-    if (!canvas) return;
-    suppressSync = true;
-    fabric.Image.fromURL(dataUrl, (img) => {
-      img.scale(scale).set({ left, top, selectable: false });
-      canvas.add(img); canvas.renderAll(); suppressSync = false;
-    });
-  });
-}
-
-// ── Enter Class button ──
-function enterClass() {
-  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
-  document.getElementById('connecting-screen').style.display = 'none';
-  document.getElementById('status-bar').textContent = '🟢 Connected';
-  document.getElementById('status-bar').style.color = '#69f0ae';
-  
-  initWhiteboard(_joinedSocket);
-  startVideoCapture(_joinedSocket);
-  startAudioRelay(_joinedSocket);
-}
-
-// ── Video relay ──
-function startVideoCapture(socket) {
-  if (IS_TEACHER) {
-    const src = document.getElementById('left-video');
-    captureInterval = setInterval(() => {
-      if (!localStream || !myCamOn) return;
-      try {
-        capCtx.drawImage(src, 0, 0, 320, 240);
-        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
-      } catch(e) {}
-    }, 150);
-  } else {
-    const pipVid = document.createElement('video');
-    pipVid.srcObject = localStream;
-    pipVid.muted = true;
-    pipVid.autoplay = true;
-    pipVid.play();
-
-    // Preload monkey images for when cam is off
-    const monkeyImg = new Image();
-    const monkeyImg2 = new Image();
-    monkeyImg.src = 'nosee.png';
-    monkeyImg2.src = 'noseeandhear.png';
-
-    captureInterval = setInterval(() => {
-      if (!localStream) return;
-      try {
-        if (!myCamOn) {
-          // Send monkey image instead of blank frame
-          const monkey = (!myMicOn) ? monkeyImg2 : monkeyImg;
-          if (monkey.complete && monkey.naturalWidth > 0) {
-            capCtx.clearRect(0, 0, 320, 240);
-            capCtx.fillStyle = '#1a1a2e';
-            capCtx.fillRect(0, 0, 320, 240);
-            capCtx.drawImage(monkey, 40, 20, 240, 200);
-            socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
-          }
-        } else {
-          capCtx.drawImage(pipVid, 0, 0, 320, 240);
-          socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
-        }
-      } catch(e) {}
-    }, 150);
-  }
-}
-
-function startAudioRelay(socket) {
-  if (!localStream) return;
-  // Use WebRTC for audio - much more reliable than socket relay
-  // Audio peers will be created when users join
-  window._audioSocket = socket;
-
-  // Listen for audio WebRTC signals
-  socket.on('audio-offer', async ({ from, offer }) => {
-    const pc = createAudioPeer(from, socket);
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('audio-answer', { to: from, answer: pc.localDescription });
-  });
-
-  socket.on('audio-answer', async ({ from, answer }) => {
-    const pc = audioPeers[from];
-    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
-  });
-
-  socket.on('audio-ice', async ({ from, candidate }) => {
-    const pc = audioPeers[from];
-    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
-  });
-}
-
-function createAudioPeer(targetId, socket) {
-  if (audioPeers[targetId]) return audioPeers[targetId];
-  const pc = new RTCPeerConnection(ICE_CONFIG);
-
-  // Add audio track only
-  if (localStream) {
-    localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
-  }
-
-  pc.onicecandidate = (e) => {
-    if (e.candidate) socket.emit('audio-ice', { to: targetId, candidate: e.candidate });
-  };
-
-  pc.ontrack = (e) => {
-    const audio = new Audio();
-    audio.srcObject = e.streams[0];
-    audio.autoplay = true;
-    audio.play().catch(() => {});
-    document.body.appendChild(audio);
-    audio.id = `audio-${targetId}`;
-  };
-
-  audioPeers[targetId] = pc;
-  return pc;
-}
-
-async function callAudioPeer(targetId, socket) {
-  const pc = createAudioPeer(targetId, socket);
-  const offer = await pc.createOffer({ offerToReceiveAudio: true });
-  await pc.setLocalDescription(offer);
-  socket.emit('audio-offer', { to: targetId, offer: pc.localDescription });
-}
-
-function removeAudioPeer(socketId) {
-  if (audioPeers[socketId]) {
-    audioPeers[socketId].close();
-    delete audioPeers[socketId];
-    const audio = document.getElementById(`audio-${socketId}`);
-    if (audio) audio.remove();
-  }
-}
-
-// ── Video slots ──
-function createVideoSlot(socketId, role, name) {
-  if (!IS_TEACHER && role === 'teacher') {
-    teacherSocketId = socketId;
-    document.getElementById('left-video').style.display = 'none';
-    let img = document.getElementById(`vimg-${socketId}`);
-    if (!img) {
-      img = document.createElement('img');
-      img.id = `vimg-${socketId}`;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
-      document.getElementById('left-video').parentElement.appendChild(img);
-    }
-    // Show teacher name in label (z-index 3 so it's above the img)
-    const lbl = document.getElementById('left-label');
-    lbl.textContent = `Teacher ${name || ''}`.trim();
-    lbl.style.zIndex = '3';
-  } else {
-    showStudentSlot(socketId, name);
-  }
-}
-
-function showStudentSlot(socketId, name) {
-  if (studentSlots[socketId]) return; // already exists
-  // Create new slot dynamically
-  const slot = document.createElement('div');
-  slot.className = 'student-box';
-  slot.id = `slot-${socketId}`;
-  slot.innerHTML = `
-    <img id="vimg-${socketId}"/>
-    <div class="student-label">${name || 'Student'}</div>
-    ${IS_TEACHER ? `
-      <button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button>
-      <button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button>
-    ` : ''}
-  `;
-  document.getElementById('right-panel').appendChild(slot);
-  if (IS_TEACHER) {
-    slot.querySelector('.mute-student-btn').style.display = 'block';
-    slot.querySelector('.cam-student-btn').style.display = 'block';
-    // Add draw control button under teacher webcam
-    drawEnabled[socketId] = true;
-    addDrawControlBtn(socketId, name);
-  }
-  studentSlots[socketId] = socketId; // use socketId as key
-  resizeStudentSlots();
-}
-
-function addDrawControlBtn(socketId, name) {
-  let drawControls = document.getElementById('draw-controls');
-  if (!drawControls) {
-    drawControls = document.createElement('div');
-    drawControls.id = 'draw-controls';
-    drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;';
-    document.getElementById('left-panel').appendChild(drawControls);
-  }
-  const btn = document.createElement('button');
-  btn.id = `draw-btn-${socketId}`;
-  btn.style.cssText = 'padding:5px 8px;border-radius:8px;border:none;font-family:Nunito,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:#2e7d32;color:white;text-align:left;';
-  btn.textContent = `✏️ ${name || 'Student'}`;
-  btn.onclick = () => toggleStudentDraw(socketId, btn);
-  drawControls.appendChild(btn);
-}
-
-function toggleStudentDraw(socketId, btn) {
-  drawEnabled[socketId] = !drawEnabled[socketId];
-  btn.style.background = drawEnabled[socketId] ? '#2e7d32' : '#e53935';
-  btn.textContent = `${drawEnabled[socketId] ? '✏️' : '🚫'} ${remoteNames[socketId] || 'Student'}`;
-  if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: drawEnabled[socketId] });
-}
-
-function resizeStudentSlots() {
-  const count = Object.keys(studentSlots).length;
-  const panel = document.getElementById('right-panel');
-  // Slots resize based on count
-  const slots = panel.querySelectorAll('.student-box');
-  slots.forEach(s => {
-    s.style.width = '100%';
-  });
-}
-
-function setupOwnSlot() {
-  if (!IS_TEACHER && localStream) {
-    const slot = document.createElement('div');
-    slot.className = 'student-box';
-    slot.id = 'slot-self';
-    slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
-    document.getElementById('right-panel').appendChild(slot);
-    document.getElementById('self-slot-video').srcObject = localStream;
-    studentSlots['__self__'] = '__self__';
-    resizeStudentSlots();
-  }
-}
-
-function removeRemote(socketId) {
-  if (socketId === teacherSocketId) {
-    teacherSocketId = null;
-    const img = document.getElementById(`vimg-${socketId}`);
-    if (img) img.remove();
-    document.getElementById('left-video').style.display = 'block';
-    document.getElementById('left-label').textContent = 'Waiting for teacher...';
-  }
-  if (studentSlots[socketId]) {
-    const slot = document.getElementById(`slot-${socketId}`);
-    if (slot) slot.remove();
-    delete studentSlots[socketId];
-    delete drawEnabled[socketId];
-    // Remove draw control button
-    const drawBtn = document.getElementById(`draw-btn-${socketId}`);
-    if (drawBtn) drawBtn.remove();
-    resizeStudentSlots();
-  }
-  delete remoteRoles[socketId]; delete remoteNames[socketId];
-  removeAudioPeer(socketId);
-}
-
-// ── Controls ──
-function toggleClassOpen() {
-  classIsOpen = !classIsOpen;
-  const btn = document.getElementById('open-class-btn');
-  if (classIsOpen) {
-    btn.textContent = '🔒 Close Class';
-    btn.style.background = '#e53935';
-    if (window._socket) window._socket.emit('class-opened', { room: ROOM });
-  } else {
-    btn.textContent = '🔓 Open Class';
-    btn.style.background = '#2e7d32';
-    if (window._socket) window._socket.emit('class-closed', { room: ROOM });
-  }
-}
-
-function toggleMic() {
-  if (!localStream) return;
-  myMicOn = !myMicOn;
-  localStream.getAudioTracks().forEach(t => t.enabled = myMicOn);
-  const btn = document.getElementById('mic-btn');
-  btn.textContent = myMicOn ? '🎤 Mic ON' : '🔇 Mic OFF';
-  const mbtn = document.getElementById('mic-btn-mobile'); if(mbtn) mbtn.textContent = myMicOn ? '🎤' : '🔇';
-  btn.classList.toggle('active', !myMicOn);
-  document.getElementById('my-mute-icon').style.display = myMicOn ? 'none' : 'flex';
-}
-
-function toggleCam() {
-  if (!localStream) return;
-  myCamOn = !myCamOn;
-  localStream.getVideoTracks().forEach(t => t.enabled = myCamOn);
-  const btn = document.getElementById('cam-btn');
-  btn.textContent = myCamOn ? '📷 Cam ON' : '🚫 Cam OFF';
-  const cbtn = document.getElementById('cam-btn-mobile'); if(cbtn) cbtn.textContent = myCamOn ? '📷' : '🚫';
-  btn.classList.toggle('active', !myCamOn);
-  const logo = document.getElementById('cam-off-logo');
-  if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
-  if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
-}
-
-function muteStudent(socketId) {
-  const slot = document.getElementById(`slot-${socketId}`);
-  const btn = slot ? slot.querySelector('.mute-student-btn') : null;
-  let muting = true;
-  if (btn) {
-    const isMuted = btn.textContent.includes('Unmute');
-    muting = !isMuted;
-    btn.textContent = isMuted ? '🔇 Mute' : '🔊 Unmute';
-  }
-  if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: muting });
-  updateMonkey(socketId);
-}
-
-function toggleStudentCam(socketId, btn) {
-  const isOff = btn.dataset.camoff === 'true';
-  btn.dataset.camoff = !isOff;
-  btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
-  if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
-  updateMonkey(socketId);
-}
-
-function updateMonkey(socketId) {
-  const slot = document.getElementById(`slot-${socketId}`);
-  if (!slot) return;
-  let monkey = slot.querySelector('.monkey-overlay');
-  if (!monkey) {
-    monkey = document.createElement('img');
-    monkey.className = 'monkey-overlay';
-    monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;';
-    slot.appendChild(monkey);
-  }
-  const camBtn = slot.querySelector('.cam-student-btn');
-  const muteBtn = slot.querySelector('.mute-student-btn');
-  const camOff = camBtn && camBtn.dataset.camoff === 'true';
-  const muted = muteBtn && muteBtn.textContent.includes('Unmute');
-  if (camOff && muted) {
-    monkey.src = 'noseeandhear.png';
-    monkey.style.display = 'block';
-  } else if (camOff) {
-    monkey.src = 'nosee.png';
-    monkey.style.display = 'block';
-  } else {
-    monkey.style.display = 'none';
-  }
-}
-
-function leaveClass() {
-  if (!IS_TEACHER) {
-    // Students just leave
-    if (captureInterval) clearInterval(captureInterval);
-    if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
-    if (window._socket) window._socket.disconnect();
-    window.location.href = 'index.html';
-    return;
-  }
-  // Teacher gets two options
-  document.getElementById('leave-modal').style.display = 'flex';
-}
-
-function teacherBRB() {
-  document.getElementById('leave-modal').style.display = 'none';
-  if (captureInterval) clearInterval(captureInterval);
-  if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
-  if (window._socket) window._socket.disconnect();
-  window.location.href = 'index.html';
-}
-
-function teacherEndClass() {
-  document.getElementById('leave-modal').style.display = 'none';
-  if (window._socket) window._socket.emit('end-class', { room: ROOM });
-  setTimeout(() => {
-    if (captureInterval) clearInterval(captureInterval);
-    if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} }
-    if (window._socket) window._socket.disconnect();
-    window.location.href = 'index.html';
-  }, 500);
-}
-
-// ── Whiteboard ──
-const CANVAS_W = 1440, CANVAS_H = 1080;
-let canvas, currentTool = 'draw', suppressSync = false;
-
-function initWhiteboard(socket) {
-  if (window._whiteboardInit) return;
-  window._whiteboardInit = true;
-  canvas = new fabric.Canvas('whiteboard-canvas', {
-    width: CANVAS_W, height: CANVAS_H,
-    isDrawingMode: true, backgroundColor: '#ffffff'
-  });
-  canvas.freeDrawingBrush.color = '#000000';
-  canvas.freeDrawingBrush.width = 5;
-  scaleCanvas();
-  window.addEventListener('resize', scaleCanvas);
-  setupOwnSlot();
-  canvas.on('path:created', (e) => {
-    if (suppressSync) return;
-    window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
-  });
-  canvas.on('object:modified', () => {
-    if (suppressSync) return;
-    window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
-  });
-}
-
-function scaleCanvas() {
-  const wrap = document.getElementById('whiteboard-wrap');
-  const wrapW = wrap.clientWidth;
-  const wrapH = wrap.clientHeight;
-  // Scale to fit both width AND height - no overflow
-  const scale = Math.min(wrapW / CANVAS_W, wrapH / CANVAS_H);
-  const container = document.querySelector('.canvas-container');
-  if (container) {
-    container.style.transform = `scale(${scale})`;
-    container.style.transformOrigin = 'top left';
-  }
-  wrap.style.overflow = 'hidden';
-  wrap.style.background = '#ffffff';
-}
-
-function setTool(tool) {
-  // If student drawing is disabled, don't allow tool changes
-  if (!IS_TEACHER && window._canDraw === false) return;
-  currentTool = tool;
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById(`tool-${tool}`).classList.add('selected');
-  if (tool === 'draw') {
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-    canvas.freeDrawingBrush.color = document.getElementById('color-picker').value;
-    canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value);
-  } else if (tool === 'erase') {
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-    canvas.freeDrawingBrush.color = '#ffffff';
-    canvas.freeDrawingBrush.width = 20;
-  } else { canvas.isDrawingMode = false; }
-}
-
-function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
-function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
-
-function clearBoard() {
-  if (!IS_TEACHER) return;
-  canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll();
-  if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM });
-}
-
-function uploadImage(event) {
-  if (!IS_TEACHER) return;
-  const file = event.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    fabric.Image.fromURL(e.target.result, (img) => {
-      const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
-      img.scale(scale).set({ left: 40, top: 40, selectable: true });
-      canvas.add(img); canvas.renderAll();
-      if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl: e.target.result, scale, left: 40, top: 40 });
-    });
-  };
-  reader.readAsDataURL(file);
-  event.target.value = '';
-}
-
-// Show help button after 15 seconds if still loading
-setTimeout(() => {
-  const spinner = document.getElementById('spinner');
-  const helpBtn = document.querySelector('#connecting-screen button:last-of-type');
-  if (spinner && spinner.style.display !== 'none') {
-    document.getElementById('connect-msg').textContent = 'Taking too long?';
-    document.getElementById('connect-msg').style.fontSize = '1.2rem';
-  }
-}, 15000);
-
-
-// Initialize self state
 window._selfCamOff = false;
 window._selfMuted  = false;
 setTimeout(() => { window._selfMuted = false; }, 500);
@@ -1092,95 +257,459 @@ function updateSelfMonkey() {
     selfSlot.appendChild(monkey);
   }
   if (window._selfCamOff && window._selfMuted) {
-    monkey.src = 'noseeandhear.png';
-    monkey.style.display = 'block';
+    monkey.src = 'noseeandhear.png'; monkey.style.display = 'block';
   } else if (window._selfCamOff) {
-    monkey.src = 'nosee.png';
-    monkey.style.display = 'block';
+    monkey.src = 'nosee.png'; monkey.style.display = 'block';
   } else {
     monkey.style.display = 'none';
   }
 }
 
-let screenStream = null;
-let isSharing = false;
+async function startMedia() {
+  try {
+    document.getElementById('connect-msg').textContent = 'Starting camera...';
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('device-error') && (document.getElementById('device-error').style.display = 'none');
+    if (IS_TEACHER) {
+      document.getElementById('left-video').srcObject = localStream;
+      document.getElementById('left-video').muted = true;
+      document.getElementById('left-label').textContent = '';
+    } else {
+      document.getElementById('left-label').textContent = 'Waiting for teacher...';
+    }
+    document.getElementById('connect-msg').textContent = 'Connecting...';
+    connectSocket();
+  } catch(e) { showDeviceError(e); }
+}
 
+async function requestDevices() {
+  const errDiv = document.getElementById('device-error');
+  if (errDiv) errDiv.style.display = 'none';
+  document.getElementById('connect-msg').textContent = 'Requesting camera & mic...';
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('enter-btn').style.display = 'none';
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (IS_TEACHER) {
+      document.getElementById('left-video').srcObject = localStream;
+      document.getElementById('left-video').muted = true;
+    }
+    document.getElementById('connect-msg').textContent = 'Connecting...';
+    if (!window._socket) connectSocket();
+  } catch(e) { showDeviceError(e); }
+}
+
+function showDeviceError(e) {
+  const errDiv = document.getElementById('device-error');
+  const errMsg = document.getElementById('device-error-msg');
+  if (!errDiv || !errMsg) { alert(getFriendlyError(e)); return; }
+  errMsg.textContent = getFriendlyError(e);
+  errDiv.style.display = 'block';
+  document.getElementById('spinner').style.display = 'none';
+  document.getElementById('connect-msg').textContent = 'Camera or mic issue';
+}
+
+function getFriendlyError(e) {
+  const name = e.name || '';
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError')
+    return '🚫 Camera & mic access was blocked. Please click the camera icon in your browser address bar and allow access, then try again.';
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError')
+    return '📷 No camera or microphone detected. Please plug one in and try again.';
+  if (name === 'NotReadableError' || name === 'TrackStartError')
+    return "⚠️ Camera or mic is already in use by another app. Please close it and try again.";
+  return `❌ Could not access camera/mic: ${e.message || 'Unknown error'}. Please refresh and try again.`;
+}
+
+function connectSocket() {
+  const socket = io(SERVER_URL);
+  window._socket = socket;
+
+  socket.on('connect', () => socket.emit('join-room', { room: ROOM, token: MY_TOKEN }));
+
+  socket.on('room-joined', ({ name }) => {
+    _joinedName = name; _joinedSocket = socket;
+    document.getElementById('waiting-screen').style.display = 'none';
+    document.getElementById('connecting-screen').style.display = 'flex';
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('connect-msg').textContent = IS_TEACHER ? `Welcome, ${name}!` : `Welcome, ${name}! 👋`;
+    document.getElementById('enter-btn').style.display = 'block';
+  });
+
+  socket.on('room-error', (msg) => {
+    if (msg === 'CLASS_NOT_OPEN') {
+      document.getElementById('connecting-screen').style.display = 'none';
+      document.getElementById('waiting-screen').style.display = 'flex';
+      document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
+    } else { alert(msg || 'Could not join room.'); window.location.href = 'index.html'; }
+  });
+
+  socket.on('existing-users', (users) => {
+    users.forEach(({ socketId, role, name }) => {
+      remoteRoles[socketId] = role; remoteNames[socketId] = name;
+      createVideoSlot(socketId, role, name);
+      setTimeout(() => callAudioPeer(socketId, socket), 1000);
+    });
+  });
+
+  socket.on('user-joined', ({ socketId, role, name }) => {
+    remoteRoles[socketId] = role; remoteNames[socketId] = name;
+    createVideoSlot(socketId, role, name);
+    if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
+      setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() }), 1500);
+    }
+  });
+
+  socket.on('video-frame', ({ socketId, frame }) => {
+    const img = document.getElementById(`vimg-${socketId}`);
+    if (img) img.src = frame;
+  });
+
+  socket.on('audio-chunk', ({ socketId, chunk }) => {
+    try {
+      const blob = new Blob([new Uint8Array(chunk)], { type: 'audio/webm;codecs=opus' });
+      const url = URL.createObjectURL(blob);
+      const a = new Audio(url);
+      a.play().then(() => setTimeout(() => URL.revokeObjectURL(url), 1000)).catch(() => {});
+    } catch(e) {}
+  });
+
+  socket.on('user-left', (socketId) => removeRemote(socketId));
+
+  socket.on('you-are-muted', () => {
+    if (localStream) { localStream.getAudioTracks().forEach(t => t.enabled = false); myMicOn = false; }
+    const btn = document.getElementById('mic-btn');
+    if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Mic OFF'; }
+    document.getElementById('my-mute-icon').style.display = 'flex';
+    window._selfMuted = true; updateSelfMonkey();
+  });
+
+  socket.on('you-are-unmuted', () => { window._selfMuted = false; updateSelfMonkey(); });
+
+  socket.on('your-cam-toggled', ({ camOn }) => {
+    if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+    window._selfCamOff = !camOn;
+    if (camOn) window._selfMuted = false;
+    updateSelfMonkey();
+  });
+
+  socket.on('your-draw-toggled', ({ canDraw }) => {
+    window._canDraw = canDraw;
+    if (canvas && !IS_TEACHER) {
+      canvas.isDrawingMode = canDraw; canvas.selection = canDraw;
+      canvas.forEachObject(obj => { obj.selectable = canDraw; obj.evented = canDraw; });
+      canvas.discardActiveObject(); canvas.renderAll();
+      const toolbar = document.getElementById('toolbar');
+      if (toolbar) { toolbar.style.opacity = canDraw ? '1' : '0.4'; toolbar.style.pointerEvents = canDraw ? 'auto' : 'none'; }
+    }
+  });
+
+  socket.on('teacher-cam', ({ camOn }) => {
+    if (!IS_TEACHER) { const logo = document.getElementById('cam-off-logo'); if (logo) logo.style.display = camOn ? 'none' : 'flex'; }
+  });
+
+  socket.on('class-opened', () => {
+    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN }); }
+  });
+
+  socket.on('spot-available', () => {
+    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN }); }
+  });
+
+  socket.on('class-closed', () => {});
+
+  socket.on('class-ended', () => {
+    if (!IS_TEACHER) {
+      document.body.innerHTML = `<div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
+        <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
+        <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
+        <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
+        <a href="index.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+      </div>`;
+    }
+  });
+
+  socket.on('teacher-disconnected', () => {
+    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'block'; document.getElementById('status-bar').textContent = '🟡 Waiting...'; document.getElementById('status-bar').style.color = '#ffd740'; }
+  });
+
+  socket.on('teacher-reconnected', () => {
+    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'none'; document.getElementById('status-bar').textContent = '🟢 In Class'; document.getElementById('status-bar').style.color = '#69f0ae'; }
+  });
+
+  socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; } } });
+  socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; } } });
+
+  socket.on('disconnect', () => { document.getElementById('status-bar').textContent = '🟡 Reconnecting...'; document.getElementById('status-bar').style.color = '#ffd740'; });
+  socket.on('reconnect', () => {
+    document.getElementById('status-bar').textContent = '🟢 Connected'; document.getElementById('status-bar').style.color = '#69f0ae';
+    if (window._whiteboardInit) socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+  });
+
+  socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
+  socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
+  socket.on('whiteboard-clear', () => { if (!canvas) return; suppressSync = true; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false; });
+  socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
+  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => { if (!canvas) return; suppressSync = true; fabric.Image.fromURL(dataUrl, (img) => { img.scale(scale).set({ left, top, selectable: false }); canvas.add(img); canvas.renderAll(); suppressSync = false; }); });
+
+  socket.on('screenshare-start', () => { if (!IS_TEACHER) { const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'hidden'; } });
+  socket.on('screenshare-stop', () => { if (!IS_TEACHER) { const img = document.getElementById('screenshare-img'); if (img) img.remove(); const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'visible'; if (canvas) canvas.renderAll(); } });
+  socket.on('screenshare-frame', ({ frame }) => {
+    if (!IS_TEACHER) {
+      let img = document.getElementById('screenshare-img');
+      if (!img) { img = document.createElement('img'); img.id = 'screenshare-img'; img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:20;display:block;'; document.getElementById('whiteboard-wrap').appendChild(img); }
+      img.src = frame; img.style.display = 'block';
+    }
+  });
+
+  startAudioRelay(socket);
+}
+
+function createAudioPeer(targetId, socket) {
+  if (audioPeers[targetId]) return audioPeers[targetId];
+  const pc = new RTCPeerConnection(ICE_CONFIG);
+  if (localStream) localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.onicecandidate = (e) => { if (e.candidate) socket.emit('audio-ice', { to: targetId, candidate: e.candidate }); };
+  pc.ontrack = (e) => { const audio = new Audio(); audio.srcObject = e.streams[0]; audio.autoplay = true; audio.play().catch(() => {}); audio.id = `audio-${targetId}`; document.body.appendChild(audio); };
+  audioPeers[targetId] = pc; return pc;
+}
+
+async function callAudioPeer(targetId, socket) {
+  const pc = createAudioPeer(targetId, socket);
+  const offer = await pc.createOffer({ offerToReceiveAudio: true });
+  await pc.setLocalDescription(offer);
+  socket.emit('audio-offer', { to: targetId, offer: pc.localDescription });
+}
+
+function removeAudioPeer(socketId) {
+  if (audioPeers[socketId]) { audioPeers[socketId].close(); delete audioPeers[socketId]; }
+  const audio = document.getElementById(`audio-${socketId}`); if (audio) audio.remove();
+}
+
+function startAudioRelay(socket) {
+  if (!localStream) return;
+  window._audioSocket = socket;
+  socket.on('audio-offer', async ({ from, offer }) => { const pc = createAudioPeer(from, socket); await pc.setRemoteDescription(new RTCSessionDescription(offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('audio-answer', { to: from, answer: pc.localDescription }); });
+  socket.on('audio-answer', async ({ from, answer }) => { const pc = audioPeers[from]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer)); });
+  socket.on('audio-ice', async ({ from, candidate }) => { const pc = audioPeers[from]; if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} } });
+}
+
+function createVideoSlot(socketId, role, name) {
+  if (!IS_TEACHER && role === 'teacher') {
+    teacherSocketId = socketId;
+    document.getElementById('left-video').style.display = 'none';
+    let img = document.getElementById(`vimg-${socketId}`);
+    if (!img) { img = document.createElement('img'); img.id = `vimg-${socketId}`; img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;'; document.getElementById('left-video').parentElement.appendChild(img); }
+    const lbl = document.getElementById('left-label'); lbl.textContent = ''; lbl.style.zIndex = '3';
+    const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) { nameAbove.textContent = `👩‍🏫 Teacher ${name || ''}`; nameAbove.style.display = 'block'; }
+  } else { showStudentSlot(socketId, name); }
+}
+
+function showStudentSlot(socketId, name) {
+  if (studentSlots[socketId]) return;
+  const slot = document.createElement('div'); slot.className = 'student-box'; slot.id = `slot-${socketId}`;
+  slot.innerHTML = `<img id="vimg-${socketId}"/><div class="student-label">${name || 'Student'}</div>${IS_TEACHER ? `<button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button><button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button>` : ''}`;
+  document.getElementById('right-panel').appendChild(slot);
+  if (IS_TEACHER) { slot.querySelector('.mute-student-btn').style.display = 'block'; slot.querySelector('.cam-student-btn').style.display = 'block'; addDrawControlBtn(socketId, name); }
+  studentSlots[socketId] = socketId;
+}
+
+function addDrawControlBtn(socketId, name) {
+  let drawControls = document.getElementById('draw-controls');
+  if (!drawControls) { drawControls = document.createElement('div'); drawControls.id = 'draw-controls'; drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;'; document.getElementById('left-panel').appendChild(drawControls); }
+  const btn = document.createElement('button'); btn.id = `draw-btn-${socketId}`; btn.style.cssText = 'padding:5px 8px;border-radius:8px;border:none;font-family:Nunito,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:#2e7d32;color:white;text-align:left;'; btn.textContent = `✏️ ${name || 'Student'}`; btn.onclick = () => toggleStudentDraw(socketId, btn); drawControls.appendChild(btn);
+}
+
+function toggleStudentDraw(socketId, btn) {
+  const enabled = btn.style.background === 'rgb(46, 125, 50)' || btn.style.background === '#2e7d32';
+  btn.style.background = enabled ? '#e53935' : '#2e7d32';
+  btn.textContent = `${enabled ? '🚫' : '✏️'} ${remoteNames[socketId] || 'Student'}`;
+  if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: !enabled });
+}
+
+function setupOwnSlot() {
+  if (!IS_TEACHER && localStream) {
+    const slot = document.createElement('div'); slot.className = 'student-box'; slot.id = 'slot-self';
+    slot.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video><div class="student-label">${MY_NAME} (You)</div>`;
+    document.getElementById('right-panel').appendChild(slot);
+    document.getElementById('self-slot-video').srcObject = localStream;
+    studentSlots['__self__'] = '__self__';
+  }
+}
+
+function removeRemote(socketId) {
+  if (socketId === teacherSocketId) { teacherSocketId = null; const img = document.getElementById(`vimg-${socketId}`); if (img) img.remove(); document.getElementById('left-video').style.display = 'block'; document.getElementById('left-label').textContent = 'Waiting for teacher...'; const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) nameAbove.style.display = 'none'; }
+  if (studentSlots[socketId]) { const slot = document.getElementById(`slot-${socketId}`); if (slot) slot.remove(); delete studentSlots[socketId]; const drawBtn = document.getElementById(`draw-btn-${socketId}`); if (drawBtn) drawBtn.remove(); }
+  delete remoteRoles[socketId]; delete remoteNames[socketId]; removeAudioPeer(socketId);
+}
+
+function startVideoCapture(socket) {
+  if (IS_TEACHER) {
+    const src = document.getElementById('left-video');
+    captureInterval = setInterval(() => { if (!localStream || !myCamOn) return; try { capCtx.drawImage(src, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); } catch(e) {} }, 150);
+  } else {
+    const pipVid = document.createElement('video'); pipVid.srcObject = localStream; pipVid.muted = true; pipVid.autoplay = true; pipVid.play();
+    const monkeyImg = new Image(); const monkeyImg2 = new Image(); monkeyImg.src = 'nosee.png'; monkeyImg2.src = 'noseeandhear.png';
+    captureInterval = setInterval(() => {
+      if (!localStream) return;
+      try {
+        if (!myCamOn) { const monkey = (!myMicOn) ? monkeyImg2 : monkeyImg; if (monkey.complete && monkey.naturalWidth > 0) { capCtx.clearRect(0,0,320,240); capCtx.fillStyle='#1a1a2e'; capCtx.fillRect(0,0,320,240); capCtx.drawImage(monkey,40,20,240,200); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); } }
+        else { capCtx.drawImage(pipVid, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); }
+      } catch(e) {}
+    }, 150);
+  }
+}
+
+function startAudioRelayOld(socket) {
+  if (!localStream) return;
+  try {
+    mediaRecorder = new MediaRecorder(new MediaStream(localStream.getAudioTracks()), { mimeType: 'audio/webm;codecs=opus' });
+    mediaRecorder.ondataavailable = async (e) => { if (e.data.size > 0 && myMicOn && window._socket) { const buf = await e.data.arrayBuffer(); window._socket.emit('audio-chunk', { room: ROOM, chunk: Array.from(new Uint8Array(buf)) }); } };
+    mediaRecorder.start(200);
+  } catch(e) {}
+}
+
+function enterClass() {
+  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
+  document.getElementById('connecting-screen').style.display = 'none';
+  document.getElementById('status-bar').textContent = '🟢 Connected';
+  document.getElementById('status-bar').style.color = '#69f0ae';
+  initWhiteboard(_joinedSocket);
+  startVideoCapture(_joinedSocket);
+}
+
+function updateMonkey(socketId) {
+  const slot = document.getElementById(`slot-${socketId}`); if (!slot) return;
+  let monkey = slot.querySelector('.monkey-overlay');
+  if (!monkey) { monkey = document.createElement('img'); monkey.className = 'monkey-overlay'; monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;'; slot.appendChild(monkey); }
+  const camBtn = slot.querySelector('.cam-student-btn'); const muteBtn = slot.querySelector('.mute-student-btn');
+  const camOff = camBtn && camBtn.dataset.camoff === 'true';
+  const muted = muteBtn && muteBtn.textContent.includes('Unmute');
+  if (camOff && muted) { monkey.src = 'noseeandhear.png'; monkey.style.display = 'block'; }
+  else if (camOff) { monkey.src = 'nosee.png'; monkey.style.display = 'block'; }
+  else { monkey.style.display = 'none'; }
+}
+
+function toggleClassOpen() {
+  classIsOpen = !classIsOpen;
+  const btn = document.getElementById('open-class-btn');
+  if (classIsOpen) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; if (window._socket) window._socket.emit('class-opened', { room: ROOM }); }
+  else { btn.textContent = '🔓 Open Class'; btn.style.background = '#2e7d32'; if (window._socket) window._socket.emit('class-closed', { room: ROOM }); }
+}
+
+function toggleMic() {
+  if (!localStream) return;
+  myMicOn = !myMicOn;
+  localStream.getAudioTracks().forEach(t => t.enabled = myMicOn);
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = myMicOn ? '🎤 Mic ON' : '🔇 Mic OFF';
+  btn.classList.toggle('active', !myMicOn);
+  document.getElementById('my-mute-icon').style.display = myMicOn ? 'none' : 'flex';
+}
+
+function toggleCam() {
+  if (!localStream) return;
+  myCamOn = !myCamOn;
+  localStream.getVideoTracks().forEach(t => t.enabled = myCamOn);
+  const btn = document.getElementById('cam-btn');
+  btn.textContent = myCamOn ? '📷 Cam ON' : '🚫 Cam OFF';
+  btn.classList.toggle('active', !myCamOn);
+  const logo = document.getElementById('cam-off-logo'); if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
+  if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
+}
+
+function muteStudent(socketId) {
+  const slot = document.getElementById(`slot-${socketId}`); const btn = slot ? slot.querySelector('.mute-student-btn') : null;
+  let muting = true;
+  if (btn) { const isMuted = btn.textContent.includes('Unmute'); muting = !isMuted; btn.textContent = isMuted ? '🔇 Mute' : '🔊 Unmute'; }
+  if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: muting });
+  updateMonkey(socketId);
+}
+
+function toggleStudentCam(socketId, btn) {
+  const isOff = btn.dataset.camoff === 'true'; btn.dataset.camoff = !isOff; btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
+  if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
+  updateMonkey(socketId);
+}
+
+function leaveClass() {
+  if (!IS_TEACHER) { if (captureInterval) clearInterval(captureInterval); if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} } if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; return; }
+  document.getElementById('leave-modal').style.display = 'flex';
+}
+
+function teacherBRB() { document.getElementById('leave-modal').style.display = 'none'; if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }
+function teacherEndClass() { document.getElementById('leave-modal').style.display = 'none'; if (window._socket) window._socket.emit('end-class', { room: ROOM }); setTimeout(() => { if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }, 500); }
+
+let screenStream = null; let isSharing = false;
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
   try {
     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
     isSharing = true;
-    const vid = document.getElementById('screenshare-video');
-    vid.srcObject = screenStream;
-    vid.style.display = 'block';
-    const cc = document.querySelector('.canvas-container');
-    if (cc) cc.style.visibility = 'hidden';
-    const btn = document.getElementById('screenshare-btn');
-    if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
-    const capCv = document.createElement('canvas');
-    capCv.width = 1280; capCv.height = 720;
-    const capCx = capCv.getContext('2d');
-    window._shareInterval = setInterval(() => {
-      if (!isSharing) return;
-      try {
-        capCx.drawImage(vid, 0, 0, 1280, 720);
-        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) });
-      } catch(e) {}
-    }, 150);
+    const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'hidden';
+    const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
+    const capCv = document.createElement('canvas'); capCv.width = 1280; capCv.height = 720; const capCx = capCv.getContext('2d');
+    const vid = document.getElementById('screenshare-video'); vid.srcObject = screenStream;
+    window._shareInterval = setInterval(() => { if (!isSharing) return; try { capCx.drawImage(vid, 0, 0, 1280, 720); if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) }); } catch(e) {} }, 150);
     if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
-  } catch(e) {
-    if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message);
-  }
+  } catch(e) { if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message); }
 }
 
 function stopScreenShare() {
   isSharing = false;
   if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-  // Hide screen share video
-  const vid = document.getElementById('screenshare-video');
-  vid.style.display = 'none'; vid.srcObject = null;
-  // Show canvas properly
-  const cc = document.querySelector('.canvas-container');
-  if (cc) cc.style.visibility = 'visible';
+  const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'visible';
   if (canvas) setTimeout(() => canvas.renderAll(), 100);
-  const btn = document.getElementById('screenshare-btn');
-  if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
-  if (window._socket) {
-    window._socket.emit('screenshare-stop', { room: ROOM });
-    // Resend canvas state to all students
-    setTimeout(() => {
-      if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
-    }, 300);
-  }
+  const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
+  if (window._socket) { window._socket.emit('screenshare-stop', { room: ROOM }); setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300); }
 }
+
+const CANVAS_W = 1440, CANVAS_H = 1080;
+let canvas, currentTool = 'draw', suppressSync = false;
+
+function initWhiteboard(socket) {
+  if (window._whiteboardInit) return; window._whiteboardInit = true;
+  canvas = new fabric.Canvas('whiteboard-canvas', { width: CANVAS_W, height: CANVAS_H, isDrawingMode: true, backgroundColor: '#ffffff' });
+  canvas.freeDrawingBrush.color = '#000000'; canvas.freeDrawingBrush.width = 5;
+  scaleCanvas(); window.addEventListener('resize', scaleCanvas); setupOwnSlot();
+  canvas.on('path:created', (e) => { if (suppressSync) return; window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() }); });
+  canvas.on('object:modified', () => { if (suppressSync) return; window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); });
+}
+
+function scaleCanvas() {
+  const wrap = document.getElementById('whiteboard-wrap');
+  const scale = Math.min(wrap.clientWidth / CANVAS_W, wrap.clientHeight / CANVAS_H);
+  wrap.style.overflow = 'hidden'; wrap.style.background = '#ffffff';
+  const container = document.querySelector('.canvas-container');
+  if (container) { container.style.transform = `scale(${scale})`; container.style.transformOrigin = 'top left'; }
+}
+
+function setTool(tool) {
+  if (!IS_TEACHER && window._canDraw === false) return;
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById(`tool-${tool}`).classList.add('selected');
+  if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
+  else if (tool === 'erase') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = '#ffffff'; canvas.freeDrawingBrush.width = 20; }
+  else { canvas.isDrawingMode = false; }
+}
+
+function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
+function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
+
+function clearBoard() { if (!IS_TEACHER) return; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM }); }
+
+function uploadImage(event) {
+  if (!IS_TEACHER) return; const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader(); reader.onload = (e) => { fabric.Image.fromURL(e.target.result, (img) => { const scale = Math.min((CANVAS_W*0.85)/img.width,(CANVAS_H*0.85)/img.height); img.scale(scale).set({left:40,top:40,selectable:true}); canvas.add(img); canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl: e.target.result, scale, left: 40, top: 40 }); }); };
+  reader.readAsDataURL(file); event.target.value = '';
+}
+
+// Show help after 15s if still loading
+setTimeout(() => { const spinner = document.getElementById('spinner'); if (spinner && spinner.style.display !== 'none') { document.getElementById('connect-msg').textContent = 'Taking too long?'; document.getElementById('connect-msg').style.fontSize = '1.2rem'; } }, 15000);
 
 startMedia();
 </script>
-<!-- LEAVE CLASS MODAL -->
-<div id="leave-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#16213e;border-radius:20px;padding:36px;width:100%;max-width:400px;margin:20px;text-align:center;font-family:Nunito,sans-serif;">
-    <p style="font-size:1.3rem;font-weight:900;color:white;margin-bottom:8px;">Leaving class?</p>
-    <p style="font-size:0.95rem;color:#888;margin-bottom:28px;">Choose what happens to your students</p>
-    <button onclick="teacherBRB()" style="display:block;width:100%;padding:16px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">
-      ⏱️ I'll be back in 5 minutes
-    </button>
-    <button onclick="teacherEndClass()" style="display:block;width:100%;padding:16px;background:#e53935;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">
-      🏁 End Class
-    </button>
-    <button onclick="document.getElementById('leave-modal').style.display='none'" style="display:block;width:100%;padding:12px;background:none;color:#888;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;cursor:pointer;">
-      Cancel
-    </button>
-  </div>
-</div>
-
-<!-- Rotate device overlay -->
-<div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
-  <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
-  <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
-  <p style="font-size:1rem;color:#666;">This app works best in landscape mode</p>
-  <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
-</div>
 </body>
 </html>
