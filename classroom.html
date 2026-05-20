@@ -582,11 +582,30 @@ function startVideoCapture(socket) {
     pipVid.muted = true;
     pipVid.autoplay = true;
     pipVid.play();
+
+    // Preload monkey images for when cam is off
+    const monkeyImg = new Image();
+    const monkeyImg2 = new Image();
+    monkeyImg.src = 'nosee.png';
+    monkeyImg2.src = 'noseeandhear.png';
+
     captureInterval = setInterval(() => {
-      if (!localStream || !myCamOn) return;
+      if (!localStream) return;
       try {
-        capCtx.drawImage(pipVid, 0, 0, 320, 240);
-        socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+        if (!myCamOn) {
+          // Send monkey image instead of blank frame
+          const monkey = (!myMicOn) ? monkeyImg2 : monkeyImg;
+          if (monkey.complete && monkey.naturalWidth > 0) {
+            capCtx.clearRect(0, 0, 320, 240);
+            capCtx.fillStyle = '#1a1a2e';
+            capCtx.fillRect(0, 0, 320, 240);
+            capCtx.drawImage(monkey, 40, 20, 240, 200);
+            socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+          }
+        } else {
+          capCtx.drawImage(pipVid, 0, 0, 320, 240);
+          socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) });
+        }
       } catch(e) {}
     }, 150);
   }
