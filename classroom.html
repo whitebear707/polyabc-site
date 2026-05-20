@@ -176,12 +176,12 @@
 </div>
 
 <div id="topbar">
-  <img src="LOGO.png" alt="PolyABC"/>
   <div id="topbar-controls" style="display:flex;align-items:center;gap:6px;">
-    <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic ON</button>
-    <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam ON</button>
+    <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤</button>
+    <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷</button>
     <button class="ctrl-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" style="background:#0f3460;">⛶</button>
   </div>
+  <img src="LOGO.png" alt="PolyABC"/>
   <span id="room-label">Room: —</span>
   <span id="status-bar">Connecting...</span>
   <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
@@ -415,7 +415,7 @@ function connectSocket() {
       localStream.getAudioTracks().forEach(t => t.enabled = false);
       myMicOn = false;
       const btn = document.getElementById('mic-btn');
-      if (btn) { btn.classList.add('active'); btn.textContent = '🔇 Mic OFF'; }
+      if (btn) { btn.classList.add('active'); btn.textContent = '🔇'; }
       document.getElementById('my-mute-icon').style.display = 'flex';
     }
     window._selfMuted = true;
@@ -620,7 +620,7 @@ function enterClass() {
   document.getElementById('connecting-screen').style.display = 'none';
   document.getElementById('status-bar').textContent = '🟢 Connected';
   document.getElementById('status-bar').style.color = '#69f0ae';
-  if (IS_TEACHER) document.getElementById('left-label').textContent = `👩‍🏫 ${_joinedName} (You)`;
+  
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
   startAudioRelay(_joinedSocket);
@@ -875,7 +875,7 @@ function toggleMic() {
   myMicOn = !myMicOn;
   localStream.getAudioTracks().forEach(t => t.enabled = myMicOn);
   const btn = document.getElementById('mic-btn');
-  btn.textContent = myMicOn ? '🎤 Mic ON' : '🔇 Mic OFF';
+  btn.textContent = myMicOn ? '🎤' : '🔇';
   btn.classList.toggle('active', !myMicOn);
   document.getElementById('my-mute-icon').style.display = myMicOn ? 'none' : 'flex';
 }
@@ -885,7 +885,7 @@ function toggleCam() {
   myCamOn = !myCamOn;
   localStream.getVideoTracks().forEach(t => t.enabled = myCamOn);
   const btn = document.getElementById('cam-btn');
-  btn.textContent = myCamOn ? '📷 Cam ON' : '🚫 Cam OFF';
+  btn.textContent = myCamOn ? '📷' : '🚫';
   btn.classList.toggle('active', !myCamOn);
   const logo = document.getElementById('cam-off-logo');
   if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
