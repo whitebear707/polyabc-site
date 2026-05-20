@@ -637,6 +637,15 @@ function muteAll() {
   });
 }
 
+function muteAll() {
+  Object.keys(studentSlots).forEach(socketId => {
+    if (socketId === '__self__') return;
+    if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: true });
+    const wrap = document.getElementById(`wrap-${socketId}`);
+    if (wrap) { const btn = wrap.querySelector('.mute-student-btn'); if (btn) btn.textContent = '🔊 Unmute'; }
+  });
+}
+
 function muteStudent(socketId) {
   const slot = document.getElementById(`slot-${socketId}`); const btn = slot ? slot.querySelector('.mute-student-btn') : null;
   let muting = true;
