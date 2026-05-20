@@ -872,16 +872,13 @@ function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
   const wrapW = wrap.clientWidth;
   const wrapH = wrap.clientHeight;
-  // Scale to fill width exactly, crop height if needed
-  const scale = wrapW / CANVAS_W;
-  const scaledH = CANVAS_H * scale;
+  // Scale to fit both width AND height - no overflow
+  const scale = Math.min(wrapW / CANVAS_W, wrapH / CANVAS_H);
   const container = document.querySelector('.canvas-container');
   if (container) {
     container.style.transform = `scale(${scale})`;
     container.style.transformOrigin = 'top left';
   }
-  // Set wrap height to exactly the scaled canvas height - no extra space
-  wrap.style.height = Math.min(scaledH, wrapH) + 'px';
   wrap.style.overflow = 'hidden';
   wrap.style.background = '#ffffff';
 }
