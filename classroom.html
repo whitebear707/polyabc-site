@@ -366,20 +366,24 @@ function connectSocket() {
   // Screen share from teacher
   socket.on('screenshare-start', () => {
     if (!IS_TEACHER) {
-      document.getElementById('screenshare-video').style.display = 'block';
-      const cc = document.querySelector('.canvas-container');
-      if (cc) cc.style.visibility = 'hidden';
+      // Don't hide canvas - screenshare-img will cover it with z-index
+      // Just wait for frames to arrive
     }
   });
 
   socket.on('screenshare-stop', () => {
     if (!IS_TEACHER) {
+      // Fully remove screenshare img
       const img = document.getElementById('screenshare-img');
-      if (img) { img.style.display = 'none'; img.src = ''; }
-      document.getElementById('screenshare-video').style.display = 'none';
+      if (img) img.remove();
+      // Hide screenshare video
+      const vid = document.getElementById('screenshare-video');
+      vid.style.display = 'none';
+      // Show canvas
       const cc = document.querySelector('.canvas-container');
-      if (cc) cc.style.visibility = 'visible';
-      if (canvas) canvas.renderAll();
+      if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = '1'; }
+      // Force canvas redraw after a moment
+      setTimeout(() => { if (canvas) canvas.renderAll(); }, 100);
     }
   });
 
