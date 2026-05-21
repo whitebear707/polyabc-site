@@ -6,7 +6,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     @media screen and (orientation: portrait) and (max-width: 768px) {
-      #rotate
+      #rotate-msg {
+        display: flex !important;
+      }
+    }
+  </style>
+  <title>PolyABC - Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f0f7ff;
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
       padding: 20px;
     }
