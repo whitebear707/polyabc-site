@@ -618,10 +618,12 @@ function enterClass() {
 }
 
 function updateMonkey(socketId) {
+  const wrap = document.getElementById(`wrap-${socketId}`); if (!wrap) return;
   const slot = document.getElementById(`slot-${socketId}`); if (!slot) return;
   let monkey = slot.querySelector('.monkey-overlay');
   if (!monkey) { monkey = document.createElement('img'); monkey.className = 'monkey-overlay'; monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;'; slot.appendChild(monkey); }
-  const camBtn = slot.querySelector('.cam-student-btn'); const muteBtn = slot.querySelector('.mute-student-btn');
+  const camBtn = wrap.querySelector('.cam-student-btn');
+  const muteBtn = wrap.querySelector('.mute-student-btn');
   const camOff = camBtn && camBtn.dataset.camoff === 'true';
   const muted = muteBtn && muteBtn.textContent.includes('Unmute');
   if (camOff && muted) { monkey.src = 'noseeandhear.png'; monkey.style.display = 'block'; }
@@ -672,7 +674,8 @@ function muteAll() {
 }
 
 function muteStudent(socketId) {
-  const slot = document.getElementById(`slot-${socketId}`); const btn = slot ? slot.querySelector('.mute-student-btn') : null;
+  const wrap = document.getElementById(`wrap-${socketId}`);
+  const btn = wrap ? wrap.querySelector('.mute-student-btn') : null;
   let muting = true;
   if (btn) { const isMuted = btn.textContent.includes('Unmute'); muting = !isMuted; btn.textContent = isMuted ? '🔇 Mute' : '🔊 Unmute'; }
   if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: muting });
@@ -680,7 +683,9 @@ function muteStudent(socketId) {
 }
 
 function toggleStudentCam(socketId, btn) {
-  const isOff = btn.dataset.camoff === 'true'; btn.dataset.camoff = !isOff; btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
+  const isOff = btn.dataset.camoff === 'true';
+  btn.dataset.camoff = !isOff;
+  btn.textContent = !isOff ? '📷 Show' : '🚫 Cam';
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: isOff });
   updateMonkey(socketId);
 }
@@ -694,8 +699,23 @@ function muteAll() {
   });
 }
 
+const starCounts = {};
+
 function giveStar(socketId, name) {
-  if (window._socket) window._socket.emit('give-star', { room: ROOM, name });
+  if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId });
+  // Update local star counter
+  starCounts[socketId] = (starCounts[socketId] || 0) + 1;
+  const wrap = document.getElementById(`wrap-${socketId}`);
+  if (wrap) {
+    let counter = wrap.querySelector('.star-counter');
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.className = 'star-counter';
+      counter.style.cssText = 'text-align:center;font-size:0.75rem;font-weight:700;color:#ffd740;';
+      wrap.appendChild(counter);
+    }
+    counter.textContent = '⭐'.repeat(Math.min(starCounts[socketId], 5)) + (starCounts[socketId] > 5 ? ` x${starCounts[socketId]}` : '');
+  }
 }
 
 function showStarCelebration(name) {
