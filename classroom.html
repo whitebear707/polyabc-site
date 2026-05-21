@@ -268,8 +268,10 @@ window._selfMuted  = false;
 setTimeout(() => { window._selfMuted = false; }, 500);
 
 function updateSelfMonkey() {
-  const selfSlot = document.getElementById('slot-self');
-  if (!selfSlot) return;
+  const selfWrap = document.getElementById('slot-self');
+  if (!selfWrap) return;
+  // Target the inner student-box, not the wrap
+  const selfSlot = selfWrap.querySelector('.student-box') || selfWrap;
   let monkey = selfSlot.querySelector('.monkey-overlay');
   if (!monkey) {
     monkey = document.createElement('img');
