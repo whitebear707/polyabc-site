@@ -343,23 +343,6 @@
 
   <div id="content">
 
-    <!-- ATTENDANCE PANEL -->
-    <div id="attendance-panel" style="display:none;max-width:900px;margin:0 auto 30px auto;background:white;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-      <p style="font-size:1.2rem;font-weight:900;color:#1a73e8;margin-bottom:16px;">📋 Attendance Records</p>
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;">
-        <div>
-          <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Room Number</label>
-          <input type="text" id="att-room" placeholder="e.g. 101" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;width:120px;"/>
-        </div>
-        <div>
-          <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Date (optional)</label>
-          <input type="date" id="att-date" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;"/>
-        </div>
-        <button onclick="loadAttendance()" style="background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:8px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">🔍 Search</button>
-      </div>
-      <div id="attendance-results"></div>
-    </div>
-
     <!-- ADMIN VIEW -->
     <div id="admin-view">
       <p class="section-title">📋 Manage Rooms</p>
@@ -788,6 +771,56 @@
   document.getElementById('login-pass').addEventListener('keydown', e => {
     if (e.key === 'Enter') doLogin();
   });
+
+  function toggleAttendance() {
+    const panel = document.getElementById('attendance-panel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function loadAttendance() {
+    const room = document.getElementById('att-room').value.trim();
+    const date = document.getElementById('att-date').value;
+    if (!room) { alert('Please enter a room number'); return; }
+    const resultsDiv = document.getElementById('attendance-results');
+    resultsDiv.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">Loading...</p>';
+    try {
+      const url = date
+        ? `${SERVER_URL}/attendance/${room}/${date}`
+        : `${SERVER_URL}/attendance/${room}`;
+      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + localStorage.getItem('adminToken') } });
+      const data = await res.json();
+      const records = Array.isArray(data) ? data : [data];
+      if (!records.length || (records.length === 1 && !records[0].date)) {
+        resultsDiv.innerHTML = '<p style="color:#888;text-align:center;padding:20px;">No attendance records found.</p>';
+        return;
+      }
+      let html = '';
+      records.forEach(r => {
+        html += '<div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:12px;">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:10px;">';
+        html += '<strong style="color:#1a73e8;">Date: ' + r.date + ' — Room ' + r.room + '</strong>';
+        html += '<span style="font-size:0.8rem;color:#888;">' + (r.classEndedAt ? 'Ended' : 'No end recorded') + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:0.85rem;color:#666;margin-bottom:10px;">';
+        html += 'Opened: ' + (r.teacherOpenedAt ? new Date(r.teacherOpenedAt).toLocaleTimeString() : 'N/A');
+        if (r.classEndedAt) html += ' | Ended: ' + new Date(r.classEndedAt).toLocaleTimeString();
+        html += '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
+        html += '<tr style="background:#f5f5f5;"><th style="padding:8px;text-align:left;">Student</th><th style="padding:8px;text-align:left;">Joined</th><th style="padding:8px;text-align:left;">Left</th></tr>';
+        (r.students || []).forEach(s => {
+          html += '<tr style="border-bottom:1px solid #f0f0f0;">';
+          html += '<td style="padding:8px;font-weight:700;">' + s.name + '</td>';
+          html += '<td style="padding:8px;color:#2e7d32;">' + (s.joinedAt ? new Date(s.joinedAt).toLocaleTimeString() : 'N/A') + '</td>';
+          html += '<td style="padding:8px;">' + (s.leftAt ? new Date(s.leftAt).toLocaleTimeString() : 'Still in class') + '</td>';
+          html += '</tr>';
+        });
+        html += '</table></div>';
+      });
+      resultsDiv.innerHTML = html;
+    } catch(e) {
+      resultsDiv.innerHTML = '<p style="color:#e53935;">Error loading attendance.</p>';
+    }
+  }
 </script>
 
 <!-- Rotate device overlay -->
@@ -797,5 +830,27 @@
   <p style="font-size:1rem;color:#666;">This app works best in landscape mode</p>
   <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
 </div>
+<!-- ATTENDANCE MODAL -->
+<div id="attendance-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto;padding:20px;">
+  <div style="max-width:900px;margin:40px auto;background:white;border-radius:16px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <p style="font-size:1.2rem;font-weight:900;color:#1a73e8;margin:0;">📋 Attendance Records</p>
+      <button onclick="toggleAttendance()" style="background:#eee;border:none;border-radius:8px;padding:6px 14px;font-size:1rem;cursor:pointer;">✕ Close</button>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;">
+      <div>
+        <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Room Number</label>
+        <input type="text" id="att-room" placeholder="e.g. 101" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;width:120px;"/>
+      </div>
+      <div>
+        <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Date (optional)</label>
+        <input type="date" id="att-date" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;"/>
+      </div>
+      <button onclick="loadAttendance()" style="background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:8px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">🔍 Search</button>
+    </div>
+    <div id="attendance-results"></div>
+  </div>
+</div>
+
 </body>
 </html>
