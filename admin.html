@@ -336,11 +336,29 @@
     <img src="LOGO.png" alt="PolyABC"/>
     <div id="topbar-right">
       <span id="role-badge">Admin</span>
+      <button onclick="toggleAttendance()" style="background:#1a73e8;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-right:8px;">📋 Attendance</button>
       <button id="logout-btn" onclick="logout()">Logout</button>
     </div>
   </div>
 
   <div id="content">
+
+    <!-- ATTENDANCE PANEL -->
+    <div id="attendance-panel" style="display:none;max-width:900px;margin:0 auto 30px auto;background:white;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+      <p style="font-size:1.2rem;font-weight:900;color:#1a73e8;margin-bottom:16px;">📋 Attendance Records</p>
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;">
+        <div>
+          <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Room Number</label>
+          <input type="text" id="att-room" placeholder="e.g. 101" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;width:120px;"/>
+        </div>
+        <div>
+          <label style="display:block;font-weight:700;color:#444;margin-bottom:4px;font-size:0.9rem;">Date (optional)</label>
+          <input type="date" id="att-date" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;"/>
+        </div>
+        <button onclick="loadAttendance()" style="background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:8px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">🔍 Search</button>
+      </div>
+      <div id="attendance-results"></div>
+    </div>
 
     <!-- ADMIN VIEW -->
     <div id="admin-view">
