@@ -811,7 +811,12 @@
           html += '<tr style="border-bottom:1px solid #f0f0f0;">';
           html += '<td style="padding:8px;font-weight:700;">' + s.name + '</td>';
           html += '<td style="padding:8px;color:#2e7d32;">' + (s.joinedAt ? new Date(s.joinedAt).toLocaleTimeString() : 'N/A') + '</td>';
-          html += '<td style="padding:8px;">' + (s.leftAt ? new Date(s.leftAt).toLocaleTimeString() : 'Still in class') + '</td>';
+          const leftDisplay = s.leftAt
+            ? new Date(s.leftAt).toLocaleTimeString()
+            : r.classEndedAt
+              ? new Date(r.classEndedAt).toLocaleTimeString()
+              : 'Still in class';
+          html += '<td style="padding:8px;">' + leftDisplay + '</td>';
           html += '</tr>';
         });
         html += '</table></div>';
