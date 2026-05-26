@@ -483,45 +483,6 @@ function connectSocket() {
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
-let unreadCount = 0;
-
-function toggleChat() {
-  const panel = document.getElementById('chat-panel');
-  const isOpen = panel.style.display === 'flex';
-  panel.style.display = isOpen ? 'none' : 'flex';
-  if (!isOpen) {
-    unreadCount = 0;
-    const badge = document.getElementById('chat-badge');
-    badge.style.display = 'none';
-  }
-}
-
-function receiveStudentMessage(name, message, time) {
-  const messages = document.getElementById('chat-messages');
-  const t = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const div = document.createElement('div');
-  div.className = 'chat-msg';
-  div.innerHTML = `<div class="msg-name">${name}</div><div class="msg-text">${message}</div><div class="msg-time">${t}</div>`;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
-  // Badge if panel is closed
-  const panel = document.getElementById('chat-panel');
-  if (panel.style.display !== 'flex') {
-    unreadCount++;
-    const badge = document.getElementById('chat-badge');
-    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-    badge.style.display = 'flex';
-  }
-}
-
-function sendStudentMessage() {
-  const input = document.getElementById('student-chat-input');
-  const message = input.value.trim();
-  if (!message) return;
-  if (window._socket) window._socket.emit('private-message', { room: ROOM, message });
-  input.value = '';
-}
-
   socket.on('class-ended', () => {
     if (!IS_TEACHER) {
       document.body.innerHTML = `<div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
@@ -567,6 +528,44 @@ function sendStudentMessage() {
   });
 
   startAudioRelay(socket);
+}
+
+let unreadCount = 0;
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const isOpen = panel.style.display === 'flex';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) {
+    unreadCount = 0;
+    const badge = document.getElementById('chat-badge');
+    badge.style.display = 'none';
+  }
+}
+
+function receiveStudentMessage(name, message, time) {
+  const messages = document.getElementById('chat-messages');
+  const t = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<div class="msg-name">${name}</div><div class="msg-text">${message}</div><div class="msg-time">${t}</div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  const panel = document.getElementById('chat-panel');
+  if (panel.style.display !== 'flex') {
+    unreadCount++;
+    const badge = document.getElementById('chat-badge');
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.style.display = 'flex';
+  }
+}
+
+function sendStudentMessage() {
+  const input = document.getElementById('student-chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  if (window._socket) window._socket.emit('private-message', { room: ROOM, message });
+  input.value = '';
 }
 
 function createAudioPeer(targetId, socket) {
