@@ -33,11 +33,11 @@
     .chat-msg .msg-name { font-size:0.75rem; font-weight:800; color:#a0c4ff; margin-bottom:2px; }
     .chat-msg .msg-text { font-size:0.9rem; color:#e0e0e0; }
     .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
-    #student-chat-bar { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); display:none; background:#16213e; border-radius:12px; padding:8px 12px; box-shadow:0 4px 20px rgba(0,0,0,0.4); z-index:9001; gap:8px; align-items:center; width:90%; max-width:480px; }
+    #student-chat-bar { display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
     #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
     #student-chat-input::placeholder { color:#555; }
     #chat-badge { position:absolute; top:-4px; right:-4px; background:#e53935; color:white; font-size:0.65rem; font-weight:900; border-radius:50%; width:18px; height:18px; display:none; align-items:center; justify-content:center; }
-    .video-box { position: relative; background: #0f3460; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; }
+    .video-box { position: relative; background: #0f3460; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; max-height: 165px; }
     .video-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .video-label { position: absolute; bottom: 6px; left: 8px; font-size: 0.8rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 6px; z-index: 3; }
     .teacher-border { border: 3px solid #1a73e8; }
@@ -203,6 +203,11 @@
         <div id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:0.65rem;font-weight:900;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center;"></div>
       </div>
     </div>
+    <div id="student-chat-bar">
+      <input id="student-chat-input" type="text" placeholder="✉️ Message teacher privately..." maxlength="200"
+        onkeydown="if(event.key==='Enter')sendStudentMessage()"/>
+      <button onclick="sendStudentMessage()" style="background:#1a73e8;border:none;color:white;padding:8px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;">Send</button>
+    </div>
   </div>
 
   <div id="right-panel">
@@ -232,13 +237,6 @@
     <button onclick="toggleChat()" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;">✕</button>
   </div>
   <div id="chat-messages"></div>
-</div>
-
-<!-- STUDENT CHAT BAR -->
-<div id="student-chat-bar" style="display:none;">
-  <input id="student-chat-input" type="text" placeholder="Message teacher privately..." maxlength="200"
-    onkeydown="if(event.key==='Enter')sendStudentMessage()"/>
-  <button onclick="sendStudentMessage()" style="background:#1a73e8;border:none;color:white;padding:8px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;">Send</button>
 </div>
 
 <!-- LEAVE CLASS MODAL -->
