@@ -26,7 +26,17 @@
 
     #main { display: flex; flex: 1; overflow: hidden; }
 
-    #left-panel { width: 220px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
+    #chat-panel { position:fixed; bottom:70px; right:16px; width:300px; max-height:420px; background:#16213e; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; flex-direction:column; z-index:9001; font-family:Nunito,sans-serif; overflow:hidden; }
+    #chat-messages { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; max-height:320px; }
+    #chat-messages::-webkit-scrollbar { width:4px; } #chat-messages::-webkit-scrollbar-thumb { background:#0f3460; border-radius:4px; }
+    .chat-msg { background:#0f3460; border-radius:10px; padding:8px 12px; }
+    .chat-msg .msg-name { font-size:0.75rem; font-weight:800; color:#a0c4ff; margin-bottom:2px; }
+    .chat-msg .msg-text { font-size:0.9rem; color:#e0e0e0; }
+    .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
+    #student-chat-bar { position:fixed; bottom:60px; left:50%; transform:translateX(-50%); display:none; background:#16213e; border-radius:12px; padding:8px 12px; box-shadow:0 4px 20px rgba(0,0,0,0.4); z-index:9001; gap:8px; align-items:center; width:90%; max-width:480px; }
+    #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
+    #student-chat-input::placeholder { color:#555; }
+    #chat-badge { position:absolute; top:-4px; right:-4px; background:#e53935; color:white; font-size:0.65rem; font-weight:900; border-radius:50%; width:18px; height:18px; display:none; align-items:center; justify-content:center; }
     .video-box { position: relative; background: #0f3460; border-radius: 12px; overflow: hidden; aspect-ratio: 4/3; }
     .video-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .video-label { position: absolute; bottom: 6px; left: 8px; font-size: 0.8rem; font-weight: 700; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 6px; z-index: 3; }
@@ -188,6 +198,10 @@
       <div class="tool-separator"></div>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
       <button id="leaderboard-btn" class="tool-btn" onclick="toggleLeaderboard()" style="background:#f57f17;">🏆 Leaderboard</button>
+      <div id="chat-btn-wrap" style="display:none;position:relative;">
+        <button class="tool-btn" onclick="toggleChat()" style="background:#1565c0;">💬 Messages</button>
+        <div id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:0.65rem;font-weight:900;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center;"></div>
+      </div>
     </div>
   </div>
 
@@ -209,6 +223,22 @@
     <button onclick="toggleLeaderboard()" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
   </div>
   <div id="leaderboard-list" style="color:#aaa;text-align:center;font-size:0.9rem;">No stars yet!</div>
+</div>
+
+<!-- TEACHER CHAT PANEL -->
+<div id="chat-panel" style="display:none;">
+  <div style="padding:12px 16px;border-bottom:1px solid #0f3460;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-weight:900;color:#a0c4ff;font-size:1rem;">💬 Messages</span>
+    <button onclick="toggleChat()" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;">✕</button>
+  </div>
+  <div id="chat-messages"></div>
+</div>
+
+<!-- STUDENT CHAT BAR -->
+<div id="student-chat-bar" style="display:none;">
+  <input id="student-chat-input" type="text" placeholder="Message teacher privately..." maxlength="200"
+    onkeydown="if(event.key==='Enter')sendStudentMessage()"/>
+  <button onclick="sendStudentMessage()" style="background:#1a73e8;border:none;color:white;padding:8px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;">Send</button>
 </div>
 
 <!-- LEAVE CLASS MODAL -->
@@ -243,8 +273,10 @@ document.getElementById('room-label').textContent = `Room: ${ROOM}`;
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
   document.getElementById('mute-all-btn').style.display = 'block';
+  document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
+  document.getElementById('student-chat-bar').style.display = 'flex';
 }
 
 const capCanvas = document.createElement('canvas');
@@ -451,6 +483,46 @@ function connectSocket() {
   socket.on('class-closed', () => {});
   socket.on('star-given', ({ name }) => showStarCelebration(name));
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
+  socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
+
+let unreadCount = 0;
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const isOpen = panel.style.display === 'flex';
+  panel.style.display = isOpen ? 'none' : 'flex';
+  if (!isOpen) {
+    unreadCount = 0;
+    const badge = document.getElementById('chat-badge');
+    badge.style.display = 'none';
+  }
+}
+
+function receiveStudentMessage(name, message, time) {
+  const messages = document.getElementById('chat-messages');
+  const t = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<div class="msg-name">${name}</div><div class="msg-text">${message}</div><div class="msg-time">${t}</div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  // Badge if panel is closed
+  const panel = document.getElementById('chat-panel');
+  if (panel.style.display !== 'flex') {
+    unreadCount++;
+    const badge = document.getElementById('chat-badge');
+    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+    badge.style.display = 'flex';
+  }
+}
+
+function sendStudentMessage() {
+  const input = document.getElementById('student-chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  if (window._socket) window._socket.emit('private-message', { room: ROOM, message });
+  input.value = '';
+}
 
   socket.on('class-ended', () => {
     if (!IS_TEACHER) {
