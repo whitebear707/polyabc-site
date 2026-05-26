@@ -187,6 +187,7 @@
       </div>
       <div class="tool-separator"></div>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
+      <button id="leaderboard-btn" class="tool-btn" onclick="toggleLeaderboard()" style="background:#f57f17;">🏆 Leaderboard</button>
     </div>
   </div>
 
@@ -199,6 +200,15 @@
 <div id="star-overlay" style="display:none;position:fixed;inset:0;z-index:99990;pointer-events:none;flex-direction:column;align-items:center;justify-content:center;">
   <div id="star-name" style="font-family:Nunito,sans-serif;font-size:3.5rem;font-weight:900;color:#ffd740;text-align:center;text-shadow:0 0 30px #ffd740,0 0 60px #ff8f00;z-index:2;position:relative;"></div>
   <canvas id="confetti-canvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+</div>
+
+<!-- LEADERBOARD PANEL -->
+<div id="leaderboard-panel" style="display:none;position:fixed;top:70px;right:16px;z-index:9000;background:#16213e;border-radius:16px;padding:20px 24px;min-width:220px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:Nunito,sans-serif;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <span style="font-size:1.1rem;font-weight:900;color:#ffd740;">🏆 Leaderboard</span>
+    <button onclick="toggleLeaderboard()" style="background:none;border:none;color:#888;font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+  </div>
+  <div id="leaderboard-list" style="color:#aaa;text-align:center;font-size:0.9rem;">No stars yet!</div>
 </div>
 
 <!-- LEAVE CLASS MODAL -->
@@ -440,6 +450,7 @@ function connectSocket() {
 
   socket.on('class-closed', () => {});
   socket.on('star-given', ({ name }) => showStarCelebration(name));
+  socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
 
   socket.on('class-ended', () => {
     if (!IS_TEACHER) {
@@ -718,6 +729,43 @@ function giveStar(socketId, name) {
     }
     counter.textContent = '⭐'.repeat(Math.min(starCounts[socketId], 5)) + (starCounts[socketId] > 5 ? ` x${starCounts[socketId]}` : '');
   }
+}
+
+function toggleLeaderboard() {
+  const panel = document.getElementById('leaderboard-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function renderLeaderboard(stars) {
+  const list = document.getElementById('leaderboard-list');
+  const entries = Object.entries(stars).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) { list.innerHTML = '<div style="color:#aaa;text-align:center;">No stars yet!</div>'; return; }
+  const medals = ['🥇','🥈','🥉'];
+  list.innerHTML = entries.map(([name, count], i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <span style="font-weight:700;color:${i===0?'#ffd740':i===1?'#c0c0c0':i===2?'#cd7f32':'#a0c4ff'};">
+        ${medals[i] || `${i+1}.`} ${name}
+      </span>
+      <span style="font-size:0.95rem;color:#ffd740;font-weight:900;">${'⭐'.repeat(Math.min(count,5))}${count>5?` x${count}`:''}</span>
+    </div>
+  `).join('');
+
+  // Update star counters on all video slots by matching student name
+  document.querySelectorAll('.student-wrap').forEach(wrap => {
+    const label = wrap.querySelector('.student-label-below');
+    if (!label) return;
+    const name = label.textContent.trim();
+    const count = stars[name];
+    if (!count) return;
+    let counter = wrap.querySelector('.star-counter');
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.className = 'star-counter';
+      counter.style.cssText = 'text-align:center;font-size:0.75rem;font-weight:700;color:#ffd740;';
+      wrap.appendChild(counter);
+    }
+    counter.textContent = '⭐'.repeat(Math.min(count, 5)) + (count > 5 ? ` x${count}` : '');
+  });
 }
 
 function showStarCelebration(name) {
