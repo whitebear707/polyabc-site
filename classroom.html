@@ -824,7 +824,7 @@ function renderLeaderboard(stars) {
   document.querySelectorAll('.student-wrap').forEach(wrap => {
     const label = wrap.querySelector('.student-label-below');
     if (!label) return;
-    const name = label.textContent.trim();
+    const name = label.textContent.trim().replace(/\s*\(You\)$/, '');
     const count = stars[name];
     if (!count) return;
     let counter = wrap.querySelector('.star-counter');
