@@ -904,9 +904,9 @@
       const dateStr = toDateStr2(date);
       const assigned = availAssignments.filter(a => a.date === dateStr);
       const status = dates[dateStr] || 'unavailable';
-      let bg = '#ffccbc', color = '#bf360c';
-      if (assigned.length > 0) { bg = '#ff8f00'; color = 'white'; }
-      else if (status === 'available') { bg = '#c8e6c9'; color = '#1b5e20'; }
+      let bg = '#e8e8e8', color = '#999';
+      if (assigned.length > 0) { bg = 'linear-gradient(135deg,#ff8c00,#ffb347)'; color = 'white'; }
+      else if (status === 'available') { bg = '#39ff14'; color = '#1a5e00'; }
       const isToday = date.getTime() === today.getTime();
       const outline = isToday ? 'outline:2px solid #1a73e8;' : '';
       const click = (assigned.length > 0 || status === 'available') ? `onclick="openDayModal('${dateStr}')"` : '';
@@ -1242,9 +1242,9 @@
 
     <!-- Legend -->
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div> Available (click to manage)</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ffccbc;"></div> Unavailable</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ff8f00;"></div> Class Assigned (click to manage)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#39ff14;"></div> Available (click to manage)</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#e8e8e8;border:1px solid #ccc;"></div> Unavailable</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned (click to manage)</div>
     </div>
   </div>
 </div>

@@ -130,9 +130,9 @@
     .cal-day.other-month { opacity: 0.25; cursor: default; pointer-events: none; }
     .cal-day.past { opacity: 0.4; cursor: default; pointer-events: none; }
     .cal-day.today { outline: 2px solid #ffd740; }
-    .cal-day.unavailable { background: #1e1e3a; color: #888; }
-    .cal-day.available { background: #1b5e20; color: #a5d6a7; }
-    .cal-day.assigned { background: #e65100; color: white; cursor: default; }
+    .cal-day.unavailable { background: #e8e8e8; color: #999; }
+    .cal-day.available { background: #39ff14; color: #1a5e00; }
+    .cal-day.assigned { background: linear-gradient(135deg,#ff8c00,#ffb347); color: white; cursor: default; }
     .cal-day .day-num { font-size: 0.85rem; font-weight: 900; }
     .cal-day .day-dot { font-size: 0.6rem; margin-top: 2px; }
 
@@ -218,9 +218,9 @@
     </div>
     <div class="cal-grid" id="cal-grid"></div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#1b5e20;"></div> Available</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#1e1e3a;border:1px solid #333;"></div> Unavailable</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e65100;"></div> Class Assigned</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#39ff14;"></div> Available</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8e8e8;border:1px solid #ccc;"></div> Unavailable</div>
+      <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned</div>
     </div>
   </div>
 </div>
