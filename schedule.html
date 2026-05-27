@@ -410,6 +410,10 @@
     return `${hr % 12 || 12}:${m} ${ampm}`;
   }
 
+  function goBack() {
+    window.location.href = 'greeting.html';
+  }
+
   function applyToAllDays() {
     const firstDay = DAYS[0];
     const start = document.getElementById(`dh-start-${firstDay}`)?.value;
