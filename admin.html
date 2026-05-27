@@ -337,6 +337,7 @@
     <div id="topbar-right">
       <span id="role-badge">Admin</span>
       <button onclick="toggleAttendance()" style="background:#1a73e8;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-right:8px;">📋 Attendance</button>
+      <button onclick="toggleAvailability()" style="background:#2e7d32;color:white;border:none;padding:8px 16px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;margin-right:8px;">📅 Availability</button>
       <button id="logout-btn" onclick="logout()">Logout</button>
     </div>
   </div>
@@ -546,9 +547,10 @@
       document.getElementById('teacher-view').style.display = 'none';
       loadRooms();
     } else {
-      document.getElementById('admin-view').style.display   = 'none';
-      document.getElementById('teacher-view').style.display = 'block';
-      loadTeacherInfo();
+      // Teacher — save token and redirect to greeting page
+      localStorage.setItem('teacherToken', currentToken);
+      localStorage.setItem('teacherRoom', currentRoom);
+      window.location.href = 'greeting.html';
     }
   }
 
@@ -886,6 +888,113 @@
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
   }
 
+  // ── AVAILABILITY ──
+  const AVAIL_DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const AVAIL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let availYear  = new Date().getFullYear();
+  let availMonth = new Date().getMonth();
+  let availData  = null;   // { dayHours, dates }
+  let availAssignments = [];
+  let allTeachersAvail = [];
+
+  function toggleAvailability() {
+    const panel = document.getElementById('availability-panel');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) loadAllAvailability();
+  }
+
+  async function loadAllAvailability() {
+    const res  = await fetch(`${SERVER_URL}/availability/all`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    allTeachersAvail = await res.json();
+    const sel = document.getElementById('avail-teacher-select');
+    sel.innerHTML = allTeachersAvail.map(t => `<option value="${t.room}">Room ${t.room} — ${t.teacherName || 'Teacher'}</option>`).join('');
+    loadTeacherAvailability();
+  }
+
+  async function loadTeacherAvailability() {
+    const room = document.getElementById('avail-teacher-select').value;
+    if (!room) return;
+    availData = allTeachersAvail.find(t => t.room === room) || { dayHours: {}, dates: {} };
+    const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    availAssignments = await asRes.json();
+    renderAvailCalendar();
+  }
+
+  function renderAvailCalendar() {
+    document.getElementById('avail-month-label').textContent = `${AVAIL_MONTHS[availMonth]} ${availYear}`;
+    const dh = availData?.dayHours || {};
+    // Hours row
+    document.getElementById('avail-hours-row').innerHTML = AVAIL_DAYS.map(d => `
+      <div style="text-align:center;font-size:0.78rem;">
+        <div style="font-weight:900;color:#1a1a2e;">${d}</div>
+        <div style="color:#888;font-size:0.72rem;">${dh[d] ? fmt12(dh[d].start)+'–'+fmt12(dh[d].end) : '—'}</div>
+      </div>
+    `).join('');
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const firstDay = new Date(availYear, availMonth, 1).getDay();
+    const daysInMonth = new Date(availYear, availMonth + 1, 0).getDate();
+    const prevDays = new Date(availYear, availMonth, 0).getDate();
+    const dates = availData?.dates || {};
+
+    let html = AVAIL_DAYS.map(d => `<div style="text-align:center;font-size:0.78rem;font-weight:900;color:#888;padding:4px 0;">${d}</div>`).join('');
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      html += `<div style="aspect-ratio:1;border-radius:8px;background:#f9f9f9;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:0.8rem;">${prevDays - i}</div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(availYear, availMonth, d);
+      const dateStr = toDateStr2(date);
+      const assigned = availAssignments.filter(a => a.date === dateStr);
+      const status = dates[dateStr] || 'unavailable';
+      let bg = '#ffccbc', color = '#bf360c';
+      if (assigned.length > 0) { bg = '#ff8f00'; color = 'white'; }
+      else if (status === 'available') { bg = '#c8e6c9'; color = '#1b5e20'; }
+      const isToday = date.getTime() === today.getTime();
+      const outline = isToday ? 'outline:2px solid #1a73e8;' : '';
+      const click = assigned.length > 0 ? `onclick="showAdminAssignments('${dateStr}')"` : '';
+      const dot = assigned.length > 0 ? `<div style="font-size:0.6rem;margin-top:2px;">📋${assigned.length}</div>` : '';
+      html += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;${outline}cursor:${assigned.length?'pointer':'default'};" ${click}>${d}${dot}</div>`;
+    }
+    const total = firstDay + daysInMonth;
+    const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+    for (let i = 1; i <= remaining; i++) {
+      html += `<div style="aspect-ratio:1;border-radius:8px;background:#f9f9f9;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:0.8rem;">${i}</div>`;
+    }
+    document.getElementById('avail-cal-grid').innerHTML = html;
+  }
+
+  function showAdminAssignments(dateStr) {
+    const list = availAssignments.filter(a => a.date === dateStr);
+    alert(list.map(a => `${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}`).join('\n'));
+  }
+
+  async function assignClass() {
+    const room = document.getElementById('avail-teacher-select').value;
+    const date = document.getElementById('assign-date').value;
+    const time = document.getElementById('assign-time').value;
+    const level = document.getElementById('assign-level').value;
+    const classType = document.getElementById('assign-type').value;
+    const students = parseInt(document.getElementById('assign-students').value);
+    if (!room || !date || !time) { alert('Please fill in date and time.'); return; }
+    await fetch(`${SERVER_URL}/assignments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ room, date, time, level, classType, students })
+    });
+    const msg = document.getElementById('assign-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2500);
+    loadTeacherAvailability();
+  }
+
+  function availPrevMonth() { availMonth--; if (availMonth < 0) { availMonth = 11; availYear--; } renderAvailCalendar(); }
+  function availNextMonth() { availMonth++; if (availMonth > 11) { availMonth = 0; availYear++; } renderAvailCalendar(); }
+
+  function toDateStr2(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function fmt12(t) { if (!t) return ''; const [h,m] = t.split(':'); const hr=parseInt(h),ampm=hr>=12?'PM':'AM'; return `${hr%12||12}:${m} ${ampm}`; }
+
   async function loadAttendance() {
     const room = document.getElementById('att-room').value.trim();
     const date = document.getElementById('att-date').value;
@@ -963,6 +1072,73 @@
       <button onclick="loadAttendance()" style="background:#1a73e8;color:white;border:none;padding:10px 20px;border-radius:8px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">🔍 Search</button>
     </div>
     <div id="attendance-results"></div>
+  </div>
+</div>
+
+<!-- AVAILABILITY PANEL -->
+<div id="availability-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto;padding:20px;">
+  <div style="max-width:1100px;margin:40px auto;background:white;border-radius:16px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <p style="font-size:1.2rem;font-weight:900;color:#2e7d32;margin:0;">📅 Teacher Availability</p>
+      <button onclick="toggleAvailability()" style="background:#eee;border:none;border-radius:8px;padding:6px 14px;font-size:1rem;cursor:pointer;">✕ Close</button>
+    </div>
+
+    <!-- Teacher selector + month nav -->
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+      <select id="avail-teacher-select" onchange="loadTeacherAvailability()" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;"></select>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="availPrevMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">‹</button>
+        <span id="avail-month-label" style="font-size:1rem;font-weight:900;color:#1a1a2e;min-width:160px;text-align:center;"></span>
+        <button onclick="availNextMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">›</button>
+      </div>
+    </div>
+
+    <!-- Hours row -->
+    <div id="avail-hours-row" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+
+    <!-- Calendar -->
+    <div id="avail-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div> Available</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ffccbc;"></div> Unavailable</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ff8f00;"></div> Class Assigned</div>
+    </div>
+
+    <!-- Assign class section -->
+    <div style="border-top:2px solid #eee;padding-top:20px;">
+      <p style="font-weight:900;color:#1a1a2e;font-size:1rem;margin-bottom:14px;">➕ Assign a Class</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Date</label>
+          <input type="date" id="assign-date" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Time</label>
+          <input type="time" id="assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Level</label>
+          <select id="assign-level" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;">
+            <option>A0</option><option>A1</option><option>A2</option>
+            <option>B1</option><option>B2</option><option>C1</option><option>C2</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Class Type</label>
+          <select id="assign-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;">
+            <option>Trial</option><option>30-Minute</option><option>40-Minute</option><option>50-Minute</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Students</label>
+          <input type="number" id="assign-students" min="1" max="6" value="1" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
+        </div>
+      </div>
+      <button onclick="assignClass()" style="background:#2e7d32;color:white;border:none;padding:12px 28px;border-radius:10px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">✅ Assign Class</button>
+      <span id="assign-msg" style="display:none;margin-left:12px;color:#2e7d32;font-weight:700;font-size:0.95rem;">Class assigned!</span>
+    </div>
   </div>
 </div>
 

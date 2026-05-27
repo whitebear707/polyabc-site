@@ -191,14 +191,18 @@
         clearInterval(window._loginCountdown);
         if (data.success) {
           if (data.role === 'teacher') {
-            localStorage.setItem('adminToken', data.token);
+            localStorage.setItem('teacherToken', data.token);
+            localStorage.setItem('teacherRoom', room);
+            localStorage.setItem('teacherName', data.name || 'Teacher');
+            localStorage.setItem('adminToken', data.token); // keep for classroom compat
             localStorage.removeItem('studentToken');
+            window.location.href = 'greeting.html';
           } else {
             localStorage.removeItem('adminToken');
             localStorage.setItem('studentToken', data.token);
             localStorage.setItem('studentName', data.name);
+            window.location.href = `classroom.html?room=${room}`;
           }
-          window.location.href = `classroom.html?room=${room}`;
         } else {
           clearInterval(window._loginCountdown);
           document.getElementById('join-error').style.display = 'block';

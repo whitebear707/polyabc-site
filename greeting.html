@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="LOGO.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Welcome</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .logo { height: 100px; margin-bottom: 16px; }
+
+    .welcome-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .welcome-sub {
+      font-size: 1rem;
+      color: #a0c4ff;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .card {
+      background: #16213e;
+      border-radius: 24px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+
+    .greeting-btn {
+      padding: 18px;
+      border-radius: 14px;
+      border: none;
+      font-family: Nunito, sans-serif;
+      font-size: 1.1rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .greeting-btn:hover { transform: scale(1.02); }
+
+    .btn-enter    { background: #1a73e8; color: white; }
+    .btn-enter:hover { background: #1558b0; }
+
+    .btn-schedule { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; }
+    .btn-schedule:hover { background: #1a3a6e; }
+
+    .btn-exit     { background: transparent; color: #888; border: 2px solid #333; font-size: 0.95rem; padding: 12px; }
+    .btn-exit:hover { border-color: #e53935; color: #e53935; background: transparent; }
+
+    .room-badge {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #556;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<img src="LOGO.png" class="logo" alt="PolyABC"/>
+<div class="welcome-title">Welcome back, <span id="teacher-name">Teacher</span>!</div>
+<div class="welcome-sub" id="room-sub">Room —</div>
+
+<div class="card">
+  <button class="greeting-btn btn-enter" onclick="enterClass()">
+    🎓 Enter Class
+  </button>
+  <button class="greeting-btn btn-schedule" onclick="goSchedule()">
+    📅 My Schedule
+  </button>
+  <button class="greeting-btn btn-exit" onclick="exitToLogin()">
+    🚪 Exit
+  </button>
+</div>
+
+<div class="room-badge" id="room-badge"></div>
+
+<script>
+  const SERVER_URL = "https://polyabc-server.onrender.com";
+
+  // Check token
+  const token = localStorage.getItem('teacherToken');
+  const room  = localStorage.getItem('teacherRoom');
+  const name  = localStorage.getItem('teacherName');
+
+  if (!token || !room) {
+    window.location.href = 'index.html';
+  }
+
+  document.getElementById('teacher-name').textContent = name || 'Teacher';
+  document.getElementById('room-sub').textContent = `Room ${room}`;
+
+  function enterClass() {
+    window.location.href = `classroom.html?room=${room}`;
+  }
+
+  function goSchedule() {
+    window.location.href = 'schedule.html';
+  }
+
+  function exitToLogin() {
+    localStorage.removeItem('teacherToken');
+    localStorage.removeItem('teacherRoom');
+    localStorage.removeItem('teacherName');
+    window.location.href = 'index.html';
+  }
+</script>
+</body>
+</html>
