@@ -257,7 +257,7 @@
     // Load teacher info
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
-    document.getElementById('teacher-name-label').textContent = `👩‍🏫 ${info.teacherName || 'Teacher'} — Room ${info.room}`;
+    document.getElementById('teacher-name-label').textContent = `${info.teacherName || 'Teacher'} — Room ${info.room}`;
 
     // Load availability
     const aRes = await fetch(`${SERVER_URL}/availability`, { headers: { Authorization: `Bearer ${token}` } });

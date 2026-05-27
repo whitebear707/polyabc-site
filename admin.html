@@ -373,29 +373,6 @@
             <input type="text" id="new-teacher-pass" placeholder="e.g. teach#001"/>
           </div>
         </div>
-        <div style="margin-top:10px;">
-          <label>Class Days</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Mon"> Mon</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Tue"> Tue</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Wed"> Wed</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Thu"> Thu</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Fri"> Fri</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Sat"> Sat</label>
-            <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="new-day-cb" value="Sun"> Sun</label>
-          </div>
-          <div class="form-row" style="margin-top:6px;">
-            <div>
-              <label>Start Time</label>
-              <input type="time" id="new-start-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
-            </div>
-            <div>
-              <label>End Time</label>
-              <input type="time" id="new-end-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
-            </div>
-          </div>
-        </div>
-
         <button class="btn btn-primary" onclick="createRoom()" style="margin-top:8px;">Create Room</button>
       </div>
     </div>
@@ -470,27 +447,6 @@
 
     <label>Teacher Password</label>
     <input type="text" id="edit-teacher-pass" placeholder="Teacher password"/>
-
-    <label style="margin-top:10px;display:block;">Class Days</label>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;">
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Mon"> Mon</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Tue"> Tue</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Wed"> Wed</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Thu"> Thu</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Fri"> Fri</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Sat"> Sat</label>
-      <label style="display:flex;align-items:center;gap:4px;font-weight:600;font-size:0.85rem;cursor:pointer;"><input type="checkbox" class="edit-day-cb" value="Sun"> Sun</label>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;">
-      <div>
-        <label>Start Time</label>
-        <input type="time" id="edit-start-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
-      </div>
-      <div>
-        <label>End Time</label>
-        <input type="time" id="edit-end-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;outline:none;"/>
-      </div>
-    </div>
 
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveEdit()">Save</button>
