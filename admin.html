@@ -909,9 +909,10 @@
       else if (status === 'available') { bg = '#c8e6c9'; color = '#1b5e20'; }
       const isToday = date.getTime() === today.getTime();
       const outline = isToday ? 'outline:2px solid #1a73e8;' : '';
-      const click = assigned.length > 0 ? `onclick="showAdminAssignments('${dateStr}')"` : '';
+      const click = (assigned.length > 0 || status === 'available') ? `onclick="openDayModal('${dateStr}')"` : '';
+      const cursor = (assigned.length > 0 || status === 'available') ? 'pointer' : 'default';
       const dot = assigned.length > 0 ? `<div style="font-size:0.6rem;margin-top:2px;">📋${assigned.length}</div>` : '';
-      html += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;${outline}cursor:${assigned.length?'pointer':'default'};" ${click}>${d}${dot}</div>`;
+      html += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;${outline}cursor:${cursor};" ${click}>${d}${dot}</div>`;
     }
     const total = firstDay + daysInMonth;
     const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
@@ -934,93 +935,169 @@
     return h * 60 + m;
   }
 
-  function showAdminAssignments(dateStr) {
+  let _activeDayDate = null;
+  let _editingAssignment = null;
+
+  function openDayModal(dateStr) {
+    _activeDayDate = dateStr;
+    _editingAssignment = null;
+    renderDayModal();
+  }
+
+  function renderDayModal() {
+    const dateStr = _activeDayDate;
     const list = availAssignments.filter(a => a.date === dateStr);
     const room = document.getElementById('avail-teacher-select').value;
-    const bodyLines = list.map((a, i) =>
-      `${i + 1}. ${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}`
-    ).join('\n');
-    const btns = list.map((a, i) => ({
-      label: `🗑 Delete #${i + 1}`,
-      fn: `confirmDeleteAssignment('${a._id}','${fmt12(a.time)}','${a.level}','${a.classType}','${room}')`,
-      primary: false
-    }));
-    btns.push({ label: 'Close', fn: 'closeModal2()', primary: true });
-    showModal('📋', `Classes on ${dateStr}`, bodyLines, btns);
+    const teacher = allTeachersAvail.find(t => t.room === room);
+    const teacherName = teacher?.teacherName || `Room ${room} teacher`;
+    const editing = _editingAssignment;
+
+    let html = `<div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">📅 ${dateStr} — ${teacherName}</div>`;
+
+    if (list.length > 0) {
+      list.forEach(a => {
+        html += `<div style="background:#f5f5f5;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:900;color:#1a1a2e;">${fmt12(a.time)}</div>
+            <div style="font-size:0.82rem;color:#666;">${a.students} student(s) · Level ${a.level} · ${a.classType}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="startEditAssignment('${a._id}')" style="background:#1a73e8;color:white;border:none;padding:6px 10px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;">✏️</button>
+            <button onclick="confirmDeleteAssignment('${a._id}','${fmt12(a.time)}','${a.level}','${a.classType}','${room}')" style="background:#e53935;color:white;border:none;padding:6px 10px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;">🗑</button>
+          </div>
+        </div>`;
+      });
+    } else {
+      html += `<p style="color:#aaa;text-align:center;margin-bottom:12px;font-size:0.9rem;">No classes on this day yet.</p>`;
+    }
+
+    html += `<div style="border-top:2px solid #eee;padding-top:12px;margin-top:4px;">
+      <div style="font-weight:900;color:#1a1a2e;margin-bottom:10px;font-size:0.95rem;">${editing ? '✏️ Edit Class' : '➕ Add Class'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Time</label>
+          <input type="time" id="day-modal-time" value="${editing?.time||''}" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Students</label>
+          <input type="number" id="day-modal-students" min="1" max="6" value="${editing?.students||1}" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Level</label>
+          <select id="day-modal-level" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;">
+            ${['A0','A1','A2','B1','B2','C1','C2'].map(l=>`<option ${editing?.level===l?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Class Type</label>
+          <select id="day-modal-type" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;">
+            ${['Trial','30-Minute','40-Minute','50-Minute'].map(t=>`<option ${editing?.classType===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="${editing?'saveEditAssignment()':'saveNewAssignment()'}" style="flex:1;padding:10px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">${editing?'💾 Save Changes':'✅ Add Class'}</button>
+        ${editing?`<button onclick="_editingAssignment=null;renderDayModal()" style="padding:10px 14px;background:#eee;color:#444;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">Cancel</button>`:''}
+      </div>
+    </div>`;
+
+    document.getElementById('modal-emoji').textContent = '';
+    document.getElementById('modal-title').textContent = '';
+    const body = document.getElementById('modal-body');
+    body.innerHTML = html;
+    body.style.textAlign = 'left';
+    document.getElementById('modal-input').style.display = 'none';
+    document.getElementById('modal-buttons').innerHTML = `<button onclick="closeModal2()" style="padding:10px 24px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;background:#eee;color:#444;">Close</button>`;
+    document.getElementById('custom-modal').style.display = 'flex';
+  }
+
+  function startEditAssignment(id) {
+    _editingAssignment = availAssignments.find(a => a._id === id);
+    renderDayModal();
   }
 
   function confirmDeleteAssignment(id, time, level, classType, room) {
     closeModal2();
     showModal('🗑️', 'Delete this class?', `${time} | Level ${level} | ${classType}`, [
-      { label: 'Cancel', fn: 'closeModal2()', primary: false },
-      { label: 'Yes, Delete', fn: `deleteAssignment('${id}','${room}');closeModal2()`, primary: true }
+      { label: 'Cancel', fn: `openDayModal('${_activeDayDate}')`, primary: false },
+      { label: 'Yes, Delete', fn: `deleteAssignment('${id}','${room}')`, primary: true }
     ]);
   }
 
   async function deleteAssignment(id, room) {
-    await fetch(`${SERVER_URL}/assignments/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${currentToken}` }
-    });
+    await fetch(`${SERVER_URL}/assignments/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
     const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
     availAssignments = await asRes.json();
     renderAvailCalendar();
+    openDayModal(_activeDayDate);
   }
 
-  async function assignClass() {
+  async function saveNewAssignment() {
     const room = document.getElementById('avail-teacher-select').value;
-    const date = document.getElementById('assign-date').value;
-    const time = document.getElementById('assign-time').value;
-    const level = document.getElementById('assign-level').value;
-    const classType = document.getElementById('assign-type').value;
-    const students = parseInt(document.getElementById('assign-students').value);
-    if (!room || !date || !time) { showModal('😬','Oh No! Woops!','Please fill in date and time.',[{label:'Got it',fn:'closeModal2()',primary:true}]); return; }
-
+    const date = _activeDayDate;
+    const time = document.getElementById('day-modal-time').value;
+    const level = document.getElementById('day-modal-level').value;
+    const classType = document.getElementById('day-modal-type').value;
+    const students = parseInt(document.getElementById('day-modal-students').value);
+    if (!time) { return; }
     const teacher = allTeachersAvail.find(t => t.room === room);
     const teacherName = teacher?.teacherName || `Room ${room} teacher`;
-
-    // Check date availability
-    const dateStatus = availData?.dates?.[date] || 'unavailable';
-    if (dateStatus !== 'available') {
-      showModal('😬', 'Oh No! Woops!', `${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`, [{label:'Got it',fn:'closeModal2()',primary:true}]);
+    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date+'T12:00:00').getDay()];
+    const hours = availData?.dayHours?.[dayName];
+    if (hours?.start && hours?.end && (time < hours.start || time > hours.end)) {
+      showModal('😬','Oh No! Woops!',`${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\n${fmt12(time)} is outside their hours.`,[{label:'Got it',fn:`openDayModal('${date}')`,primary:true}]);
       return;
     }
-
-    // Check time within teacher's hours
-    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date + 'T12:00:00').getDay()];
-    const hours = availData?.dayHours?.[dayName];
-    if (hours?.start && hours?.end) {
-      if (time < hours.start || time > hours.end) {
-        showModal('😬', 'Oh No! Woops!', `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`, [{label:'Got it',fn:'closeModal2()',primary:true}]);
-        return;
-      }
-    }
-
-    // Check overlap using actual durations
-    const newStart = timeToMins(time);
-    const newEnd   = newStart + getClassDuration(classType);
-    const overlap  = availAssignments.find(a => {
+    const newStart = timeToMins(time), newEnd = newStart + getClassDuration(classType);
+    const overlap = availAssignments.find(a => {
       if (a.date !== date) return false;
-      const aStart = timeToMins(a.time);
-      const aEnd   = aStart + getClassDuration(a.classType);
+      const aStart = timeToMins(a.time), aEnd = aStart + getClassDuration(a.classType);
       return newStart < aEnd && newEnd > aStart;
     });
     if (overlap) {
-      showModal('😬', 'Oh No! Woops!',
-        `This overlaps with an existing class:\n${fmt12(overlap.time)} | Level ${overlap.level} | ${overlap.classType} (${getClassDuration(overlap.classType)} min)\n\nPlease choose a different time.`,
-        [{label:'Got it',fn:'closeModal2()',primary:true}]);
+      showModal('😬','Oh No! Woops!',`Overlaps with ${fmt12(overlap.time)} ${overlap.classType} (${getClassDuration(overlap.classType)} min).`,[{label:'Got it',fn:`openDayModal('${date}')`,primary:true}]);
       return;
     }
-
     await fetch(`${SERVER_URL}/assignments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ room, date, time, level, classType, students })
     });
-    const msg = document.getElementById('assign-msg');
-    msg.style.display = 'inline';
-    setTimeout(() => msg.style.display = 'none', 2500);
-    loadTeacherAvailability();
+    const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    availAssignments = await asRes.json();
+    renderAvailCalendar();
+    openDayModal(date);
+  }
+
+  async function saveEditAssignment() {
+    const room = document.getElementById('avail-teacher-select').value;
+    const date = _activeDayDate;
+    const id = _editingAssignment._id;
+    const time = document.getElementById('day-modal-time').value;
+    const level = document.getElementById('day-modal-level').value;
+    const classType = document.getElementById('day-modal-type').value;
+    const students = parseInt(document.getElementById('day-modal-students').value);
+    if (!time) { return; }
+    const newStart = timeToMins(time), newEnd = newStart + getClassDuration(classType);
+    const overlap = availAssignments.find(a => {
+      if (a.date !== date || a._id === id) return false;
+      const aStart = timeToMins(a.time), aEnd = aStart + getClassDuration(a.classType);
+      return newStart < aEnd && newEnd > aStart;
+    });
+    if (overlap) {
+      showModal('😬','Oh No! Woops!',`Overlaps with ${fmt12(overlap.time)} ${overlap.classType}.`,[{label:'Got it',fn:`openDayModal('${date}')`,primary:true}]);
+      return;
+    }
+    await fetch(`${SERVER_URL}/assignments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ time, level, classType, students })
+    });
+    const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    availAssignments = await asRes.json();
+    _editingAssignment = null;
+    renderAvailCalendar();
+    openDayModal(date);
   }
 
   function availPrevMonth() { availMonth--; if (availMonth < 0) { availMonth = 11; availYear--; } renderAvailCalendar(); }
@@ -1164,44 +1241,10 @@
     <div id="avail-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
 
     <!-- Legend -->
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;margin-bottom:24px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div> Available</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div> Available (click to manage)</div>
       <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ffccbc;"></div> Unavailable</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ff8f00;"></div> Class Assigned</div>
-    </div>
-
-    <!-- Assign class section -->
-    <div style="border-top:2px solid #eee;padding-top:20px;">
-      <p style="font-weight:900;color:#1a1a2e;font-size:1rem;margin-bottom:14px;">➕ Assign a Class</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
-        <div>
-          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Date</label>
-          <input type="date" id="assign-date" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
-        </div>
-        <div>
-          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Time</label>
-          <input type="time" id="assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
-        </div>
-        <div>
-          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Level</label>
-          <select id="assign-level" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;">
-            <option>A0</option><option>A1</option><option>A2</option>
-            <option>B1</option><option>B2</option><option>C1</option><option>C2</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Class Type</label>
-          <select id="assign-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;">
-            <option>Trial</option><option>30-Minute</option><option>40-Minute</option><option>50-Minute</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.85rem;font-weight:700;color:#444;display:block;margin-bottom:4px;">Students</label>
-          <input type="number" id="assign-students" min="1" max="6" value="1" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.95rem;"/>
-        </div>
-      </div>
-      <button onclick="assignClass()" style="background:#2e7d32;color:white;border:none;padding:12px 28px;border-radius:10px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">✅ Assign Class</button>
-      <span id="assign-msg" style="display:none;margin-left:12px;color:#2e7d32;font-weight:700;font-size:0.95rem;">Class assigned!</span>
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#ff8f00;"></div> Class Assigned (click to manage)</div>
     </div>
   </div>
 </div>
