@@ -207,6 +207,10 @@
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div id="day-hours-card">
     <div class="day-hours-grid" id="day-hours-grid"></div>
+    <div style="margin-top:12px;text-align:right;">
+      <button onclick="applyToAllDays()" style="background:#1a73e8;color:white;border:none;padding:8px 20px;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">📋 Apply to All Days</button>
+      <div style="font-size:0.75rem;color:#888;margin-top:4px;">Sets the first day's hours to all other days</div>
+    </div>
   </div>
 
   <p class="section-title">📅 My Availability Calendar</p>
@@ -257,7 +261,7 @@
     // Load teacher info
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
-    document.getElementById('teacher-name-label').textContent = `${info.teacherName || 'Teacher'} — Room ${info.room}`;
+    document.getElementById('teacher-name-label').textContent = `Teacher ${info.teacherName || 'Teacher'} — Room ${info.room}`;
 
     // Load availability
     const aRes = await fetch(`${SERVER_URL}/availability`, { headers: { Authorization: `Bearer ${token}` } });
@@ -406,8 +410,20 @@
     return `${hr % 12 || 12}:${m} ${ampm}`;
   }
 
-  function goBack() {
-    window.location.href = 'greeting.html';
+  function applyToAllDays() {
+    const firstDay = DAYS[0];
+    const start = document.getElementById(`dh-start-${firstDay}`)?.value;
+    const end   = document.getElementById(`dh-end-${firstDay}`)?.value;
+    if (!start || !end) {
+      alert('Please set the hours for Sunday first, then click Apply to All Days.');
+      return;
+    }
+    DAYS.forEach(d => {
+      const s = document.getElementById(`dh-start-${d}`);
+      const e = document.getElementById(`dh-end-${d}`);
+      if (s) s.value = start;
+      if (e) e.value = end;
+    });
   }
 
   init();

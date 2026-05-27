@@ -852,7 +852,7 @@
     const res  = await fetch(`${SERVER_URL}/availability/all`, { headers: { Authorization: `Bearer ${currentToken}` } });
     allTeachersAvail = await res.json();
     const sel = document.getElementById('avail-teacher-select');
-    sel.innerHTML = allTeachersAvail.map(t => `<option value="${t.room}">Room ${t.room} — ${t.teacherName || 'Teacher'}</option>`).join('');
+    sel.innerHTML = allTeachersAvail.map(t => `<option value="${t.room}">Room ${t.room} — Teacher ${t.teacherName || 'Teacher'}</option>`).join('');
     loadTeacherAvailability();
   }
 
@@ -975,7 +975,7 @@
     const list = availAssignments.filter(a => a.date === dateStr);
     const room = document.getElementById('avail-teacher-select').value;
     const teacher = allTeachersAvail.find(t => t.room === room);
-    const teacherName = teacher?.teacherName || `Room ${room} teacher`;
+    const teacherName = `Teacher ${teacher?.teacherName || ("Room " + room)}`;
     const editing = _editingAssignment;
 
     let html = `<div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">📅 ${dateStr} — ${teacherName}</div>`;
@@ -1067,7 +1067,7 @@
     const students = parseInt(document.getElementById('day-modal-students').value);
     if (!time) { return; }
     const teacher = allTeachersAvail.find(t => t.room === room);
-    const teacherName = teacher?.teacherName || `Room ${room} teacher`;
+    const teacherName = `Teacher ${teacher?.teacherName || ("Room " + room)}`;
     const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date+'T12:00:00').getDay()];
     const hours = availData?.dayHours?.[dayName];
     if (hours?.start && hours?.end && (time < hours.start || time > hours.end)) {
