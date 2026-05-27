@@ -921,20 +921,40 @@
     document.getElementById('avail-cal-grid').innerHTML = html;
   }
 
+  function getClassDuration(classType) {
+    if (classType === 'Trial') return 15;
+    if (classType === '30-Minute') return 30;
+    if (classType === '40-Minute') return 40;
+    if (classType === '50-Minute') return 50;
+    return 30;
+  }
+
+  function timeToMins(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
   function showAdminAssignments(dateStr) {
     const list = availAssignments.filter(a => a.date === dateStr);
     const room = document.getElementById('avail-teacher-select').value;
-    // Build a nice modal-style alert using a confirm dialog for deletion
-    const lines = list.map((a, i) =>
-      `${i+1}. ${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}  [ID: ${a._id}]`
+    const bodyLines = list.map((a, i) =>
+      `${i + 1}. ${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}`
     ).join('\n');
-    const choice = prompt(`📋 Classes on ${dateStr}:\n\n${lines}\n\nTo DELETE a class, enter its number (1-${list.length}). Press Cancel to close.`);
-    if (choice === null) return;
-    const idx = parseInt(choice) - 1;
-    if (isNaN(idx) || idx < 0 || idx >= list.length) { alert('Invalid selection.'); return; }
-    const confirmed = confirm(`Delete this class?\n${fmt12(list[idx].time)} | Level ${list[idx].level} | ${list[idx].classType}`);
-    if (!confirmed) return;
-    deleteAssignment(list[idx]._id, room);
+    const btns = list.map((a, i) => ({
+      label: `🗑 Delete #${i + 1}`,
+      fn: `confirmDeleteAssignment('${a._id}','${fmt12(a.time)}','${a.level}','${a.classType}','${room}')`,
+      primary: false
+    }));
+    btns.push({ label: 'Close', fn: 'closeModal2()', primary: true });
+    showModal('📋', `Classes on ${dateStr}`, bodyLines, btns);
+  }
+
+  function confirmDeleteAssignment(id, time, level, classType, room) {
+    closeModal2();
+    showModal('🗑️', 'Delete this class?', `${time} | Level ${level} | ${classType}`, [
+      { label: 'Cancel', fn: 'closeModal2()', primary: false },
+      { label: 'Yes, Delete', fn: `deleteAssignment('${id}','${room}');closeModal2()`, primary: true }
+    ]);
   }
 
   async function deleteAssignment(id, room) {
@@ -942,7 +962,6 @@
       method: 'DELETE',
       headers: { Authorization: `Bearer ${currentToken}` }
     });
-    // Refresh
     const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
     availAssignments = await asRes.json();
     renderAvailCalendar();
@@ -955,33 +974,41 @@
     const level = document.getElementById('assign-level').value;
     const classType = document.getElementById('assign-type').value;
     const students = parseInt(document.getElementById('assign-students').value);
-    if (!room || !date || !time) { alert('Please fill in date and time.'); return; }
+    if (!room || !date || !time) { showModal('😬','Oh No! Woops!','Please fill in date and time.',[{label:'Got it',fn:'closeModal2()',primary:true}]); return; }
 
-    // Get teacher name for error messages
     const teacher = allTeachersAvail.find(t => t.room === room);
     const teacherName = teacher?.teacherName || `Room ${room} teacher`;
 
-    // Check teacher marked this date as available
+    // Check date availability
     const dateStatus = availData?.dates?.[date] || 'unavailable';
     if (dateStatus !== 'available') {
-      showModal('😬', 'Oh No! Woops!', `${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
+      showModal('😬', 'Oh No! Woops!', `${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`, [{label:'Got it',fn:'closeModal2()',primary:true}]);
       return;
     }
 
-    // Check time falls within teacher's hours for that day of week
+    // Check time within teacher's hours
     const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date + 'T12:00:00').getDay()];
     const hours = availData?.dayHours?.[dayName];
-    if (hours?.start && hours?.end && time) {
+    if (hours?.start && hours?.end) {
       if (time < hours.start || time > hours.end) {
-        showModal('😬', 'Oh No! Woops!', `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
+        showModal('😬', 'Oh No! Woops!', `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`, [{label:'Got it',fn:'closeModal2()',primary:true}]);
         return;
       }
     }
 
-    // Check for overlap — same room, same date, same time
-    const overlap = availAssignments.find(a => a.date === date && a.time === time);
+    // Check overlap using actual durations
+    const newStart = timeToMins(time);
+    const newEnd   = newStart + getClassDuration(classType);
+    const overlap  = availAssignments.find(a => {
+      if (a.date !== date) return false;
+      const aStart = timeToMins(a.time);
+      const aEnd   = aStart + getClassDuration(a.classType);
+      return newStart < aEnd && newEnd > aStart;
+    });
     if (overlap) {
-      showModal('😬', 'Oh No! Woops!', `There's already a class on ${date} at ${fmt12(time)} for this teacher:\nLevel ${overlap.level} | ${overlap.classType} | ${overlap.students} student(s)\n\nPlease choose a different time.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
+      showModal('😬', 'Oh No! Woops!',
+        `This overlaps with an existing class:\n${fmt12(overlap.time)} | Level ${overlap.level} | ${overlap.classType} (${getClassDuration(overlap.classType)} min)\n\nPlease choose a different time.`,
+        [{label:'Got it',fn:'closeModal2()',primary:true}]);
       return;
     }
 
