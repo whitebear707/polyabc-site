@@ -247,10 +247,6 @@
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div id="day-hours-card">
     <div class="day-hours-grid" id="day-hours-grid"></div>
-    <div style="margin-top:12px;text-align:right;">
-      <button onclick="applyToAllDays()" style="background:#1a73e8;color:white;border:none;padding:8px 20px;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">📋 Apply to All Days</button>
-      <div style="font-size:0.75rem;color:#888;margin-top:4px;">Sets the first day's hours to all other days</div>
-    </div>
   </div>
 
   <p class="section-title">📅 My Availability Calendar</p>
@@ -347,36 +343,76 @@
     e.stopPropagation();
     if (_tpOpen === id) { closeTimePicker(); return; }
     _tpOpen = id;
-    const cur = _tpCurrent[id] || { h: null, m: null, ampm: 'AM' };
-    const popup = document.getElementById('tp-popup');
-    popup.innerHTML = `
-      <div class="tp-label">Hour</div>
-      <div class="tp-row">${TP_HOURS.map(h => `<button class="tp-btn${cur.h===h?' selected':''}" onclick="tpSelect('${id}','h',${h})">${h}</button>`).join('')}</div>
-      <div class="tp-label">Minutes</div>
-      <div class="tp-row">${TP_MINS.map(m => `<button class="tp-btn${cur.m===m?' selected':''}" onclick="tpSelect('${id}','m','${m}')">${m}</button>`).join('')}</div>
-      <div class="tp-label">AM / PM</div>
-      <div class="tp-row">
-        <button class="tp-btn${cur.ampm==='AM'?' selected':''}" onclick="tpSelect('${id}','ampm','AM')" style="flex:1">AM</button>
-        <button class="tp-btn${cur.ampm==='PM'?' selected':''}" onclick="tpSelect('${id}','ampm','PM')" style="flex:1">PM</button>
-      </div>
-      <button class="tp-btn tp-clear" onclick="tpClear('${id}')">✕ Clear</button>
-    `;
+    renderPickerPopup(id);
     const rect = document.getElementById(id).getBoundingClientRect();
+    const popup = document.getElementById('tp-popup');
     popup.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
     popup.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
     popup.classList.add('open');
   }
 
-  function tpSelect(id, part, val) {
+  function renderPickerPopup(id) {
+    const cur = _tpCurrent[id] || { h: null, m: '00', ampm: 'AM' };
+    const isStart = id.includes('start');
+    const popup = document.getElementById('tp-popup');
+    popup.innerHTML = `
+      <div class="tp-label">Hour</div>
+      <div class="tp-row">${TP_HOURS.map(h => `<button class="tp-btn${cur.h===h?' selected':''}" onclick="tpSelectOnly('${id}','h',${h})">${h}</button>`).join('')}</div>
+      <div class="tp-label">Minutes</div>
+      <div class="tp-row">${TP_MINS.map(m => `<button class="tp-btn${cur.m===m?' selected':''}" onclick="tpSelectOnly('${id}','m','${m}')">${m}</button>`).join('')}</div>
+      <div class="tp-label">AM / PM</div>
+      <div class="tp-row">
+        <button class="tp-btn${cur.ampm==='AM'?' selected':''}" onclick="tpSelectOnly('${id}','ampm','AM')" style="flex:1">AM</button>
+        <button class="tp-btn${cur.ampm==='PM'?' selected':''}" onclick="tpSelectOnly('${id}','ampm','PM')" style="flex:1">PM</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        <button class="tp-btn" style="background:#1a73e8;width:100%;" onclick="tpConfirm('${id}')">✅ Confirm</button>
+        <button class="tp-btn" style="background:#2e7d32;width:100%;font-size:0.78rem;" onclick="tpApplyAll('${id}')">📋 Apply to All Days</button>
+        <button class="tp-btn" style="background:#1565c0;width:100%;font-size:0.78rem;" onclick="tpApplyWeekdays('${id}')">📋 Apply Mon–Fri</button>
+        <button class="tp-btn tp-clear" onclick="tpClear('${id}')">✕ Clear</button>
+      </div>
+    `;
+  }
+
+  function tpSelectOnly(id, part, val) {
     if (!_tpCurrent[id]) _tpCurrent[id] = { h: null, m: '00', ampm: 'AM' };
     _tpCurrent[id][part] = val;
+    renderPickerPopup(id); // re-render to show selection, keep open
+  }
+
+  function tpConfirm(id) {
     const cur = _tpCurrent[id];
+    if (!cur?.h) { return; }
     const el = document.getElementById(id);
-    if (cur.h && cur.m !== null && cur.ampm) {
-      el.textContent = tpToDisplay(cur);
-      el.classList.add('set');
-    }
-    openTimePicker(id, { stopPropagation: ()=>{} });
+    el.textContent = tpToDisplay(cur);
+    el.classList.add('set');
+    closeTimePicker();
+  }
+
+  function tpApplyAll(id) {
+    const cur = _tpCurrent[id];
+    if (!cur?.h) return;
+    const isStart = id.includes('start');
+    DAYS.forEach(d => {
+      const key = `dh-${isStart?'start':'end'}-${d}`;
+      _tpCurrent[key] = { ...cur };
+      const el = document.getElementById(key);
+      if (el) { el.textContent = tpToDisplay(cur); el.classList.add('set'); }
+    });
+    closeTimePicker();
+  }
+
+  function tpApplyWeekdays(id) {
+    const cur = _tpCurrent[id];
+    if (!cur?.h) return;
+    const isStart = id.includes('start');
+    ['Mon','Tue','Wed','Thu','Fri'].forEach(d => {
+      const key = `dh-${isStart?'start':'end'}-${d}`;
+      _tpCurrent[key] = { ...cur };
+      const el = document.getElementById(key);
+      if (el) { el.textContent = tpToDisplay(cur); el.classList.add('set'); }
+    });
+    closeTimePicker();
   }
 
   function tpClear(id) {
