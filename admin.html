@@ -938,7 +938,7 @@
       const click = (assigned.length > 0 || status === 'available') ? `onclick="openDayModal('${dateStr}')"` : '';
       const cursor = (assigned.length > 0 || status === 'available') ? 'pointer' : 'default';
       const dot = assigned.length > 0 ? `<div style="font-size:0.6rem;margin-top:2px;">📋${assigned.length}</div>` : '';
-      html += `<div style="aspect-ratio:1;border-radius:8px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;${outline}cursor:${cursor};" ${click}>${d}${dot}</div>`;
+      html += `<div style="aspect-ratio:1;border-radius:6px;background:${bg};color:${color};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;${outline}cursor:${cursor};" ${click}>${d}${dot}</div>`;
     }
     const total = firstDay + daysInMonth;
     const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
@@ -1243,56 +1243,67 @@
 </div>
 
 <!-- AVAILABILITY PANEL -->
-<div id="availability-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;overflow-y:auto;padding:20px;">
-  <div style="max-width:1100px;margin:40px auto;background:white;border-radius:16px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,0.2);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-      <p style="font-size:1.2rem;font-weight:900;color:#2e7d32;margin:0;">📅 Teacher Availability</p>
-      <button onclick="toggleAvailability()" style="background:#eee;border:none;border-radius:8px;padding:6px 14px;font-size:1rem;cursor:pointer;">✕ Close</button>
+<div id="availability-panel" style="display:none;position:fixed;inset:0;background:#f0f4f8;z-index:9999;overflow-y:auto;">
+  <div style="max-width:1200px;margin:0 auto;padding:16px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:white;border-radius:12px;padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <p style="font-size:1.1rem;font-weight:900;color:#2e7d32;margin:0;">📅 Teacher Availability</p>
+      <button onclick="toggleAvailability()" style="background:#e53935;color:white;border:none;border-radius:8px;padding:8px 18px;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">✕ Close</button>
     </div>
 
-    <!-- Teacher selector + month nav -->
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
-      <select id="avail-teacher-select" onchange="loadTeacherAvailability()" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;"></select>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button onclick="availPrevMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">‹</button>
-        <span id="avail-month-label" style="font-size:1rem;font-weight:900;color:#1a1a2e;min-width:160px;text-align:center;"></span>
-        <button onclick="availNextMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">›</button>
-      </div>
-    </div>
+    <!-- Two column layout: left = controls/students, right = calendar -->
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;">
 
-    <!-- Students section -->
-    <div style="background:#f8f8f8;border-radius:12px;padding:16px;margin-bottom:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span style="font-weight:900;color:#1a1a2e;font-size:0.95rem;">👥 Students in this room</span>
-        <button onclick="toggleAddStudentForm()" style="background:#1a73e8;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">➕ Add Student</button>
-      </div>
-      <div id="avail-students-list" style="font-size:0.85rem;color:#888;">Loading...</div>
-      <div id="avail-add-student-form" style="display:none;margin-top:12px;border-top:1px solid #ddd;padding-top:12px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
-          <div>
-            <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Student Name</label>
-            <input type="text" id="avail-new-student-name" placeholder="e.g. Juan" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+      <!-- LEFT COLUMN -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <!-- Teacher + month selector -->
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <label style="font-size:0.8rem;font-weight:900;color:#555;display:block;margin-bottom:6px;">Teacher</label>
+          <select id="avail-teacher-select" onchange="loadTeacherAvailability()" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;margin-bottom:12px;"></select>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <button onclick="availPrevMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">‹</button>
+            <span id="avail-month-label" style="font-size:0.95rem;font-weight:900;color:#1a1a2e;text-align:center;"></span>
+            <button onclick="availNextMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">›</button>
           </div>
-          <div>
-            <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Password</label>
-            <input type="text" id="avail-new-student-pass" placeholder="e.g. juan123" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+        </div>
+
+        <!-- Students -->
+        <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:900;color:#1a1a2e;font-size:0.9rem;">👥 Students</span>
+            <button onclick="toggleAddStudentForm()" style="background:#1a73e8;color:white;border:none;padding:5px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;">➕ Add</button>
           </div>
-          <button onclick="availAddStudent()" style="padding:9px 16px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">Add</button>
+          <div id="avail-students-list" style="font-size:0.82rem;color:#888;max-height:160px;overflow-y:auto;">Loading...</div>
+          <div id="avail-add-student-form" style="display:none;margin-top:10px;border-top:1px solid #eee;padding-top:10px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <input type="text" id="avail-new-student-name" placeholder="Student name" style="padding:7px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.85rem;outline:none;"/>
+              <input type="text" id="avail-new-student-pass" placeholder="Password" style="padding:7px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.85rem;outline:none;"/>
+              <button onclick="availAddStudent()" style="padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">Add Student</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div style="background:white;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <div style="font-weight:900;color:#1a1a2e;font-size:0.85rem;margin-bottom:8px;">Legend</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#444;"><div style="width:18px;height:18px;border-radius:4px;background:#39ff14;flex-shrink:0;"></div> Available (click to manage)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#444;"><div style="width:18px;height:18px;border-radius:4px;background:#e8e8e8;border:1px solid #ccc;flex-shrink:0;"></div> Unavailable</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#444;"><div style="width:18px;height:18px;border-radius:4px;background:linear-gradient(135deg,#ff8c00,#ffb347);flex-shrink:0;"></div> Class Assigned</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Hours row -->
-    <div id="avail-hours-row" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px;"></div>
+      <!-- RIGHT COLUMN: hours + calendar -->
+      <div style="background:white;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <!-- Hours row -->
+        <div id="avail-hours-row" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;"></div>
+        <!-- Calendar -->
+        <div id="avail-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;"></div>
+      </div>
 
-    <!-- Calendar -->
-    <div id="avail-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
-
-    <!-- Legend -->
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#39ff14;"></div> Available (click to manage)</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#e8e8e8;border:1px solid #ccc;"></div> Unavailable</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned (click to manage)</div>
     </div>
   </div>
 </div>
