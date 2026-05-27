@@ -59,19 +59,59 @@
     }
     .day-hour-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
     .day-hour-label { font-size: 0.8rem; font-weight: 900; color: #a0c4ff; }
-    .day-hour-input {
-      width: 100%;
+
+    /* CUSTOM TIME PICKER */
+    .time-picker { width: 100%; }
+    .time-display {
       background: #0f3460;
       border: 2px solid #1a73e8;
       border-radius: 8px;
       color: white;
       font-family: Nunito, sans-serif;
       font-size: 0.75rem;
-      padding: 5px;
+      padding: 5px 4px;
       text-align: center;
-      outline: none;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .day-hour-input::placeholder { color: #556; }
+    .time-display:hover { border-color: #4fc3f7; }
+    .time-display.set { color: #69f0ae; border-color: #69f0ae; }
+
+    .time-picker-popup {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      background: #16213e;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      font-family: Nunito, sans-serif;
+      min-width: 220px;
+    }
+    .time-picker-popup.open { display: block; }
+    .tp-label { font-size: 0.75rem; font-weight: 900; color: #a0c4ff; margin-bottom: 6px; }
+    .tp-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .tp-btn {
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: none;
+      background: #0f3460;
+      color: white;
+      font-family: Nunito, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 38px;
+      text-align: center;
+    }
+    .tp-btn:hover { background: #1a73e8; }
+    .tp-btn.selected { background: #1a73e8; outline: 2px solid #a0c4ff; }
+    .tp-clear { background: #e53935; color: white; width: 100%; margin-top: 4px; }
+    .tp-clear:hover { background: #b71c1c; }
 
     /* CALENDAR */
     #calendar-card {
@@ -277,16 +317,104 @@
     renderCalendar();
   }
 
+  // ── Custom time picker ──
+  const TP_HOURS = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const TP_MINS  = ['00','15','30','45'];
+  let _tpCurrent = {}; // id -> { h, m, ampm }
+  let _tpOpen = null;
+
   function renderDayHours() {
     const grid = document.getElementById('day-hours-grid');
-    grid.innerHTML = DAYS.map(d => `
-      <div class="day-hour-col">
-        <div class="day-hour-label">${d}</div>
-        <input class="day-hour-input" type="time" id="dh-start-${d}" value="${dayHours[d]?.start || ''}" placeholder="Start"/>
-        <input class="day-hour-input" type="time" id="dh-end-${d}"   value="${dayHours[d]?.end   || ''}" placeholder="End"/>
-      </div>
-    `).join('');
+    grid.innerHTML = DAYS.map(d => {
+      const sv = dayHours[d]?.start ? timeStrToTp(dayHours[d].start) : null;
+      const ev = dayHours[d]?.end   ? timeStrToTp(dayHours[d].end)   : null;
+      if (sv) _tpCurrent[`dh-start-${d}`] = sv;
+      if (ev) _tpCurrent[`dh-end-${d}`]   = ev;
+      return `
+        <div class="day-hour-col">
+          <div class="day-hour-label">${d}</div>
+          <div class="time-picker">
+            <div class="time-display ${sv?'set':''}" id="dh-start-${d}" onclick="openTimePicker('dh-start-${d}',event)">${sv ? tpToDisplay(sv) : 'Start'}</div>
+          </div>
+          <div class="time-picker">
+            <div class="time-display ${ev?'set':''}" id="dh-end-${d}" onclick="openTimePicker('dh-end-${d}',event)">${ev ? tpToDisplay(ev) : 'End'}</div>
+          </div>
+        </div>`;
+    }).join('');
   }
+
+  function openTimePicker(id, e) {
+    e.stopPropagation();
+    if (_tpOpen === id) { closeTimePicker(); return; }
+    _tpOpen = id;
+    const cur = _tpCurrent[id] || { h: null, m: null, ampm: 'AM' };
+    const popup = document.getElementById('tp-popup');
+    popup.innerHTML = `
+      <div class="tp-label">Hour</div>
+      <div class="tp-row">${TP_HOURS.map(h => `<button class="tp-btn${cur.h===h?' selected':''}" onclick="tpSelect('${id}','h',${h})">${h}</button>`).join('')}</div>
+      <div class="tp-label">Minutes</div>
+      <div class="tp-row">${TP_MINS.map(m => `<button class="tp-btn${cur.m===m?' selected':''}" onclick="tpSelect('${id}','m','${m}')">${m}</button>`).join('')}</div>
+      <div class="tp-label">AM / PM</div>
+      <div class="tp-row">
+        <button class="tp-btn${cur.ampm==='AM'?' selected':''}" onclick="tpSelect('${id}','ampm','AM')" style="flex:1">AM</button>
+        <button class="tp-btn${cur.ampm==='PM'?' selected':''}" onclick="tpSelect('${id}','ampm','PM')" style="flex:1">PM</button>
+      </div>
+      <button class="tp-btn tp-clear" onclick="tpClear('${id}')">✕ Clear</button>
+    `;
+    const rect = document.getElementById(id).getBoundingClientRect();
+    popup.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
+    popup.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
+    popup.classList.add('open');
+  }
+
+  function tpSelect(id, part, val) {
+    if (!_tpCurrent[id]) _tpCurrent[id] = { h: null, m: '00', ampm: 'AM' };
+    _tpCurrent[id][part] = val;
+    const cur = _tpCurrent[id];
+    const el = document.getElementById(id);
+    if (cur.h && cur.m !== null && cur.ampm) {
+      el.textContent = tpToDisplay(cur);
+      el.classList.add('set');
+    }
+    openTimePicker(id, { stopPropagation: ()=>{} });
+  }
+
+  function tpClear(id) {
+    delete _tpCurrent[id];
+    const el = document.getElementById(id);
+    el.textContent = id.includes('start') ? 'Start' : 'End';
+    el.classList.remove('set');
+    closeTimePicker();
+  }
+
+  function closeTimePicker() {
+    _tpOpen = null;
+    document.getElementById('tp-popup').classList.remove('open');
+  }
+
+  function tpToDisplay(v) { return `${v.h}:${v.m} ${v.ampm}`; }
+
+  function tpTo24(v) {
+    if (!v || !v.h) return null;
+    let h = parseInt(v.h);
+    if (v.ampm === 'PM' && h !== 12) h += 12;
+    if (v.ampm === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2,'0')}:${v.m}`;
+  }
+
+  function timeStrToTp(t) {
+    if (!t) return null;
+    const [hStr, mStr] = t.split(':');
+    let h = parseInt(hStr), m = mStr;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return { h, m, ampm };
+  }
+
+  document.addEventListener('click', e => {
+    if (_tpOpen && !e.target.closest('#tp-popup') && !e.target.closest('.time-display')) closeTimePicker();
+  });
 
   function renderCalendar() {
     const title = document.getElementById('cal-title');
@@ -368,20 +496,17 @@
   }
 
   async function saveAvailability() {
-    // Collect day hours
     DAYS.forEach(d => {
-      const start = document.getElementById(`dh-start-${d}`)?.value;
-      const end   = document.getElementById(`dh-end-${d}`)?.value;
+      const start = tpTo24(_tpCurrent[`dh-start-${d}`]);
+      const end   = tpTo24(_tpCurrent[`dh-end-${d}`]);
       if (start && end) dayHours[d] = { start, end };
       else delete dayHours[d];
     });
-
     await fetch(`${SERVER_URL}/availability`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ dayHours, dates })
     });
-
     const msg = document.getElementById('save-msg');
     msg.style.display = 'block';
     setTimeout(() => msg.style.display = 'none', 2500);
@@ -415,22 +540,25 @@
   }
 
   function applyToAllDays() {
-    const firstDay = DAYS[0];
-    const start = document.getElementById(`dh-start-${firstDay}`)?.value;
-    const end   = document.getElementById(`dh-end-${firstDay}`)?.value;
-    if (!start || !end) {
-      alert('Please set the hours for Sunday first, then click Apply to All Days.');
+    const startVal = _tpCurrent[`dh-start-${DAYS[0]}`];
+    const endVal   = _tpCurrent[`dh-end-${DAYS[0]}`];
+    if (!startVal?.h || !endVal?.h) {
+      alert('Please set Sunday\'s hours first, then click Apply to All Days.');
       return;
     }
     DAYS.forEach(d => {
-      const s = document.getElementById(`dh-start-${d}`);
-      const e = document.getElementById(`dh-end-${d}`);
-      if (s) s.value = start;
-      if (e) e.value = end;
+      _tpCurrent[`dh-start-${d}`] = { ...startVal };
+      _tpCurrent[`dh-end-${d}`]   = { ...endVal };
+      const sEl = document.getElementById(`dh-start-${d}`);
+      const eEl = document.getElementById(`dh-end-${d}`);
+      if (sEl) { sEl.textContent = tpToDisplay(startVal); sEl.classList.add('set'); }
+      if (eEl) { eEl.textContent = tpToDisplay(endVal);   eEl.classList.add('set'); }
     });
   }
 
   init();
 </script>
+<div id="tp-popup" class="time-picker-popup"></div>
+
 </body>
 </html>
