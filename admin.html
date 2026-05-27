@@ -967,7 +967,29 @@
 
   function showAdminAssignments(dateStr) {
     const list = availAssignments.filter(a => a.date === dateStr);
-    alert(list.map(a => `${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}`).join('\n'));
+    const room = document.getElementById('avail-teacher-select').value;
+    // Build a nice modal-style alert using a confirm dialog for deletion
+    const lines = list.map((a, i) =>
+      `${i+1}. ${fmt12(a.time)} | ${a.students} student(s) | Level ${a.level} | ${a.classType}  [ID: ${a._id}]`
+    ).join('\n');
+    const choice = prompt(`📋 Classes on ${dateStr}:\n\n${lines}\n\nTo DELETE a class, enter its number (1-${list.length}). Press Cancel to close.`);
+    if (choice === null) return;
+    const idx = parseInt(choice) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= list.length) { alert('Invalid selection.'); return; }
+    const confirmed = confirm(`Delete this class?\n${fmt12(list[idx].time)} | Level ${list[idx].level} | ${list[idx].classType}`);
+    if (!confirmed) return;
+    deleteAssignment(list[idx]._id, room);
+  }
+
+  async function deleteAssignment(id, room) {
+    await fetch(`${SERVER_URL}/assignments/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    // Refresh
+    const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    availAssignments = await asRes.json();
+    renderAvailCalendar();
   }
 
   async function assignClass() {
@@ -978,6 +1000,14 @@
     const classType = document.getElementById('assign-type').value;
     const students = parseInt(document.getElementById('assign-students').value);
     if (!room || !date || !time) { alert('Please fill in date and time.'); return; }
+
+    // Check for overlap — same room, same date, same time
+    const overlap = availAssignments.find(a => a.date === date && a.time === time);
+    if (overlap) {
+      alert(`⚠️ There's already a class on ${date} at ${fmt12(time)} for this teacher:\nLevel ${overlap.level} | ${overlap.classType} | ${overlap.students} student(s)\n\nPlease choose a different time.`);
+      return;
+    }
+
     await fetch(`${SERVER_URL}/assignments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
