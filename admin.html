@@ -957,6 +957,27 @@
     const students = parseInt(document.getElementById('assign-students').value);
     if (!room || !date || !time) { alert('Please fill in date and time.'); return; }
 
+    // Get teacher name for error messages
+    const teacher = allTeachersAvail.find(t => t.room === room);
+    const teacherName = teacher?.teacherName || `Room ${room} teacher`;
+
+    // Check teacher marked this date as available
+    const dateStatus = availData?.dates?.[date] || 'unavailable';
+    if (dateStatus !== 'available') {
+      alert(`⚠️ ${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`);
+      return;
+    }
+
+    // Check time falls within teacher's hours for that day of week
+    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date + 'T12:00:00').getDay()];
+    const hours = availData?.dayHours?.[dayName];
+    if (hours?.start && hours?.end && time) {
+      if (time < hours.start || time > hours.end) {
+        alert(`⚠️ ${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`);
+        return;
+      }
+    }
+
     // Check for overlap — same room, same date, same time
     const overlap = availAssignments.find(a => a.date === date && a.time === time);
     if (overlap) {
