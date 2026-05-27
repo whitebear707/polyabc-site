@@ -964,7 +964,7 @@
     // Check teacher marked this date as available
     const dateStatus = availData?.dates?.[date] || 'unavailable';
     if (dateStatus !== 'available') {
-      alert(`⚠️ ${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`);
+      showModal('😬', 'Oh No! Woops!', `${teacherName} is not available on ${date}.\n\nAsk the teacher to mark that day as available on their schedule first.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
       return;
     }
 
@@ -973,7 +973,7 @@
     const hours = availData?.dayHours?.[dayName];
     if (hours?.start && hours?.end && time) {
       if (time < hours.start || time > hours.end) {
-        alert(`⚠️ ${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`);
+        showModal('😬', 'Oh No! Woops!', `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\nThe time you selected (${fmt12(time)}) is outside their available hours.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
         return;
       }
     }
@@ -981,7 +981,7 @@
     // Check for overlap — same room, same date, same time
     const overlap = availAssignments.find(a => a.date === date && a.time === time);
     if (overlap) {
-      alert(`⚠️ There's already a class on ${date} at ${fmt12(time)} for this teacher:\nLevel ${overlap.level} | ${overlap.classType} | ${overlap.students} student(s)\n\nPlease choose a different time.`);
+      showModal('😬', 'Oh No! Woops!', `There's already a class on ${date} at ${fmt12(time)} for this teacher:\nLevel ${overlap.level} | ${overlap.classType} | ${overlap.students} student(s)\n\nPlease choose a different time.`, [{label:'Got it', fn:'closeModal2()', primary:true}]);
       return;
     }
 
@@ -1001,6 +1001,36 @@
 
   function toDateStr2(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
   function fmt12(t) { if (!t) return ''; const [h,m] = t.split(':'); const hr=parseInt(h),ampm=hr>=12?'PM':'AM'; return `${hr%12||12}:${m} ${ampm}`; }
+
+  // ── Custom modal helpers ──
+  function showModal(emoji, title, body, buttons) {
+    document.getElementById('modal-emoji').textContent = emoji;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent = body;
+    document.getElementById('modal-input').style.display = 'none';
+    const btns = document.getElementById('modal-buttons');
+    btns.innerHTML = buttons.map(b =>
+      `<button onclick="${b.fn}" style="padding:10px 24px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;background:${b.primary?'#1a73e8':'#eee'};color:${b.primary?'white':'#444'};">${b.label}</button>`
+    ).join('');
+    document.getElementById('custom-modal').style.display = 'flex';
+  }
+
+  function closeModal2() { document.getElementById('custom-modal').style.display = 'none'; }
+
+  function showPromptModal(emoji, title, body, inputVal, onConfirm) {
+    document.getElementById('modal-emoji').textContent = emoji;
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent = body;
+    const inp = document.getElementById('modal-input');
+    inp.style.display = 'block';
+    inp.value = inputVal;
+    const btns = document.getElementById('modal-buttons');
+    btns.innerHTML = `
+      <button onclick="closeModal2()" style="padding:10px 24px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;background:#eee;color:#444;">Cancel</button>
+      <button onclick="(${onConfirm})(document.getElementById('modal-input').value);closeModal2();" style="padding:10px 24px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;background:#1a73e8;color:white;">OK</button>
+    `;
+    document.getElementById('custom-modal').style.display = 'flex';
+  }
 
   async function loadAttendance() {
     const room = document.getElementById('att-room').value.trim();
@@ -1146,6 +1176,17 @@
       <button onclick="assignClass()" style="background:#2e7d32;color:white;border:none;padding:12px 28px;border-radius:10px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">✅ Assign Class</button>
       <span id="assign-msg" style="display:none;margin-left:12px;color:#2e7d32;font-weight:700;font-size:0.95rem;">Class assigned!</span>
     </div>
+  </div>
+</div>
+
+<!-- CUSTOM MODAL (replaces browser alert/confirm/prompt) -->
+<div id="custom-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;padding:28px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.3);font-family:Nunito,sans-serif;">
+    <div id="modal-emoji" style="font-size:2.5rem;text-align:center;margin-bottom:8px;"></div>
+    <h3 id="modal-title" style="font-size:1.3rem;font-weight:900;color:#1a1a2e;text-align:center;margin-bottom:12px;"></h3>
+    <p id="modal-body" style="font-size:0.95rem;color:#555;text-align:center;white-space:pre-line;margin-bottom:20px;line-height:1.5;"></p>
+    <input id="modal-input" type="text" style="display:none;width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:1rem;margin-bottom:16px;outline:none;"/>
+    <div id="modal-buttons" style="display:flex;gap:10px;justify-content:center;"></div>
   </div>
 </div>
 
