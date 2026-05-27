@@ -575,25 +575,17 @@
     }
     document.getElementById('add-error').style.display = 'none';
 
-    const days      = [...document.querySelectorAll('.new-day-cb:checked')].map(c => c.value);
-    const startTime = document.getElementById('new-start-time').value;
-    const endTime   = document.getElementById('new-end-time').value;
-    const schedule  = (days.length && startTime && endTime) ? { days, startTime, endTime } : null;
-
     try {
       const res  = await fetch(`${SERVER_URL}/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
-        body: JSON.stringify({ room, teacherName, teacherPassword: teacherPass, schedule })
+        body: JSON.stringify({ room, teacherName, teacherPassword: teacherPass })
       });
       const data = await res.json();
       if (data.success) {
         document.getElementById('new-room').value = '';
         document.getElementById('new-teacher-name').value = '';
         document.getElementById('new-teacher-pass').value = '';
-        document.querySelectorAll('.new-day-cb').forEach(c => c.checked = false);
-        document.getElementById('new-start-time').value = '';
-        document.getElementById('new-end-time').value = '';
         loadRooms();
       } else {
         alert(data.message || 'Could not create room.');
@@ -735,15 +727,11 @@
     const teacherName = document.getElementById('edit-teacher-name').value.trim();
     const teacherPass = document.getElementById('edit-teacher-pass').value.trim();
     if (!teacherPass) { alert('Teacher password cannot be empty.'); return; }
-    const days      = [...document.querySelectorAll('.edit-day-cb:checked')].map(c => c.value);
-    const startTime = document.getElementById('edit-start-time').value;
-    const endTime   = document.getElementById('edit-end-time').value;
-    const schedule  = (days.length && startTime && endTime) ? { days, startTime, endTime } : null;
     try {
       await fetch(`${SERVER_URL}/rooms/${roomId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}` },
-        body: JSON.stringify({ teacherName, teacherPassword: teacherPass, schedule })
+        body: JSON.stringify({ teacherName, teacherPassword: teacherPass })
       });
       closeModal();
       loadRooms();
@@ -875,6 +863,44 @@
     const asRes = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
     availAssignments = await asRes.json();
     renderAvailCalendar();
+    loadAvailStudents(room);
+  }
+
+  async function loadAvailStudents(room) {
+    const r = rooms.find(r => r.room === room);
+    const list = document.getElementById('avail-students-list');
+    if (!r || !r.students || r.students.length === 0) {
+      list.innerHTML = '<span style="color:#aaa;">No students yet.</span>';
+      return;
+    }
+    list.innerHTML = r.students.map(s => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eee;">
+        <span style="font-weight:700;color:#1a1a2e;">${s.name}</span>
+        <span style="color:#aaa;font-size:0.8rem;">🔑 ${s.password}</span>
+      </div>
+    `).join('');
+  }
+
+  function toggleAddStudentForm() {
+    const form = document.getElementById('avail-add-student-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function availAddStudent() {
+    const room = document.getElementById('avail-teacher-select').value;
+    const name = document.getElementById('avail-new-student-name').value.trim();
+    const pass = document.getElementById('avail-new-student-pass').value.trim();
+    if (!name || !pass) { alert('Please enter both name and password.'); return; }
+    await fetch(`${SERVER_URL}/rooms/${room}/students`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ name, password: pass })
+    });
+    document.getElementById('avail-new-student-name').value = '';
+    document.getElementById('avail-new-student-pass').value = '';
+    document.getElementById('avail-add-student-form').style.display = 'none';
+    await loadRooms();
+    loadAvailStudents(room);
   }
 
   function renderAvailCalendar() {
@@ -1231,6 +1257,28 @@
         <button onclick="availPrevMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">‹</button>
         <span id="avail-month-label" style="font-size:1rem;font-weight:900;color:#1a1a2e;min-width:160px;text-align:center;"></span>
         <button onclick="availNextMonth()" style="background:#1a1a2e;color:white;border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;font-weight:900;">›</button>
+      </div>
+    </div>
+
+    <!-- Students section -->
+    <div style="background:#f8f8f8;border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-weight:900;color:#1a1a2e;font-size:0.95rem;">👥 Students in this room</span>
+        <button onclick="toggleAddStudentForm()" style="background:#1a73e8;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">➕ Add Student</button>
+      </div>
+      <div id="avail-students-list" style="font-size:0.85rem;color:#888;">Loading...</div>
+      <div id="avail-add-student-form" style="display:none;margin-top:12px;border-top:1px solid #ddd;padding-top:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+          <div>
+            <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Student Name</label>
+            <input type="text" id="avail-new-student-name" placeholder="e.g. Juan" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Password</label>
+            <input type="text" id="avail-new-student-pass" placeholder="e.g. juan123" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito,sans-serif;font-size:0.9rem;outline:none;"/>
+          </div>
+          <button onclick="availAddStudent()" style="padding:9px 16px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;">Add</button>
+        </div>
       </div>
     </div>
 
