@@ -469,28 +469,63 @@
     const pass = document.getElementById('login-pass').value.trim();
     if (!pass) return;
 
+    const btn = document.querySelector('#login-screen button');
+    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+
+    // Show wakeup countdown after 3s if server hasn't responded
+    let countdownTimer = null;
+    let wakeupTimeout = setTimeout(() => {
+      showWakeupCountdown();
+    }, 3000);
+
     try {
       const res  = await fetch(`${SERVER_URL}/admin-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pass })
       });
-      const data = await res.json();
+      clearTimeout(wakeupTimeout);
+      hideWakeupCountdown();
+      if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
 
+      const data = await res.json();
       if (!data.success) {
         document.getElementById('login-error').style.display = 'block';
         return;
       }
 
-      currentRole  = data.role;   // 'admin' or 'teacher'
+      currentRole  = data.role;
       currentToken = data.token;
       currentRoom  = data.room || null;
-
       showDashboard();
 
     } catch(e) {
+      clearTimeout(wakeupTimeout);
+      hideWakeupCountdown();
+      if (btn) { btn.disabled = false; btn.textContent = 'Login'; }
       alert('Could not connect to server.');
     }
+  }
+
+  let _wakeCountdown = null;
+  function showWakeupCountdown() {
+    const overlay = document.getElementById('wakeup-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    let secs = 50;
+    document.getElementById('wakeup-count').textContent = secs;
+    _wakeCountdown = setInterval(() => {
+      secs--;
+      const el = document.getElementById('wakeup-count');
+      if (el) el.textContent = secs;
+      if (secs <= 0) { clearInterval(_wakeCountdown); }
+    }, 1000);
+  }
+
+  function hideWakeupCountdown() {
+    if (_wakeCountdown) { clearInterval(_wakeCountdown); _wakeCountdown = null; }
+    const overlay = document.getElementById('wakeup-overlay');
+    if (overlay) overlay.style.display = 'none';
   }
 
   function showDashboard() {
@@ -1307,6 +1342,24 @@
     </div>
   </div>
 </div>
+
+<!-- WAKEUP OVERLAY -->
+<div id="wakeup-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,26,46,0.97);z-index:99999;flex-direction:column;align-items:center;justify-content:center;font-family:Nunito,sans-serif;">
+  <img src="LOGO.png" style="height:80px;margin-bottom:24px;"/>
+  <div style="font-size:1.2rem;font-weight:900;color:#a0c4ff;margin-bottom:8px;">☕ Waking up server...</div>
+  <div style="font-size:0.95rem;color:#888;margin-bottom:32px;">This only happens after a period of inactivity</div>
+  <div style="width:120px;height:120px;border-radius:50%;border:6px solid #0f3460;border-top-color:#1a73e8;display:flex;align-items:center;justify-content:center;animation:spin 1s linear infinite;position:relative;">
+    <div style="text-align:center;">
+      <div id="wakeup-count" style="font-size:2rem;font-weight:900;color:white;line-height:1;">50</div>
+      <div style="font-size:0.7rem;color:#a0c4ff;">secs</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;font-size:0.85rem;color:#556;">Please wait, do not refresh the page</div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
 <!-- CUSTOM MODAL (replaces browser alert/confirm/prompt) -->
 <div id="custom-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;align-items:center;justify-content:center;">
