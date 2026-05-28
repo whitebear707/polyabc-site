@@ -678,7 +678,6 @@ function toggleStudentDraw(socketId, btn) {
   btn.style.background = enabled ? '#e53935' : '#2e7d32';
   btn.textContent = `${enabled ? '🚫' : '✏️'} ${remoteNames[socketId] || 'Student'}`;
   if (!window._studentDrawStates) window._studentDrawStates = new Map();
-  const enabled = btn && btn.dataset.drawEnabled !== 'false';
   window._studentDrawStates.set(socketId, !enabled);
   if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: !enabled });
 }
