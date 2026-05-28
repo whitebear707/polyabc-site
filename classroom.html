@@ -526,13 +526,42 @@ function connectSocket() {
   socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
   socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => { if (!canvas) return; suppressSync = true; fabric.Image.fromURL(dataUrl, (img) => { img.scale(scale).set({ left, top, selectable: false }); canvas.add(img); canvas.renderAll(); suppressSync = false; }); });
 
-  socket.on('screenshare-start', () => { if (!IS_TEACHER) { const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'hidden'; } });
-  socket.on('screenshare-stop', () => { if (!IS_TEACHER) { const img = document.getElementById('screenshare-img'); if (img) img.remove(); const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'visible'; if (canvas) canvas.renderAll(); } });
+  socket.on('screenshare-start', () => {
+    if (!IS_TEACHER) {
+      // Keep canvas visible and on top — screenshare goes BEHIND it
+      const cc = document.querySelector('.canvas-container');
+      if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = '25'; }
+      if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
+    }
+  });
+
+  socket.on('screenshare-stop', () => {
+    if (!IS_TEACHER) {
+      const img = document.getElementById('screenshare-img'); if (img) img.remove();
+      const cc = document.querySelector('.canvas-container');
+      if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = ''; }
+      if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
+      // Re-apply draw restriction if student was disabled
+      if (window._canDraw === false) {
+        canvas.isDrawingMode = false; canvas.selection = false;
+        canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
+        const toolbar = document.getElementById('toolbar');
+        if (toolbar) { toolbar.style.opacity = '0.4'; toolbar.style.pointerEvents = 'none'; }
+      }
+    }
+  });
+
   socket.on('screenshare-frame', ({ frame }) => {
     if (!IS_TEACHER) {
       let img = document.getElementById('screenshare-img');
-      if (!img) { img = document.createElement('img'); img.id = 'screenshare-img'; img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:20;display:block;'; document.getElementById('whiteboard-wrap').appendChild(img); }
-      img.src = frame; img.style.display = 'block';
+      if (!img) {
+        img = document.createElement('img');
+        img.id = 'screenshare-img';
+        // z-index 20 = behind canvas (25), above whiteboard
+        img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:20;display:block;';
+        document.getElementById('whiteboard-wrap').appendChild(img);
+      }
+      img.src = frame;
     }
   });
 
@@ -648,6 +677,9 @@ function toggleStudentDraw(socketId, btn) {
   const enabled = btn.style.background === 'rgb(46, 125, 50)' || btn.style.background === '#2e7d32';
   btn.style.background = enabled ? '#e53935' : '#2e7d32';
   btn.textContent = `${enabled ? '🚫' : '✏️'} ${remoteNames[socketId] || 'Student'}`;
+  if (!window._studentDrawStates) window._studentDrawStates = new Map();
+  const enabled = btn && btn.dataset.drawEnabled !== 'false';
+  window._studentDrawStates.set(socketId, !enabled);
   if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: !enabled });
 }
 
@@ -891,11 +923,27 @@ async function toggleScreenShare() {
   try {
     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
     isSharing = true;
-    const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'hidden';
+
+    // Show canvas ON TOP of screenshare so teacher can draw highlights
+    const cc = document.querySelector('.canvas-container');
+    if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = '25'; cc.style.pointerEvents = 'auto'; }
+    // Make canvas background transparent so screenshare shows through
+    if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
+
     const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
     const capCv = document.createElement('canvas'); capCv.width = 1280; capCv.height = 720; const capCx = capCv.getContext('2d');
     const vid = document.getElementById('screenshare-video'); vid.srcObject = screenStream;
-    window._shareInterval = setInterval(() => { if (!isSharing) return; try { capCx.drawImage(vid, 0, 0, 1280, 720); if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) }); } catch(e) {} }, 150);
+
+    window._shareInterval = setInterval(() => {
+      if (!isSharing) return;
+      // Skip if tab/window is hidden to avoid blank frames
+      if (document.visibilityState === 'hidden') return;
+      try {
+        capCx.drawImage(vid, 0, 0, 1280, 720);
+        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) });
+      } catch(e) {}
+    }, 150);
+
     if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
   } catch(e) { if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message); }
@@ -905,8 +953,19 @@ function stopScreenShare() {
   isSharing = false;
   if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-  const cc = document.querySelector('.canvas-container'); if (cc) cc.style.visibility = 'visible';
-  if (canvas) setTimeout(() => canvas.renderAll(), 100);
+
+  // Restore canvas
+  if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
+  const cc = document.querySelector('.canvas-container');
+  if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = ''; }
+
+  // Re-apply draw restrictions for each student
+  if (IS_TEACHER && window._studentDrawStates) {
+    window._studentDrawStates.forEach((canDraw, socketId) => {
+      if (!canDraw) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: false });
+    });
+  }
+
   const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
   if (window._socket) { window._socket.emit('screenshare-stop', { room: ROOM }); setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300); }
 }
