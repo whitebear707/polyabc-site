@@ -920,30 +920,50 @@ let screenStream = null; let isSharing = false;
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
   try {
-    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: true });
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
     isSharing = true;
 
-    // Show canvas ON TOP of screenshare so teacher can draw highlights
+    const btn = document.getElementById('screenshare-btn');
+    if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
+
+    // Teacher: show screenshare behind canvas using an img element
+    const wrap = document.getElementById('whiteboard-wrap');
+    let teacherImg = document.getElementById('screenshare-img');
+    if (!teacherImg) {
+      teacherImg = document.createElement('img');
+      teacherImg.id = 'screenshare-img';
+      teacherImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:20;display:block;';
+      wrap.appendChild(teacherImg);
+    }
+    // Make canvas transparent and raise it above screenshare
     const cc = document.querySelector('.canvas-container');
-    if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = '25'; cc.style.pointerEvents = 'auto'; }
-    // Make canvas background transparent so screenshare shows through
+    if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
     if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
 
-    const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
-    const capCv = document.createElement('canvas'); capCv.width = 1280; capCv.height = 720; const capCx = capCv.getContext('2d');
-    const vid = document.getElementById('screenshare-video'); vid.srcObject = screenStream;
+    const capCv = document.createElement('canvas'); capCv.width = 1280; capCv.height = 720;
+    const capCx = capCv.getContext('2d');
+    const vid = document.getElementById('screenshare-video');
+    vid.srcObject = screenStream;
+
+    // Wait for video to be ready before capturing
+    vid.onloadedmetadata = () => { vid.play(); };
+
+    if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
 
     window._shareInterval = setInterval(() => {
       if (!isSharing) return;
-      // Skip if tab/window is hidden to avoid blank frames
       if (document.visibilityState === 'hidden') return;
+      if (vid.readyState < 2) return; // not ready yet
       try {
         capCx.drawImage(vid, 0, 0, 1280, 720);
-        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame: capCv.toDataURL('image/jpeg', 0.5) });
+        const frame = capCv.toDataURL('image/jpeg', 0.5);
+        // Show on teacher's own screen
+        teacherImg.src = frame;
+        // Send to students
+        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame });
       } catch(e) {}
     }, 150);
 
-    if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
   } catch(e) { if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message); }
 }
@@ -953,20 +973,27 @@ function stopScreenShare() {
   if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
 
+  // Remove screenshare image for teacher too
+  const img = document.getElementById('screenshare-img'); if (img) img.remove();
+
   // Restore canvas
   if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
   const cc = document.querySelector('.canvas-container');
-  if (cc) { cc.style.visibility = 'visible'; cc.style.zIndex = ''; }
+  if (cc) { cc.style.zIndex = ''; }
 
-  // Re-apply draw restrictions for each student
+  // Re-apply draw restrictions
   if (IS_TEACHER && window._studentDrawStates) {
     window._studentDrawStates.forEach((canDraw, socketId) => {
-      if (!canDraw) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: false });
+      if (!canDraw && window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: false });
     });
   }
 
-  const btn = document.getElementById('screenshare-btn'); if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
-  if (window._socket) { window._socket.emit('screenshare-stop', { room: ROOM }); setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300); }
+  const btn = document.getElementById('screenshare-btn');
+  if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
+  if (window._socket) {
+    window._socket.emit('screenshare-stop', { room: ROOM });
+    setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300);
+  }
 }
 
 const CANVAS_W = 1440, CANVAS_H = 1080;
