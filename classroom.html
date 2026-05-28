@@ -1019,7 +1019,10 @@ function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
-  const scale = Math.min(w / CANVAS_W, h / CANVAS_H);
+  // Scale to fill full width; if height overflows it clips cleanly
+  const scaleW = w / CANVAS_W;
+  const scaleH = h / CANVAS_H;
+  const scale = Math.max(scaleW, scaleH); // fill the wrap completely
   const container = document.querySelector('.canvas-container');
   if (container) {
     container.style.transform = `scale(${scale})`;
