@@ -149,9 +149,11 @@
 </div>
 
 <div id="topbar">
-  <img src="LOGO.png" alt="PolyABC"/>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <img src="LOGO.png" alt="PolyABC"/>
+    <span id="status-bar">Connecting...</span>
+  </div>
   <span id="room-label">Room: —</span>
-  <span id="status-bar">Connecting...</span>
   <div style="display:flex;gap:8px;align-items:center;">
     <button id="mute-all-btn" onclick="muteAll()" style="display:none;background:#e65100;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🔇 Mute All</button>
     <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
@@ -447,7 +449,13 @@ function connectSocket() {
     window._selfMuted = true; updateSelfMonkey();
   });
 
-  socket.on('you-are-unmuted', () => { window._selfMuted = false; updateSelfMonkey(); });
+  socket.on('you-are-unmuted', () => {
+    if (localStream) { localStream.getAudioTracks().forEach(t => t.enabled = true); myMicOn = true; }
+    const btn = document.getElementById('mic-btn');
+    if (btn) { btn.classList.remove('active'); btn.textContent = '🎤 Mic ON'; }
+    document.getElementById('my-mute-icon').style.display = 'none';
+    window._selfMuted = false; updateSelfMonkey();
+  });
 
   socket.on('your-cam-toggled', ({ camOn }) => {
     if (localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
@@ -912,7 +920,14 @@ function initWhiteboard(socket) {
   canvas.freeDrawingBrush.color = '#000000'; canvas.freeDrawingBrush.width = 5;
   scaleCanvas(); window.addEventListener('resize', scaleCanvas); setupOwnSlot();
   canvas.on('path:created', (e) => { if (suppressSync) return; window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() }); });
-  canvas.on('object:modified', () => { if (suppressSync) return; window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); });
+  let _syncTimer = null;
+  canvas.on('object:modified', () => {
+    if (suppressSync) return;
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+      if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+    }, 300);
+  });
 }
 
 function scaleCanvas() {
@@ -948,9 +963,34 @@ function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDra
 function clearBoard() { if (!IS_TEACHER) return; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM }); }
 
 function uploadImage(event) {
-  if (!IS_TEACHER) return; const file = event.target.files[0]; if (!file) return;
-  const reader = new FileReader(); reader.onload = (e) => { fabric.Image.fromURL(e.target.result, (img) => { const scale = Math.min((CANVAS_W*0.85)/img.width,(CANVAS_H*0.85)/img.height); img.scale(scale).set({left:40,top:40,selectable:true}); canvas.add(img); canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl: e.target.result, scale, left: 40, top: 40 }); }); };
-  reader.readAsDataURL(file); event.target.value = '';
+  if (!IS_TEACHER) return;
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    // Resize image to max 1200px before sending to avoid socket disconnect
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      const MAX = 1200;
+      let w = tmpImg.width, h = tmpImg.height;
+      if (w > MAX || h > MAX) {
+        const ratio = Math.min(MAX/w, MAX/h);
+        w = Math.round(w * ratio); h = Math.round(h * ratio);
+      }
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = w; tmpCanvas.height = h;
+      tmpCanvas.getContext('2d').drawImage(tmpImg, 0, 0, w, h);
+      const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.75);
+      fabric.Image.fromURL(dataUrl, (img) => {
+        const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
+        img.scale(scale).set({ left: 40, top: 40, selectable: true });
+        canvas.add(img); canvas.renderAll();
+        if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl, scale, left: 40, top: 40 });
+      });
+    };
+    tmpImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 // Show help after 15s if still loading
