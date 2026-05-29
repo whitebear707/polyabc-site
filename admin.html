@@ -557,11 +557,17 @@ function getAvailableTeachersForDate(dateStr) {
   }));
 }
 
-function matchesTimeFilter(teachers, filterTime) {
-  if (!filterTime) return false;
+function matchesFilters(teachers, filterTime, filterDay, dayOfWeek) {
+  if (!filterDay && !filterTime) return false;
   return teachers.some(t => {
-    if (!t.hours) return false;
-    return filterTime >= t.hours.start && filterTime <= t.hours.end;
+    // Day filter check — teacher must have marked this specific date available (already filtered in getAvailableTeachersForDate)
+    // AND their hours must cover the requested time
+    if (filterDay !== '' && dayOfWeek !== parseInt(filterDay)) return false;
+    if (filterTime && t.hours) {
+      return filterTime >= t.hours.start && filterTime <= t.hours.end;
+    }
+    if (filterTime && !t.hours) return false;
+    return true; // day matches, no time filter
   });
 }
 
@@ -590,21 +596,15 @@ function renderMasterCalendar() {
     const teachers  = getAvailableTeachersForDate(dateStr);
     const assignments = allAssignments.filter(a => a.date === dateStr);
 
-    // Day filter — dim days that don't match selected weekday
-    const dayMatch = filterDay === '' || dayOfWeek === parseInt(filterDay);
-    const timeMatch = filterTime && matchesTimeFilter(teachers, filterTime);
-    const filterMatch = dayMatch && (filterDay !== '' || filterTime) && (filterDay === '' || dayMatch) &&
-                        (filterTime === '' || timeMatch) && (filterDay === '' || dayMatch);
     const activeFilter = filterDay !== '' || filterTime !== '';
-    const matches = activeFilter ? (dayMatch && (filterTime === '' || timeMatch)) : false;
+    const matches = activeFilter && matchesFilters(teachers, filterTime, filterDay, dayOfWeek);
 
     let cls = 'master-cal-day';
-    if (!dayMatch && activeFilter) cls += ' other-month'; // dim non-matching days
-    else if (isToday) cls += ' today';
+    if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
     if (matches) cls += ' has-filter-match';
-    else if (teachers.length > 0 && dayMatch) cls += ' has-avail';
-    else if (!(!dayMatch && activeFilter)) cls += ' no-avail';
+    else if (teachers.length > 0 && (!activeFilter || dayOfWeek === parseInt(filterDay) || filterDay === '')) cls += ' has-avail';
+    else cls += ' no-avail';
 
     const countHtml = teachers.length > 0 && dayMatch
       ? `<div class="cal-day-count">✅ ${teachers.length} teacher${teachers.length>1?'s':''}</div>` : '';
