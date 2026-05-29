@@ -126,11 +126,22 @@
 <div id="waiting-screen">
   <img src="LOGO.png" style="height:100px;margin-bottom:20px;"/>
   <p id="waiting-name" style="font-size:1.8rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Welcome!</p>
-  <div class="waiting-box">
+  <div id="waiting-status-box" class="waiting-box">
     ⏳ Waiting for teacher to open the class...
     <div style="font-size:1rem;opacity:0.8;margin-top:6px;">Esperando a que el maestro abra la clase...</div>
   </div>
+  <div id="waiting-countdown" style="display:none;font-size:1.2rem;font-weight:700;color:#ffd740;margin-top:12px;"></div>
+  <button id="my-schedule-btn" onclick="showStudentSchedule()" style="display:none;margin-top:20px;background:#0f3460;color:#a0c4ff;border:2px solid #1a73e8;padding:10px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;">📅 My Schedule</button>
   <div class="spinner"></div>
+</div>
+
+<!-- STUDENT SCHEDULE POPUP -->
+<div id="student-schedule-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#16213e;border-radius:20px;padding:28px;max-width:420px;width:90%;font-family:Nunito,sans-serif;max-height:80vh;overflow-y:auto;">
+    <div style="font-size:1.1rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">📅 My Upcoming Classes</div>
+    <div id="student-schedule-list"></div>
+    <button onclick="document.getElementById('student-schedule-popup').style.display='none'" style="margin-top:16px;width:100%;padding:10px;background:#0f3460;color:#a0c4ff;border:none;border-radius:10px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;">Close</button>
+  </div>
 </div>
 
 <!-- CONNECTING SCREEN -->
@@ -151,11 +162,13 @@
 <div id="topbar">
   <div style="display:flex;align-items:center;gap:10px;">
     <img src="LOGO.png" alt="PolyABC"/>
+    <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
     <span id="status-bar">Connecting...</span>
   </div>
   <span id="room-label">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
     <button id="mute-all-btn" onclick="muteAll()" style="display:none;background:#e65100;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🔇 Mute All</button>
+    <button id="new-class-btn" onclick="newClass()" style="display:none;background:#6a1b9a;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">✨ NEW</button>
     <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
   </div>
 </div>
@@ -406,6 +419,8 @@ function connectSocket() {
       document.getElementById('connecting-screen').style.display = 'none';
       document.getElementById('waiting-screen').style.display = 'flex';
       document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
+      // Check student schedule access
+      if (!IS_TEACHER) loadTodayAssignment();
     } else { alert(msg || 'Could not join room.'); window.location.href = 'index.html'; }
   });
 
@@ -508,7 +523,21 @@ function connectSocket() {
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
-  socket.on('class-ended', () => {
+  socket.on('timer-info', ({ assignment }) => {
+    if (!IS_TEACHER) startTimer(assignment);
+  });
+
+  socket.on('new-class', () => {
+    if (!IS_TEACHER) {
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      document.body.innerHTML = `<div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
+        <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
+        <p style="font-size:2rem;font-weight:900;color:#ffd740;margin-bottom:16px;">New class starting!</p>
+        <p style="font-size:1.1rem;color:#888;margin-bottom:40px;">Please wait for your teacher to let you in.</p>
+        <a href="index.html" style="background:#1a73e8;color:white;padding:14px 36px;border-radius:14px;font-size:1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+      </div>`;
+    }
+  });
     if (!IS_TEACHER) {
       // Stop all media tracks so webcam light turns off
       if (localStream) localStream.getTracks().forEach(t => t.stop());
@@ -777,6 +806,150 @@ function removeRemote(socketId) {
   delete remoteRoles[socketId]; delete remoteNames[socketId]; removeAudioPeer(socketId);
 }
 
+// ── TODAY'S ASSIGNMENT & TIMER ──
+let todayAssignments = [];
+let timerInterval = null;
+
+async function loadTodayAssignment() {
+  try {
+    const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`);
+    todayAssignments = await res.json();
+    if (IS_TEACHER) checkTeacherRoomLock();
+    else checkStudentAccess();
+  } catch(e) {}
+}
+
+function getDuration(ct) {
+  if (ct==='Trial') return 15; if (ct==='30-Minute') return 30;
+  if (ct==='40-Minute') return 40; if (ct==='50-Minute') return 50; return 30;
+}
+
+function nowGDL() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+}
+
+function t2m(t) { if (!t) return 0; const [h,m] = t.split(':').map(Number); return h*60+m; }
+
+function fmtTime12(t) { if (!t) return ''; const [h,m] = t.split(':'); const hr=parseInt(h),ap=hr>=12?'PM':'AM'; return `${hr%12||12}:${m} ${ap}`; }
+
+function checkTeacherRoomLock() {
+  const now = nowGDL();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const openBtn = document.getElementById('open-class-btn');
+  if (!openBtn) return;
+  if (!todayAssignments.length) { openBtn.disabled=false; openBtn.style.opacity='1'; return; }
+
+  const sorted = todayAssignments.map(a => ({...a, sm: t2m(a.time), em: t2m(a.time)+getDuration(a.classType)})).sort((a,b)=>a.sm-b.sm);
+  const current = sorted.find(a => nowMins >= a.sm-20 && nowMins < a.em);
+  if (current) {
+    openBtn.disabled=false; openBtn.style.opacity='1';
+    openBtn.textContent = classIsOpen ? '🔒 Close Class' : '🔓 Open Class';
+    openBtn.title='';
+    startTimer(current);
+  } else {
+    const next = sorted.find(a => a.sm-20 > nowMins);
+    if (next) {
+      const uh = Math.floor((next.sm-20)/60), um = (next.sm-20)%60;
+      const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
+      openBtn.disabled=true; openBtn.style.opacity='0.5';
+      openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
+    } else { openBtn.disabled=false; openBtn.style.opacity='1'; }
+  }
+}
+
+function startTimer(assignment) {
+  if (timerInterval) clearInterval(timerInterval);
+  const timerEl = document.getElementById('class-timer');
+  if (timerEl) timerEl.style.display='block';
+  const duration = getDuration(assignment.classType);
+  const warnAt = duration - 10;
+  timerInterval = setInterval(() => {
+    const now = nowGDL();
+    const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+    const elapsed = nowMins - t2m(assignment.time);
+    if (elapsed < 0) {
+      const s = Math.round(-elapsed*60), mm=Math.floor(s/60), ss=s%60;
+      timerEl.textContent=`-${mm}:${String(ss).padStart(2,'0')}`; timerEl.style.color='#a0c4ff'; return;
+    }
+    const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
+    timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
+    timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
+  }, 1000);
+  if (IS_TEACHER && window._socket) window._socket.emit('timer-info', { room: ROOM, assignment });
+}
+
+function checkStudentAccess() {
+  if (!todayAssignments.length) return;
+  const now = nowGDL();
+  const nowMins = now.getHours()*60 + now.getMinutes();
+  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const sorted = todayAssignments.map(a => ({...a, sm: t2m(a.time), em: t2m(a.time)+getDuration(a.classType)})).sort((a,b)=>a.sm-b.sm);
+  const statusBox = document.getElementById('waiting-status-box');
+  const countdown = document.getElementById('waiting-countdown');
+  const schedBtn  = document.getElementById('my-schedule-btn');
+  const current = sorted.find(a => nowMins >= a.sm-5 && nowMins < a.em);
+  if (current) { startTimer(current); schedBtn.style.display='block'; return; }
+  const upcoming = sorted.find(a => a.sm-5 > nowMins);
+  const past     = [...sorted].reverse().find(a => nowMins >= a.em);
+  if (upcoming) {
+    const st = convertStudentTime(upcoming.time, userTz);
+    statusBox.innerHTML=`⏰ Your class starts at <strong>${st}</strong>`;
+    schedBtn.style.display='block';
+    const iv = setInterval(() => {
+      const n=nowGDL(), nm=n.getHours()*60+n.getMinutes()+n.getSeconds()/60;
+      const left=Math.round((upcoming.sm-5-nm)*60);
+      if (left<=0) { clearInterval(iv); statusBox.innerHTML='⏳ Waiting for teacher to open the class...'; countdown.style.display='none'; startTimer(upcoming); return; }
+      const mm=Math.floor(left/60),ss=left%60;
+      countdown.textContent=`Room opens in ${mm}:${String(ss).padStart(2,'0')}`; countdown.style.display='block';
+    }, 1000);
+  } else if (past) {
+    const et = convertStudentTime(past.time, userTz, getDuration(past.classType));
+    statusBox.innerHTML=`❌ Your class ended at <strong>${et}</strong>`;
+    statusBox.style.background='rgba(229,57,53,0.15)';
+    schedBtn.style.display='block';
+  }
+}
+
+function convertStudentTime(time24, tz, addMins=0) {
+  if (!time24) return '';
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  const dt = new Date(`${today}T${time24}:00-06:00`); // Guadalajara is UTC-6
+  dt.setMinutes(dt.getMinutes()+addMins);
+  return dt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', timeZone: tz, hour12:true });
+}
+
+async function showStudentSchedule() {
+  const popup = document.getElementById('student-schedule-popup');
+  const list  = document.getElementById('student-schedule-list');
+  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  list.innerHTML='<div style="color:#888;text-align:center;">Loading...</div>';
+  popup.style.display='flex';
+  try {
+    const res = await fetch(`${SERVER_URL}/assignments?room=${ROOM}`);
+    const assignments = await res.json();
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const upcoming = assignments.filter(a => a.date >= today).sort((a,b) => a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+    if (!upcoming.length) { list.innerHTML='<div style="color:#888;text-align:center;">No upcoming classes.</div>'; return; }
+    list.innerHTML = upcoming.map(a => {
+      const st = convertStudentTime(a.time, userTz);
+      const et = convertStudentTime(a.time, userTz, getDuration(a.classType));
+      return `<div style="background:#0f3460;border-radius:10px;padding:12px 16px;margin-bottom:8px;">
+        <div style="font-weight:900;color:#a0c4ff;">📅 ${a.date}</div>
+        <div style="font-size:0.9rem;color:white;margin-top:4px;">🕐 ${st} – ${et}</div>
+        <div style="font-size:0.8rem;color:#888;margin-top:2px;">Level ${a.level} · ${a.classType}</div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML='<div style="color:#e53935;">Could not load schedule.</div>'; }
+}
+
+function newClass() {
+  if (!confirm('Start a NEW class? This will kick all current students out and clear drawings.')) return;
+  const toRemove = canvas.getObjects().filter(obj => !obj.data?.locked);
+  toRemove.forEach(obj => canvas.remove(obj));
+  canvas.renderAll();
+  if (window._socket) { window._socket.emit('whiteboard-clear', { room: ROOM }); window._socket.emit('new-class', { room: ROOM }); }
+}
+
 function startVideoCapture(socket) {
   if (IS_TEACHER) {
     const src = document.getElementById('left-video');
@@ -810,13 +983,16 @@ function enterClass() {
   document.getElementById('status-bar').style.color = '#69f0ae';
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
-  // Start audio — must be called after localStream is ready
   window._audioRelayStarted = false;
   startAudioRelay(_joinedSocket);
-  // Only the teacher initiates audio calls to avoid offer collision
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
   });
+  loadTodayAssignment();
+  if (IS_TEACHER) {
+    const newBtn = document.getElementById('new-class-btn');
+    if (newBtn) newBtn.style.display = 'block';
+  }
 }
 
 function updateMonkey(socketId) {
