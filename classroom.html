@@ -547,7 +547,7 @@ function connectSocket() {
         sc = document.createElement('canvas');
         sc.id = 'screenshare-img';
         sc.width = 1440; sc.height = 1080;
-        sc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;display:block;background:#1a1a2e;';
+        sc.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
         document.getElementById('whiteboard-wrap').appendChild(sc);
       }
       const cc = document.querySelector('.canvas-container');
@@ -581,8 +581,9 @@ function connectSocket() {
         sc = document.createElement('canvas');
         sc.id = 'screenshare-img';
         sc.width = 1440; sc.height = 1080;
-        sc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;display:block;background:#1a1a2e;';
+        sc.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
         document.getElementById('whiteboard-wrap').appendChild(sc);
+        scaleCanvas(); // apply same transform as fabric canvas
         const cc = document.querySelector('.canvas-container');
         if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
         if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
@@ -960,9 +961,11 @@ async function toggleScreenShare() {
       teacherSC = document.createElement('canvas');
       teacherSC.id = 'screenshare-img';
       teacherSC.width = 1440; teacherSC.height = 1080;
-      teacherSC.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:20;display:block;background:#1a1a2e;';
+      teacherSC.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
       wrap.appendChild(teacherSC);
     }
+    // Apply same transform as fabric canvas
+    scaleCanvas();
     // Make canvas transparent and raise it above screenshare
     const cc = document.querySelector('.canvas-container');
     if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
@@ -1049,17 +1052,25 @@ function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
-  // Scale to fill full width; if height overflows it clips cleanly
   const scaleW = w / CANVAS_W;
   const scaleH = h / CANVAS_H;
-  const scale = Math.max(scaleW, scaleH); // fill the wrap completely
+  const scale = Math.max(scaleW, scaleH);
+  const transform = `scale(${scale})`;
   const container = document.querySelector('.canvas-container');
   if (container) {
-    container.style.transform = `scale(${scale})`;
+    container.style.transform = transform;
     container.style.transformOrigin = 'top left';
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.left = '0';
+  }
+  // Apply same transform to screenshare canvas so drawing coords align perfectly
+  const sc = document.getElementById('screenshare-img');
+  if (sc) {
+    sc.style.transform = transform;
+    sc.style.transformOrigin = 'top left';
+    sc.style.width = CANVAS_W + 'px';
+    sc.style.height = CANVAS_H + 'px';
   }
   wrap.style.overflow = 'hidden';
   wrap.style.background = '#ffffff';
