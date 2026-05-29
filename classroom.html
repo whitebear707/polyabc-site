@@ -663,10 +663,31 @@ function removeAudioPeer(socketId) {
 
 function startAudioRelay(socket) {
   if (!localStream) return;
+  if (window._audioRelayStarted) return; // prevent duplicate handlers
+  window._audioRelayStarted = true;
   window._audioSocket = socket;
-  socket.on('audio-offer', async ({ from, offer }) => { const pc = createAudioPeer(from, socket); await pc.setRemoteDescription(new RTCSessionDescription(offer)); const answer = await pc.createAnswer(); await pc.setLocalDescription(answer); socket.emit('audio-answer', { to: from, answer: pc.localDescription }); });
-  socket.on('audio-answer', async ({ from, answer }) => { const pc = audioPeers[from]; if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer)); });
-  socket.on('audio-ice', async ({ from, candidate }) => { const pc = audioPeers[from]; if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} } });
+  socket.on('audio-offer', async ({ from, offer }) => {
+    if (IS_TEACHER) return; // teacher never receives offers, only sends
+    let pc = audioPeers[from];
+    if (!pc) { pc = createAudioPeer(from, socket); }
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('audio-answer', { to: from, answer: pc.localDescription });
+    } catch(e) { console.warn('audio-offer error:', e.message); }
+  });
+  socket.on('audio-answer', async ({ from, answer }) => {
+    const pc = audioPeers[from];
+    if (pc && pc.signalingState === 'have-local-offer') {
+      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); }
+      catch(e) { console.warn('audio-answer error:', e.message); }
+    }
+  });
+  socket.on('audio-ice', async ({ from, candidate }) => {
+    const pc = audioPeers[from];
+    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+  });
 }
 
 function createVideoSlot(socketId, role, name) {
