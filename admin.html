@@ -1042,6 +1042,7 @@ async function saveGlobalStudent() {
 
   document.getElementById('add-student-modal').classList.remove('open');
   await loadRooms();
+  await loadStudents();
   renderAllStudents();
   renderGroups();
 }
