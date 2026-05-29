@@ -506,12 +506,12 @@ async function loadAll() {
 }
 
 async function loadRooms() {
-  const res = await fetch(`${SERVER_URL}/rooms`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/rooms?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
   rooms = await res.json();
 }
 
 async function loadAllAvailabilityData() {
-  const res = await fetch(`${SERVER_URL}/availability/all`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/availability/all?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allAvailability = await res.json();
 }
 
@@ -526,7 +526,7 @@ async function loadAllAssignmentsData() {
 }
 
 async function loadGroups() {
-  const res = await fetch(`${SERVER_URL}/groups`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/groups?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allGroups = await res.json();
 }
 
@@ -811,7 +811,7 @@ async function saveTeacher() {
       body: JSON.stringify({ teacherName: name, teacherPassword: pass })
     });
   } else {
-    const res = await fetch(`${SERVER_URL}/rooms`, {
+    const res = await fetch(`${SERVER_URL}/rooms?_=${Date.now()}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ room, teacherName: name, teacherPassword: pass })
     });
@@ -1047,7 +1047,7 @@ async function saveGroup() {
       body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
     });
   } else {
-    await fetch(`${SERVER_URL}/groups`, {
+    await fetch(`${SERVER_URL}/groups?_=${Date.now()}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
     });
