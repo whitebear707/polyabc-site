@@ -420,8 +420,13 @@ function connectSocket() {
   socket.on('user-joined', ({ socketId, role, name }) => {
     remoteRoles[socketId] = role; remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
+    // Establish audio connection with new user
+    setTimeout(() => callAudioPeer(socketId, socket), 1000);
     if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
       setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() }), 1500);
+    }
+    if (IS_TEACHER && isSharing) {
+      callSsPeer(socketId);
     }
   });
 
