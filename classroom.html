@@ -413,15 +413,15 @@ function connectSocket() {
     users.forEach(({ socketId, role, name }) => {
       remoteRoles[socketId] = role; remoteNames[socketId] = name;
       createVideoSlot(socketId, role, name);
-      setTimeout(() => callAudioPeer(socketId, socket), 1000);
+      if (IS_TEACHER) setTimeout(() => callAudioPeer(socketId, socket), 1000);
     });
   });
 
   socket.on('user-joined', ({ socketId, role, name }) => {
     remoteRoles[socketId] = role; remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
-    // Establish audio connection with new user
-    setTimeout(() => callAudioPeer(socketId, socket), 1000);
+    // Only teacher initiates audio to avoid collision
+    if (IS_TEACHER) setTimeout(() => callAudioPeer(socketId, socket), 1000);
     if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
       setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() }), 1500);
     }
@@ -773,9 +773,9 @@ function enterClass() {
   startVideoCapture(_joinedSocket);
   // Start audio — must be called after localStream is ready
   startAudioRelay(_joinedSocket);
-  // Call audio peers for anyone already in the room
+  // Only the teacher initiates audio calls to avoid offer collision
   Object.keys(remoteRoles).forEach(sid => {
-    setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
+    if (IS_TEACHER) setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
   });
 }
 
