@@ -599,7 +599,7 @@ function connectSocket() {
     }
   });
 
-  startAudioRelay(socket);
+  // Audio relay started in enterClass() after localStream is confirmed ready
 }
 
 let unreadCount = 0;
@@ -771,6 +771,12 @@ function enterClass() {
   document.getElementById('status-bar').style.color = '#69f0ae';
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
+  // Start audio — must be called after localStream is ready
+  startAudioRelay(_joinedSocket);
+  // Call audio peers for anyone already in the room
+  Object.keys(remoteRoles).forEach(sid => {
+    setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
+  });
 }
 
 function updateMonkey(socketId) {
