@@ -280,7 +280,7 @@
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Group</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Actions</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -522,10 +522,8 @@ function logout() {
 }
 
 // ── LOAD ALL DATA ──
-let allStudents = [];
-
 async function loadAll() {
-  await Promise.all([loadRooms(), loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups(), loadStudents()]);
+  await Promise.all([loadRooms(), loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
 }
 
 async function loadRooms() {
@@ -539,6 +537,7 @@ async function loadAllAvailabilityData() {
 }
 
 async function loadAllAssignmentsData() {
+  // Load assignments for all rooms
   const all = await Promise.all(rooms.map(r =>
     fetch(`${SERVER_URL}/assignments?room=${r.room}`, { headers: { Authorization: `Bearer ${currentToken}` } }).then(r => r.json())
   ));
@@ -548,11 +547,6 @@ async function loadAllAssignmentsData() {
 async function loadGroups() {
   const res = await fetch(`${SERVER_URL}/groups`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allGroups = await res.json();
-}
-
-async function loadStudents() {
-  const res = await fetch(`${SERVER_URL}/students`, { headers: { Authorization: `Bearer ${currentToken}` } });
-  allStudents = await res.json();
 }
 
 // ── PANEL NAVIGATION ──
@@ -917,11 +911,9 @@ function closeRoomStudentsModal() { document.getElementById('room-students-modal
 
 // ── STUDENTS PANEL ──
 function getAllStudents() {
-  // Merge standalone students with room students, deduplicate by name
-  const fromRooms = [];
-  rooms.forEach(r => (r.students||[]).forEach(s => fromRooms.push({ ...s, room: r.room, teacherName: r.teacherName })));
-  const standalone = allStudents.filter(s => !fromRooms.find(r => r.name === s.name));
-  return [...fromRooms, ...standalone.map(s => ({ ...s, room: s.room || '—', teacherName: '—' }))];
+  const all = [];
+  rooms.forEach(r => (r.students||[]).forEach(s => all.push({ ...s, room: r.room, teacherName: r.teacherName })));
+  return all;
 }
 
 function checkDuplicatePassword(pass, excludeRoom) {
@@ -936,39 +928,13 @@ function checkDuplicatePassword(pass, excludeRoom) {
 function renderAllStudents() {
   const tbody = document.getElementById('students-tbody');
   const all = getAllStudents();
-  if (!all.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:20px;">No students yet.</td></tr>'; return; }
-  tbody.innerHTML = all.map(s => {
-    const group = allGroups.find(g => (g.students||[]).includes(s.name));
-    return `<tr>
-      <td style="font-weight:700;">${s.name}</td>
-      <td style="color:#888;">${s.password}</td>
-      <td>${s.room !== '—' ? `Room ${s.room}` : '<span style="color:#aaa;">No room</span>'}</td>
-      <td>${group ? `<span style="background:#e3f2fd;color:#1a73e8;padding:3px 8px;border-radius:10px;font-size:0.8rem;font-weight:700;">${group.name}</span>` : '<span style="color:#aaa;">No group</span>'}</td>
-      <td><button class="btn btn-red btn-sm" onclick="deleteStudent('${s.name}')">🗑</button></td>
-    </tr>`;
-  }).join('');
-}
-
-async function deleteStudent(name) {
-  showAlert('🗑️', `Delete ${name}?`, 'This will remove the student from all rooms and groups.',
-    [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteStudent('${name}')`,primary:true}]);
-}
-
-async function doDeleteStudent(name) {
-  closeAlert();
-  await fetch(`${SERVER_URL}/students/${encodeURIComponent(name)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
-  // Remove from groups too
-  for (const g of allGroups) {
-    if ((g.students||[]).includes(name)) {
-      await fetch(`${SERVER_URL}/groups/${g._id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-        body: JSON.stringify({ ...g, students: g.students.filter(s => s !== name) })
-      });
-    }
-  }
-  await loadAll();
-  renderAllStudents();
-  renderGroups();
+  if (!all.length) { tbody.innerHTML = '<tr><td colspan="4" style="color:#aaa;text-align:center;padding:20px;">No students yet.</td></tr>'; return; }
+  tbody.innerHTML = all.map(s => `<tr>
+    <td style="font-weight:700;">${s.name}</td>
+    <td style="color:#888;">${s.password}</td>
+    <td>Room ${s.room} · Teacher ${s.teacherName||'—'}</td>
+    <td><button class="btn btn-gray btn-sm" onclick="openRoomStudents('${s.room}')">Manage</button></td>
+  </tr>`).join('');
 }
 
 function toggleNewGroupFields() {
@@ -1001,11 +967,13 @@ async function saveGlobalStudent() {
   if (dup) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
 
-  // Save student to standalone collection
-  await fetch(`${SERVER_URL}/students`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null })
-  });
+  // Add to room if selected
+  if (room) {
+    await fetch(`${SERVER_URL}/rooms/${room}/students`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ name, password: pass })
+    });
+  }
 
   // Handle group
   if (groupVal === '__new__') {
