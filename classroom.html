@@ -541,9 +541,32 @@ function connectSocket() {
 
   socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
   socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
-  socket.on('whiteboard-clear', () => { if (!canvas) return; suppressSync = true; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false; });
+  socket.on('whiteboard-clear', () => {
+    if (!canvas) return;
+    suppressSync = true;
+    const toRemove = canvas.getObjects().filter(obj => !obj.data?.locked);
+    toRemove.forEach(obj => canvas.remove(obj));
+    canvas.renderAll();
+    suppressSync = false;
+  });
   socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
-  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => { if (!canvas) return; suppressSync = true; fabric.Image.fromURL(dataUrl, (img) => { img.scale(scale).set({ left, top, selectable: false }); canvas.add(img); canvas.renderAll(); suppressSync = false; }); });
+  socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
+    if (!canvas) return;
+    suppressSync = true;
+    fabric.Image.fromURL(dataUrl, (img) => {
+      img.scale(scale).set({
+        left, top,
+        selectable: false, evented: false,
+        lockMovementX: true, lockMovementY: true,
+        hasControls: false, hasBorders: false,
+        data: { locked: true }
+      });
+      canvas.add(img);
+      canvas.sendToBack(img);
+      canvas.renderAll();
+      suppressSync = false;
+    });
+  });
 
   // ── Screenshare WebRTC signaling ──
   socket.on('screenshare-start', ({ from }) => {
@@ -757,17 +780,17 @@ function removeRemote(socketId) {
 function startVideoCapture(socket) {
   if (IS_TEACHER) {
     const src = document.getElementById('left-video');
-    captureInterval = setInterval(() => { if (!localStream || !myCamOn) return; try { capCtx.drawImage(src, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); } catch(e) {} }, 150);
+    captureInterval = setInterval(() => { if (!localStream || !myCamOn) return; try { capCtx.drawImage(src, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.3) }); } catch(e) {} }, 250);
   } else {
     const pipVid = document.createElement('video'); pipVid.srcObject = localStream; pipVid.muted = true; pipVid.autoplay = true; pipVid.play();
     const monkeyImg = new Image(); const monkeyImg2 = new Image(); monkeyImg.src = 'nosee.png'; monkeyImg2.src = 'noseeandhear.png';
     captureInterval = setInterval(() => {
       if (!localStream) return;
       try {
-        if (!myCamOn) { const monkey = (!myMicOn) ? monkeyImg2 : monkeyImg; if (monkey.complete && monkey.naturalWidth > 0) { capCtx.clearRect(0,0,320,240); capCtx.fillStyle='#1a1a2e'; capCtx.fillRect(0,0,320,240); capCtx.drawImage(monkey,40,20,240,200); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); } }
-        else { capCtx.drawImage(pipVid, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.45) }); }
+        if (!myCamOn) { const monkey = (!myMicOn) ? monkeyImg2 : monkeyImg; if (monkey.complete && monkey.naturalWidth > 0) { capCtx.clearRect(0,0,320,240); capCtx.fillStyle='#1a1a2e'; capCtx.fillRect(0,0,320,240); capCtx.drawImage(monkey,40,20,240,200); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.3) }); } }
+        else { capCtx.drawImage(pipVid, 0, 0, 320, 240); socket.emit('video-frame', { room: ROOM, frame: capCanvas.toDataURL('image/jpeg', 0.3) }); }
       } catch(e) {}
-    }, 150);
+    }, 250);
   }
 }
 
@@ -1116,7 +1139,14 @@ function setTool(tool) {
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
 function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
 
-function clearBoard() { if (!IS_TEACHER) return; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM }); }
+function clearBoard() {
+  if (!IS_TEACHER) return;
+  // Only remove unlocked objects (drawings), keep locked images
+  const toRemove = canvas.getObjects().filter(obj => !obj.data?.locked);
+  toRemove.forEach(obj => canvas.remove(obj));
+  canvas.renderAll();
+  if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM });
+}
 
 function uploadImage(event) {
   if (!IS_TEACHER) return;
@@ -1138,8 +1168,16 @@ function uploadImage(event) {
       const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.75);
       fabric.Image.fromURL(dataUrl, (img) => {
         const scale = Math.min((CANVAS_W * 0.85) / img.width, (CANVAS_H * 0.85) / img.height);
-        img.scale(scale).set({ left: 40, top: 40, selectable: true });
-        canvas.add(img); canvas.renderAll();
+        img.scale(scale).set({
+          left: 40, top: 40,
+          selectable: false, evented: false,
+          lockMovementX: true, lockMovementY: true,
+          hasControls: false, hasBorders: false,
+          data: { locked: true }
+        });
+        canvas.add(img);
+        canvas.sendToBack(img); // always behind drawings
+        canvas.renderAll();
         if (window._socket) window._socket.emit('whiteboard-image', { room: ROOM, dataUrl, scale, left: 40, top: 40 });
       });
     };
