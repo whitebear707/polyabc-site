@@ -600,6 +600,8 @@ function connectSocket() {
   });
 
   // Audio relay started in enterClass() after localStream is confirmed ready
+  window._audioRelayStarted = false;
+  startAudioRelay(socket);
 }
 
 let unreadCount = 0;
@@ -663,26 +665,19 @@ function removeAudioPeer(socketId) {
 
 function startAudioRelay(socket) {
   if (!localStream) return;
-  if (window._audioRelayStarted) return; // prevent duplicate handlers
+  if (window._audioRelayStarted) return;
   window._audioRelayStarted = true;
   window._audioSocket = socket;
   socket.on('audio-offer', async ({ from, offer }) => {
-    if (IS_TEACHER) return; // teacher never receives offers, only sends
-    let pc = audioPeers[from];
-    if (!pc) { pc = createAudioPeer(from, socket); }
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('audio-answer', { to: from, answer: pc.localDescription });
-    } catch(e) { console.warn('audio-offer error:', e.message); }
+    const pc = createAudioPeer(from, socket);
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('audio-answer', { to: from, answer: pc.localDescription });
   });
   socket.on('audio-answer', async ({ from, answer }) => {
     const pc = audioPeers[from];
-    if (pc && pc.signalingState === 'have-local-offer') {
-      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); }
-      catch(e) { console.warn('audio-answer error:', e.message); }
-    }
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
   });
   socket.on('audio-ice', async ({ from, candidate }) => {
     const pc = audioPeers[from];
@@ -793,6 +788,7 @@ function enterClass() {
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
   // Start audio — must be called after localStream is ready
+  window._audioRelayStarted = false;
   startAudioRelay(_joinedSocket);
   // Only the teacher initiates audio calls to avoid offer collision
   Object.keys(remoteRoles).forEach(sid => {
