@@ -223,10 +223,20 @@
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
       <div class="sidebar-section">
-        <div class="sidebar-title">Filter by Time</div>
+        <div class="sidebar-title">Filter by Day & Time</div>
+        <select id="day-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
+          <option value="">-- Any Day --</option>
+          <option value="0">Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
         <input type="time" id="time-filter" oninput="renderMasterCalendar()" placeholder="e.g. 18:00"/>
-        <button onclick="document.getElementById('time-filter').value='';renderMasterCalendar();"
-          style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filter</button>
+        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';renderMasterCalendar();"
+          style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
       </div>
       <div id="day-detail">
         <div style="color:#aaa;text-align:center;padding:24px 16px;font-size:0.9rem;">Click a day to see available teachers</div>
@@ -547,11 +557,11 @@ function getAvailableTeachersForDate(dateStr) {
   }));
 }
 
-function matchesTimeFilter(teachers, filterTime) {
-  if (!filterTime) return false;
+function matchesFilters(teachers, filterTime, filterDayOfWeek) {
   return teachers.some(t => {
     if (!t.hours) return false;
-    return filterTime >= t.hours.start && filterTime <= t.hours.end;
+    if (filterTime && !(filterTime >= t.hours.start && filterTime <= t.hours.end)) return false;
+    return true;
   });
 }
 
@@ -560,6 +570,7 @@ function renderMasterCalendar() {
   const grid = document.getElementById('master-cal-grid');
   const today = new Date(); today.setHours(0,0,0,0);
   const filterTime = document.getElementById('time-filter').value;
+  const filterDay  = document.getElementById('day-filter') ? document.getElementById('day-filter').value : '';
   const firstDay = new Date(masterYear, masterMonth, 1).getDay();
   const daysInMonth = new Date(masterYear, masterMonth + 1, 0).getDate();
   const prevDays = new Date(masterYear, masterMonth, 0).getDate();
@@ -571,18 +582,24 @@ function renderMasterCalendar() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date   = new Date(masterYear, masterMonth, d);
-    const dateStr = toDateStr(date);
-    const isToday = date.getTime() === today.getTime();
+    const date      = new Date(masterYear, masterMonth, d);
+    const dateStr   = toDateStr(date);
+    const dayOfWeek = date.getDay();
+    const isToday   = date.getTime() === today.getTime();
     const isSelected = dateStr === selectedDate;
-    const teachers = getAvailableTeachersForDate(dateStr);
+    const teachers  = getAvailableTeachersForDate(dateStr);
     const assignments = allAssignments.filter(a => a.date === dateStr);
-    const hasFilter = filterTime && matchesTimeFilter(teachers, filterTime);
+
+    // Both filters must match if set
+    const dayMatches  = filterDay === '' || dayOfWeek === parseInt(filterDay);
+    const timeMatches = filterTime === '' || matchesFilters(teachers, filterTime, dayOfWeek);
+    const hasFilter   = (filterDay !== '' || filterTime !== '');
+    const matches     = hasFilter && dayMatches && timeMatches && teachers.length > 0;
 
     let cls = 'master-cal-day';
     if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
-    if (hasFilter) cls += ' has-filter-match';
+    if (matches) cls += ' has-filter-match';
     else if (teachers.length > 0) cls += ' has-avail';
     else cls += ' no-avail';
 
