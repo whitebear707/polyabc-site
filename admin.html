@@ -499,7 +499,10 @@ function logout() {
 
 // ── LOAD ALL DATA ──
 async function loadAll() {
-  await Promise.all([loadRooms(), loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
+  try { await loadRooms(); } catch(e) { console.warn('loadRooms failed', e); }
+  try { await loadAllAvailabilityData(); } catch(e) { console.warn('loadAvail failed', e); }
+  try { await loadAllAssignmentsData(); } catch(e) { console.warn('loadAssignments failed', e); }
+  try { await loadGroups(); } catch(e) { console.warn('loadGroups failed', e); }
 }
 
 async function loadRooms() {
@@ -513,11 +516,13 @@ async function loadAllAvailabilityData() {
 }
 
 async function loadAllAssignmentsData() {
-  // Load assignments for all rooms
-  const all = await Promise.all(rooms.map(r =>
-    fetch(`${SERVER_URL}/assignments?room=${r.room}`, { headers: { Authorization: `Bearer ${currentToken}` } }).then(r => r.json())
-  ));
-  allAssignments = all.flat();
+  if (!rooms.length) return;
+  try {
+    const all = await Promise.all(rooms.map(r =>
+      fetch(`${SERVER_URL}/assignments?room=${r.room}`, { headers: { Authorization: `Bearer ${currentToken}` } }).then(r => r.json()).catch(() => [])
+    ));
+    allAssignments = all.flat();
+  } catch(e) { allAssignments = []; }
 }
 
 async function loadGroups() {
