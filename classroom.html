@@ -487,7 +487,18 @@ function connectSocket() {
     if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN }); }
   });
 
-  socket.on('class-closed', () => {});
+  socket.on('class-closed', () => {
+    if (!IS_TEACHER) {
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      if (captureInterval) clearInterval(captureInterval);
+      document.body.innerHTML = `<div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
+        <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
+        <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
+        <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
+        <a href="index.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+      </div>`;
+    }
+  });
   socket.on('star-given', ({ name }) => showStarCelebration(name));
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
@@ -560,6 +571,9 @@ function connectSocket() {
     }
   });
 
+  // Reuse single image object for screenshare frames to prevent memory leak
+  const _ssReuseImg = new Image();
+
   socket.on('screenshare-frame', ({ frame }) => {
     if (!IS_TEACHER) {
       let sc = document.getElementById('screenshare-img');
@@ -573,9 +587,8 @@ function connectSocket() {
         if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
         if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
       }
-      const tmpImg = new Image();
-      tmpImg.onload = () => { sc.getContext('2d').drawImage(tmpImg, 0, 0, 1440, 1080); };
-      tmpImg.src = frame;
+      _ssReuseImg.onload = () => { sc.getContext('2d').drawImage(_ssReuseImg, 0, 0, 1440, 1080); };
+      _ssReuseImg.src = frame;
     }
   });
 
@@ -955,12 +968,14 @@ async function toggleScreenShare() {
     if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
     if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
 
-    const capCv = document.createElement('canvas'); capCv.width = 1280; capCv.height = 720;
+    const capCv = document.createElement('canvas'); capCv.width = 1440; capCv.height = 1080;
     const capCx = capCv.getContext('2d');
     const vid = document.getElementById('screenshare-video');
     vid.srcObject = screenStream;
 
-    // Wait for video to be ready before capturing
+    // Reuse single Image object to prevent memory leak
+    const _reuseImg = new Image();
+
     vid.onloadedmetadata = () => { vid.play(); };
 
     if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
@@ -968,15 +983,13 @@ async function toggleScreenShare() {
     window._shareInterval = setInterval(() => {
       if (!isSharing) return;
       if (document.visibilityState === 'hidden') return;
-      if (vid.readyState < 2) return; // not ready yet
+      if (vid.readyState < 2) return;
       try {
-        capCx.drawImage(vid, 0, 0, 1280, 720);
+        capCx.drawImage(vid, 0, 0, 1440, 1080);
         const frame = capCv.toDataURL('image/jpeg', 0.5);
-        // Show on teacher's own screen
-        const tmpImg = new Image();
-        tmpImg.onload = () => { teacherSC.getContext('2d').drawImage(tmpImg, 0, 0, 1440, 1080); };
-        tmpImg.src = frame;
-        // Send to students
+        // Show on teacher's own screen — reuse image object
+        _reuseImg.onload = () => { teacherSC.getContext('2d').drawImage(_reuseImg, 0, 0, 1440, 1080); };
+        _reuseImg.src = frame;
         if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame });
       } catch(e) {}
     }, 150);
