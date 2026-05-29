@@ -540,56 +540,57 @@ function connectSocket() {
   socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
   socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => { if (!canvas) return; suppressSync = true; fabric.Image.fromURL(dataUrl, (img) => { img.scale(scale).set({ left, top, selectable: false }); canvas.add(img); canvas.renderAll(); suppressSync = false; }); });
 
-  socket.on('screenshare-start', () => {
-    if (!IS_TEACHER) {
-      let sc = document.getElementById('screenshare-img');
-      if (!sc) {
-        sc = document.createElement('canvas');
-        sc.id = 'screenshare-img';
-        sc.width = 1440; sc.height = 1080;
-        sc.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
-        document.getElementById('whiteboard-wrap').appendChild(sc);
-      }
-      const cc = document.querySelector('.canvas-container');
-      if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
-      if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
+  // ── Screenshare WebRTC signaling ──
+  socket.on('screenshare-start', ({ from }) => {
+    if (!IS_TEACHER && from) {
+      // Store teacher socket ID for ICE/answer routing
+      window._ssTeacherId = from;
+    }
+  });
+
+  socket.on('ss-offer', async ({ from, offer }) => {
+    // Student receives offer from teacher
+    const pc = new RTCPeerConnection(ICE_CONFIG);
+    ssPeers[from] = pc;
+    pc.onicecandidate = (e) => { if (e.candidate) socket.emit('ss-ice', { to: from, candidate: e.candidate }); };
+    pc.ontrack = (e) => {
+      showScreenBehindCanvas(e.streams[0], false);
+    };
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('ss-answer', { to: from, answer: pc.localDescription });
+  });
+
+  socket.on('ss-answer', async ({ from, answer }) => {
+    const pc = ssPeers[from];
+    if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  socket.on('ss-ice', async ({ from, candidate }) => {
+    const pc = ssPeers[from];
+    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+  });
+
+  // When teacher gets answer back, call each student
+  socket.on('user-joined', ({ socketId, role }) => {
+    if (IS_TEACHER && isSharing && role === 'student') {
+      callSsPeer(socketId);
     }
   });
 
   socket.on('screenshare-stop', () => {
     if (!IS_TEACHER) {
-      const sc = document.getElementById('screenshare-img'); if (sc) sc.remove();
-      const cc = document.querySelector('.canvas-container');
-      if (cc) { cc.style.zIndex = ''; }
+      // Close student side peer connections
+      Object.keys(ssPeers).forEach(id => { ssPeers[id].close(); delete ssPeers[id]; });
+      const vid = document.getElementById('screenshare-vid'); if (vid) vid.remove();
+      const sc  = document.getElementById('screenshare-img'); if (sc)  sc.remove();
+      const cc  = document.querySelector('.canvas-container'); if (cc) cc.style.zIndex = '';
       if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
       if (window._canDraw === false) {
         canvas.isDrawingMode = false; canvas.selection = false;
         canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
-        const toolbar = document.getElementById('toolbar');
-        if (toolbar) { toolbar.style.opacity = '0.4'; toolbar.style.pointerEvents = 'none'; }
       }
-    }
-  });
-
-  // Reuse single image object for screenshare frames to prevent memory leak
-  const _ssReuseImg = new Image();
-
-  socket.on('screenshare-frame', ({ frame }) => {
-    if (!IS_TEACHER) {
-      let sc = document.getElementById('screenshare-img');
-      if (!sc) {
-        sc = document.createElement('canvas');
-        sc.id = 'screenshare-img';
-        sc.width = 1440; sc.height = 1080;
-        sc.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
-        document.getElementById('whiteboard-wrap').appendChild(sc);
-        scaleCanvas(); // apply same transform as fabric canvas
-        const cc = document.querySelector('.canvas-container');
-        if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
-        if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
-      }
-      _ssReuseImg.onload = () => { sc.getContext('2d').drawImage(_ssReuseImg, 0, 0, 1440, 1080); };
-      _ssReuseImg.src = frame;
     }
   });
 
@@ -944,7 +945,10 @@ function leaveClass() {
 function teacherBRB() { document.getElementById('leave-modal').style.display = 'none'; if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }
 function teacherEndClass() { document.getElementById('leave-modal').style.display = 'none'; if (window._socket) window._socket.emit('end-class', { room: ROOM }); setTimeout(() => { if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }, 500); }
 
+// ── WebRTC Screenshare (peer-to-peer, zero server bandwidth) ──
+const ssPeers = {}; // studentSocketId -> RTCPeerConnection
 let screenStream = null; let isSharing = false;
+
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
   try {
@@ -954,68 +958,44 @@ async function toggleScreenShare() {
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
 
-    // Teacher: show screenshare behind canvas using a canvas element (same 1440x1080 space)
-    const wrap = document.getElementById('whiteboard-wrap');
-    let teacherSC = document.getElementById('screenshare-img');
-    if (!teacherSC) {
-      teacherSC = document.createElement('canvas');
-      teacherSC.id = 'screenshare-img';
-      teacherSC.width = 1440; teacherSC.height = 1080;
-      teacherSC.style.cssText = 'position:absolute;top:0;left:0;width:1440px;height:1080px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;';
-      wrap.appendChild(teacherSC);
+    // Show teacher's own screen behind canvas
+    showScreenBehindCanvas(screenStream, true);
+
+    // Notify students and call each connected student peer
+    if (window._socket) {
+      window._socket.emit('screenshare-start', { room: ROOM });
+      // Call each currently connected student
+      Object.keys(studentSlots).forEach(sid => callSsPeer(sid));
     }
-    // Apply same transform as fabric canvas
-    scaleCanvas();
-    // Make canvas transparent and raise it above screenshare
-    const cc = document.querySelector('.canvas-container');
-    if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
-    if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
-
-    const capCv = document.createElement('canvas'); capCv.width = 1440; capCv.height = 1080;
-    const capCx = capCv.getContext('2d');
-    const vid = document.getElementById('screenshare-video');
-    vid.srcObject = screenStream;
-
-    // Reuse single Image object to prevent memory leak
-    const _reuseImg = new Image();
-
-    vid.onloadedmetadata = () => { vid.play(); };
-
-    if (window._socket) window._socket.emit('screenshare-start', { room: ROOM });
-
-    window._shareInterval = setInterval(() => {
-      if (!isSharing) return;
-      if (document.visibilityState === 'hidden') return;
-      if (vid.readyState < 2) return;
-      try {
-        capCx.drawImage(vid, 0, 0, 1440, 1080);
-        const frame = capCv.toDataURL('image/jpeg', 0.5);
-        // Show on teacher's own screen — reuse image object
-        _reuseImg.onload = () => { teacherSC.getContext('2d').drawImage(_reuseImg, 0, 0, 1440, 1080); };
-        _reuseImg.src = frame;
-        if (window._socket) window._socket.emit('screenshare-frame', { room: ROOM, frame });
-      } catch(e) {}
-    }, 150);
 
     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
   } catch(e) { if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message); }
 }
 
+async function callSsPeer(studentId) {
+  if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
+  const pc = new RTCPeerConnection(ICE_CONFIG);
+  ssPeers[studentId] = pc;
+  screenStream.getTracks().forEach(t => pc.addTrack(t, screenStream));
+  pc.onicecandidate = (e) => { if (e.candidate) window._socket.emit('ss-ice', { to: studentId, candidate: e.candidate }); };
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  window._socket.emit('ss-offer', { to: studentId, offer: pc.localDescription });
+}
+
 function stopScreenShare() {
   isSharing = false;
-  if (window._shareInterval) { clearInterval(window._shareInterval); window._shareInterval = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+  Object.keys(ssPeers).forEach(id => { ssPeers[id].close(); delete ssPeers[id]; });
 
-  // Remove screenshare image for teacher too
-  const img = document.getElementById('screenshare-img'); if (img) img.remove();
-
-  // Restore canvas
+  // Remove screenshare display
+  const sc = document.getElementById('screenshare-img'); if (sc) sc.remove();
+  const vid = document.getElementById('screenshare-vid'); if (vid) vid.remove();
   if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
-  const cc = document.querySelector('.canvas-container');
-  if (cc) { cc.style.zIndex = ''; }
+  const cc = document.querySelector('.canvas-container'); if (cc) cc.style.zIndex = '';
 
   // Re-apply draw restrictions
-  if (IS_TEACHER && window._studentDrawStates) {
+  if (window._studentDrawStates) {
     window._studentDrawStates.forEach((canDraw, socketId) => {
       if (!canDraw && window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: false });
     });
@@ -1027,6 +1007,25 @@ function stopScreenShare() {
     window._socket.emit('screenshare-stop', { room: ROOM });
     setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300);
   }
+}
+
+function showScreenBehindCanvas(stream, isTeacher) {
+  const wrap = document.getElementById('whiteboard-wrap');
+  // Use a video element — no encoding/decoding, no frames, native browser rendering
+  let vid = document.getElementById('screenshare-vid');
+  if (!vid) {
+    vid = document.createElement('video');
+    vid.id = 'screenshare-vid';
+    vid.autoplay = true; vid.playsInline = true; vid.muted = true;
+    vid.style.cssText = `position:absolute;top:0;left:0;width:${CANVAS_W}px;height:${CANVAS_H}px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;object-fit:fill;`;
+    wrap.appendChild(vid);
+    scaleCanvas();
+  }
+  vid.srcObject = stream;
+  // Make fabric canvas transparent and raise above video
+  const cc = document.querySelector('.canvas-container');
+  if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
+  if (canvas) { canvas.backgroundColor = 'transparent'; canvas.renderAll(); }
 }
 
 const CANVAS_W = 1440, CANVAS_H = 1080;
@@ -1064,8 +1063,8 @@ function scaleCanvas() {
     container.style.top = '0';
     container.style.left = '0';
   }
-  // Apply same transform to screenshare canvas so drawing coords align perfectly
-  const sc = document.getElementById('screenshare-img');
+  // Apply same transform to screenshare video/canvas so drawing coords align perfectly
+  const sc = document.getElementById('screenshare-vid') || document.getElementById('screenshare-img');
   if (sc) {
     sc.style.transform = transform;
     sc.style.transformOrigin = 'top left';
