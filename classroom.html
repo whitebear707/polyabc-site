@@ -538,6 +538,7 @@ function connectSocket() {
       </div>`;
     }
   });
+  socket.on('class-ended', () => {
     if (!IS_TEACHER) {
       // Stop all media tracks so webcam light turns off
       if (localStream) localStream.getTracks().forEach(t => t.stop());
