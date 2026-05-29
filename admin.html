@@ -223,20 +223,10 @@
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
       <div class="sidebar-section">
-        <div class="sidebar-title">Filter by Day & Time</div>
-        <select id="day-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
-          <option value="">-- Any Day --</option>
-          <option value="0">Sunday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
-        </select>
-        <input type="time" id="time-filter" oninput="renderMasterCalendar()" placeholder="e.g. 18:00" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;"/>
-        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';renderMasterCalendar();"
-          style="width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
+        <div class="sidebar-title">Filter by Time</div>
+        <input type="time" id="time-filter" oninput="renderMasterCalendar()" placeholder="e.g. 18:00"/>
+        <button onclick="document.getElementById('time-filter').value='';renderMasterCalendar();"
+          style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filter</button>
       </div>
       <div id="day-detail">
         <div style="color:#aaa;text-align:center;padding:24px 16px;font-size:0.9rem;">Click a day to see available teachers</div>
@@ -459,14 +449,10 @@ async function doLogin() {
   if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
   let wakeTimer = setTimeout(showWakeup, 3000);
   try {
-    const controller = new AbortController();
-    const fetchTimeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
     const res = await fetch(`${SERVER_URL}/admin-login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass }),
-      signal: controller.signal
+      body: JSON.stringify({ password: pass })
     });
-    clearTimeout(fetchTimeout);
     clearTimeout(wakeTimer); hideWakeup();
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     const data = await res.json();
@@ -499,34 +485,29 @@ function logout() {
 
 // ── LOAD ALL DATA ──
 async function loadAll() {
-  try { await loadRooms(); } catch(e) { console.warn('loadRooms failed', e); }
-  try { await loadAllAvailabilityData(); } catch(e) { console.warn('loadAvail failed', e); }
-  try { await loadAllAssignmentsData(); } catch(e) { console.warn('loadAssignments failed', e); }
-  try { await loadGroups(); } catch(e) { console.warn('loadGroups failed', e); }
+  await Promise.all([loadRooms(), loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
 }
 
 async function loadRooms() {
-  const res = await fetch(`${SERVER_URL}/rooms?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/rooms`, { headers: { Authorization: `Bearer ${currentToken}` } });
   rooms = await res.json();
 }
 
 async function loadAllAvailabilityData() {
-  const res = await fetch(`${SERVER_URL}/availability/all?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/availability/all`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allAvailability = await res.json();
 }
 
 async function loadAllAssignmentsData() {
-  if (!rooms.length) return;
-  try {
-    const all = await Promise.all(rooms.map(r =>
-      fetch(`${SERVER_URL}/assignments?room=${r.room}`, { headers: { Authorization: `Bearer ${currentToken}` } }).then(r => r.json()).catch(() => [])
-    ));
-    allAssignments = all.flat();
-  } catch(e) { allAssignments = []; }
+  // Load assignments for all rooms
+  const all = await Promise.all(rooms.map(r =>
+    fetch(`${SERVER_URL}/assignments?room=${r.room}`, { headers: { Authorization: `Bearer ${currentToken}` } }).then(r => r.json())
+  ));
+  allAssignments = all.flat();
 }
 
 async function loadGroups() {
-  const res = await fetch(`${SERVER_URL}/groups?_=${Date.now()}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const res = await fetch(`${SERVER_URL}/groups`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allGroups = await res.json();
 }
 
@@ -566,17 +547,11 @@ function getAvailableTeachersForDate(dateStr) {
   }));
 }
 
-function matchesFilters(teachers, filterTime, filterDay, dayOfWeek) {
-  if (!filterDay && !filterTime) return false;
+function matchesTimeFilter(teachers, filterTime) {
+  if (!filterTime) return false;
   return teachers.some(t => {
-    // Day filter check — teacher must have marked this specific date available (already filtered in getAvailableTeachersForDate)
-    // AND their hours must cover the requested time
-    if (filterDay !== '' && dayOfWeek !== parseInt(filterDay)) return false;
-    if (filterTime && t.hours) {
-      return filterTime >= t.hours.start && filterTime <= t.hours.end;
-    }
-    if (filterTime && !t.hours) return false;
-    return true; // day matches, no time filter
+    if (!t.hours) return false;
+    return filterTime >= t.hours.start && filterTime <= t.hours.end;
   });
 }
 
@@ -585,7 +560,6 @@ function renderMasterCalendar() {
   const grid = document.getElementById('master-cal-grid');
   const today = new Date(); today.setHours(0,0,0,0);
   const filterTime = document.getElementById('time-filter').value;
-  const filterDay  = document.getElementById('day-filter').value; // '' or '0'-'6'
   const firstDay = new Date(masterYear, masterMonth, 1).getDay();
   const daysInMonth = new Date(masterYear, masterMonth + 1, 0).getDate();
   const prevDays = new Date(masterYear, masterMonth, 0).getDate();
@@ -597,25 +571,22 @@ function renderMasterCalendar() {
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date    = new Date(masterYear, masterMonth, d);
+    const date   = new Date(masterYear, masterMonth, d);
     const dateStr = toDateStr(date);
-    const dayOfWeek = date.getDay();
-    const isToday   = date.getTime() === today.getTime();
+    const isToday = date.getTime() === today.getTime();
     const isSelected = dateStr === selectedDate;
-    const teachers  = getAvailableTeachersForDate(dateStr);
+    const teachers = getAvailableTeachersForDate(dateStr);
     const assignments = allAssignments.filter(a => a.date === dateStr);
-
-    const activeFilter = filterDay !== '' || filterTime !== '';
-    const matches = activeFilter && matchesFilters(teachers, filterTime, filterDay, dayOfWeek);
+    const hasFilter = filterTime && matchesTimeFilter(teachers, filterTime);
 
     let cls = 'master-cal-day';
     if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
-    if (matches) cls += ' has-filter-match';
-    else if (teachers.length > 0 && (!activeFilter || dayOfWeek === parseInt(filterDay) || filterDay === '')) cls += ' has-avail';
+    if (hasFilter) cls += ' has-filter-match';
+    else if (teachers.length > 0) cls += ' has-avail';
     else cls += ' no-avail';
 
-    const countHtml = teachers.length > 0 && dayMatch
+    const countHtml = teachers.length > 0
       ? `<div class="cal-day-count">✅ ${teachers.length} teacher${teachers.length>1?'s':''}</div>` : '';
     const assignHtml = assignments.length > 0
       ? `<div class="cal-day-assigned">📋 ${assignments.length} class${assignments.length>1?'es':''}</div>` : '';
@@ -811,7 +782,7 @@ async function saveTeacher() {
       body: JSON.stringify({ teacherName: name, teacherPassword: pass })
     });
   } else {
-    const res = await fetch(`${SERVER_URL}/rooms?_=${Date.now()}`, {
+    const res = await fetch(`${SERVER_URL}/rooms`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ room, teacherName: name, teacherPassword: pass })
     });
@@ -1047,7 +1018,7 @@ async function saveGroup() {
       body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
     });
   } else {
-    await fetch(`${SERVER_URL}/groups?_=${Date.now()}`, {
+    await fetch(`${SERVER_URL}/groups`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
     });
