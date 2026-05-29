@@ -365,8 +365,36 @@
     <div class="modal-title">Add Student</div>
     <div class="field-group"><label>Student Name</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
     <div class="field-group"><label>Password</label><input type="text" id="global-student-pass" placeholder="e.g. juan123"/></div>
-    <div class="field-group"><label>Assign to Room</label>
-      <select id="global-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;"></select>
+    <div class="field-group">
+      <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <select id="global-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">-- No room --</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Assign to Group <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <select id="global-student-group" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;" onchange="toggleNewGroupFields()">
+        <option value="">-- No group --</option>
+        <option value="__new__">➕ Create new group...</option>
+      </select>
+    </div>
+    <!-- New group fields (shown when "Create new group" is selected) -->
+    <div id="new-group-fields" style="display:none;background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:8px;">
+      <div style="font-size:0.85rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">New Group Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field-group"><label>Group Name</label><input type="text" id="quick-group-name" placeholder="e.g. 5PM A1 Juan"/></div>
+        <div class="field-group"><label>Time</label><input type="time" id="quick-group-time"/></div>
+        <div class="field-group"><label>Level</label>
+          <select id="quick-group-level">
+            <option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
+          </select>
+        </div>
+        <div class="field-group"><label>Class Type</label>
+          <select id="quick-group-type">
+            <option>Trial</option><option>30-Minute</option><option>40-Minute</option><option>50-Minute</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div id="global-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
@@ -909,31 +937,73 @@ function renderAllStudents() {
   </tr>`).join('');
 }
 
+function toggleNewGroupFields() {
+  const val = document.getElementById('global-student-group').value;
+  document.getElementById('new-group-fields').style.display = val === '__new__' ? 'block' : 'none';
+}
+
 function openAddStudentModal() {
   document.getElementById('global-student-name').value = '';
   document.getElementById('global-student-pass').value = '';
   document.getElementById('global-student-error').style.display = 'none';
-  const sel = document.getElementById('global-student-room');
-  sel.innerHTML = rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
+  document.getElementById('new-group-fields').style.display = 'none';
+  const roomSel = document.getElementById('global-student-room');
+  roomSel.innerHTML = '<option value="">-- No room --</option>' +
+    rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
+  const groupSel = document.getElementById('global-student-group');
+  groupSel.innerHTML = '<option value="">-- No group --</option><option value="__new__">➕ Create new group...</option>' +
+    allGroups.map(g => `<option value="${g._id}">${g.name} · ${g.level} · ${g.classType}</option>`).join('');
   document.getElementById('add-student-modal').classList.add('open');
 }
 
 async function saveGlobalStudent() {
-  const name = document.getElementById('global-student-name').value.trim();
-  const pass = document.getElementById('global-student-pass').value.trim();
-  const room = document.getElementById('global-student-room').value;
-  const err  = document.getElementById('global-student-error');
+  const name  = document.getElementById('global-student-name').value.trim();
+  const pass  = document.getElementById('global-student-pass').value.trim();
+  const room  = document.getElementById('global-student-room').value;
+  const groupVal = document.getElementById('global-student-group').value;
+  const err   = document.getElementById('global-student-error');
   if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
   const dup = checkDuplicatePassword(pass, null);
   if (dup) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
-  await fetch(`${SERVER_URL}/rooms/${room}/students`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass })
-  });
+
+  // Add to room if selected
+  if (room) {
+    await fetch(`${SERVER_URL}/rooms/${room}/students`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ name, password: pass })
+    });
+  }
+
+  // Handle group
+  if (groupVal === '__new__') {
+    const gName = document.getElementById('quick-group-name').value.trim();
+    const gTime = document.getElementById('quick-group-time').value;
+    const gLevel = document.getElementById('quick-group-level').value;
+    const gType  = document.getElementById('quick-group-type').value;
+    if (!gName) { err.textContent = 'Group name is required.'; err.style.display = 'block'; return; }
+    await fetch(`${SERVER_URL}/groups`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ name: gName, level: gLevel, classType: gType, time: gTime, students: [name] })
+    });
+    await loadGroups();
+  } else if (groupVal) {
+    const group = allGroups.find(g => g._id === groupVal);
+    if (group) {
+      const updated = [...(group.students||[])];
+      if (!updated.includes(name)) updated.push(name);
+      await fetch(`${SERVER_URL}/groups/${groupVal}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+        body: JSON.stringify({ ...group, students: updated })
+      });
+      await loadGroups();
+    }
+  }
+
   document.getElementById('add-student-modal').classList.remove('open');
   await loadRooms();
   renderAllStudents();
+  renderGroups();
 }
 
 // ── GROUPS PANEL ──
