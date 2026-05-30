@@ -405,13 +405,29 @@ function connectSocket() {
 
   socket.on('connect', () => socket.emit('join-room', { room: ROOM, token: MY_TOKEN }));
 
-  socket.on('room-joined', ({ name }) => {
+  socket.on('room-joined', async ({ name }) => {
     _joinedName = name; _joinedSocket = socket;
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('connect-msg').textContent = IS_TEACHER ? `Welcome, ${name}!` : `Welcome, ${name}! 👋`;
-    document.getElementById('enter-btn').style.display = 'block';
+
+    if (IS_TEACHER) {
+      // Load today's assignment and check lock BEFORE showing Enter button
+      try {
+        const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`);
+        todayAssignments = await res.json();
+      } catch(e) {}
+      checkTeacherRoomLock();
+      // If locked, don't show enter button yet — checkTeacherRoomLock handles the button
+      if (!todayAssignments.length) {
+        document.getElementById('enter-btn').style.display = 'block';
+      }
+      // Re-check every minute in case time crosses the unlock window
+      setInterval(() => { checkTeacherRoomLock(); }, 30000);
+    } else {
+      document.getElementById('enter-btn').style.display = 'block';
+    }
   });
 
   socket.on('room-error', (msg) => {
@@ -837,8 +853,13 @@ function checkTeacherRoomLock() {
   const now = nowGDL();
   const nowMins = now.getHours()*60 + now.getMinutes();
   const openBtn = document.getElementById('open-class-btn');
+  const enterBtn = document.getElementById('enter-btn');
   if (!openBtn) return;
-  if (!todayAssignments.length) { openBtn.disabled=false; openBtn.style.opacity='1'; return; }
+  if (!todayAssignments.length) {
+    openBtn.disabled=false; openBtn.style.opacity='1';
+    if (enterBtn) enterBtn.style.display='block';
+    return;
+  }
 
   const sorted = todayAssignments.map(a => ({...a, sm: t2m(a.time), em: t2m(a.time)+getDuration(a.classType)})).sort((a,b)=>a.sm-b.sm);
   const current = sorted.find(a => nowMins >= a.sm-20 && nowMins < a.em);
@@ -846,6 +867,7 @@ function checkTeacherRoomLock() {
     openBtn.disabled=false; openBtn.style.opacity='1';
     openBtn.textContent = classIsOpen ? '🔒 Close Class' : '🔓 Open Class';
     openBtn.title='';
+    if (enterBtn) enterBtn.style.display='block';
     startTimer(current);
   } else {
     const next = sorted.find(a => a.sm-20 > nowMins);
@@ -854,7 +876,14 @@ function checkTeacherRoomLock() {
       const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
       openBtn.disabled=true; openBtn.style.opacity='0.5';
       openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
-    } else { openBtn.disabled=false; openBtn.style.opacity='1'; }
+      // Show enter button but Open Class is locked
+      if (enterBtn) enterBtn.style.display='block';
+      document.getElementById('connect-msg').textContent = `🔒 Next class opens at ${uStr}`;
+    } else {
+      // No upcoming class — allow entry
+      openBtn.disabled=false; openBtn.style.opacity='1';
+      if (enterBtn) enterBtn.style.display='block';
+    }
   }
 }
 
