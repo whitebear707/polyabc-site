@@ -394,7 +394,7 @@
         </div>
         <div class="field-group"><label>Class Type</label>
           <select id="quick-group-type">
-            <option>Trial</option><option>30-Minute</option><option>40-Minute</option><option>50-Minute</option>
+            <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
           </select>
         </div>
       </div>
@@ -422,7 +422,7 @@
       </div>
       <div class="field-group"><label>Class Type</label>
         <select id="group-type">
-          <option>Trial</option><option>30-Minute</option><option>40-Minute</option><option>50-Minute</option>
+          <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
         </select>
       </div>
     </div>
@@ -813,7 +813,14 @@ async function deleteAssignmentFromDetail(id, room, dateStr) {
 }
 
 function timeToMins(t) { if (!t) return 0; const [h,m] = t.split(':').map(Number); return h*60+m; }
-function getClassDuration(ct) { if(ct==='Trial')return 15; if(ct==='30-Minute')return 30; if(ct==='40-Minute')return 40; if(ct==='50-Minute')return 50; return 30; }
+function getClassDuration(ct) {
+  if (!ct) return 30;
+  if (ct === 'Trial') return 15;
+  if (ct.includes('30')) return 30;
+  if (ct.includes('40')) return 40;
+  if (ct.includes('50')) return 50;
+  return 30;
+}
 
 // ── TEACHERS PANEL ──
 function renderTeachers() {
@@ -1113,7 +1120,7 @@ function openAddGroupModal() {
   document.getElementById('group-name').value = '';
   document.getElementById('group-time').value = '';
   document.getElementById('group-level').value = 'A0';
-  document.getElementById('group-type').value = '30-Minute';
+  document.getElementById('group-type').value = 'Group - 30 Min';
   _groupStudents = [];
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -1128,7 +1135,7 @@ function openEditGroupModal(id) {
   document.getElementById('group-name').value = g.name || '';
   document.getElementById('group-time').value = g.time || '';
   document.getElementById('group-level').value = g.level || 'A0';
-  document.getElementById('group-type').value = g.classType || '30-Minute';
+  document.getElementById('group-type').value = g.classType || 'Group - 30 Min';
   _groupStudents = [...(g.students || [])];
   renderGroupStudentChips();
   populateGroupStudentSelect();

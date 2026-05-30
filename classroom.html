@@ -894,8 +894,12 @@ async function loadTodayAssignment() {
 }
 
 function getDuration(ct) {
-  if (ct==='Trial') return 15; if (ct==='30-Minute') return 30;
-  if (ct==='40-Minute') return 40; if (ct==='50-Minute') return 50; return 30;
+  if (!ct) return 30;
+  if (ct === 'Trial') return 15;
+  if (ct.includes('30')) return 30;
+  if (ct.includes('40')) return 40;
+  if (ct.includes('50')) return 50;
+  return 30;
 }
 
 function nowGDL() {
