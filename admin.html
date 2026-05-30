@@ -224,7 +224,9 @@
     <div id="cal-sidebar">
       <div class="sidebar-section">
         <div class="sidebar-title">Filter by Day & Time</div>
-        <select id="day-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
+        <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
+          <option value="">-- Any Teacher --</option>
+        </select>
           <option value="">-- Any Day --</option>
           <option value="0">Sunday</option>
           <option value="1">Monday</option>
@@ -235,7 +237,7 @@
           <option value="6">Saturday</option>
         </select>
         <input type="time" id="time-filter" oninput="renderMasterCalendar()" placeholder="e.g. 18:00"/>
-        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';renderMasterCalendar();"
+        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';document.getElementById('teacher-filter').value='';renderMasterCalendar();"
           style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
       </div>
       <div id="day-detail">
@@ -545,6 +547,12 @@ async function loadRooms() {
 async function loadAllAvailabilityData() {
   const res = await fetch(`${SERVER_URL}/availability/all`, { headers: { Authorization: `Bearer ${currentToken}` } });
   allAvailability = await res.json();
+  // Populate teacher filter
+  const sel = document.getElementById('teacher-filter');
+  if (sel) {
+    sel.innerHTML = '<option value="">-- Any Teacher --</option>' +
+      allAvailability.map(t => `<option value="${t.room}">Teacher ${t.teacherName||'Room '+t.room} (Room ${t.room})</option>`).join('');
+  }
 }
 
 async function loadAllAssignmentsData() {
@@ -609,7 +617,8 @@ function renderMasterCalendar() {
   const grid = document.getElementById('master-cal-grid');
   const today = new Date(); today.setHours(0,0,0,0);
   const filterTime = document.getElementById('time-filter').value;
-  const filterDay  = document.getElementById('day-filter') ? document.getElementById('day-filter').value : '';
+  const filterDay     = document.getElementById('day-filter') ? document.getElementById('day-filter').value : '';
+  const filterTeacher = document.getElementById('teacher-filter') ? document.getElementById('teacher-filter').value : '';
   const firstDay = new Date(masterYear, masterMonth, 1).getDay();
   const daysInMonth = new Date(masterYear, masterMonth + 1, 0).getDate();
   const prevDays = new Date(masterYear, masterMonth, 0).getDate();
@@ -626,7 +635,7 @@ function renderMasterCalendar() {
     const dayOfWeek = date.getDay();
     const isToday   = date.getTime() === today.getTime();
     const isSelected = dateStr === selectedDate;
-    const teachers  = getAvailableTeachersForDate(dateStr);
+    const teachers  = getAvailableTeachersForDate(dateStr).filter(t => !filterTeacher || t.room === filterTeacher);
     const assignments = allAssignments.filter(a => a.date === dateStr);
 
     // Both filters must match if set
