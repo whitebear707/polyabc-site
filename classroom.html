@@ -575,6 +575,8 @@ function connectSocket() {
       badge.style.display = 'none';
     }
   });
+
+  socket.on('timer-info', ({ assignment }) => {
     if (!IS_TEACHER) startTimer(assignment);
   });
 
