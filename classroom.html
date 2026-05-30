@@ -208,7 +208,7 @@
         <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
-        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;">🔓 Open Class</button>
+        <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;"></span></button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
       <div class="tool-separator"></div>
@@ -556,7 +556,17 @@ function connectSocket() {
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
-  socket.on('timer-info', ({ assignment }) => {
+  socket.on('waiting-count', ({ count }) => {
+    if (!IS_TEACHER) return;
+    const badge = document.getElementById('waiting-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  });
     if (!IS_TEACHER) startTimer(assignment);
   });
 
