@@ -401,10 +401,18 @@ function getFriendlyError(e) {
 }
 
 function connectSocket() {
-  const socket = io(SERVER_URL);
+  const socket = io(SERVER_URL, { timeout: 10000, reconnectionAttempts: 3 });
   window._socket = socket;
 
-  socket.on('connect', () => socket.emit('join-room', { room: ROOM, token: MY_TOKEN }));
+  socket.on('connect_error', (e) => {
+    document.getElementById('connect-msg').textContent = '⚠️ Connection failed. Retrying...';
+    document.getElementById('connect-msg').style.color = '#ffd740';
+  });
+
+  socket.on('connect', () => {
+    document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
+    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+  });
 
   socket.on('room-joined', async ({ name }) => {
     _joinedName = name; _joinedSocket = socket;
