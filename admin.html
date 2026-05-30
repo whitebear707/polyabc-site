@@ -1060,6 +1060,8 @@ async function saveEditStudent() {
   await loadAll();
   renderAllStudents();
 }
+
+function confirmDeleteStudent(name) {
   showAlert('🗑️', `Delete ${name}?`, 'This removes the student from all rooms and groups.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteStudent('${name}')`,primary:true}]);
 }
