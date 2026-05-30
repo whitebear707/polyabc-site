@@ -161,39 +161,48 @@
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    // ── PWA Install Button ──
+    // ── PWA Install Prompt ──
     let _installPrompt = null;
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       _installPrompt = e;
-      // Show install button only on mobile
+      // Show popup after 1 second on mobile
       if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
-        document.getElementById('install-btn').style.display = 'flex';
+        setTimeout(showInstallPopup, 1000);
       }
     });
 
     window.addEventListener('appinstalled', () => {
-      document.getElementById('install-btn').style.display = 'none';
+      document.getElementById('pwa-popup').style.display = 'none';
     });
 
+    // iOS detection — show popup if not already installed
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
+      setTimeout(showInstallPopup, 1000);
+    }
+
+    function showInstallPopup() {
+      document.getElementById('pwa-popup').style.display = 'flex';
+    }
+
     function installApp() {
+      document.getElementById('pwa-popup').style.display = 'none';
       if (_installPrompt) {
         _installPrompt.prompt();
         _installPrompt.userChoice.then(() => { _installPrompt = null; });
       } else {
-        // iPhone/Safari fallback
+        // iPhone/Safari
         document.getElementById('ios-install-popup').style.display = 'flex';
       }
     }
 
-    function closeIosPopup() {
-      document.getElementById('ios-install-popup').style.display = 'none';
+    function dismissInstall() {
+      document.getElementById('pwa-popup').style.display = 'none';
     }
 
-    // Show install button on iOS even without the prompt event
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
-      document.getElementById('install-btn').style.display = 'flex';
+    function closeIosPopup() {
+      document.getElementById('ios-install-popup').style.display = 'none';
     }
 
     // ---- Your backend server URL goes here ----
@@ -260,12 +269,20 @@
   </script>
 
 
-<!-- PWA Install Button -->
-<div id="install-btn" onclick="installApp()" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a73e8;color:white;padding:12px 28px;border-radius:50px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(26,115,232,0.5);z-index:999;">
-  📲 Download App
+<!-- PWA Install Popup -->
+<div id="pwa-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:28px 24px;max-width:320px;width:90%;text-align:center;font-family:Nunito,sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+    <img src="icon.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:14px;"/>
+    <div style="font-size:1.2rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Install PolyABC</div>
+    <div style="font-size:0.9rem;color:#666;margin-bottom:20px;line-height:1.5;">Get the full app experience! Install PolyABC on your home screen for quick access.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="dismissInstall()" style="flex:1;padding:11px;background:#f0f0f0;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;color:#555;">Not now</button>
+      <button onclick="installApp()" style="flex:1;padding:11px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;color:white;">📲 Install!</button>
+    </div>
+  </div>
 </div>
 
-<!-- iOS Install Popup -->
+<!-- iOS Install Instructions Popup -->
 <div id="ios-install-popup" onclick="closeIosPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;padding-bottom:20px;">
   <div onclick="event.stopPropagation()" style="background:white;border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center;font-family:Nunito,sans-serif;">
     <div style="font-size:2rem;margin-bottom:8px;">📲</div>
