@@ -161,6 +161,41 @@
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
+    // ── PWA Install Button ──
+    let _installPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _installPrompt = e;
+      // Show install button only on mobile
+      if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+        document.getElementById('install-btn').style.display = 'flex';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('install-btn').style.display = 'none';
+    });
+
+    function installApp() {
+      if (_installPrompt) {
+        _installPrompt.prompt();
+        _installPrompt.userChoice.then(() => { _installPrompt = null; });
+      } else {
+        // iPhone/Safari fallback
+        document.getElementById('ios-install-popup').style.display = 'flex';
+      }
+    }
+
+    function closeIosPopup() {
+      document.getElementById('ios-install-popup').style.display = 'none';
+    }
+
+    // Show install button on iOS even without the prompt event
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
+      document.getElementById('install-btn').style.display = 'flex';
+    }
+
     // ---- Your backend server URL goes here ----
     const SERVER_URL = "https://polyabc-server.onrender.com";
 
@@ -225,7 +260,22 @@
   </script>
 
 
-<!-- Rotate device overlay -->
+<!-- PWA Install Button -->
+<div id="install-btn" onclick="installApp()" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a73e8;color:white;padding:12px 28px;border-radius:50px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(26,115,232,0.5);z-index:999;">
+  📲 Download App
+</div>
+
+<!-- iOS Install Popup -->
+<div id="ios-install-popup" onclick="closeIosPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;padding-bottom:20px;">
+  <div onclick="event.stopPropagation()" style="background:white;border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center;font-family:Nunito,sans-serif;">
+    <div style="font-size:2rem;margin-bottom:8px;">📲</div>
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Install PolyABC</div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:16px;">
+      Tap the <strong>Share button</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
+    </div>
+    <button onclick="closeIosPopup()" style="background:#1a73e8;color:white;border:none;padding:10px 28px;border-radius:10px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">Got it!</button>
+  </div>
+</div>
 <div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
   <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
   <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
