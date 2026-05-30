@@ -714,6 +714,16 @@ function renderDayDetail(dateStr) {
 }
 
 function openAssignGroupModal(dateStr, room) {
+  // Reload latest assignments before checking overlaps
+  fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${currentToken}` } })
+    .then(r => r.json()).then(data => {
+      // Update allAssignments for this room
+      allAssignments = allAssignments.filter(a => a.room !== room).concat(data);
+      _showAssignGroupModal(dateStr, room);
+    }).catch(() => _showAssignGroupModal(dateStr, room));
+}
+
+function _showAssignGroupModal(dateStr, room) {
   const teacher = allAvailability.find(t => t.room === room);
   const teacherName = `Teacher ${teacher?.teacherName || 'Room '+room}`;
   const date = new Date(dateStr + 'T12:00:00');
