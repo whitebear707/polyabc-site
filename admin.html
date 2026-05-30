@@ -305,20 +305,42 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-attendance" class="panel">
     <div class="panel-title">📋 Attendance Records</div>
-    <div class="card" style="margin-bottom:16px;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room Number</label>
-          <input type="text" id="att-room" placeholder="e.g. 10" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;outline:none;width:120px;"/>
+    <div id="att-search-section">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
+          <div>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher</label>
+            <select id="att-teacher" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
+              <option value="">-- All Teachers --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">From Date</label>
+            <input type="date" id="att-from" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">To Date</label>
+            <input type="date" id="att-to" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
+          </div>
+          <div>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room (optional)</label>
+            <input type="text" id="att-room" placeholder="e.g. 10" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <button class="btn btn-blue" onclick="loadAttendance()" style="flex:1;">🔍 Search</button>
+            <button class="btn btn-gray" onclick="clearAttSearch()" style="flex:1;">Clear</button>
+          </div>
         </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Date (optional)</label>
-          <input type="date" id="att-date" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;outline:none;"/>
-        </div>
-        <button class="btn btn-blue" onclick="loadAttendance()">🔍 Search</button>
       </div>
+      <div id="attendance-cards"></div>
     </div>
-    <div id="attendance-results"></div>
+    <div id="attendance-detail" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <button class="btn btn-gray" onclick="closeAttDetail()">← Back to Results</button>
+        <button class="btn btn-blue" onclick="printAttDetail()">🖨️ Print / Save PDF</button>
+      </div>
+      <div id="attendance-detail-content"></div>
+    </div>
   </div>
 
 </div><!-- end dashboard -->
@@ -596,6 +618,7 @@ function showPanel(name) {
     if (panel) panel.classList.toggle('active', p === name);
     if (btn)   btn.classList.toggle('active', p === name);
   });
+  if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   renderMasterCalendar();
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
@@ -1274,43 +1297,176 @@ async function doDeleteGroup(id) {
 }
 
 // ── ATTENDANCE ──
+function populateAttTeacherFilter() {
+  const sel = document.getElementById('att-teacher');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- All Teachers --</option>' +
+    rooms.map(r => `<option value="${r.room}">Teacher ${r.teacherName||'—'} (Room ${r.room})</option>`).join('');
+}
+
+function clearAttSearch() {
+  document.getElementById('att-teacher').value = '';
+  document.getElementById('att-from').value = '';
+  document.getElementById('att-to').value = '';
+  document.getElementById('att-room').value = '';
+  document.getElementById('attendance-cards').innerHTML = '';
+}
+
 async function loadAttendance() {
-  const room = document.getElementById('att-room').value.trim();
-  const date = document.getElementById('att-date').value;
-  if (!room) return;
-  const url = date ? `${SERVER_URL}/attendance/${room}/${date}` : `${SERVER_URL}/attendance/${room}`;
-  const res  = await fetch(url, { headers: { Authorization: `Bearer ${currentToken}` } });
-  const data = await res.json();
-  const results = document.getElementById('attendance-results');
-  const records = Array.isArray(data) ? data : (data ? [data] : []);
-  if (!records.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No records found.</div>'; return; }
+  const teacherRoom = document.getElementById('att-teacher').value;
+  const fromDate    = document.getElementById('att-from').value;
+  const toDate      = document.getElementById('att-to').value;
+  const roomFilter  = document.getElementById('att-room').value.trim();
+  const cards       = document.getElementById('attendance-cards');
+  cards.innerHTML   = '<div style="color:#aaa;text-align:center;padding:20px;">Searching...</div>';
 
-  const roomData = rooms.find(r => r.room === room);
-  const teacherName = roomData ? `Teacher ${roomData.teacherName||''}` : `Room ${room}`;
+  // Determine which rooms to search
+  let roomsToSearch = rooms.map(r => r.room);
+  if (teacherRoom) roomsToSearch = [teacherRoom];
+  if (roomFilter)  roomsToSearch = roomsToSearch.filter(r => r === roomFilter);
 
-  results.innerHTML = records.map(r => `
-    <div class="card" style="margin-bottom:16px;">
-      <div style="margin-bottom:12px;">
-        <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">${teacherName} — Room ${room}</div>
-        <div style="font-size:0.85rem;color:#888;margin-top:4px;">📅 ${r.date}</div>
-        <div style="font-size:0.85rem;color:#555;margin-top:2px;">
-          🔑 Logged in: ${r.teacherOpenedAt ? new Date(r.teacherOpenedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'} &nbsp;|&nbsp;
-          🟢 Class opened: ${r.teacherOpenedAt ? new Date(r.teacherOpenedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'} &nbsp;|&nbsp;
-          🔴 Class closed: ${r.classEndedAt ? new Date(r.classEndedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}
+  // Fetch all attendance records for those rooms
+  let allRecords = [];
+  for (const room of roomsToSearch) {
+    const url = `${SERVER_URL}/attendance/${room}`;
+    try {
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${currentToken}` } });
+      const data = await res.json();
+      const records = Array.isArray(data) ? data : (data ? [data] : []);
+      records.forEach(r => { r._room = room; });
+      allRecords = allRecords.concat(records);
+    } catch(e) {}
+  }
+
+  // Filter by date range
+  if (fromDate) allRecords = allRecords.filter(r => r.date >= fromDate);
+  if (toDate)   allRecords = allRecords.filter(r => r.date <= toDate);
+
+  // Sort by date desc then room
+  allRecords.sort((a,b) => b.date.localeCompare(a.date) || a._room.localeCompare(b._room));
+
+  if (!allRecords.length) {
+    cards.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No records found.</div>';
+    return;
+  }
+
+  // Match with assignments for group name and scheduled time
+  cards.innerHTML = allRecords.map((r, idx) => {
+    const roomData   = rooms.find(rm => rm.room === r._room);
+    const teacherName = roomData ? `Teacher ${roomData.teacherName||''}` : `Room ${r._room}`;
+    // Find matching assignment
+    const assignment = allAssignments.find(a => a.room === r._room && a.date === r.date);
+    const groupName  = assignment?.groupName || '—';
+    const scheduledTime = assignment ? fmt12(assignment.time) : '—';
+    const classType  = assignment?.classType || '';
+    const studentCount = (r.students||[]).length;
+
+    return `<div class="card" style="margin-bottom:12px;cursor:pointer;border-left:4px solid #1a73e8;transition:box-shadow 0.2s;" 
+      onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.1)'" 
+      onmouseout="this.style.boxShadow=''"
+      onclick="openAttDetail(${idx})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${teacherName} · Room ${r._room}</div>
+          <div style="font-size:0.85rem;color:#888;margin-top:3px;">📅 ${r.date} &nbsp;·&nbsp; 🕐 ${scheduledTime} &nbsp;·&nbsp; ${classType}</div>
+          <div style="font-size:0.82rem;color:#1a73e8;font-weight:700;margin-top:3px;">👥 ${groupName}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.82rem;color:#555;">${studentCount} student${studentCount!==1?'s':''}</div>
+          <div style="font-size:0.75rem;color:#aaa;margin-top:2px;">Click to view →</div>
         </div>
       </div>
-      <table class="data-table">
-        <thead><tr><th>Student</th><th>Joined</th><th>Left</th></tr></thead>
-        <tbody>
-          ${(r.students||[]).map(s => `<tr>
-            <td style="font-weight:700;">${s.name}</td>
-            <td style="color:#2e7d32;font-weight:700;">${s.joinedAt ? new Date(s.joinedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
-            <td>${s.leftAt ? new Date(s.leftAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : r.classEndedAt ? new Date(r.classEndedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : 'Still in class'}</td>
-          </tr>`).join('')}
-        </tbody>
+    </div>`;
+  }).join('');
+
+  // Store records for detail view
+  window._attRecords = allRecords;
+}
+
+function openAttDetail(idx) {
+  const r = window._attRecords[idx];
+  if (!r) return;
+  document.getElementById('att-search-section').style.display = 'none';
+  document.getElementById('attendance-detail').style.display = 'block';
+
+  const roomData    = rooms.find(rm => rm.room === r._room);
+  const teacherName = roomData ? `Teacher ${roomData.teacherName||''}` : `Room ${r._room}`;
+  const assignment  = allAssignments.find(a => a.room === r._room && a.date === r.date);
+  const groupName   = assignment?.groupName || '—';
+  const scheduledTime = assignment ? fmt12(assignment.time) : '—';
+  const classType   = assignment?.classType || '';
+
+  const fmtT = (ts) => ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+
+  // Get expected students from group
+  const group = assignment?.groupId ? allGroups.find(g => String(g._id) === assignment.groupId) : null;
+  const expectedStudents = group?.students || [];
+  const actualStudents   = r.students || [];
+
+  // Build student rows — mark no-shows
+  const studentRows = expectedStudents.length > 0
+    ? expectedStudents.map(name => {
+        const actual = actualStudents.find(s => s.name === name);
+        if (!actual) {
+          return `<tr>
+            <td style="font-weight:700;">${name}</td>
+            <td colspan="2" style="text-align:center;font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
+          </tr>`;
+        }
+        return `<tr>
+          <td style="font-weight:700;">${name}</td>
+          <td style="color:#2e7d32;font-weight:700;">${fmtT(actual.joinedAt)}</td>
+          <td>${fmtT(actual.leftAt || r.classEndedAt)}</td>
+        </tr>`;
+      }).join('')
+    : actualStudents.map(s => `<tr>
+        <td style="font-weight:700;">${s.name}</td>
+        <td style="color:#2e7d32;font-weight:700;">${fmtT(s.joinedAt)}</td>
+        <td>${fmtT(s.leftAt || r.classEndedAt)}</td>
+      </tr>`).join('');
+
+  document.getElementById('attendance-detail-content').innerHTML = `
+    <div id="print-area" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="border-bottom:2px solid #eee;padding-bottom:16px;margin-bottom:16px;">
+        <div style="font-size:1.2rem;font-weight:900;color:#1a1a2e;">${teacherName} · Room ${r._room}</div>
+        <div style="font-size:0.9rem;color:#555;margin-top:4px;">📅 ${r.date} &nbsp;·&nbsp; Class Type: ${classType}</div>
+        <div style="font-size:0.9rem;color:#1a73e8;font-weight:700;margin-top:2px;">👥 Group: ${groupName} &nbsp;·&nbsp; Scheduled: ${scheduledTime}</div>
+      </div>
+      <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">TEACHER</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+          <div><div style="font-size:0.75rem;color:#888;">Logged In</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
+          <div><div style="font-size:0.75rem;color:#888;">Opened Class</div><div style="font-weight:900;color:#2e7d32;">${fmtT(r.teacherOpenedAt)}</div></div>
+          <div><div style="font-size:0.75rem;color:#888;">Closed Class</div><div style="font-weight:900;color:#e53935;">${fmtT(r.classEndedAt)}</div></div>
+        </div>
+      </div>
+      <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">STUDENTS</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#f0f4f8;">
+          <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">NAME</th>
+          <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">JOINED</th>
+          <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">LEFT</th>
+        </tr></thead>
+        <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No students recorded</td></tr>'}</tbody>
       </table>
-    </div>
-  `).join('');
+    </div>`;
+}
+
+function closeAttDetail() {
+  document.getElementById('att-search-section').style.display = 'block';
+  document.getElementById('attendance-detail').style.display = 'none';
+}
+
+function printAttDetail() {
+  const content = document.getElementById('print-area')?.innerHTML;
+  if (!content) return;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report</title>
+    <style>body{font-family:Nunito,sans-serif;padding:24px;color:#1a1a2e;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}th{background:#f0f4f8;font-size:0.8rem;color:#888;font-weight:900;}@media print{body{padding:16px;}}</style>
+    </head><body>${content}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
 }
 
 // Initialize
