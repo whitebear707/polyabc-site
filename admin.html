@@ -751,12 +751,23 @@ async function saveAssignGroup(dateStr, room) {
   const time = overrideTime || group.time;
   if (!time) { showAlert('😬','Oh No! Woops!','Please set a time (the group has no default time).',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
 
-  // Check availability
+  // Check date availability
   const teacher = allAvailability.find(t => t.room === room);
   const teacherName = `Teacher ${teacher?.teacherName || 'Room '+room}`;
   const dateStatus = teacher?.dates?.[dateStr] || 'unavailable';
   if (dateStatus !== 'available') {
     showAlert('😬','Oh No! Woops!',`${teacherName} is not marked as available on ${dateStr}.`,[{label:'Got it',fn:'closeAlert()',primary:true}]); return;
+  }
+
+  // Check time is within teacher's available hours for that day
+  const dayName = DAYS[new Date(dateStr + 'T12:00:00').getDay()];
+  const hours = teacher?.dayHours?.[dayName];
+  if (hours?.start && hours?.end) {
+    if (time < hours.start || time > hours.end) {
+      showAlert('😬','Oh No! Woops!',
+        `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\n${fmt12(time)} is outside their hours.`,
+        [{label:'Got it',fn:'closeAlert()',primary:true}]); return;
+    }
   }
 
   // Overlap check
@@ -777,7 +788,9 @@ async function saveAssignGroup(dateStr, room) {
   });
 
   document.getElementById('assign-day-overlay').style.display = 'none';
-  await loadAllAssignmentsData();
+  // Reload ALL assignment data fresh from server
+  selectedDate = dateStr;
+  await loadAll();
   renderMasterCalendar();
   renderDayDetail(dateStr);
 }
