@@ -292,6 +292,9 @@
     <div class="day-hours-grid" id="day-hours-grid"></div>
   </div>
 
+  <p class="section-title">📋 My Upcoming Classes</p>
+  <div id="upcoming-classes" style="margin-bottom:24px;"></div>
+
   <p class="section-title">📅 My Availability Calendar</p>
   <div id="calendar-card">
     <div class="cal-nav">
@@ -365,6 +368,38 @@
 
     renderDayHours();
     renderCalendar();
+    renderUpcomingClasses();
+  }
+
+  function renderUpcomingClasses() {
+    const container = document.getElementById('upcoming-classes');
+    if (!container) return;
+    const tz = document.getElementById('tz-select').value || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const upcoming = assignments
+      .filter(a => a.date >= today)
+      .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+
+    if (!upcoming.length) {
+      container.innerHTML = '<div style="color:#556;font-size:0.9rem;padding:8px 0;">No upcoming classes scheduled yet.</div>';
+      return;
+    }
+
+    container.innerHTML = upcoming.map(a => {
+      // Convert time from Guadalajara to teacher's timezone
+      const dt = new Date(`${a.date}T${a.time}:00-06:00`);
+      const localTime = dt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:true, timeZone: tz });
+      const localDate = dt.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric', timeZone: tz });
+      const duration = a.classType || '';
+      const isToday = a.date === today;
+      return `<div style="background:${isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:900;color:${isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
+          <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${duration}${a.groupName?' · '+a.groupName:''}</div>
+        </div>
+        ${isToday?'<span style="background:#ffd740;color:#1a1a2e;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">TODAY</span>':''}
+      </div>`;
+    }).join('');
   }
 
   function updateTzDisplay() {

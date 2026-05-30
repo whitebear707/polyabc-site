@@ -934,7 +934,10 @@ function checkTeacherRoomLock() {
     const next = sorted.find(a => a.sm-20 > nowMins);
     if (next) {
       const uh = Math.floor((next.sm-20)/60), um = (next.sm-20)%60;
-      const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
+      // Convert from Guadalajara time to teacher's local timezone
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+      const unlockDt = new Date(`${today}T${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}:00-06:00`);
+      const uStr = unlockDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
       openBtn.disabled=true; openBtn.style.opacity='0.5';
       openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
       // Show enter button but disable it — room is locked
