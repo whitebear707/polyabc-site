@@ -136,10 +136,10 @@
 
   <div class="card">
     <div class="view-title">📚 Join a Class</div>
-    <div class="error-msg" id="join-error">Wrong room number or password. Please try again.</div>
+    <div class="error-msg" id="join-error">Wrong room or password. Please try again.</div>
 
-    <label for="room-input">Classroom Number</label>
-    <input type="text" id="room-input" placeholder="e.g. 001 or classA" maxlength="10"/>
+    <label for="room-input">Classroom Number <span style="font-weight:400;color:#aaa;font-size:0.85rem;">(optional)</span></label>
+    <input type="text" id="room-input" placeholder="e.g. 10 — or leave blank" maxlength="10"/>
 
     <label for="pass-input">Password</label>
     <input type="password" id="pass-input" placeholder="Enter your password"/>
@@ -158,12 +158,11 @@
       const room = document.getElementById('room-input').value.trim();
       const pass = document.getElementById('pass-input').value.trim();
 
-      if (!room || !pass) {
-        alert('Please enter both a room number and password.');
+      if (!pass) {
+        alert('Please enter your password.');
         return;
       }
 
-      // Show countdown immediately
       const btn = document.querySelector('.btn-join');
       btn.disabled = true;
       document.getElementById('join-error').style.display = 'none';
@@ -171,47 +170,61 @@
       btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
       const countdown = setInterval(() => {
         secs--;
-        if (secs > 0) {
-          btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
-        } else {
-          clearInterval(countdown);
-        }
+        if (secs > 0) btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
+        else clearInterval(countdown);
       }, 1000);
       window._loginCountdown = countdown;
 
       try {
+        // If room is given, use normal login
+        // If no room, look up student by password to find their room
+        let targetRoom = room;
+        if (!targetRoom) {
+          const lookupRes = await fetch(`${SERVER_URL}/student-lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pass })
+          });
+          const lookupData = await lookupRes.json();
+          if (!lookupData.success) {
+            clearInterval(window._loginCountdown);
+            document.getElementById('join-error').textContent = lookupData.message || 'Password not found. Please check with your admin.';
+            document.getElementById('join-error').style.display = 'block';
+            btn.innerHTML = 'Enter Class →'; btn.disabled = false;
+            return;
+          }
+          targetRoom = lookupData.room;
+        }
+
         const res = await fetch(`${SERVER_URL}/validate-room`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ room, password: pass })
+          body: JSON.stringify({ room: targetRoom, password: pass })
         });
-
         const data = await res.json();
-
         clearInterval(window._loginCountdown);
+
         if (data.success) {
           if (data.role === 'teacher') {
             localStorage.setItem('teacherToken', data.token);
-            localStorage.setItem('teacherRoom', room);
+            localStorage.setItem('teacherRoom', targetRoom);
             localStorage.setItem('teacherName', data.name || 'Teacher');
-            localStorage.setItem('adminToken', data.token); // keep for classroom compat
+            localStorage.setItem('adminToken', data.token);
             localStorage.removeItem('studentToken');
             window.location.href = 'greeting.html';
           } else {
             localStorage.removeItem('adminToken');
             localStorage.setItem('studentToken', data.token);
             localStorage.setItem('studentName', data.name);
-            window.location.href = `classroom.html?room=${room}`;
+            window.location.href = `classroom.html?room=${targetRoom}`;
           }
         } else {
-          clearInterval(window._loginCountdown);
+          document.getElementById('join-error').textContent = 'Wrong room or password. Please try again.';
           document.getElementById('join-error').style.display = 'block';
-          btn.innerHTML = 'Enter Class →';
-          btn.disabled = false;
+          btn.innerHTML = 'Enter Class →'; btn.disabled = false;
         }
-
       } catch(e) {
-        // Server is waking up, keep spinner going
+        // Server waking up, keep spinner
       }
     }
 
