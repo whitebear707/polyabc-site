@@ -244,6 +244,49 @@
 </div>
 
 <div id="main">
+  <!-- TIMEZONE SELECTOR -->
+  <p class="section-title">🌍 My Timezone</p>
+  <div id="day-hours-card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <select id="tz-select" style="flex:1;background:#0f3460;border:2px solid #1a73e8;border-radius:8px;color:white;font-family:Nunito,sans-serif;font-size:0.9rem;padding:8px 10px;outline:none;">
+        <option value="">-- Select your timezone --</option>
+        <optgroup label="🇲🇽 Mexico">
+          <option value="America/Tijuana">Tijuana / Ensenada (Pacific)</option>
+          <option value="America/Hermosillo">Hermosillo / Sonora (Mountain, no DST)</option>
+          <option value="America/Mexico_City">Mexico City / Guadalajara / Monterrey (Central)</option>
+          <option value="America/Cancun">Cancun / Chetumal (Eastern, no DST)</option>
+          <option value="America/Mazatlan">Mazatlan / La Paz / Culiacan (Mountain)</option>
+          <option value="America/Chihuahua">Chihuahua / Ojinaga (Mountain)</option>
+        </optgroup>
+        <optgroup label="🇺🇸 United States">
+          <option value="America/Los_Angeles">Los Angeles / San Diego (Pacific)</option>
+          <option value="America/Denver">Denver / Phoenix (Mountain)</option>
+          <option value="America/Chicago">Chicago / Houston (Central)</option>
+          <option value="America/New_York">New York / Miami (Eastern)</option>
+        </optgroup>
+        <optgroup label="🌎 Latin America">
+          <option value="America/Bogota">Bogota / Lima / Quito</option>
+          <option value="America/Santiago">Santiago</option>
+          <option value="America/Sao_Paulo">São Paulo / Buenos Aires area</option>
+          <option value="America/Argentina/Buenos_Aires">Buenos Aires</option>
+        </optgroup>
+        <optgroup label="🌍 Europe">
+          <option value="Europe/London">London (GMT/BST)</option>
+          <option value="Europe/Madrid">Madrid / Paris / Berlin (CET)</option>
+        </optgroup>
+        <optgroup label="🌏 Asia & Middle East">
+          <option value="Asia/Riyadh">Riyadh / Saudi Arabia (AST)</option>
+          <option value="Asia/Dubai">Dubai / UAE</option>
+          <option value="Asia/Tokyo">Tokyo / Japan (JST)</option>
+          <option value="Asia/Shanghai">Beijing / Shanghai (CST)</option>
+          <option value="Asia/Manila">Manila / Philippines</option>
+        </optgroup>
+      </select>
+      <div id="tz-current" style="font-size:0.82rem;color:#a0c4ff;"></div>
+    </div>
+    <div style="font-size:0.75rem;color:#556;margin-top:8px;">⚠️ Your availability hours will be saved in this timezone and converted to school time for admin.</div>
+  </div>
+
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div id="day-hours-card">
     <div class="day-hours-grid" id="day-hours-grid"></div>
@@ -294,23 +337,52 @@
   let assignments = []; // from server
 
   async function init() {
-    // Load teacher info
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
     document.getElementById('teacher-name-label').textContent = `Teacher ${info.teacherName || 'Teacher'} — Room ${info.room}`;
 
-    // Load availability
     const aRes = await fetch(`${SERVER_URL}/availability`, { headers: { Authorization: `Bearer ${token}` } });
     const aData = await aRes.json();
     dayHours = aData.dayHours || {};
     dates    = aData.dates    || {};
 
-    // Load assignments
+    // Load saved timezone or detect device timezone
+    const savedTz = aData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const tzSel = document.getElementById('tz-select');
+    // Try to match saved timezone to dropdown
+    const opt = [...tzSel.options].find(o => o.value === savedTz);
+    if (opt) { tzSel.value = savedTz; } else {
+      // Add it as custom option
+      const custom = document.createElement('option');
+      custom.value = savedTz; custom.textContent = savedTz;
+      tzSel.appendChild(custom); tzSel.value = savedTz;
+    }
+    updateTzDisplay();
+    tzSel.addEventListener('change', updateTzDisplay);
+
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
 
     renderDayHours();
     renderCalendar();
+  }
+
+  function updateTzDisplay() {
+    const tz = document.getElementById('tz-select').value;
+    if (!tz) return;
+    const now = new Date().toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: true });
+    document.getElementById('tz-current').textContent = `Current time in your zone: ${now}`;
+  }
+
+  // Convert a time string from teacher's timezone to Guadalajara time for storage
+  function toGDLTime(time24, fromTz) {
+    if (!time24 || !fromTz) return time24;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    // Create date in teacher's timezone
+    const dt = new Date(`${today}T${time24}:00`);
+    // Get the time in Guadalajara
+    const gdlStr = dt.toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
+    return gdlStr;
   }
 
   // ── Custom time picker ──
@@ -532,16 +604,17 @@
   }
 
   async function saveAvailability() {
+    const tz = document.getElementById('tz-select').value;
     DAYS.forEach(d => {
       const start = tpTo24(_tpCurrent[`dh-start-${d}`]);
       const end   = tpTo24(_tpCurrent[`dh-end-${d}`]);
-      if (start && end) dayHours[d] = { start, end };
+      if (start && end) dayHours[d] = { start, end, tz };
       else delete dayHours[d];
     });
     await fetch(`${SERVER_URL}/availability`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ dayHours, dates })
+      body: JSON.stringify({ dayHours, dates, timezone: tz })
     });
     const msg = document.getElementById('save-msg');
     msg.style.display = 'block';

@@ -692,7 +692,7 @@ function renderDayDetail(dateStr) {
     const display = filtered.length > 0 ? filtered : teachers;
     display.forEach(t => {
       const assignments = allAssignments.filter(a => a.date === dateStr && a.room === t.room);
-      const hoursHtml = t.hours ? `${fmt12(t.hours.start)} – ${fmt12(t.hours.end)}` : 'Hours not set';
+      const hoursHtml = t.hours ? `${fmt12(t.hours.start)} – ${fmt12(t.hours.end)}${t.hours.tz ? ' <span style="font-size:0.75rem;color:#aaa;">('+t.hours.tz.split('/').pop().replace(/_/g,' ')+')</span>' : ''}` : 'Hours not set';
       const assignHtml = assignments.map(a => {
         const g = allGroups.find(g => g._id === a.groupId);
         return `<div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
