@@ -867,7 +867,7 @@ function checkTeacherRoomLock() {
     openBtn.disabled=false; openBtn.style.opacity='1';
     openBtn.textContent = classIsOpen ? '🔒 Close Class' : '🔓 Open Class';
     openBtn.title='';
-    if (enterBtn) enterBtn.style.display='block';
+    if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
   } else {
     const next = sorted.find(a => a.sm-20 > nowMins);
@@ -876,8 +876,14 @@ function checkTeacherRoomLock() {
       const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
       openBtn.disabled=true; openBtn.style.opacity='0.5';
       openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
-      // Show enter button but Open Class is locked
-      if (enterBtn) enterBtn.style.display='block';
+      // Show enter button but disable it — room is locked
+      if (enterBtn) {
+        enterBtn.style.display='block';
+        enterBtn.disabled=true;
+        enterBtn.style.opacity='0.4';
+        enterBtn.style.cursor='not-allowed';
+        enterBtn.title=`Room opens at ${uStr}`;
+      }
       document.getElementById('connect-msg').textContent = `🔒 Next class opens at ${uStr}`;
     } else {
       // No upcoming class — allow entry
