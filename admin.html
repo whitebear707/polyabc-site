@@ -528,8 +528,8 @@ function logout() {
 let allStudents = [];
 
 async function loadAll() {
-  await Promise.all([loadRooms(), loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
-  // Load students separately and silently — don't crash if it fails
+  await loadRooms(); // must load rooms first
+  await Promise.all([loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
   try { await loadStudents(); } catch(e) { allStudents = []; }
 }
 
