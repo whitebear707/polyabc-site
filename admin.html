@@ -207,6 +207,7 @@
       <button class="nav-btn" id="nav-teachers" onclick="showPanel('teachers')">👩‍🏫 Teachers</button>
       <button class="nav-btn" id="nav-students" onclick="showPanel('students')">🎓 Students</button>
       <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
+      <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
       <button id="attendance-btn-top" onclick="showPanel('attendance')">📋 Attendance</button>
     </div>
     <div id="header-center"><img src="LOGO.png" alt="PolyABC"/></div>
@@ -301,6 +302,39 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: PAYROLL -->
+  <div id="panel-payroll" class="panel">
+    <div class="panel-title">💰 Payroll</div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
+        <div>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Pay Period</label>
+          <select id="pay-period" onchange="updatePayDates()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
+            <option value="current1">Current Period (1st–14th)</option>
+            <option value="current2">Current Period (15th–29th)</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div id="pay-from-wrap">
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">From</label>
+          <input type="date" id="pay-from" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
+        </div>
+        <div id="pay-to-wrap">
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">To</label>
+          <input type="date" id="pay-to" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
+        </div>
+        <div>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher (optional)</label>
+          <select id="pay-teacher" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
+            <option value="">-- All Teachers --</option>
+          </select>
+        </div>
+        <button class="btn btn-blue" onclick="loadPayroll()">💰 Calculate</button>
+      </div>
+    </div>
+    <div id="payroll-results"></div>
+  </div>
+
   <!-- PANEL: ATTENDANCE -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-attendance" class="panel">
@@ -357,6 +391,7 @@
     <div class="field-group"><label>Room Number</label><input type="text" id="teacher-room" placeholder="e.g. 10"/></div>
     <div class="field-group"><label>Teacher Name</label><input type="text" id="teacher-name-input" placeholder="e.g. Ms. Garcia"/></div>
     <div class="field-group"><label>Teacher Password</label><input type="text" id="teacher-pass-input" placeholder="e.g. teach#001"/></div>
+    <div class="field-group"><label>Hourly Rate (pesos)</label><input type="number" id="teacher-rate-input" placeholder="e.g. 200" min="0"/></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeTeacherModal()">Cancel</button>
       <button class="btn btn-blue" onclick="saveTeacher()">Save</button>
@@ -612,12 +647,13 @@ async function loadGroups() {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','attendance'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
     if (btn)   btn.classList.toggle('active', p === name);
   });
+  if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   renderMasterCalendar();
   if (name === 'teachers')   renderTeachers();
@@ -873,6 +909,7 @@ function renderTeachers() {
       <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Room ${r.room}</div>
       <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">👩‍🏫 Teacher ${r.teacherName || '—'}</div>
       <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">🔑 ${r.teacherPassword}</div>
+      <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">💰 $${r.hourlyRate||0}/hr</div>
       <div style="font-size:0.85rem;color:#666;margin-bottom:12px;">🎓 ${(r.students||[]).length} students</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-blue btn-sm" onclick="openEditTeacherModal('${r.room}')">✏️ Edit</button>
@@ -902,6 +939,7 @@ function openEditTeacherModal(roomId) {
   document.getElementById('teacher-room').disabled = true;
   document.getElementById('teacher-name-input').value = r.teacherName || '';
   document.getElementById('teacher-pass-input').value = r.teacherPassword || '';
+  document.getElementById('teacher-rate-input').value = r.hourlyRate || '';
   document.getElementById('teacher-modal').classList.add('open');
 }
 
@@ -912,12 +950,13 @@ async function saveTeacher() {
   const room    = document.getElementById('teacher-room').value.trim();
   const name    = document.getElementById('teacher-name-input').value.trim();
   const pass    = document.getElementById('teacher-pass-input').value.trim();
+  const rate    = document.getElementById('teacher-rate-input').value;
   if (!room || !pass) { showAlert('😬','Oh No! Woops!','Room number and password are required.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
 
   if (editId) {
     await fetch(`${SERVER_URL}/rooms/${editId}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ teacherName: name, teacherPassword: pass })
+      body: JSON.stringify({ teacherName: name, teacherPassword: pass, hourlyRate: parseFloat(rate)||0 })
     });
   } else {
     const res = await fetch(`${SERVER_URL}/rooms`, {
@@ -1294,6 +1333,82 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
+}
+
+// ── PAYROLL ──
+function updatePayDates() {
+  const period = document.getElementById('pay-period').value;
+  const now = new Date();
+  const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0');
+  if (period === 'current1') {
+    document.getElementById('pay-from').value = `${y}-${m}-01`;
+    document.getElementById('pay-to').value   = `${y}-${m}-14`;
+  } else if (period === 'current2') {
+    document.getElementById('pay-from').value = `${y}-${m}-15`;
+    document.getElementById('pay-to').value   = `${y}-${m}-29`;
+  }
+}
+
+function populatePayTeacherFilter() {
+  const sel = document.getElementById('pay-teacher');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- All Teachers --</option>' +
+    rooms.map(r => `<option value="${r.room}">Teacher ${r.teacherName||'—'} (Room ${r.room})</option>`).join('');
+  updatePayDates();
+}
+
+async function loadPayroll() {
+  const from = document.getElementById('pay-from').value;
+  const to   = document.getElementById('pay-to').value;
+  const room = document.getElementById('pay-teacher').value;
+  if (!from || !to) { showAlert('😬','Oh No!','Please select a date range.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
+
+  const url = `${SERVER_URL}/payroll?from=${from}&to=${to}${room?'&room='+room:''}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${currentToken}` } });
+  const data = await res.json();
+  const results = document.getElementById('payroll-results');
+
+  if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No payroll data found.</div>'; return; }
+
+  const totalAll = data.reduce((sum, t) => sum + t.netPay, 0);
+
+  results.innerHTML = `
+    <div style="background:#1a73e8;color:white;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:900;font-size:1rem;">Total Payroll ${from} → ${to}</div>
+      <div style="font-size:1.4rem;font-weight:900;">$${totalAll.toFixed(2)} pesos</div>
+    </div>
+    ${data.map(t => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">Teacher ${t.teacherName||'—'} · Room ${t.room}</div>
+            <div style="font-size:0.82rem;color:#888;margin-top:2px;">Rate: $${t.hourlyRate}/hr · ${t.classes.length} class${t.classes.length!==1?'es':''}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.2rem;font-weight:900;color:#2e7d32;">$${t.netPay.toFixed(2)}</div>
+            <div style="font-size:0.75rem;color:#aaa;">pesos</div>
+          </div>
+        </div>
+        ${t.classes.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+          <thead><tr style="background:#f0f4f8;">
+            <th style="padding:6px 10px;text-align:left;color:#888;">Date</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Group</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Type</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Students</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
+            <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
+          </tr></thead>
+          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;">
+            <td style="padding:6px 10px;">${c.date}</td>
+            <td style="padding:6px 10px;font-weight:700;">${c.groupName}</td>
+            <td style="padding:6px 10px;">${c.classType}</td>
+            <td style="padding:6px 10px;">${c.studentsShowed}/${c.expectedStudents}</td>
+            <td style="padding:6px 10px;color:#888;">${c.payNote}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:900;color:#2e7d32;">$${c.classPay.toFixed(2)}</td>
+          </tr>`).join('')}</tbody>
+        </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No classes this period</div>'}
+      </div>
+    `).join('')}`;
 }
 
 // ── ATTENDANCE ──
