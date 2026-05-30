@@ -950,6 +950,13 @@ function checkTeacherRoomLock() {
     openBtn.title='';
     if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
+    // If already past start time and class not open yet, auto-open
+    const nowMins = nowGDL().getHours()*60 + nowGDL().getMinutes();
+    if (nowMins >= current.sm && !classIsOpen) {
+      classIsOpen = true;
+      openBtn.textContent = '🔒 Close Class'; openBtn.style.background = '#e53935';
+      if (window._socket) window._socket.emit('class-opened', { room: ROOM });
+    }
   } else {
     const next = sorted.find(a => a.sm-20 > nowMins);
     if (next) {
@@ -983,14 +990,27 @@ function startTimer(assignment) {
   if (timerEl) timerEl.style.display='block';
   const duration = getDuration(assignment.classType);
   const warnAt = duration - 10;
+  let autoOpened = false;
+
   timerInterval = setInterval(() => {
     const now = nowGDL();
     const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
     const elapsed = nowMins - t2m(assignment.time);
+
     if (elapsed < 0) {
       const s = Math.round(-elapsed*60), mm=Math.floor(s/60), ss=s%60;
       timerEl.textContent=`-${mm}:${String(ss).padStart(2,'0')}`; timerEl.style.color='#a0c4ff'; return;
     }
+
+    // Auto-open class when timer hits 0 (scheduled start time)
+    if (IS_TEACHER && !autoOpened && !classIsOpen && elapsed >= 0) {
+      autoOpened = true;
+      classIsOpen = true;
+      const btn = document.getElementById('open-class-btn');
+      if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; }
+      if (window._socket) window._socket.emit('class-opened', { room: ROOM });
+    }
+
     const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
     timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
     timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
