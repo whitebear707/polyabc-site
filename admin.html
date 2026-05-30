@@ -988,7 +988,8 @@ function renderAllStudents() {
     // Find room — from permanent room or from today's assignment via group
     let roomText = s.room ? `Room ${s.room}${s.teacherName ? ' · Teacher '+s.teacherName : ''}` : null;
     if (!roomText && group) {
-      const assignment = allAssignments.find(a => a.groupId === group._id.toString() || a.groupId === group._id);
+      const gid = String(group._id);
+      const assignment = allAssignments.find(a => String(a.groupId) === gid);
       if (assignment) {
         const room = rooms.find(r => r.room === assignment.room);
         roomText = `Room ${assignment.room}${room ? ' · Teacher '+room.teacherName : ''}`;
