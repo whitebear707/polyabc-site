@@ -407,7 +407,26 @@
   </div>
 </div>
 
-<!-- Add/Edit Group Modal -->
+<!-- Edit Student Modal -->
+<div class="modal-overlay" id="edit-student-modal">
+  <div class="modal-box">
+    <div class="modal-title">Edit Student</div>
+    <input type="hidden" id="edit-student-original-name"/>
+    <div class="field-group"><label>Student Name</label><input type="text" id="edit-student-name"/></div>
+    <div class="field-group"><label>Password</label><input type="text" id="edit-student-pass"/></div>
+    <div class="field-group">
+      <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <select id="edit-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">-- No room --</option>
+      </select>
+    </div>
+    <div id="edit-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveEditStudent()">Save</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="group-modal">
   <div class="modal-box" style="max-width:540px;">
     <div class="modal-title" id="group-modal-title">Create Group</div>
@@ -1004,12 +1023,43 @@ function renderAllStudents() {
       <td style="color:#888;">${s.password}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
-      <td><button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
+      <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
     </tr>`;
   }).join('');
 }
 
-function confirmDeleteStudent(name) {
+function openEditStudentModal(name, password, room) {
+  document.getElementById('edit-student-original-name').value = name;
+  document.getElementById('edit-student-name').value = name;
+  document.getElementById('edit-student-pass').value = password;
+  document.getElementById('edit-student-error').style.display = 'none';
+  const sel = document.getElementById('edit-student-room');
+  sel.innerHTML = '<option value="">-- No room --</option>' +
+    rooms.map(r => `<option value="${r.room}"${r.room === room ? ' selected' : ''}>Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
+  document.getElementById('edit-student-modal').classList.add('open');
+}
+
+async function saveEditStudent() {
+  const originalName = document.getElementById('edit-student-original-name').value;
+  const name  = document.getElementById('edit-student-name').value.trim();
+  const pass  = document.getElementById('edit-student-pass').value.trim();
+  const room  = document.getElementById('edit-student-room').value;
+  const err   = document.getElementById('edit-student-error');
+  if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
+  // Check duplicate password (exclude current student)
+  const dup = checkDuplicatePassword(pass, room);
+  if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  // Delete old and create new
+  await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  await fetch(`${SERVER_URL}/students`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ name, password: pass, room: room || null })
+  });
+  document.getElementById('edit-student-modal').classList.remove('open');
+  await loadAll();
+  renderAllStudents();
+}
   showAlert('🗑️', `Delete ${name}?`, 'This removes the student from all rooms and groups.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteStudent('${name}')`,primary:true}]);
 }
