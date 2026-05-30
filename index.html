@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="LOGO.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="PolyABC"/>
+  <link rel="apple-touch-icon" href="LOGO.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     @media screen and (orientation: portrait) and (max-width: 768px) {
@@ -151,6 +156,11 @@
   <a class="admin-link" href="admin.html">Admin / Teacher Panel</a>
 
   <script>
+    // Register PWA service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
     // ---- Your backend server URL goes here ----
     const SERVER_URL = "https://polyabc-server.onrender.com";
 
