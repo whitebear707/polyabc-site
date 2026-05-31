@@ -1368,16 +1368,22 @@ async function loadPayroll() {
   const data = await res.json();
   const results = document.getElementById('payroll-results');
 
-  if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No payroll data found.</div>'; return; }
+  console.log('Payroll response:', data);
 
-  const totalAll = data.reduce((sum, t) => sum + t.netPay, 0);
+  if (!Array.isArray(data)) { results.innerHTML = `<div class="card" style="color:#e53935;text-align:center;padding:20px;">Error: ${data.error || JSON.stringify(data)}</div>`; return; }
+  if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No payroll data found.</div>'; return; }
+  // Filter to only teachers with classes
+  const withClasses = data.filter(t => t.classes.length > 0);
+  if (!withClasses.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No completed classes found in this period.</div>'; return; }
+
+  const totalAll = withClasses.reduce((sum, t) => sum + t.netPay, 0);
 
   results.innerHTML = `
     <div style="background:#1a73e8;color:white;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
       <div style="font-weight:900;font-size:1rem;">Total Payroll ${from} → ${to}</div>
       <div style="font-size:1.4rem;font-weight:900;">$${totalAll.toFixed(2)} pesos</div>
     </div>
-    ${data.map(t => `
+    ${withClasses.map(t => `
       <div class="card" style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
           <div>
