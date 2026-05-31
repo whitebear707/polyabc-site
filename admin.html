@@ -187,7 +187,6 @@
       <button class="nav-btn" id="nav-teachers" onclick="showPanel('teachers')">👩‍🏫 Teachers</button>
       <button class="nav-btn" id="nav-students" onclick="showPanel('students')">🎓 Students</button>
       <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
-      <button class="nav-btn" id="nav-parents" onclick="showPanel('parents')">👨‍👩‍👧 Parents</button>
       <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
       <button id="attendance-btn-top" onclick="showPanel('attendance')">📋 Attendance</button>
     </div>
@@ -283,23 +282,6 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
-  <!-- PANEL: PARENTS -->
-  <div id="panel-parents" class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <div class="panel-title">👨‍👩‍👧 Parents & Bookings</div>
-      <button class="btn btn-green" onclick="openAddParentModal()">+ Add Parent</button>
-    </div>
-
-    <!-- Pending bookings -->
-    <div id="pending-bookings-section" style="margin-bottom:24px;">
-      <div style="font-size:0.9rem;font-weight:900;color:#e65100;margin-bottom:10px;">📬 Pending Bookings</div>
-      <div id="pending-bookings-list"></div>
-    </div>
-
-    <!-- Parents list -->
-    <div id="parents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
-  </div>
-
   <!-- PANEL: PAYROLL -->
   <div id="panel-payroll" class="panel">
     <div class="panel-title">💰 Payroll</div>
@@ -482,67 +464,6 @@
     </div>
   </div>
 </div>
-
-<!-- Add/Edit Parent Modal -->
-<div class="modal-overlay" id="parent-modal">
-  <div class="modal-box" style="max-width:500px;">
-    <div class="modal-title" id="parent-modal-title">Add Parent</div>
-    <input type="hidden" id="edit-parent-id"/>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="field-group"><label>Parent Name</label><input type="text" id="parent-name-input" placeholder="e.g. Parents103"/></div>
-      <div class="field-group"><label>Password</label><input type="text" id="parent-pass-input" placeholder="e.g. parent123"/></div>
-      <div class="field-group"><label>Class Type</label>
-        <select id="parent-class-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-          <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
-          <option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
-        </select>
-      </div>
-      <div class="field-group"><label>Credits</label><input type="number" id="parent-credits-input" placeholder="0" min="0"/></div>
-    </div>
-    <div class="field-group" style="margin-top:8px;">
-      <label>Students linked to this parent</label>
-      <div id="parent-student-chips" style="min-height:36px;border:2px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px;"></div>
-      <select id="parent-add-student-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:6px;">
-        <option value="">-- Add student --</option>
-      </select>
-      <button class="btn btn-blue btn-sm" onclick="addStudentToParent()">+ Add Student</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeParentModal()">Cancel</button>
-      <button class="btn btn-green" onclick="saveParent()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add Credits Modal -->
-<div class="modal-overlay" id="credits-modal">
-  <div class="modal-box">
-    <div class="modal-title">Add Credits</div>
-    <input type="hidden" id="credits-parent-id"/>
-    <div class="field-group"><label>Credits to Add</label><input type="number" id="credits-amount" placeholder="e.g. 4" min="1"/></div>
-    <div class="modal-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('credits-modal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-green" onclick="saveCredits()">Add Credits</button>
-    </div>
-  </div>
-</div>
-
-<!-- Assign Teacher to Booking Modal -->
-<div class="modal-overlay" id="assign-booking-modal">
-  <div class="modal-box">
-    <div class="modal-title">Assign Teacher to Booking</div>
-    <input type="hidden" id="assign-booking-id"/>
-    <div id="assign-booking-info" style="background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.9rem;"></div>
-    <div class="field-group"><label>Assign Teacher</label>
-      <select id="assign-booking-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;"></select>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('assign-booking-modal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-green" onclick="saveBookingAssignment()">Assign</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="group-modal">
   <div class="modal-box" style="max-width:540px;">
     <div class="modal-title" id="group-modal-title">Create Group</div>
@@ -619,12 +540,8 @@ async function doLogin() {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     const data = await res.json();
     if (!data.success) { document.getElementById('login-error').style.display = 'block'; return; }
-    if (data.role === 'parent') {
-      localStorage.setItem('parentToken', data.token);
-      localStorage.setItem('parentData', JSON.stringify({ name: data.name, classType: data.classType, credits: data.credits }));
-      window.location.href = 'parent.html'; return;
-    }
-    if (data.role !== 'admin' && data.role !== 'developer') {
+    if (data.role !== 'admin') {
+      // Teacher — redirect to greeting
       localStorage.setItem('teacherToken', data.token);
       localStorage.setItem('teacherRoom', data.room);
       localStorage.setItem('teacherName', data.name || 'Teacher');
@@ -650,21 +567,11 @@ function logout() {
 
 // ── LOAD ALL DATA ──
 let allStudents = [];
-let allParents = [];
-let _parentStudents = [];
 
 async function loadAll() {
-  await loadRooms();
+  await loadRooms(); // must load rooms first
   await Promise.all([loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
   try { await loadStudents(); } catch(e) { allStudents = []; }
-  try { await loadParents(); } catch(e) { allParents = []; }
-}
-
-async function loadParents() {
-  try {
-    const res = await fetch(`${SERVER_URL}/parents`, { headers: { Authorization: `Bearer ${currentToken}` } });
-    if (res.ok) allParents = await res.json();
-  } catch(e) { allParents = []; }
 }
 
 async function loadStudents() {
@@ -705,13 +612,12 @@ async function loadGroups() {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','parents','payroll','attendance'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
     if (btn)   btn.classList.toggle('active', p === name);
   });
-  if (name === 'parents')    { renderParents(); loadPendingBookings(); }
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   renderMasterCalendar();
@@ -1339,10 +1245,6 @@ function populateGroupStudentSelect() {
 }
 
 function addStudentToGroup() {
-  if (_groupStudents.length >= 6) {
-    showAlert('😬','Group Full!','A group can have a maximum of 6 students.',[{label:'OK',fn:'closeAlert()',primary:true}]);
-    return;
-  }
   const val = document.getElementById('group-add-student-select').value;
   if (!val) return;
   if (!_groupStudents.includes(val)) _groupStudents.push(val);
@@ -1396,199 +1298,6 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
-}
-
-// ── PARENTS PANEL ──
-function renderParents() {
-  const grid = document.getElementById('parents-grid');
-  if (!allParents.length) { grid.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No parents yet.</div>'; return; }
-  grid.innerHTML = allParents.map(p => `
-    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.07);border-left:4px solid #6a1b9a;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-        <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${p.name}</div>
-        <div style="background:#f3e5f5;color:#6a1b9a;padding:3px 10px;border-radius:20px;font-size:0.8rem;font-weight:700;">${p.credits || 0} credits</div>
-      </div>
-      <div style="font-size:0.82rem;color:#888;margin-bottom:4px;">🔑 ${p.password}</div>
-      <div style="font-size:0.82rem;color:#666;margin-bottom:4px;">📚 ${p.classType || '—'}</div>
-      <div style="font-size:0.82rem;color:#666;margin-bottom:12px;">👧 ${(p.students||[]).join(', ') || 'No students'}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-blue btn-sm" onclick="openEditParentModal('${p._id}')">✏️ Edit</button>
-        <button class="btn btn-green btn-sm" onclick="openAddCreditsModal('${p._id}','${p.name}')">💳 Credits</button>
-        <button class="btn btn-red btn-sm" onclick="confirmDeleteParent('${p._id}','${p.name}')">🗑</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function loadPendingBookings() {
-  try {
-    const res = await fetch(`${SERVER_URL}/bookings`, { headers: { Authorization: `Bearer ${currentToken}` } });
-    const bookings = await res.json();
-    const pending = bookings.filter(b => b.status === 'pending');
-    const list = document.getElementById('pending-bookings-list');
-    if (!pending.length) { list.innerHTML = '<div style="color:#aaa;font-size:0.85rem;">No pending bookings.</div>'; return; }
-    list.innerHTML = pending.map(b => `
-      <div style="background:#fff3e0;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <div>
-          <div style="font-weight:900;color:#e65100;">${b.parentName}</div>
-          <div style="font-size:0.82rem;color:#555;">📅 ${b.date} · 🕐 ${fmt12(b.time)} · ${b.classType}</div>
-          <div style="font-size:0.78rem;color:#888;">Students: ${(b.students||[]).join(', ')||'—'}</div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-green btn-sm" onclick="openAssignBookingModal('${b._id}','${b.parentName}','${b.date}','${b.time}','${b.classType}')">👩‍🏫 Assign</button>
-          <button class="btn btn-red btn-sm" onclick="cancelBooking('${b._id}')">✕ Cancel</button>
-        </div>
-      </div>
-    `).join('');
-  } catch(e) {}
-}
-
-function openAddParentModal() {
-  document.getElementById('parent-modal-title').textContent = 'Add Parent';
-  document.getElementById('edit-parent-id').value = '';
-  document.getElementById('parent-name-input').value = '';
-  document.getElementById('parent-pass-input').value = '';
-  document.getElementById('parent-class-type').value = 'Group - 30 Min';
-  document.getElementById('parent-credits-input').value = '';
-  _parentStudents = [];
-  renderParentStudentChips();
-  populateParentStudentSelect();
-  document.getElementById('parent-modal').classList.add('open');
-}
-
-function openEditParentModal(id) {
-  const p = allParents.find(p => p._id === id);
-  if (!p) return;
-  document.getElementById('parent-modal-title').textContent = 'Edit Parent';
-  document.getElementById('edit-parent-id').value = id;
-  document.getElementById('parent-name-input').value = p.name || '';
-  document.getElementById('parent-pass-input').value = p.password || '';
-  document.getElementById('parent-class-type').value = p.classType || 'Group - 30 Min';
-  document.getElementById('parent-credits-input').value = p.credits || 0;
-  _parentStudents = [...(p.students || [])];
-  renderParentStudentChips();
-  populateParentStudentSelect();
-  document.getElementById('parent-modal').classList.add('open');
-}
-
-function closeParentModal() { document.getElementById('parent-modal').classList.remove('open'); }
-
-function populateParentStudentSelect() {
-  const all = getAllStudents();
-  const sel = document.getElementById('parent-add-student-select');
-  sel.innerHTML = '<option value="">-- Add student --</option>' +
-    all.filter(s => !_parentStudents.includes(s.name))
-       .map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-}
-
-function addStudentToParent() {
-  const val = document.getElementById('parent-add-student-select').value;
-  if (!val || _parentStudents.includes(val)) return;
-  _parentStudents.push(val);
-  renderParentStudentChips();
-  populateParentStudentSelect();
-}
-
-function removeParentStudent(name) {
-  _parentStudents = _parentStudents.filter(s => s !== name);
-  renderParentStudentChips();
-  populateParentStudentSelect();
-}
-
-function renderParentStudentChips() {
-  document.getElementById('parent-student-chips').innerHTML =
-    _parentStudents.map(s => `<span class="student-chip">${s}<button onclick="removeParentStudent('${s}')">×</button></span>`).join('') ||
-    '<span style="color:#aaa;font-size:0.82rem;padding:4px;">No students yet</span>';
-}
-
-async function saveParent() {
-  const id   = document.getElementById('edit-parent-id').value;
-  const name = document.getElementById('parent-name-input').value.trim();
-  const pass = document.getElementById('parent-pass-input').value.trim();
-  const classType = document.getElementById('parent-class-type').value;
-  const credits = parseInt(document.getElementById('parent-credits-input').value) || 0;
-  if (!name || !pass) { showAlert('😬','Oh No!','Name and password required.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
-
-  if (id) {
-    await fetch(`${SERVER_URL}/parents/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, password: pass, classType, credits, students: _parentStudents })
-    });
-  } else {
-    const res = await fetch(`${SERVER_URL}/parents`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, password: pass, classType, credits, students: _parentStudents })
-    });
-    const data = await res.json();
-    if (!data.success) { showAlert('😬','Oh No!',data.message||'Error',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
-  }
-  closeParentModal();
-  await loadParents();
-  renderParents();
-}
-
-function confirmDeleteParent(id, name) {
-  showAlert('🗑️',`Delete ${name}?`,'This parent profile will be removed.',
-    [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteParent('${id}')`,primary:true}]);
-}
-
-async function doDeleteParent(id) {
-  closeAlert();
-  await fetch(`${SERVER_URL}/parents/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
-  await loadParents();
-  renderParents();
-}
-
-function openAddCreditsModal(id, name) {
-  document.getElementById('credits-parent-id').value = id;
-  document.querySelector('#credits-modal .modal-title').textContent = `Add Credits — ${name}`;
-  document.getElementById('credits-amount').value = '';
-  document.getElementById('credits-modal').classList.add('open');
-}
-
-async function saveCredits() {
-  const id = document.getElementById('credits-parent-id').value;
-  const amount = parseInt(document.getElementById('credits-amount').value) || 0;
-  if (!amount) return;
-  await fetch(`${SERVER_URL}/parents/${id}/credits`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ amount })
-  });
-  document.getElementById('credits-modal').classList.remove('open');
-  await loadParents();
-  renderParents();
-}
-
-function openAssignBookingModal(bookingId, parentName, date, time, classType) {
-  document.getElementById('assign-booking-id').value = bookingId;
-  document.getElementById('assign-booking-info').innerHTML = `
-    <div style="font-weight:900;">${parentName}</div>
-    <div>📅 ${date} · 🕐 ${fmt12(time)} · ${classType}</div>`;
-  const sel = document.getElementById('assign-booking-room');
-  sel.innerHTML = rooms.map(r => `<option value="${r.room}">Teacher ${r.teacherName||'—'} · Room ${r.room}</option>`).join('');
-  document.getElementById('assign-booking-modal').classList.add('open');
-}
-
-async function saveBookingAssignment() {
-  const id   = document.getElementById('assign-booking-id').value;
-  const room = document.getElementById('assign-booking-room').value;
-  await fetch(`${SERVER_URL}/bookings/${id}/assign`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room })
-  });
-  document.getElementById('assign-booking-modal').classList.remove('open');
-  loadPendingBookings();
-}
-
-async function cancelBooking(id) {
-  showAlert('🗑️','Cancel Booking?','Credits will be refunded to the parent.',
-    [{label:'Keep',fn:'closeAlert()',primary:false},{label:'Cancel Booking',fn:`doCancelBooking('${id}')`,primary:true}]);
-}
-
-async function doCancelBooking(id) {
-  closeAlert();
-  await fetch(`${SERVER_URL}/bookings/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
-  loadPendingBookings();
 }
 
 // ── PAYROLL ──
