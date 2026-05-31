@@ -8,12 +8,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="PolyABC"/>
   <link rel="apple-touch-icon" href="icon.png"/>
-  <meta name="viewport" content="width=device-width, initial-scale=0.8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
     @media screen and (orientation: portrait) and (max-width: 768px) {
       #rotate-msg {
         display: flex !important;
       }
+    }
+
+    @media screen and (max-width: 480px) {
+      body { padding: 12px; justify-content: flex-start; padding-top: 20px; }
+      .logo img { height: 60px; margin-bottom: 4px; }
+      .tagline { font-size: 0.85rem; margin-bottom: 20px; }
+      .card { padding: 20px; border-radius: 16px; }
+      .view-title { font-size: 1.1rem; margin-bottom: 16px; }
+      label { font-size: 0.85rem; }
+      input { padding: 12px; font-size: 0.95rem; margin-bottom: 14px; }
+      .btn-join { padding: 14px; font-size: 1rem; }
     }
   </style>
   <title>PolyABC - Learn English Online</title>
