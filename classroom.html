@@ -985,9 +985,17 @@ function checkTeacherRoomLock() {
   const openBtn = document.getElementById('open-class-btn');
   const enterBtn = document.getElementById('enter-btn');
   if (!openBtn) return;
+
+  // No assignments today — block teacher
   if (!todayAssignments.length) {
-    openBtn.disabled=false; openBtn.style.opacity='1';
-    if (enterBtn) enterBtn.style.display='block';
+    if (enterBtn) {
+      enterBtn.disabled = true;
+      enterBtn.style.opacity = '0.4';
+      enterBtn.style.cursor = 'not-allowed';
+    }
+    openBtn.disabled = true; openBtn.style.opacity = '0.5';
+    openBtn.textContent = '🔒 No class today';
+    document.getElementById('connect-msg').textContent = '📅 No classes scheduled for today';
     return;
   }
 
