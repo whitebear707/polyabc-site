@@ -193,7 +193,6 @@
     <div id="header-center"><img src="LOGO.png" alt="PolyABC"/></div>
     <div id="header-right">
       <button id="logout-btn" onclick="logout()">Sign Out</button>
-      <button id="dev-tools-btn" onclick="showPanel('devtools')" style="display:none;background:#6a1b9a;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">🛠️ Dev Tools</button>
     </div>
   </div>
 
@@ -283,56 +282,6 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
-  <!-- PANEL: DEV TOOLS -->
-  <div id="panel-devtools" class="panel">
-    <div class="panel-title">🛠️ Developer Tools</div>
-    <div class="card" style="border-left:4px solid #6a1b9a;margin-bottom:16px;">
-      <div style="font-size:0.9rem;font-weight:700;color:#6a1b9a;margin-bottom:16px;">📋 Insert Manual Attendance Record</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room</label>
-          <select id="dev-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"></select>
-        </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Date</label>
-          <input type="date" id="dev-date" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-        </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher Login Time</label>
-          <input type="time" id="dev-login" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-        </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Class Opened</label>
-          <input type="time" id="dev-opened" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-        </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Class Closed</label>
-          <input type="time" id="dev-closed" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-        </div>
-      </div>
-      <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">Students (one per line: name,HH:MM,HH:MM or name,NO SHOW)</div>
-      <textarea id="dev-students" placeholder="jonny,09:00,09:45&#10;pedro,NO SHOW&#10;rosa,09:02,09:45" style="width:100%;height:100px;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;resize:vertical;margin-bottom:12px;"></textarea>
-      <button class="btn btn-blue" onclick="devInsertAttendance()" style="background:#6a1b9a;">💾 Insert Record</button>
-      <div id="dev-msg" style="margin-top:8px;font-size:0.85rem;font-weight:700;"></div>
-    </div>
-
-    <div class="card" style="border-left:4px solid #e53935;">
-      <div style="font-size:0.9rem;font-weight:700;color:#e53935;margin-bottom:12px;">🗑️ Delete Attendance Record</div>
-      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room</label>
-          <select id="dev-del-room" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"></select>
-        </div>
-        <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Date</label>
-          <input type="date" id="dev-del-date" style="padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-        </div>
-        <button class="btn btn-red" onclick="devDeleteAttendance()">🗑️ Delete</button>
-      </div>
-      <div id="dev-del-msg" style="margin-top:8px;font-size:0.85rem;font-weight:700;"></div>
-    </div>
-  </div>
-
   <!-- PANEL: PAYROLL -->
   <div id="panel-payroll" class="panel">
     <div class="panel-title">💰 Payroll</div>
@@ -591,17 +540,16 @@ async function doLogin() {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     const data = await res.json();
     if (!data.success) { document.getElementById('login-error').style.display = 'block'; return; }
-    if (data.role !== 'admin' && data.role !== 'developer') {
+    if (data.role !== 'admin') {
+      // Teacher — redirect to greeting
       localStorage.setItem('teacherToken', data.token);
       localStorage.setItem('teacherRoom', data.room);
       localStorage.setItem('teacherName', data.name || 'Teacher');
       window.location.href = 'greeting.html'; return;
     }
     currentToken = data.token;
-    isDeveloper = data.role === 'developer';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
-    if (isDeveloper) document.getElementById('dev-tools-btn').style.display = 'block';
     await loadAll();
     showPanel('calendar');
   } catch(e) {
@@ -619,7 +567,6 @@ function logout() {
 
 // ── LOAD ALL DATA ──
 let allStudents = [];
-let isDeveloper = false;
 
 async function loadAll() {
   await loadRooms(); // must load rooms first
@@ -665,13 +612,12 @@ async function loadGroups() {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','devtools'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
     if (btn)   btn.classList.toggle('active', p === name);
   });
-  if (name === 'devtools')   { initDevTools(); }
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   renderMasterCalendar();
@@ -1352,68 +1298,6 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
-}
-
-// ── DEV TOOLS ──
-function initDevTools() {
-  const roomSel = document.getElementById('dev-room');
-  const delSel  = document.getElementById('dev-del-room');
-  const opts = rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
-  if (roomSel) roomSel.innerHTML = opts;
-  if (delSel)  delSel.innerHTML  = opts;
-}
-
-function timeToISO(date, time) {
-  if (!time) return null;
-  return `${date}T${time}:00.000Z`;
-}
-
-async function devInsertAttendance() {
-  const room    = document.getElementById('dev-room').value;
-  const date    = document.getElementById('dev-date').value;
-  const login   = document.getElementById('dev-login').value;
-  const opened  = document.getElementById('dev-opened').value;
-  const closed  = document.getElementById('dev-closed').value;
-  const stuText = document.getElementById('dev-students').value.trim();
-  const msg     = document.getElementById('dev-msg');
-
-  if (!room || !date) { msg.textContent = '❌ Room and date required'; msg.style.color='#e53935'; return; }
-
-  const students = stuText ? stuText.split('\n').filter(l => l.trim()).map(line => {
-    const parts = line.split(',');
-    const name = parts[0].trim();
-    if (parts[1]?.trim() === 'NO SHOW') return { name, joinedAt: null, leftAt: null };
-    return { name, joinedAt: timeToISO(date, parts[1]?.trim()), leftAt: timeToISO(date, parts[2]?.trim()) };
-  }) : [];
-
-  const body = {
-    room, date,
-    teacherLoginAt:  login  ? timeToISO(date, login)  : null,
-    teacherOpenedAt: opened ? timeToISO(date, opened) : null,
-    classEndedAt:    closed ? timeToISO(date, closed) : null,
-    students
-  };
-
-  const res = await fetch(`${SERVER_URL}/dev/attendance`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (data.success) { msg.textContent = '✅ Record inserted!'; msg.style.color='#2e7d32'; }
-  else { msg.textContent = '❌ ' + (data.error || 'Failed'); msg.style.color='#e53935'; }
-}
-
-async function devDeleteAttendance() {
-  const room = document.getElementById('dev-del-room').value;
-  const date = document.getElementById('dev-del-date').value;
-  const msg  = document.getElementById('dev-del-msg');
-  if (!room || !date) { msg.textContent = '❌ Room and date required'; msg.style.color='#e53935'; return; }
-  const res = await fetch(`${SERVER_URL}/dev/attendance/${room}/${date}`, {
-    method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` }
-  });
-  const data = await res.json();
-  if (data.success) { msg.textContent = '✅ Deleted!'; msg.style.color='#2e7d32'; }
-  else { msg.textContent = '❌ ' + (data.error || 'Failed'); msg.style.color='#e53935'; }
 }
 
 // ── PAYROLL ──
