@@ -217,6 +217,7 @@
         <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
+        <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;"></span></button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
@@ -662,7 +663,14 @@ function connectSocket() {
 
   socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
   socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
-  socket.on('whiteboard-clear', () => {
+  socket.on('clear-all', () => {
+    if (!canvas) return;
+    suppressSync = true;
+    canvas.clear();
+    canvas.backgroundColor = '#ffffff';
+    canvas.renderAll();
+    suppressSync = false;
+  });
     if (!canvas) return;
     suppressSync = true;
     const toRemove = canvas.getObjects().filter(obj => !obj.data?.locked);
@@ -1497,6 +1505,19 @@ function setTool(tool) {
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
 function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
+
+function confirmClearAll() {
+  if (!IS_TEACHER) return;
+  if (confirm('⚠️ Clear Everything?\n\nThis will remove ALL drawings AND uploaded images.\nThis cannot be undone.')) {
+    canvas.clear();
+    canvas.backgroundColor = '#ffffff';
+    canvas.renderAll();
+    if (window._socket) {
+      window._socket.emit('clear-all', { room: ROOM });
+      window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) });
+    }
+  }
+}
 
 function clearBoard() {
   if (!IS_TEACHER) return;
