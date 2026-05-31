@@ -1364,11 +1364,12 @@ async function loadPayroll() {
   if (!from || !to) { showAlert('😬','Oh No!','Please select a date range.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
 
   const url = `${SERVER_URL}/payroll?from=${from}&to=${to}${room?'&room='+room:''}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${currentToken}` } });
-  const data = await res.json();
-  const results = document.getElementById('payroll-results');
-
-  console.log('Payroll response:', data);
+  console.log('Fetching payroll:', url);
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${currentToken}` } });
+    console.log('Payroll status:', res.status);
+    const data = await res.json();
+    console.log('Payroll response:', data);
 
   if (!Array.isArray(data)) { results.innerHTML = `<div class="card" style="color:#e53935;text-align:center;padding:20px;">Error: ${data.error || JSON.stringify(data)}</div>`; return; }
   if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No payroll data found.</div>'; return; }
@@ -1415,6 +1416,10 @@ async function loadPayroll() {
         </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No classes this period</div>'}
       </div>
     `).join('')}`;
+  } catch(e) {
+    console.error('Payroll fetch error:', e);
+    document.getElementById('payroll-results').innerHTML = `<div class="card" style="color:#e53935;text-align:center;padding:20px;">Error: ${e.message}</div>`;
+  }
 }
 
 // ── ATTENDANCE ──
