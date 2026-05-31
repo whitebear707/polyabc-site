@@ -1025,10 +1025,7 @@ function checkTeacherRoomLock() {
     const next = sorted.find(a => a.sm-20 > nowMins);
     if (next) {
       const uh = Math.floor((next.sm-20)/60), um = (next.sm-20)%60;
-      // Convert from Guadalajara time to teacher's local timezone
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-      const unlockDt = new Date(`${today}T${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}:00-06:00`);
-      const uStr = unlockDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
       openBtn.disabled=true; openBtn.style.opacity='0.5';
       openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
       // Show enter button but disable it — room is locked
@@ -1086,7 +1083,7 @@ function checkStudentAccess() {
   if (!todayAssignments.length) return;
   const now = nowGDL();
   const nowMins = now.getHours()*60 + now.getMinutes();
-  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const GDL = 'America/Mexico_City';
   const sorted = todayAssignments.map(a => ({...a, sm: t2m(a.time), em: t2m(a.time)+getDuration(a.classType)})).sort((a,b)=>a.sm-b.sm);
   const statusBox = document.getElementById('waiting-status-box');
   const countdown = document.getElementById('waiting-countdown');
@@ -1096,8 +1093,8 @@ function checkStudentAccess() {
   const upcoming = sorted.find(a => a.sm-5 > nowMins);
   const past     = [...sorted].reverse().find(a => nowMins >= a.em);
   if (upcoming) {
-    const st = convertStudentTime(upcoming.time, userTz);
-    statusBox.innerHTML=`⏰ Your class starts at <strong>${st}</strong>`;
+    const st = convertStudentTime(upcoming.time, GDL);
+    statusBox.innerHTML=`⏰ Your class starts at <strong>${st}</strong> <span style="font-size:0.75rem;color:#a0c4ff;">(Guadalajara Time)</span>`;
     schedBtn.style.display='block';
     const iv = setInterval(() => {
       const n=nowGDL(), nm=n.getHours()*60+n.getMinutes()+n.getSeconds()/60;
@@ -1107,8 +1104,8 @@ function checkStudentAccess() {
       countdown.textContent=`Room opens in ${mm}:${String(ss).padStart(2,'0')}`; countdown.style.display='block';
     }, 1000);
   } else if (past) {
-    const et = convertStudentTime(past.time, userTz, getDuration(past.classType));
-    statusBox.innerHTML=`❌ Your class ended at <strong>${et}</strong>`;
+    const et = convertStudentTime(past.time, GDL, getDuration(past.classType));
+    statusBox.innerHTML=`❌ Your class ended at <strong>${et}</strong> <span style="font-size:0.75rem;color:#a0c4ff;">(Guadalajara Time)</span>`;
     statusBox.style.background='rgba(229,57,53,0.15)';
     schedBtn.style.display='block';
   }
@@ -1117,9 +1114,9 @@ function checkStudentAccess() {
 function convertStudentTime(time24, tz, addMins=0) {
   if (!time24) return '';
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-  const dt = new Date(`${today}T${time24}:00-06:00`); // Guadalajara is UTC-6
+  const dt = new Date(`${today}T${time24}:00-06:00`);
   dt.setMinutes(dt.getMinutes()+addMins);
-  return dt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', timeZone: tz, hour12:true });
+  return dt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', timeZone: 'America/Mexico_City', hour12:true });
 }
 
 async function showStudentSchedule() {

@@ -244,50 +244,13 @@
 </div>
 
 <div id="main">
-  <!-- TIMEZONE SELECTOR -->
-  <p class="section-title">🌍 My Timezone</p>
-  <div id="day-hours-card" style="margin-bottom:16px;">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <select id="tz-select" style="flex:1;background:#0f3460;border:2px solid #1a73e8;border-radius:8px;color:white;font-family:Nunito,sans-serif;font-size:0.9rem;padding:8px 10px;outline:none;">
-        <option value="">-- Select your timezone --</option>
-        <optgroup label="🇲🇽 Mexico">
-          <option value="America/Tijuana">Tijuana / Ensenada (Pacific)</option>
-          <option value="America/Hermosillo">Hermosillo / Sonora (Mountain, no DST)</option>
-          <option value="America/Mexico_City">Mexico City / Guadalajara / Monterrey (Central)</option>
-          <option value="America/Cancun">Cancun / Chetumal (Eastern, no DST)</option>
-          <option value="America/Mazatlan">Mazatlan / La Paz / Culiacan (Mountain)</option>
-          <option value="America/Chihuahua">Chihuahua / Ojinaga (Mountain)</option>
-        </optgroup>
-        <optgroup label="🇺🇸 United States">
-          <option value="America/Los_Angeles">Los Angeles / San Diego (Pacific)</option>
-          <option value="America/Denver">Denver / Phoenix (Mountain)</option>
-          <option value="America/Chicago">Chicago / Houston (Central)</option>
-          <option value="America/New_York">New York / Miami (Eastern)</option>
-        </optgroup>
-        <optgroup label="🌎 Latin America">
-          <option value="America/Bogota">Bogota / Lima / Quito</option>
-          <option value="America/Santiago">Santiago</option>
-          <option value="America/Sao_Paulo">São Paulo / Buenos Aires area</option>
-          <option value="America/Argentina/Buenos_Aires">Buenos Aires</option>
-        </optgroup>
-        <optgroup label="🌍 Europe">
-          <option value="Europe/London">London (GMT/BST)</option>
-          <option value="Europe/Madrid">Madrid / Paris / Berlin (CET)</option>
-        </optgroup>
-        <optgroup label="🌏 Asia & Middle East">
-          <option value="Asia/Riyadh">Riyadh / Saudi Arabia (AST)</option>
-          <option value="Asia/Dubai">Dubai / UAE</option>
-          <option value="Asia/Tokyo">Tokyo / Japan (JST)</option>
-          <option value="Asia/Shanghai">Beijing / Shanghai (CST)</option>
-          <option value="Asia/Manila">Manila / Philippines</option>
-        </optgroup>
-      </select>
-      <div id="tz-current" style="font-size:0.82rem;color:#a0c4ff;"></div>
-    </div>
-    <div style="font-size:0.75rem;color:#556;margin-top:8px;">⚠️ Your availability hours will be saved in this timezone and converted to school time for admin.</div>
+  <!-- GDL TIME NOTICE -->
+  <div style="background:#0f3460;border:1px solid #1a73e8;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#a0c4ff;">
+    🕐 All times are in <strong style="color:white;">Guadalajara Time (Central Mexico)</strong> &nbsp;|&nbsp; <span id="gdl-current-time"></span>
   </div>
 
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
+  <div style="font-size:0.75rem;color:#a0c4ff;margin-bottom:10px;">⏰ All times in Guadalajara Time (Central Mexico)</div>
   <div id="day-hours-card">
     <div class="day-hours-grid" id="day-hours-grid"></div>
   </div>
@@ -349,19 +312,9 @@
     dayHours = aData.dayHours || {};
     dates    = aData.dates    || {};
 
-    // Load saved timezone or detect device timezone
-    const savedTz = aData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const tzSel = document.getElementById('tz-select');
-    // Try to match saved timezone to dropdown
-    const opt = [...tzSel.options].find(o => o.value === savedTz);
-    if (opt) { tzSel.value = savedTz; } else {
-      // Add it as custom option
-      const custom = document.createElement('option');
-      custom.value = savedTz; custom.textContent = savedTz;
-      tzSel.appendChild(custom); tzSel.value = savedTz;
-    }
-    updateTzDisplay();
-    tzSel.addEventListener('change', updateTzDisplay);
+    // Update GDL current time display
+    updateGDLDisplay();
+    setInterval(updateGDLDisplay, 30000);
 
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
@@ -371,11 +324,17 @@
     renderUpcomingClasses();
   }
 
+  function updateGDLDisplay() {
+    const now = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
+    const el = document.getElementById('gdl-current-time');
+    if (el) el.textContent = `Current time: ${now}`;
+  }
+
   function renderUpcomingClasses() {
     const container = document.getElementById('upcoming-classes');
     if (!container) return;
-    const tz = document.getElementById('tz-select').value || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const GDL = 'America/Mexico_City';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: GDL });
     const upcoming = assignments
       .filter(a => a.date >= today)
       .sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
@@ -386,36 +345,23 @@
     }
 
     container.innerHTML = upcoming.map(a => {
-      // Convert time from Guadalajara to teacher's timezone
-      const dt = new Date(`${a.date}T${a.time}:00-06:00`);
-      const localTime = dt.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:true, timeZone: tz });
-      const localDate = dt.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric', timeZone: tz });
-      const duration = a.classType || '';
+      const localTime = new Date(`${a.date}T${a.time}:00-06:00`).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:true, timeZone: GDL });
+      const localDate = new Date(`${a.date}T${a.time}:00-06:00`).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric', timeZone: GDL });
       const isToday = a.date === today;
       return `<div style="background:${isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:900;color:${isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
-          <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${duration}${a.groupName?' · '+a.groupName:''}</div>
+          <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${a.classType||''}${a.groupName?' · '+a.groupName:''}</div>
         </div>
         ${isToday?'<span style="background:#ffd740;color:#1a1a2e;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">TODAY</span>':''}
       </div>`;
     }).join('');
   }
 
-  function updateTzDisplay() {
-    const tz = document.getElementById('tz-select').value;
-    if (!tz) return;
-    const now = new Date().toLocaleTimeString('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: true });
-    document.getElementById('tz-current').textContent = `Current time in your zone: ${now}`;
-  }
+  function updateTzDisplay() {} // kept for compatibility
 
-  // Convert a time string from teacher's timezone to Guadalajara time for storage
-  function toGDLTime(time24, fromTz) {
-    if (!time24 || !fromTz) return time24;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-    // Create date in teacher's timezone
-    const dt = new Date(`${today}T${time24}:00`);
-    // Get the time in Guadalajara
+  // No conversion needed — all times are already in GDL
+  function toGDLTime(time24, fromTz) { return time24; }
     const gdlStr = dt.toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
     return gdlStr;
   }
@@ -639,7 +585,7 @@
   }
 
   async function saveAvailability() {
-    const tz = document.getElementById('tz-select').value;
+    const tz = 'America/Mexico_City';
     DAYS.forEach(d => {
       const start = tpTo24(_tpCurrent[`dh-start-${d}`]);
       const end   = tpTo24(_tpCurrent[`dh-end-${d}`]);
