@@ -619,8 +619,12 @@ async function doLogin() {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     const data = await res.json();
     if (!data.success) { document.getElementById('login-error').style.display = 'block'; return; }
-    if (data.role !== 'admin') {
-      // Teacher — redirect to greeting
+    if (data.role === 'parent') {
+      localStorage.setItem('parentToken', data.token);
+      localStorage.setItem('parentData', JSON.stringify({ name: data.name, classType: data.classType, credits: data.credits }));
+      window.location.href = 'parent.html'; return;
+    }
+    if (data.role !== 'admin' && data.role !== 'developer') {
       localStorage.setItem('teacherToken', data.token);
       localStorage.setItem('teacherRoom', data.room);
       localStorage.setItem('teacherName', data.name || 'Teacher');
