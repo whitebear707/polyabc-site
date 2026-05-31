@@ -185,19 +185,18 @@
 <div id="main">
   <div id="left-panel">
     <div id="teacher-name-above" style="display:none;font-size:0.8rem;font-weight:700;color:#a0c4ff;text-align:center;padding:4px 0;"></div>
-    <div class="video-box teacher-border" style="position:relative;">
+    <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="toggleCam()">
       <video id="left-video" autoplay playsinline></video>
       <div class="video-label" id="left-label">...</div>
       <div class="mute-overlay" id="my-mute-icon">🔇</div>
       <div id="cam-off-logo" style="display:none;position:absolute;inset:0;background:#0f3460;border-radius:10px;align-items:center;justify-content:center;z-index:2;">
         <img src="LOGO.png" style="width:75%;object-fit:contain;"/>
       </div>
+      <!-- Speaker icon overlay bottom-left -->
+      <div id="mic-overlay" onclick="event.stopPropagation();toggleMic();" style="position:absolute;bottom:6px;left:6px;z-index:5;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle Mic">🔊</div>
       <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;position:absolute;bottom:0;left:0;right:0;z-index:4;">⚠️ Teacher disconnected...</div>
     </div>
-    <div id="my-controls">
-      <button class="ctrl-btn" id="mic-btn" onclick="toggleMic()">🎤 Mic ON</button>
-      <button class="ctrl-btn" id="cam-btn" onclick="toggleCam()">📷 Cam ON</button>
-    </div>
+    <div id="my-controls" style="display:none;"></div>
   </div>
 
   <div id="center-panel">
@@ -896,7 +895,8 @@ function showStudentSlot(socketId, name) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${socketId}`;
   // Use video element for WebRTC stream
-  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>`;
+  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="toggleStudentCamClick('${socketId}')"></video>
+    <div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>`;
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below'; lbl.textContent = name || 'Student';
   wrap.appendChild(slot); wrap.appendChild(lbl);
@@ -1203,9 +1203,11 @@ function toggleMic() {
   if (!localStream) return;
   myMicOn = !myMicOn;
   localStream.getAudioTracks().forEach(t => t.enabled = myMicOn);
-  const btn = document.getElementById('mic-btn');
-  btn.textContent = myMicOn ? '🎤 Mic ON' : '🔇 Mic OFF';
-  btn.classList.toggle('active', !myMicOn);
+  const overlay = document.getElementById('mic-overlay');
+  if (overlay) {
+    overlay.textContent = myMicOn ? '🔊' : '🔇';
+    overlay.style.background = myMicOn ? 'rgba(0,0,0,0.5)' : 'rgba(229,57,53,0.85)';
+  }
   document.getElementById('my-mute-icon').style.display = myMicOn ? 'none' : 'flex';
 }
 
@@ -1213,11 +1215,28 @@ function toggleCam() {
   if (!localStream) return;
   myCamOn = !myCamOn;
   localStream.getVideoTracks().forEach(t => t.enabled = myCamOn);
-  const btn = document.getElementById('cam-btn');
-  btn.textContent = myCamOn ? '📷 Cam ON' : '🚫 Cam OFF';
-  btn.classList.toggle('active', !myCamOn);
-  const logo = document.getElementById('cam-off-logo'); if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
+  const logo = document.getElementById('cam-off-logo');
+  if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
   if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
+}
+
+function toggleStudentCamClick(socketId) {
+  const btn = document.querySelector(`#wrap-${socketId} .cam-student-btn`);
+  if (btn) btn.click();
+}
+
+function toggleStudentMicOverlay(socketId) {
+  const spk = document.getElementById(`spk-${socketId}`);
+  const wrap = document.getElementById(`wrap-${socketId}`);
+  const btn = wrap ? wrap.querySelector('.mute-student-btn') : null;
+  if (btn) {
+    const isMuted = btn.textContent.includes('Unmute');
+    btn.click();
+    if (spk) {
+      spk.textContent = isMuted ? '🔊' : '🔇';
+      spk.style.background = isMuted ? 'rgba(0,0,0,0.5)' : 'rgba(229,57,53,0.85)';
+    }
+  }
 }
 
 function muteAll() {
