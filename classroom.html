@@ -185,7 +185,7 @@
 <div id="main">
   <div id="left-panel">
     <div id="teacher-name-above" style="display:none;font-size:0.8rem;font-weight:700;color:#a0c4ff;text-align:center;padding:4px 0;"></div>
-    <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="toggleCam()">
+    <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="if(IS_TEACHER)toggleCam()">
       <video id="left-video" autoplay playsinline></video>
       <div class="video-label" id="left-label">...</div>
       <div class="mute-overlay" id="my-mute-icon">🔇</div>
@@ -193,7 +193,7 @@
         <img src="LOGO.png" style="width:75%;object-fit:contain;"/>
       </div>
       <!-- Speaker icon overlay bottom-left -->
-      <div id="mic-overlay" onclick="event.stopPropagation();toggleMic();" style="position:absolute;bottom:6px;left:6px;z-index:5;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle Mic">🔊</div>
+      <div id="mic-overlay" onclick="event.stopPropagation();if(IS_TEACHER)toggleMic();" style="position:absolute;bottom:6px;left:6px;z-index:5;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle Mic">🔊</div>
       <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;position:absolute;bottom:0;left:0;right:0;z-index:4;">⚠️ Teacher disconnected...</div>
     </div>
     <div id="my-controls" style="display:none;"></div>
@@ -896,8 +896,8 @@ function showStudentSlot(socketId, name) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${socketId}`;
   // Use video element for WebRTC stream
-  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="toggleStudentCamClick('${socketId}')"></video>
-    <div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>`;
+  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}" ${IS_TEACHER?`onclick="toggleStudentCamClick('${socketId}')"`:''}></video>
+    ${IS_TEACHER ? `<div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below'; lbl.textContent = name || 'Student';
   wrap.appendChild(slot); wrap.appendChild(lbl);
