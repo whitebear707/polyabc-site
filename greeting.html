@@ -100,6 +100,15 @@
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
 
+  // Request fullscreen on mobile
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+    document.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }, { once: true });
+  }
+
   // Check token
   const token = localStorage.getItem('teacherToken');
   const room  = localStorage.getItem('teacherRoom');
