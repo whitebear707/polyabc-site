@@ -1148,7 +1148,7 @@ function toggleClassOpen() {
   classIsOpen = !classIsOpen;
   const btn = document.getElementById('open-class-btn');
   if (classIsOpen) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; if (window._socket) window._socket.emit('class-opened', { room: ROOM }); }
-  else { btn.textContent = '🔓 Open Class'; btn.style.background = '#2e7d32'; if (window._socket) window._socket.emit('class-closed', { room: ROOM }); }
+  else { btn.textContent = '🔓 Open Class'; btn.style.background = '#2e7d32'; if (window._socket) { window._socket.emit('class-closed', { room: ROOM }); window._socket.emit('record-class-end', { room: ROOM }); } }
 }
 
 function toggleMic() {
@@ -1300,7 +1300,15 @@ function showStarCelebration(name) {
 }
 
 function leaveClass() {
-  if (!IS_TEACHER) { if (captureInterval) clearInterval(captureInterval); if (mediaRecorder) { try { mediaRecorder.stop(); } catch(e) {} } if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; return; }
+  if (!IS_TEACHER) {
+    if (window._socket) window._socket.emit('student-leaving', { room: ROOM });
+    setTimeout(() => {
+      if (captureInterval) clearInterval(captureInterval);
+      if (window._socket) window._socket.disconnect();
+      window.location.href = 'index.html';
+    }, 300);
+    return;
+  }
   document.getElementById('leave-modal').style.display = 'flex';
 }
 
