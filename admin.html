@@ -1363,6 +1363,7 @@ async function loadPayroll() {
   const room = document.getElementById('pay-teacher').value;
   if (!from || !to) { showAlert('😬','Oh No!','Please select a date range.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
 
+  const results = document.getElementById('payroll-results');
   const url = `${SERVER_URL}/payroll?from=${from}&to=${to}${room?'&room='+room:''}`;
   console.log('Fetching payroll:', url);
   try {
