@@ -874,6 +874,7 @@ function startAudioRelay(socket) {
 
 function createVideoSlot(socketId, role, name) {
   if (!IS_TEACHER && role === 'teacher') {
+    // Student sees teacher
     teacherSocketId = socketId;
     document.getElementById('left-video').style.display = 'none';
     let vid = document.getElementById(`vimg-${socketId}`);
@@ -886,7 +887,13 @@ function createVideoSlot(socketId, role, name) {
     }
     const lbl = document.getElementById('left-label'); lbl.textContent = ''; lbl.style.zIndex = '3';
     const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) { nameAbove.textContent = `Teacher ${name || ''}`; nameAbove.style.display = 'block'; }
-  } else { showStudentSlot(socketId, name); }
+  } else if (!IS_TEACHER && role === 'student') {
+    // Students don't see other students — skip
+    return;
+  } else {
+    // Teacher sees all students
+    showStudentSlot(socketId, name);
+  }
 }
 
 function showStudentSlot(socketId, name) {
@@ -896,7 +903,7 @@ function showStudentSlot(socketId, name) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${socketId}`;
   // Use video element for WebRTC stream
-  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}" ${IS_TEACHER?`onclick="toggleStudentCamClick('${socketId}')"`:''}></video>
+  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
     ${IS_TEACHER ? `<div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below'; lbl.textContent = name || 'Student';
@@ -904,7 +911,7 @@ function showStudentSlot(socketId, name) {
   if (IS_TEACHER) {
     const ctrls = document.createElement('div');
     ctrls.className = 'student-controls-row';
-    ctrls.innerHTML = `<button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button><button class="cam-student-btn" data-camoff="false" onclick="toggleStudentCam('${socketId}',this)">🚫 Cam</button><button class="star-btn" onclick="giveStar('${socketId}','${name||'Student'}')">⭐</button>`;
+    ctrls.innerHTML = `<button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button><button class="star-btn" onclick="giveStar('${socketId}','${name||'Student'}')">⭐</button>`;
     wrap.appendChild(ctrls);
     addDrawControlBtn(socketId, name);
   }
@@ -1176,6 +1183,9 @@ function enterClass() {
   startAudioRelay(_joinedSocket);
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) {
+      setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
+      setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
+    } else if (remoteRoles[sid] === 'teacher') {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
       setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
     }
