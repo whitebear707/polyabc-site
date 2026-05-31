@@ -1339,6 +1339,10 @@ function populateGroupStudentSelect() {
 }
 
 function addStudentToGroup() {
+  if (_groupStudents.length >= 6) {
+    showAlert('😬','Group Full!','A group can have a maximum of 6 students.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+    return;
+  }
   const val = document.getElementById('group-add-student-select').value;
   if (!val) return;
   if (!_groupStudents.includes(val)) _groupStudents.push(val);
