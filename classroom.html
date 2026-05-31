@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <link rel="icon" type="image/png" href="icon.png"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=0.8"/>
   <style>
     @media screen and (orientation: portrait) and (max-width: 768px) {
       #rotate-msg { display: flex !important; }
@@ -82,7 +82,16 @@
 
     #connecting-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; width: 100vw; height: 100vh; text-align: center; padding: 20px; }
     .spinner { width: 60px; height: 60px; border: 6px solid #0f3460; border-top-color: #1a73e8; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(46,125,50,0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(46,125,50,0); }
+    100% { box-shadow: 0 0 0 0 rgba(46,125,50,0); }
+  }
+  @keyframes pulse-glow-red {
+    0%   { box-shadow: 0 0 0 0 rgba(229,57,53,0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
+    100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); }
+  }
     @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
     @keyframes chase { to { --angle: 360deg; } }
     .waiting-box {
@@ -465,7 +474,7 @@ function connectSocket() {
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
     }
     if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
-      setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON() }), 1500);
+      setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON(['data']) }), 1500);
     }
     if (IS_TEACHER && isSharing) {
       callSsPeer(socketId);
@@ -567,12 +576,41 @@ function connectSocket() {
   socket.on('waiting-count', ({ count }) => {
     if (!IS_TEACHER) return;
     const badge = document.getElementById('waiting-badge');
-    if (!badge) return;
-    if (count > 0) {
-      badge.textContent = count;
-      badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
+    const connectMsg = document.getElementById('connect-msg');
+    if (badge) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+        // Glow the open class button
+        const openBtn = document.getElementById('open-class-btn');
+        if (openBtn) openBtn.style.animation = 'pulse-glow 1s infinite';
+        // Play doorbell
+        if (!window._lastDoorbell || Date.now() - window._lastDoorbell > 3000) {
+          window._lastDoorbell = Date.now();
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const playNote = (freq, start, dur) => {
+              const o = ctx.createOscillator(); const g = ctx.createGain();
+              o.connect(g); g.connect(ctx.destination);
+              o.frequency.value = freq; o.type = 'sine';
+              g.gain.setValueAtTime(0.3, ctx.currentTime + start);
+              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+              o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur);
+            };
+            playNote(523, 0, 0.15); playNote(659, 0.15, 0.15); playNote(784, 0.3, 0.3);
+          } catch(e) {}
+        }
+        // Update waiting count on connect screen
+        if (connectMsg && !classIsOpen) {
+          const txt = connectMsg.textContent.replace(/ \| 👥.*/,'');
+          connectMsg.textContent = txt + ` | 👥 ${count} student${count>1?'s':''} waiting`;
+        }
+      } else {
+        badge.style.display = 'none';
+        const openBtn = document.getElementById('open-class-btn');
+        if (openBtn) openBtn.style.animation = '';
+        if (connectMsg) connectMsg.textContent = connectMsg.textContent.replace(/ \| 👥.*/,'');
+      }
     }
   });
 
@@ -720,6 +758,7 @@ function toggleChat() {
     unreadCount = 0;
     const badge = document.getElementById('chat-badge');
     badge.style.display = 'none';
+    badge.style.animation = '';
   }
 }
 
@@ -737,6 +776,7 @@ function receiveStudentMessage(name, message, time) {
     const badge = document.getElementById('chat-badge');
     badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
     badge.style.display = 'flex';
+    badge.style.animation = 'pulse-glow-red 1s infinite';
   }
 }
 
@@ -1375,7 +1415,7 @@ function stopScreenShare() {
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
   if (window._socket) {
     window._socket.emit('screenshare-stop', { room: ROOM });
-    setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() }); }, 300);
+    setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }, 300);
   }
 }
 
@@ -1412,7 +1452,7 @@ function initWhiteboard(socket) {
     if (suppressSync) return;
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => {
-      if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON() });
+      if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) });
     }, 300);
   });
 }

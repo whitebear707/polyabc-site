@@ -1488,7 +1488,7 @@ function openAttDetail(idx) {
   const scheduledTime = assignment ? fmt12(assignment.time) : '—';
   const classType   = assignment?.classType || '';
 
-  const fmtT = (ts) => ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+  const fmtT = (ts) => ts ? new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',timeZone:'America/Mexico_City'}) : '—';
 
   // Get expected students from group
   const group = assignment?.groupId ? allGroups.find(g => String(g._id) === assignment.groupId) : null;
