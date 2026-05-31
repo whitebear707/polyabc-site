@@ -670,6 +670,7 @@ function connectSocket() {
     canvas.renderAll();
     suppressSync = false;
   });
+  socket.on('whiteboard-clear', () => {
     if (!canvas) return;
     suppressSync = true;
     const toRemove = canvas.getObjects().filter(obj => !obj.data?.locked);
