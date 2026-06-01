@@ -172,11 +172,9 @@
   <div style="display:flex;align-items:center;gap:10px;">
     <img src="LOGO.png" alt="PolyABC"/>
     <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
-    <span id="status-bar">Connecting...</span>
   </div>
-  <span id="room-label">Room: —</span>
+  <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
-    <button id="mute-all-btn" onclick="muteAll()" style="display:none;background:#e65100;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🔇 Mute All</button>
     <button id="new-class-btn" onclick="newClass()" style="display:none;background:#6a1b9a;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">✨ NEW</button>
     <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -302,6 +300,7 @@ const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName
 const studentSlots = {};
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
+document.getElementById('room-label').style.background = '#2e7d32';
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
   document.getElementById('mute-all-btn').style.display = 'block';
@@ -425,23 +424,24 @@ function connectSocket() {
   socket.on('connect_error', (e) => {
     document.getElementById('connect-msg').textContent = '⚠️ Connection failed. Retrying...';
     document.getElementById('connect-msg').style.color = '#ffd740';
+    document.getElementById('room-label').style.background = '#e53935';
   });
 
   socket.on('disconnect', (reason) => {
+    document.getElementById('room-label').style.background = '#e53935';
     if (reason === 'io server disconnect') {
-      // Server kicked us - try to reconnect
       setTimeout(() => socket.connect(), 2000);
     }
-    // Otherwise socket.io auto-reconnects
   });
 
   socket.on('reconnect', () => {
-    // Re-join room after reconnection
+    document.getElementById('room-label').style.background = '#e65100';
     socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
   });
 
   socket.on('connect', () => {
     document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
+    document.getElementById('room-label').style.background = '#e65100';
     socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
   });
 
@@ -669,19 +669,19 @@ function connectSocket() {
   });
 
   socket.on('teacher-disconnected', () => {
-    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'block'; document.getElementById('status-bar').textContent = '🟡 Waiting...'; document.getElementById('status-bar').style.color = '#ffd740'; }
+    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'block'; document.getElementById('room-label').style.background = '#e65100'; }
   });
 
   socket.on('teacher-reconnected', () => {
-    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'none'; document.getElementById('status-bar').textContent = '🟢 In Class'; document.getElementById('status-bar').style.color = '#69f0ae'; }
+    if (!IS_TEACHER) { const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'none'; document.getElementById('room-label').style.background = '#2e7d32'; }
   });
 
   socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; } } });
   socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; } } });
 
-  socket.on('disconnect', () => { document.getElementById('status-bar').textContent = '🟡 Reconnecting...'; document.getElementById('status-bar').style.color = '#ffd740'; });
+  socket.on('disconnect', () => { document.getElementById('room-label').style.background = '#e65100'; });
   socket.on('reconnect', () => {
-    document.getElementById('status-bar').textContent = '🟢 Connected'; document.getElementById('status-bar').style.color = '#69f0ae';
+    document.getElementById('room-label').style.background = '#2e7d32';
     if (window._whiteboardInit) socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
   });
 
@@ -1219,8 +1219,7 @@ function startAudioRelayOld(socket) {
 function enterClass() {
   if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
   document.getElementById('connecting-screen').style.display = 'none';
-  document.getElementById('status-bar').textContent = '🟢 Connected';
-  document.getElementById('status-bar').style.color = '#69f0ae';
+  document.getElementById('room-label').style.background = '#2e7d32';
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
   window._audioRelayStarted = false;
