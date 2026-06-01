@@ -423,7 +423,6 @@
       <div style="font-size:0.85rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">New Group Details</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="field-group"><label>Group Name</label><input type="text" id="quick-group-name" placeholder="e.g. 5PM A1 Juan"/></div>
-        <div class="field-group"><label>Time</label><input type="time" id="quick-group-time"/></div>
         <div class="field-group"><label>Level</label>
           <select id="quick-group-level">
             <option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
@@ -470,7 +469,6 @@
     <input type="hidden" id="edit-group-id"/>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="field-group"><label>Group Name</label><input type="text" id="group-name" placeholder="e.g. 8PM A1 #1"/></div>
-      <div class="field-group"><label>Time</label><input type="time" id="group-time"/></div>
       <div class="field-group"><label>Level</label>
         <select id="group-level">
           <option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
@@ -478,7 +476,7 @@
       </div>
       <div class="field-group"><label>Class Type</label>
         <select id="group-type">
-          <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
+          <option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
         </select>
       </div>
     </div>
@@ -775,20 +773,37 @@ function _showAssignGroupModal(dateStr, room) {
 
   const panel = document.getElementById('assign-day-panel');
   const groupOptions = allGroups.map(g =>
-    `<option value="${g._id}">${g.name} · ${g.level} · ${g.classType} · ${fmt12(g.time)}</option>`
+    `<option value="group:${g._id}" data-type="${g.classType}">${g.name} · ${g.level} · ${g.classType}</option>`
+  ).join('');
+
+  const standaloneStudents = getAllStudents().filter(s =>
+    !allGroups.some(g => (g.students||[]).includes(s.name))
+  );
+  const studentOptions = standaloneStudents.map(s =>
+    `<option value="student:${s.name}" data-type="1v1">👤 ${s.name} (1v1)</option>`
   ).join('');
 
   panel.innerHTML = `
-    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">➕ Assign Group</div>
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">➕ Assign Class</div>
     <div style="font-size:0.85rem;color:#888;margin-bottom:14px;">${teacherName} · ${dateStr}</div>
-    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Select Group</label>
-      <select id="modal-group-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
-        <option value="">-- Choose a group --</option>${groupOptions}
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Select Group or Student</label>
+      <select id="modal-group-select" onchange="onAssignSelectionChange()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="">-- Choose --</option>
+        ${groupOptions ? `<optgroup label="👥 Groups">${groupOptions}</optgroup>` : ''}
+        ${studentOptions ? `<optgroup label="👤 1v1 Students">${studentOptions}</optgroup>` : ''}
       </select>
     </div>
-    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Override Time (optional)</label>
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Class Type</label>
+      <select id="modal-class-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="">-- Select type --</option>
+        <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
+        <option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
+      </select>
+    </div>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Time <span style="color:#e53935;">*</span></label>
       <input type="time" id="modal-assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-      <div style="font-size:0.72rem;color:#888;margin-top:3px;">⏰ Guadalajara Time</div>
+      <div style="font-size:0.72rem;color:#888;margin-top:3px;">⏰ Guadalajara Time — Required</div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
@@ -797,13 +812,35 @@ function _showAssignGroupModal(dateStr, room) {
   document.getElementById('assign-day-overlay').style.display = 'flex';
 }
 
+function onAssignSelectionChange() {
+  const sel = document.getElementById('modal-group-select');
+  const opt = sel.options[sel.selectedIndex];
+  const typeSel = document.getElementById('modal-class-type');
+  if (!opt || !opt.value) return;
+  const isStudent = opt.value.startsWith('student:');
+  // Auto-suggest class type
+  if (isStudent) {
+    typeSel.value = '1v1 - 30 Min';
+  } else {
+    const group = allGroups.find(g => `group:${g._id}` === opt.value);
+    if (group?.classType) typeSel.value = group.classType;
+  }
+}
+
 async function saveAssignGroup(dateStr, room) {
-  const groupId = document.getElementById('modal-group-select').value;
-  if (!groupId) { showAlert('😬','Oh No! Woops!','Please select a group.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
-  const group = allGroups.find(g => g._id === groupId);
-  const overrideTime = document.getElementById('modal-assign-time').value;
-  const time = overrideTime || group.time;
-  if (!time) { showAlert('😬','Oh No! Woops!','Please set a time (the group has no default time).',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  const selVal = document.getElementById('modal-group-select').value;
+  if (!selVal) { showAlert('😬','Oh No! Woops!','Please select a group or student.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  const time = document.getElementById('modal-assign-time').value;
+  if (!time) { showAlert('😬','Oh No! Woops!','Please set a time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  const classType = document.getElementById('modal-class-type').value;
+  if (!classType) { showAlert('😬','Oh No! Woops!','Please select a class type.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+
+  const isStudent = selVal.startsWith('student:');
+  const studentName = isStudent ? selVal.replace('student:','') : null;
+  const groupId = !isStudent ? selVal.replace('group:','') : null;
+  const group = groupId ? allGroups.find(g => g._id === groupId) : null;
+  const groupName = group ? group.name : (studentName ? `${studentName} (1v1)` : '');
+  const students = group ? (group.students||[]).length : 1;
 
   // Check date availability
   const teacher = allAvailability.find(t => t.room === room);
@@ -826,7 +863,7 @@ async function saveAssignGroup(dateStr, room) {
 
   // Overlap check
   const existing = allAssignments.filter(a => a.date === dateStr && a.room === room);
-  const newStart = timeToMins(time), newEnd = newStart + getClassDuration(group.classType);
+  const newStart = timeToMins(time), newEnd = newStart + getClassDuration(classType);
   const overlap = existing.find(a => {
     const aStart = timeToMins(a.time), aEnd = aStart + getClassDuration(a.classType);
     return newStart < aEnd && newEnd > aStart;
@@ -838,7 +875,7 @@ async function saveAssignGroup(dateStr, room) {
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, date: dateStr, time, level: group.level, classType: group.classType, students: group.students?.length || 0, groupId, groupName: group.name })
+    body: JSON.stringify({ room, date: dateStr, time, level: group?.level || 'A0', classType, students, groupId: groupId || null, groupName })
   });
 
   document.getElementById('assign-day-overlay').style.display = 'none';
@@ -1151,13 +1188,12 @@ async function saveGlobalStudent() {
   // Handle group
   if (groupVal === '__new__') {
     const gName = document.getElementById('quick-group-name').value.trim();
-    const gTime = document.getElementById('quick-group-time').value;
-    const gLevel = document.getElementById('quick-group-level').value;
+      body: JSON.stringify({ name: gName, level: gLevel, classType: gType, time: '', students: [name] })    const gLevel = document.getElementById('quick-group-level').value;
     const gType  = document.getElementById('quick-group-type').value;
     if (!gName) { err.textContent = 'Group name is required.'; err.style.display = 'block'; return; }
     await fetch(`${SERVER_URL}/groups`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name: gName, level: gLevel, classType: gType, time: gTime, students: [name] })
+      body: JSON.stringify({ name: gName, level: gLevel, classType: gType, time: '', students: [name] })
     });
     await loadGroups();
   } else if (groupVal) {
@@ -1211,7 +1247,6 @@ function openAddGroupModal() {
   document.getElementById('group-modal-title').textContent = 'Create Group';
   document.getElementById('edit-group-id').value = '';
   document.getElementById('group-name').value = '';
-  document.getElementById('group-time').value = '';
   document.getElementById('group-level').value = 'A0';
   document.getElementById('group-type').value = 'Group - 30 Min';
   _groupStudents = [];
@@ -1226,7 +1261,6 @@ function openEditGroupModal(id) {
   document.getElementById('group-modal-title').textContent = 'Edit Group';
   document.getElementById('edit-group-id').value = id;
   document.getElementById('group-name').value = g.name || '';
-  document.getElementById('group-time').value = g.time || '';
   document.getElementById('group-level').value = g.level || 'A0';
   document.getElementById('group-type').value = g.classType || 'Group - 30 Min';
   _groupStudents = [...(g.students || [])];
@@ -1268,7 +1302,6 @@ function renderGroupStudentChips() {
 async function saveGroup() {
   const id   = document.getElementById('edit-group-id').value;
   const name = document.getElementById('group-name').value.trim();
-  const time = document.getElementById('group-time').value;
   const level = document.getElementById('group-level').value;
   const classType = document.getElementById('group-type').value;
   if (!name) { showAlert('😬','Oh No! Woops!','Group name is required.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
@@ -1276,12 +1309,12 @@ async function saveGroup() {
   if (id) {
     await fetch(`${SERVER_URL}/groups/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
+      body: JSON.stringify({ name, level, classType, time: '', students: _groupStudents })
     });
   } else {
     await fetch(`${SERVER_URL}/groups`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, level, classType, time, students: _groupStudents })
+      body: JSON.stringify({ name, level, classType, time: '', students: _groupStudents })
     });
   }
   closeGroupModal();
