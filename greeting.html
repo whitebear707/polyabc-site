@@ -65,7 +65,11 @@
     .btn-schedule { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; }
     .btn-schedule:hover { background: #1a3a6e; }
 
-    .btn-exit     { background: transparent; color: #888; border: 2px solid #333; font-size: 0.95rem; padding: 12px; }
+    @keyframes pulse-red {
+    0%   { box-shadow: 0 0 0 0 rgba(229,57,53,0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
+    100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); }
+  }
     .btn-exit:hover { border-color: #e53935; color: #e53935; background: transparent; }
 
     .room-badge {
@@ -87,8 +91,9 @@
   <button class="greeting-btn btn-enter" onclick="enterClass()">
     🎓 Enter Class
   </button>
-  <button class="greeting-btn btn-schedule" onclick="goSchedule()">
+  <button class="greeting-btn btn-schedule" onclick="goSchedule()" style="position:relative;">
     📅 My Schedule
+    <span id="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e53935;color:white;border-radius:50%;min-width:22px;height:22px;font-size:0.75rem;font-weight:900;align-items:center;justify-content:center;padding:0 4px;animation:pulse-red 1s infinite;"></span>
   </button>
   <button class="greeting-btn btn-exit" onclick="exitToLogin()">
     🚪 Exit
@@ -120,6 +125,24 @@
 
   document.getElementById('teacher-name').textContent = name || 'Teacher';
   document.getElementById('room-sub').textContent = `Room ${room}`;
+
+  // Check for new assignments since last schedule view
+  async function checkNewAssignments() {
+    try {
+      const lastViewed = localStorage.getItem(`lastScheduleView_${room}`) || '2000-01-01T00:00:00.000Z';
+      const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      const assignments = await res.json();
+      const newCount = assignments.filter(a => a.createdAt && a.createdAt > lastViewed).length;
+      const badge = document.getElementById('notif-badge');
+      if (newCount > 0) {
+        badge.textContent = newCount;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    } catch(e) {}
+  }
+  checkNewAssignments();
 
   function enterClass() {
     window.location.href = `classroom.html?room=${room}`;

@@ -316,6 +316,9 @@
     updateGDLDisplay();
     setInterval(updateGDLDisplay, 30000);
 
+    // Mark schedule as viewed — clear notification badge
+    localStorage.setItem(`lastScheduleView_${room}`, new Date().toISOString());
+
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
 
@@ -344,16 +347,21 @@
       return;
     }
 
+    const lastViewed = localStorage.getItem(`lastScheduleView_${room}`) || new Date().toISOString();
     container.innerHTML = upcoming.map(a => {
       const localTime = new Date(`${a.date}T${a.time}:00-06:00`).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:true, timeZone: GDL });
       const localDate = new Date(`${a.date}T${a.time}:00-06:00`).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric', timeZone: GDL });
       const isToday = a.date === today;
-      return `<div style="background:${isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      const isNew = a.createdAt && a.createdAt > lastViewed;
+      return `<div style="background:${isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isNew?'#e53935':isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:900;color:${isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
           <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${a.classType||''}${a.groupName?' · '+a.groupName:''}</div>
         </div>
-        ${isToday?'<span style="background:#ffd740;color:#1a1a2e;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">TODAY</span>':''}
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${isNew?'<span style="background:#e53935;color:white;padding:3px 8px;border-radius:20px;font-size:0.72rem;font-weight:900;">NEW</span>':''}
+          ${isToday?'<span style="background:#ffd740;color:#1a1a2e;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:900;">TODAY</span>':''}
+        </div>
       </div>`;
     }).join('');
   }
