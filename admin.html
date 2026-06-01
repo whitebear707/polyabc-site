@@ -104,7 +104,7 @@
       #cal-sidebar { display: none !important; }
       #cal-main { padding: 12px; }
       #mobile-filter-btn { display: flex !important; }
-      #mobile-day-detail { display: block !important; }
+      .mobile-only { display: block !important; }
     }
 
     #filter-drawer { display: none; }
@@ -127,7 +127,8 @@
     #attendance-btn-top { background: #0f3460; color: #a0c4ff; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top:hover { background: #1a73e8; color: white; }
 
-    /* ── PANELS ── */
+    .mobile-only { display: none !important; }
+    #mobile-filter-btn { display: none !important; }
     .panel { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
     .panel.active { display: block; }
 
@@ -341,7 +342,7 @@
         <button onclick="openFilterDrawer()" style="background:#0f3460;color:#a0c4ff;border:none;padding:8px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">🔍 Filter</button>
         <button onclick="document.getElementById('mobile-day-detail').style.display=document.getElementById('mobile-day-detail').style.display==='none'?'block':'none'" style="background:#f0f4f8;color:#555;border:none;padding:8px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">📋 Day Detail</button>
       </div>
-      <div id="mobile-day-detail" style="display:none;margin-bottom:12px;background:white;border-radius:12px;padding:12px;border:1px solid #e0e0e0;"></div>
+      <div id="mobile-day-detail" class="mobile-only" style="display:none;margin-bottom:12px;background:white;border-radius:12px;padding:12px;border:1px solid #e0e0e0;"></div>
       <div class="master-cal-nav">
         <button onclick="masterPrevMonth()">‹</button>
         <h2 id="master-cal-title"></h2>
