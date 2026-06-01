@@ -1011,8 +1011,8 @@ async function loadTodayAssignment() {
   } else {
     const leaveBtn = document.getElementById('leave-btn');
     if (leaveBtn) leaveBtn.style.display = 'none';
+    checkStudentAccess();
   }
-    else checkStudentAccess();
   } catch(e) {}
 }
 
