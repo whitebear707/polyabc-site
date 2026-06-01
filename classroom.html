@@ -300,10 +300,9 @@ const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName
 const studentSlots = {};
 
 document.getElementById('room-label').textContent = `Room: ${ROOM}`;
-document.getElementById('room-label').style.background = '#2e7d32';
+document.getElementById('room-label').style.background = '#e65100';
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
-  document.getElementById('mute-all-btn').style.display = 'block';
   document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
