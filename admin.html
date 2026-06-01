@@ -209,11 +209,6 @@
 
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
-      <!-- Trial Bookings -->
-      <div id="trial-bookings-bar" style="display:none;background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:12px;margin-bottom:12px;">
-        <div style="font-size:0.85rem;font-weight:900;color:#6a1b9a;margin-bottom:8px;">🎓 Trial Requests</div>
-        <div id="trial-bookings-list"></div>
-      </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Filter by Day & Time</div>
         <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
@@ -641,7 +636,7 @@ function showPanel(name) {
   if (attBtn) attBtn.style.background = name === 'attendance' ? '#1a73e8' : '';
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
-  if (name === 'calendar')   { renderMasterCalendar(); loadTrialBookings(); }
+  if (name === 'calendar')   { renderMasterCalendar(); }
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
