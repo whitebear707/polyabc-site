@@ -291,7 +291,7 @@
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
   const token = localStorage.getItem('teacherToken');
-  const room  = localStorage.getItem('teacherRoom') || '';
+  const room  = localStorage.getItem('teacherRoom') || ''; // v2
   if (!token) { window.location.href = 'greeting.html'; }
 
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
