@@ -21,7 +21,7 @@
     #topbar img { height: 40px; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
     #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
-    #leave-btn { background: #e53935; color: white; border: none; padding: 8px 18px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+    #leave-btn { background: #e53935; color: white; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
     #leave-btn:hover { background: #c62828; }
 
     #main { display: flex; flex: 1; overflow: hidden; }
@@ -178,7 +178,12 @@
   <div style="display:flex;gap:8px;align-items:center;">
     <button id="mute-all-btn" onclick="muteAll()" style="display:none;background:#e65100;color:white;border:none;padding:6px 12px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">🔇 Mute All</button>
     <button id="new-class-btn" onclick="newClass()" style="display:none;background:#6a1b9a;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">✨ NEW</button>
-    <button id="leave-btn" onclick="leaveClass()">🚪 Leave Class</button>
+    <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
+        <line x1="12" y1="2" x2="12" y2="12"/>
+      </svg>
+    </button>
   </div>
 </div>
 
@@ -236,6 +241,10 @@
   </div>
 
   <div id="right-panel">
+    <div id="right-panel-controls" style="display:none;gap:6px;margin-bottom:6px;">
+      <button id="spk-all-btn" onclick="toggleMuteAll()" title="Mute/Unmute All" style="flex:1;background:#0f3460;color:white;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:1rem;">🔊 All</button>
+      <button id="cam-all-btn" onclick="toggleCamAll()" title="Enable/Disable All Cameras" style="flex:1;background:#0f3460;color:white;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:1rem;">📷 All</button>
+    </div>
     <div id="right-panel-title">Students</div>
   </div>
 </div>
@@ -906,14 +915,20 @@ function showStudentSlot(socketId, name) {
   slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
     ${IS_TEACHER ? `<div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
   const lbl = document.createElement('div');
-  lbl.className = 'student-label-below'; lbl.textContent = name || 'Student';
+  lbl.className = 'student-label-below';
+  lbl.id = `lbl-${socketId}`;
+  lbl.textContent = name || 'Student';
+  if (IS_TEACHER) {
+    lbl.style.cssText = 'cursor:pointer;background:#2e7d32;color:white;border-radius:8px;padding:2px 6px;font-size:0.75rem;font-weight:700;text-align:center;margin-top:2px;';
+    lbl.title = 'Click to toggle drawing permission';
+    lbl.onclick = () => toggleDrawByName(socketId, name || 'Student', lbl);
+  }
   wrap.appendChild(slot); wrap.appendChild(lbl);
   if (IS_TEACHER) {
     const ctrls = document.createElement('div');
     ctrls.className = 'student-controls-row';
-    ctrls.innerHTML = `<button class="mute-student-btn" onclick="muteStudent('${socketId}')">🔇 Mute</button><button class="star-btn" onclick="giveStar('${socketId}','${name||'Student'}')">⭐</button>`;
+    ctrls.innerHTML = `<button class="star-btn" onclick="giveStar('${socketId}','${name||'Student'}')">⭐</button>`;
     wrap.appendChild(ctrls);
-    addDrawControlBtn(socketId, name);
   }
   document.getElementById('right-panel').appendChild(wrap);
   studentSlots[socketId] = socketId;
@@ -964,7 +979,14 @@ async function loadTodayAssignment() {
   try {
     const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`);
     todayAssignments = await res.json();
-    if (IS_TEACHER) checkTeacherRoomLock();
+    if (IS_TEACHER) {
+    const ctrl = document.getElementById('right-panel-controls');
+    if (ctrl) ctrl.style.display = 'flex';
+    checkTeacherRoomLock();
+  } else {
+    const leaveBtn = document.getElementById('leave-btn');
+    if (leaveBtn) leaveBtn.style.display = 'none';
+  }
     else checkStudentAccess();
   } catch(e) {}
 }
@@ -1234,6 +1256,48 @@ function toggleCam() {
   const logo = document.getElementById('cam-off-logo');
   if (logo) logo.style.display = myCamOn ? 'none' : 'flex';
   if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
+}
+
+function toggleDrawByName(socketId, name, lbl) {
+  const wrap = document.getElementById(`wrap-${socketId}`);
+  if (!wrap) return;
+  const isAllowed = lbl.style.background.includes('2e7d32') || lbl.style.background === 'rgb(46, 125, 50)';
+  if (isAllowed) {
+    // Disable drawing
+    lbl.style.background = '#e53935';
+    if (window._socket) window._socket.emit('toggle-draw', { room: ROOM, targetId: socketId, allowed: false });
+  } else {
+    // Enable drawing
+    lbl.style.background = '#2e7d32';
+    if (window._socket) window._socket.emit('toggle-draw', { room: ROOM, targetId: socketId, allowed: true });
+  }
+}
+
+let _allMuted = false;
+let _allCamOff = false;
+
+function toggleMuteAll() {
+  _allMuted = !_allMuted;
+  const btn = document.getElementById('spk-all-btn');
+  btn.textContent = _allMuted ? '🔇 All' : '🔊 All';
+  btn.style.background = _allMuted ? '#e53935' : '#0f3460';
+  Object.keys(studentSlots).forEach(socketId => {
+    if (socketId === '__self__') return;
+    if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: _allMuted });
+    const spk = document.getElementById(`spk-${socketId}`);
+    if (spk) { spk.textContent = _allMuted ? '🔇' : '🔊'; spk.style.background = _allMuted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)'; }
+  });
+}
+
+function toggleCamAll() {
+  _allCamOff = !_allCamOff;
+  const btn = document.getElementById('cam-all-btn');
+  btn.textContent = _allCamOff ? '🚫 All' : '📷 All';
+  btn.style.background = _allCamOff ? '#e53935' : '#0f3460';
+  Object.keys(studentSlots).forEach(socketId => {
+    if (socketId === '__self__') return;
+    if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: !_allCamOff });
+  });
 }
 
 function toggleStudentCamClick(socketId) {
