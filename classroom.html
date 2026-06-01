@@ -209,7 +209,6 @@
     </div>
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
-      <button class="tool-btn" id="tool-erase" onclick="setTool('erase')">🧹 Erase</button>
       <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
       <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
@@ -435,7 +434,10 @@ function connectSocket() {
 
   socket.on('reconnect', () => {
     document.getElementById('room-label').style.background = '#e65100';
-    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    // Only rejoin if we were actually in the class (not on waiting screen)
+    const waitingScreen = document.getElementById('waiting-screen');
+    const isWaiting = waitingScreen && waitingScreen.style.display !== 'none';
+    if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
   });
 
   socket.on('connect', () => {
@@ -1282,18 +1284,10 @@ function toggleCam() {
 }
 
 function toggleDrawByName(socketId, name, lbl) {
-  const wrap = document.getElementById(`wrap-${socketId}`);
-  if (!wrap) return;
-  const isAllowed = lbl.style.background.includes('2e7d32') || lbl.style.background === 'rgb(46, 125, 50)';
-  if (isAllowed) {
-    // Disable drawing
-    lbl.style.background = '#e53935';
-    if (window._socket) window._socket.emit('toggle-draw', { room: ROOM, targetId: socketId, allowed: false });
-  } else {
-    // Enable drawing
-    lbl.style.background = '#2e7d32';
-    if (window._socket) window._socket.emit('toggle-draw', { room: ROOM, targetId: socketId, allowed: true });
-  }
+  const isGreen = lbl.style.background.includes('46, 125, 50') || lbl.style.background === 'rgb(46, 125, 50)' || lbl.style.background === '#2e7d32';
+  const canDraw = !isGreen; // if currently green (allowed), disable; if red (disabled), enable
+  lbl.style.background = canDraw ? '#2e7d32' : '#e53935';
+  if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw });
 }
 
 let _allMuted = false;
@@ -1320,26 +1314,60 @@ function toggleCamAll() {
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: !_allCamOff });
+    // Show/hide monkey on teacher side
+    const slot = document.getElementById(`slot-${socketId}`);
+    const vid = document.getElementById(`vimg-${socketId}`);
+    if (vid) vid.dataset.camOff = _allCamOff;
+    if (slot) {
+      let monkey = slot.querySelector('.monkey-placeholder');
+      if (_allCamOff) {
+        if (!monkey) {
+          monkey = document.createElement('img');
+          monkey.className = 'monkey-placeholder';
+          monkey.src = 'nosee.png';
+          monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:3;border-radius:10px;';
+          slot.appendChild(monkey);
+        }
+      } else {
+        if (monkey) monkey.remove();
+      }
+    }
   });
 }
 
 function toggleStudentCamClick(socketId) {
-  const btn = document.querySelector(`#wrap-${socketId} .cam-student-btn`);
-  if (btn) btn.click();
+  // Track per-student cam state
+  const vid = document.getElementById(`vimg-${socketId}`);
+  const camOff = vid?.dataset?.camOff === 'true';
+  const newCamOn = camOff; // toggle
+  if (vid) vid.dataset.camOff = !newCamOn;
+  if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: newCamOn });
+  // Show monkey image placeholder on teacher side
+  const slot = document.getElementById(`slot-${socketId}`);
+  if (slot) {
+    let monkey = slot.querySelector('.monkey-placeholder');
+    if (!newCamOn) {
+      if (!monkey) {
+        monkey = document.createElement('img');
+        monkey.className = 'monkey-placeholder';
+        monkey.src = 'nosee.png';
+        monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1a1a2e;z-index:3;border-radius:10px;';
+        slot.appendChild(monkey);
+      }
+    } else {
+      if (monkey) monkey.remove();
+    }
+  }
 }
 
 function toggleStudentMicOverlay(socketId) {
   const spk = document.getElementById(`spk-${socketId}`);
-  const wrap = document.getElementById(`wrap-${socketId}`);
-  const btn = wrap ? wrap.querySelector('.mute-student-btn') : null;
-  if (btn) {
-    const isMuted = btn.textContent.includes('Unmute');
-    btn.click();
-    if (spk) {
-      spk.textContent = isMuted ? '🔊' : '🔇';
-      spk.style.background = isMuted ? 'rgba(0,0,0,0.5)' : 'rgba(229,57,53,0.85)';
-    }
-  }
+  if (!spk) return;
+  const isMuted = spk.textContent === '🔇';
+  const newMuted = !isMuted;
+  spk.textContent = newMuted ? '🔇' : '🔊';
+  spk.style.background = newMuted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)';
+  if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: newMuted });
 }
 
 function muteAll() {
