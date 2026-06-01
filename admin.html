@@ -1201,7 +1201,7 @@ async function saveGlobalStudent() {
   // Handle group
   if (groupVal === '__new__') {
     const gName = document.getElementById('quick-group-name').value.trim();
-      body: JSON.stringify({ name: gName, level: gLevel, classType: gType, time: '', students: [name] })    const gLevel = document.getElementById('quick-group-level').value;
+    const gLevel = document.getElementById('quick-group-level').value;
     const gType  = document.getElementById('quick-group-type').value;
     if (!gName) { err.textContent = 'Group name is required.'; err.style.display = 'block'; return; }
     await fetch(`${SERVER_URL}/groups`, {
