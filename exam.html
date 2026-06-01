@@ -146,6 +146,27 @@
     </div>
   </div>
 
+  <!-- WAITING SCREEN -->
+  <div id="waiting-screen" style="display:none;text-align:center;">
+    <div style="font-size:3.5rem;margin-bottom:16px;">⏳</div>
+    <div class="card-title" style="font-size:1.2rem;margin-bottom:10px;">
+      Please wait for confirmation!<br>
+      <span style="font-size:1rem;color:#888;">¡Por favor espera la confirmación!</span>
+    </div>
+    <div style="background:#f0f7ff;border-radius:12px;padding:16px;margin-bottom:20px;font-size:0.9rem;color:#1a73e8;font-weight:700;">
+      📅 <span id="waiting-date"></span>
+    </div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.7;margin-bottom:20px;">
+      Your trial class request has been received.<br>
+      We will contact you soon to confirm your spot!<br><br>
+      <span style="color:#888;">
+        Tu solicitud de clase de prueba ha sido recibida.<br>
+        ¡Te contactaremos pronto para confirmar tu lugar!
+      </span>
+    </div>
+    <button onclick="signOut()" style="width:100%;padding:14px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;color:white;">Done / Listo</button>
+  </div>
+
   <!-- SUCCESS SCREEN -->
   <div id="success-screen" class="success-screen">
     <div class="success-emoji">🎉</div>
@@ -222,12 +243,19 @@ const LEVELS = [
 ];
 
 // ── Init ──
-window.onload = () => {
+window.onload = async () => {
   if (!trialData.id) { window.location.href = 'index.html'; return; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
   populateTimeSelect();
+
+  // Check if student already has a pending booking
+  try {
+    const res = await fetch(`${SERVER_URL}/trial/bookings/student/${trialData.id}`);
+    const data = await res.json();
+    if (data.booked) { showWaitingScreen(data.date, data.time); return; }
+  } catch(e) {}
 
   // If student already has a level, skip to booking
   if (trialData.hasLevel && trialData.level) {
@@ -237,6 +265,13 @@ window.onload = () => {
   }
   renderQuestion();
 };
+
+function showWaitingScreen(date, time) {
+  const timeDisp = new Date(`2000-01-01T${time}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+  document.getElementById('exam-screen').style.display = 'none';
+  document.getElementById('waiting-screen').style.display = 'block';
+  document.getElementById('waiting-date').textContent = `${date} at ${timeDisp} (Guadalajara Time)`;
+}
 
 function populateTimeSelect() {
   const sel = document.getElementById('time-select');
