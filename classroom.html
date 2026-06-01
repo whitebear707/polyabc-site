@@ -938,8 +938,15 @@ function showStudentSlot(socketId, name) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${socketId}`;
   // Use video element for WebRTC stream
-  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}" ${IS_TEACHER?`onclick="toggleStudentCamClick('${socketId}')"`:''}></video>
-    ${IS_TEACHER ? `<div id="spk-${socketId}" onclick="event.stopPropagation();toggleStudentMicOverlay('${socketId}')" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
+  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}"></video>
+    ${IS_TEACHER ? `<div id="spk-${socketId}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
+  // Add listeners after innerHTML
+  if (IS_TEACHER) {
+    const vid = slot.querySelector('video');
+    if (vid) vid.addEventListener('click', () => toggleStudentCamClick(socketId));
+    const spk = slot.querySelector(`#spk-${socketId}`);
+    if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(socketId); });
+  }
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below';
   lbl.id = `lbl-${socketId}`;
