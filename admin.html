@@ -46,7 +46,12 @@
     .nav-btn:hover { background: #0f3460; color: white; }
     .nav-btn.active { background: #1a73e8; color: white; }
 
-    #logout-btn { background: #e53935; color: white; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+    #new-trial-btn { animation: pulse-glow-purple 1s infinite; }
+  @keyframes pulse-glow-purple {
+    0%   { box-shadow: 0 0 0 0 rgba(156,39,176,0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(156,39,176,0); }
+    100% { box-shadow: 0 0 0 0 rgba(156,39,176,0); }
+  } background: #e53935; color: white; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top { background: #0f3460; color: #a0c4ff; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top:hover { background: #1a73e8; color: white; }
 
@@ -192,6 +197,7 @@
     </div>
     <div id="header-center"><img src="LOGO.png" alt="PolyABC"/></div>
     <div id="header-right">
+      <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </div>
@@ -269,7 +275,7 @@
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Group</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Actions</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -562,6 +568,8 @@ async function doLogin() {
     document.getElementById('dashboard').style.display = 'block';
     await loadAll();
     showPanel('calendar');
+    checkNewTrials();
+    setInterval(checkNewTrials, 30000); // check every 30 seconds
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     showAlert('😬','Connection Error','Could not reach the server.',[{label:'OK',fn:'closeAlert()',primary:true}]);
@@ -1095,11 +1103,19 @@ function renderAllStudents() {
     const groupCell = group
       ? `<span style="background:#e3f2fd;color:#1a73e8;padding:3px 8px;border-radius:10px;font-size:0.8rem;font-weight:700;">${group.name}</span>`
       : '<span style="color:#aaa;">—</span>';
-    return `<tr>
-      <td style="font-weight:700;">${s.name}</td>
+    const levelCell = s.trialLevel
+      ? `<span style="background:#f3e5f5;color:#6a1b9a;padding:3px 8px;border-radius:10px;font-size:0.8rem;font-weight:700;">${s.trialLevel}</span>`
+      : '<span style="color:#aaa;">—</span>';
+    const trialDateCell = s.trialDate
+      ? `<span style="font-size:0.8rem;color:#e65100;">${s.trialDate} ${s.trialTime ? fmt12(s.trialTime) : ''}</span>`
+      : '<span style="color:#aaa;">—</span>';
+    return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
+      <td style="font-weight:700;">${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}</td>
       <td style="color:#888;">${s.password}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
+      <td>${levelCell}</td>
+      <td>${trialDateCell}</td>
       <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
     </tr>`;
   }).join('');
@@ -1345,6 +1361,29 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
+}
+
+// ── TRIAL NOTIFICATIONS ──
+async function checkNewTrials() {
+  try {
+    const res = await fetch(`${SERVER_URL}/trial/new-count`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const data = await res.json();
+    const btn = document.getElementById('new-trial-btn');
+    if (data.count > 0) {
+      btn.style.display = 'block';
+      btn.textContent = `🎓 New Trial! (${data.count})`;
+    } else {
+      btn.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function goToTrialStudents() {
+  // Clear the new trial flag
+  await fetch(`${SERVER_URL}/trial/clear-new`, { method: 'POST', headers: { Authorization: `Bearer ${currentToken}` } });
+  document.getElementById('new-trial-btn').style.display = 'none';
+  await loadAll();
+  showPanel('students');
 }
 
 // ── TRIAL BOOKINGS ──
