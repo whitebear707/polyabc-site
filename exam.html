@@ -95,10 +95,29 @@
 
 <div class="card" id="main-card">
 
+  <!-- INTRO SCREEN -->
+  <div id="intro-screen" style="text-align:center;">
+    <div style="font-size:3rem;margin-bottom:16px;">📝</div>
+    <div class="card-title" style="font-size:1.2rem;margin-bottom:10px;">
+      English Placement Test<br>
+      <span style="font-size:1rem;color:#888;font-weight:700;">Examen de Nivel de Inglés</span>
+    </div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.8;margin-bottom:20px;text-align:left;background:#f8f9fa;border-radius:12px;padding:16px;">
+      This short test will help us understand your English level so we can place you in the right class.<br>
+      <span style="color:#888;">Este examen nos ayudará a conocer tu nivel de inglés para colocarte en la clase correcta.</span>
+      <br><br>
+      There are <strong>20 questions</strong>. Just do your best — there are no wrong answers!<br>
+      <span style="color:#888;">Hay <strong>20 preguntas</strong>. Haz tu mejor esfuerzo — ¡no hay respuestas incorrectas!</span>
+    </div>
+    <button onclick="startExam()" style="width:100%;padding:14px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
+      Start Test / Comenzar Examen →
+    </button>
+  </div>
+
   <!-- EXAM SCREEN -->
-  <div id="exam-screen">
+  <div id="exam-screen" style="display:none;">
     <div class="card-title">📝 English Placement Test</div>
-    <div class="card-sub">Answer all questions honestly — this helps us place you in the right class!</div>
+    <div class="card-sub" id="exam-sub">Answer all questions — just pick the best answer!</div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div class="question-num" id="q-num">Question 1 of 15</div>
     <div class="question-text" id="q-text"></div>
@@ -121,11 +140,14 @@
 
   <!-- BOOKING SCREEN -->
   <div id="booking-screen" class="booking-screen">
-    <div class="card-title">📅 Book Your Free Trial</div>
-    <div class="card-sub" style="margin-bottom:16px;">Your level: <strong id="booking-level-tag" style="color:#1a73e8;"></strong> · Trial class is 15 minutes, free!</div>
+    <div class="card-title">📅 Book Your Free Trial / Reserva tu Clase de Prueba</div>
+    <div class="card-sub" style="margin-bottom:16px;">
+      Choose your preferred time and pick an available day!<br>
+      <span style="color:#aaa;">¡Elige tu hora preferida y selecciona un día disponible!</span>
+    </div>
     <div class="time-row">
       <div>
-        <label>Preferred time:</label>
+        <label>Preferred time: / Hora preferida:<br><span style="font-size:0.7rem;color:#888;">⏰ Guadalajara Time</span></label>
         <select id="time-select">
           <option value="">-- Select --</option>
         </select>
@@ -170,12 +192,15 @@
   <!-- SUCCESS SCREEN -->
   <div id="success-screen" class="success-screen">
     <div class="success-emoji">🎉</div>
-    <div class="card-title" style="font-size:1.3rem;margin-bottom:8px;">Request Sent!</div>
-    <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:20px;">
+    <div class="card-title" style="font-size:1.2rem;margin-bottom:4px;">Request Sent!</div>
+    <div style="font-size:0.95rem;color:#888;margin-bottom:12px;">¡Solicitud Enviada!</div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.8;margin-bottom:20px;">
       We'll contact you soon to confirm your trial class.<br>
+      <span style="color:#888;">Te contactaremos pronto para confirmar tu clase de prueba.</span>
+      <br><br>
       <strong id="success-details" style="color:#1a73e8;"></strong>
     </div>
-    <button onclick="signOut()" style="width:100%;padding:14px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;color:white;">Done</button>
+    <button onclick="signOut()" style="width:100%;padding:14px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;color:white;">Done / Listo</button>
   </div>
 
 </div>
@@ -205,41 +230,37 @@ let selectedTime = null;
 let availMap = {};
 let calYear, calMonth;
 
-// ── 15 CEFR-based placement questions ──
+// ── 20 PolyABC placement questions ──
 const QUESTIONS = [
-  // A0/A1 - Very basic
-  { q: 'What ___ your name?', opts: ['is', 'are', 'am', 'be'], ans: 0 },
-  { q: '___ you speak English?', opts: ['Do', 'Does', 'Is', 'Are'], ans: 0 },
-  { q: 'She ___ a student.', opts: ['am', 'is', 'are', 'be'], ans: 1 },
-
-  // A1/A2 - Simple grammar
-  { q: 'I ___ to school every day.', opts: ['go', 'goes', 'going', 'went'], ans: 0 },
-  { q: 'Yesterday, we ___ to the cinema.', opts: ['go', 'goes', 'going', 'went'], ans: 3 },
-  { q: 'There ___ a lot of people at the party.', opts: ['was', 'were', 'is', 'are'], ans: 1 },
-
-  // A2/B1 - Intermediate grammar
-  { q: 'She has lived in Mexico ___ 2015.', opts: ['for', 'since', 'ago', 'before'], ans: 1 },
-  { q: '___ you ever been to New York?', opts: ['Have', 'Did', 'Was', 'Do'], ans: 0 },
-  { q: 'When I arrived, she ___ already left.', opts: ['has', 'had', 'was', 'did'], ans: 1 },
-
-  // B1/B2 - Upper intermediate
-  { q: 'If I ___ more money, I would travel the world.', opts: ['have', 'had', 'has', 'having'], ans: 1 },
-  { q: 'The homework must be ___ by tomorrow.', opts: ['submit', 'submits', 'submitted', 'submitting'], ans: 2 },
-  { q: 'Despite ___ tired, she kept working.', opts: ['be', 'been', 'being', 'to be'], ans: 2 },
-
-  // B2/C1 - Advanced
-  { q: 'Hardly ___ she sat down when the phone rang.', opts: ['had', 'has', 'did', 'was'], ans: 0 },
-  { q: 'The new law is intended to ___ corruption.', opts: ['curve', 'curb', 'cure', 'cut off'], ans: 1 },
-  { q: '___ to the bad weather, the event was cancelled.', opts: ['Despite', 'Although', 'Owing', 'Even though'], ans: 2 },
+  { q: 'What ___ your name?', opts: ['are', 'is', 'am', 'be'], ans: 1 },
+  { q: 'I ___ from Mexico.', opts: ['is', 'are', 'am', 'be'], ans: 2 },
+  { q: 'She ___ coffee every morning.', opts: ['drink', 'drinks', 'drinking', 'drank'], ans: 1 },
+  { q: 'Which one is a color?', opts: ['Apple', 'Blue', 'Chair', 'Dog'], ans: 1 },
+  { q: 'How many days are in one week?', opts: ['5', '6', '7', '8'], ans: 2 },
+  { q: 'Yesterday I ___ to the store.', opts: ['go', 'goes', 'went', 'going'], ans: 2 },
+  { q: 'Choose the correct sentence:', opts: ["He don't like pizza", "He doesn't likes pizza", "He doesn't like pizza", "He not like pizza"], ans: 2 },
+  { q: 'What time ___ you wake up?', opts: ['do', 'does', 'are', 'is'], ans: 0 },
+  { q: 'I have lived here ___ 2019.', opts: ['for', 'since', 'from', 'at'], ans: 1 },
+  { q: 'Which word is closest to "happy"?', opts: ['Sad', 'Angry', 'Joyful', 'Tired'], ans: 2 },
+  { q: 'If it rains tomorrow, we ___ home.', opts: ['stay', 'stayed', 'will stay', 'staying'], ans: 2 },
+  { q: 'She ___ her homework before dinner.', opts: ['finish', 'finished', 'has finished', 'finishing'], ans: 2 },
+  { q: 'Choose the most natural response to "How are you?":', opts: ['Blue', 'Very good, thanks', 'At home yes', 'Yesterday maybe'], ans: 1 },
+  { q: 'Which sentence is grammatically correct?', opts: ["I've never been to Canada.", "I never have been to Canada.", "Never I been to Canada.", "I not been to Canada."], ans: 0 },
+  { q: 'What does "I'm looking forward to it" mean?', opts: ["I'm afraid", "I'm excited about it", "I'm angry", "I forgot about it"], ans: 1 },
+  { q: 'By the time we arrived, the movie ___.', opts: ['starts', 'started', 'had started', 'starting'], ans: 2 },
+  { q: 'Which sentence sounds most professional?', opts: ['Send me that thing now.', 'Can you maybe send it?', 'Could you please send me the document?', 'Hey give me the file.'], ans: 2 },
+  { q: 'What does "break the ice" mean?', opts: ['Destroy something', 'Start a conversation comfortably', 'End a friendship', 'Cause a problem'], ans: 1 },
+  { q: 'Despite ___ very tired, she continued working.', opts: ['be', 'being', 'been', 'is'], ans: 1 },
+  { q: 'Choose the sentence with the best academic tone:', opts: ['Kids use phones too much.', 'Phones are bad for children.', "Excessive smartphone usage may negatively affect children's development.", 'Phones mess kids up.'], ans: 2 },
 ];
 
 const LEVELS = [
-  { min: 0,  max: 2,  level: 'A0', name: 'Complete Beginner',    desc: 'You are just starting your English journey! A trial class will help you take your first steps.' },
-  { min: 3,  max: 5,  level: 'A1', name: 'Beginner',             desc: 'You know some basic English. A trial class will help us build on what you know.' },
-  { min: 6,  max: 8,  level: 'A2', name: 'Elementary',           desc: 'You can handle simple conversations. A trial class will help us find the right starting point.' },
-  { min: 9,  max: 10, level: 'B1', name: 'Intermediate',         desc: 'You can communicate in everyday situations. Great foundation to build on!' },
-  { min: 11, max: 12, level: 'B2', name: 'Upper Intermediate',   desc: 'You handle complex topics well. A trial class will help us tailor your learning path.' },
-  { min: 13, max: 15, level: 'C1', name: 'Advanced',             desc: 'Impressive! You have strong English skills. A trial class will show us how to push you further.' },
+  { min: 0,  max: 4,  level: 'A0', name: 'Complete Beginner',    desc: '' },
+  { min: 5,  max: 8,  level: 'A1', name: 'Beginner',             desc: '' },
+  { min: 9,  max: 11, level: 'A2', name: 'Elementary',           desc: '' },
+  { min: 12, max: 14, level: 'B1', name: 'Intermediate',         desc: '' },
+  { min: 15, max: 17, level: 'B2', name: 'Upper Intermediate',   desc: '' },
+  { min: 18, max: 20, level: 'C1', name: 'Advanced',             desc: '' },
 ];
 
 // ── Init ──
@@ -291,7 +312,6 @@ function renderQuestion() {
   document.getElementById('q-text').textContent = q.q;
   document.getElementById('progress-fill').style.width = `${(currentQ/QUESTIONS.length)*100}%`;
   document.getElementById('next-btn').style.display = 'none';
-
   document.getElementById('q-options').innerHTML = q.opts.map((o,i) =>
     `<button class="option" onclick="selectAnswer(${i})">${o}</button>`
   ).join('');
@@ -301,12 +321,15 @@ function selectAnswer(idx) {
   const q = QUESTIONS[currentQ];
   const opts = document.querySelectorAll('.option');
   opts.forEach(o => o.style.pointerEvents = 'none');
-  opts[idx].classList.add(idx === q.ans ? 'correct' : 'wrong');
-  if (idx !== q.ans) opts[q.ans].classList.add('correct');
+  opts[idx].classList.add('selected');
   if (idx === q.ans) score++;
   answers.push(idx);
-  document.getElementById('next-btn').style.display = 'block';
-  document.getElementById('next-btn').textContent = currentQ === QUESTIONS.length-1 ? 'See Results 🎉' : 'Next →';
+  // Auto advance after short delay
+  setTimeout(() => {
+    currentQ++;
+    if (currentQ >= QUESTIONS.length) { showResults(); return; }
+    renderQuestion();
+  }, 400);
 }
 
 function nextQuestion() {
@@ -319,22 +342,26 @@ function showResults() {
   const entry = LEVELS.find(l => score >= l.min && score <= l.max) || LEVELS[0];
   detectedLevel = entry.level;
 
-  // Save level to server
+  // Save level to server silently
   fetch(`${SERVER_URL}/trial/save-level`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ studentId: trialData.id, level: detectedLevel })
   });
 
+  // Skip result screen — go straight to booking
   document.getElementById('progress-fill').style.width = '100%';
   document.getElementById('exam-screen').style.display = 'none';
-  document.getElementById('result-screen').style.display = 'block';
-  document.getElementById('result-level').textContent = entry.level;
-  document.getElementById('level-badge').textContent = entry.name;
-  document.getElementById('level-desc').textContent = entry.desc;
-  document.getElementById('score-text').textContent = `${score}`;
+  showBooking();
+}
+
+function startExam() {
+  document.getElementById('intro-screen').style.display = 'none';
+  document.getElementById('exam-screen').style.display = 'block';
+  renderQuestion();
 }
 
 function skipToBooking() {
+  document.getElementById('intro-screen').style.display = 'none';
   document.getElementById('exam-screen').style.display = 'none';
   showBooking();
 }
