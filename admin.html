@@ -101,7 +101,7 @@
       #mobile-power:hover { background: #c62828; }
       .panel { padding: 12px; }
       #panel-calendar.active { flex-direction: column; height: auto; }
-      #cal-sidebar { display: none; }
+      #cal-sidebar { display: none !important; }
       #cal-main { padding: 12px; }
       #mobile-filter-btn { display: flex !important; }
       #mobile-day-detail { display: block !important; }
@@ -135,8 +135,9 @@
 
     #cal-sidebar {
       width: 320px; flex-shrink: 0; background: white; border-right: 2px solid #e0e0e0;
-      display: flex; flex-direction: column; overflow-y: auto;
+      display: none; flex-direction: column; overflow-y: auto;
     }
+    #panel-calendar.active #cal-sidebar { display: flex; }
     #cal-main { flex: 1; padding: 24px; overflow-y: auto; }
 
     .sidebar-section { padding: 16px; border-bottom: 1px solid #eee; }
