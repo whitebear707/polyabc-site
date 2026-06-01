@@ -546,7 +546,12 @@
       else if (status === 'available') cls += ' available';
       else cls += ' unavailable';
 
-      const dot = assigned.length > 0 ? `<span class="day-dot">📋 ${assigned.length}</span>` : '';
+      const lastViewed = localStorage.getItem(`lastScheduleView_${room}`) || new Date().toISOString();
+      const hasNew = assigned.some(a => a.createdAt && a.createdAt > lastViewed);
+
+      const dot = assigned.length > 0
+        ? `<span class="day-dot">${hasNew ? '⭐' : '📋'} ${assigned.length}</span>`
+        : '';
       const click = assigned.length > 0
         ? `onclick="showAssignments('${dateStr}')"`
         : isPast ? '' : `onclick="toggleDay('${dateStr}')"`;
