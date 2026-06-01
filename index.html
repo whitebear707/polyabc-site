@@ -250,7 +250,11 @@
         clearInterval(window._loginCountdown);
 
         if (data.success) {
-          if (data.role === 'teacher') {
+          if (data.role === 'trial') {
+          localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel }));
+          window.location.href = 'exam.html'; return;
+        }
+        if (data.role === 'teacher') {
             localStorage.setItem('teacherToken', data.token);
             localStorage.setItem('teacherRoom', room);
             localStorage.setItem('teacherName', data.name || 'Teacher');

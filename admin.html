@@ -203,6 +203,11 @@
 
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
+      <!-- Trial Bookings -->
+      <div id="trial-bookings-bar" style="display:none;background:#f3e5f5;border:1px solid #ce93d8;border-radius:12px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:0.85rem;font-weight:900;color:#6a1b9a;margin-bottom:8px;">🎓 Trial Requests</div>
+        <div id="trial-bookings-list"></div>
+      </div>
       <div class="sidebar-section">
         <div class="sidebar-title">Filter by Day & Time</div>
         <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
@@ -405,6 +410,13 @@
     <div class="modal-title">Add Student</div>
     <div class="field-group"><label>Student Name</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
     <div class="field-group"><label>Password</label><input type="text" id="global-student-pass" placeholder="e.g. juan123"/></div>
+    <div class="field-group">
+      <label>Student Type</label>
+      <select id="global-student-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">Regular Student</option>
+        <option value="Trial">🎓 Trial (takes placement test on login)</option>
+      </select>
+    </div>
     <div class="field-group">
       <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
       <select id="global-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
@@ -618,7 +630,7 @@ function showPanel(name) {
   });
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
-  if (name === 'calendar')   renderMasterCalendar();
+  if (name === 'calendar')   { renderMasterCalendar(); loadTrialBookings(); }
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
@@ -1173,16 +1185,17 @@ async function saveGlobalStudent() {
   const pass  = document.getElementById('global-student-pass').value.trim();
   const room  = document.getElementById('global-student-room').value;
   const groupVal = document.getElementById('global-student-group').value;
+  const classType = document.getElementById('global-student-type').value;
   const err   = document.getElementById('global-student-error');
   if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
   const dup = checkDuplicatePassword(pass, null);
   if (dup) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
 
-  // Save to students collection (handles room assignment too)
+  // Save to students collection
   await fetch(`${SERVER_URL}/students`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null })
+    body: JSON.stringify({ name, password: pass, room: room || null, classType: classType || null })
   });
 
   // Handle group
@@ -1332,6 +1345,40 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
+}
+
+// ── TRIAL BOOKINGS ──
+async function loadTrialBookings() {
+  try {
+    const res = await fetch(`${SERVER_URL}/trial/bookings`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const bookings = await res.json();
+    const pending = bookings.filter(b => b.status === 'pending');
+    const bar = document.getElementById('trial-bookings-bar');
+    const list = document.getElementById('trial-bookings-list');
+    if (!pending.length) { bar.style.display = 'none'; return; }
+    bar.style.display = 'block';
+    list.innerHTML = pending.map(b => `
+      <div style="background:white;border-radius:8px;padding:10px;margin-bottom:6px;font-size:0.82rem;">
+        <div style="font-weight:900;color:#1a1a2e;">${b.studentName} <span style="background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:10px;font-size:0.75rem;">${b.level}</span></div>
+        <div style="color:#555;margin:3px 0;">📅 ${b.date} · 🕐 ${fmt12(b.time)}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <select id="trial-room-${b._id}" style="flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;font-family:Nunito;font-size:0.8rem;">
+            ${rooms.map(r=>`<option value="${r.room}">Teacher ${r.teacherName} · Room ${r.room}</option>`).join('')}
+          </select>
+          <button onclick="assignTrial('${b._id}')" style="padding:5px 10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">Assign</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+async function assignTrial(id) {
+  const room = document.getElementById(`trial-room-${id}`).value;
+  await fetch(`${SERVER_URL}/trial/bookings/${id}/assign`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room })
+  });
+  loadTrialBookings();
 }
 
 // ── PAYROLL ──

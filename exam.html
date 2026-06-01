@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC – English Placement Test</title>
+  <link rel="icon" type="image/png" href="icon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .logo img { height: 48px; }
+    .logo span { font-size: 1.4rem; font-weight: 900; color: white; }
+    .card { background: white; border-radius: 20px; padding: 28px; width: 100%; max-width: 560px; box-shadow: 0 8px 40px rgba(0,0,0,0.3); }
+    .card-title { font-size: 1.2rem; font-weight: 900; color: #1a1a2e; margin-bottom: 6px; }
+    .card-sub { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+    .progress-bar { background: #f0f0f0; border-radius: 10px; height: 8px; margin-bottom: 20px; }
+    .progress-fill { background: #1a73e8; border-radius: 10px; height: 8px; transition: width 0.3s; }
+    .question-num { font-size: 0.78rem; font-weight: 700; color: #1a73e8; margin-bottom: 8px; text-transform: uppercase; }
+    .question-text { font-size: 1.05rem; font-weight: 700; color: #1a1a2e; margin-bottom: 18px; line-height: 1.5; }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option {
+      padding: 12px 16px; border-radius: 12px; border: 2px solid #e0e0e0;
+      font-family: Nunito; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      text-align: left; background: white; color: #1a1a2e; transition: all 0.15s;
+    }
+    .option:hover { border-color: #1a73e8; background: #f0f7ff; }
+    .option.selected { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; }
+    .option.correct { border-color: #2e7d32; background: #e8f5e9; color: #2e7d32; }
+    .option.wrong { border-color: #e53935; background: #ffebee; color: #e53935; }
+    .next-btn {
+      margin-top: 20px; width: 100%; padding: 14px;
+      background: #1a73e8; color: white; border: none; border-radius: 12px;
+      font-family: Nunito; font-size: 1rem; font-weight: 900; cursor: pointer;
+      display: none;
+    }
+    .next-btn:hover { background: #1565c0; }
+
+    /* Result screen */
+    .result-screen { text-align: center; }
+    .result-level { font-size: 4rem; font-weight: 900; color: #1a73e8; margin: 16px 0 8px; }
+    .level-badge { display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 6px 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; margin-bottom: 16px; }
+    .level-desc { font-size: 0.9rem; color: #555; line-height: 1.6; margin-bottom: 20px; }
+    .continue-btn {
+      width: 100%; padding: 14px; background: #2e7d32; color: white; border: none;
+      border-radius: 12px; font-family: Nunito; font-size: 1rem; font-weight: 900;
+      cursor: pointer; margin-bottom: 10px;
+    }
+
+    /* Booking screen */
+    .booking-screen { display: none; }
+    .time-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+    .time-row label { font-size: 0.85rem; font-weight: 700; color: #555; display: block; margin-bottom: 4px; }
+    .time-row select { padding: 10px 14px; border-radius: 10px; border: 2px solid #ddd; font-family: Nunito; font-size: 0.9rem; outline: none; }
+    .search-btn { padding: 10px 20px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-family: Nunito; font-size: 0.9rem; font-weight: 900; cursor: pointer; }
+    .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .cal-nav-btn { background: #f0f4f8; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1rem; cursor: pointer; font-weight: 900; }
+    .cal-month { font-size: 1rem; font-weight: 900; color: #1a1a2e; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-hdr { text-align: center; font-size: 0.72rem; font-weight: 900; color: #aaa; padding: 4px 0; }
+    .cal-day { aspect-ratio: 1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; position: relative; border: 2px solid transparent; }
+    .cal-day.empty, .cal-day.past { color: #ccc; background: #f9f9f9; }
+    .cal-day.today { border-color: #1a73e8; }
+    .cal-day.green { background: #e8f5e9; color: #2e7d32; cursor: pointer; }
+    .cal-day.green:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(46,125,50,0.3); }
+    .cal-day.red { background: #fce4ec; color: #c62828; }
+    .cal-day.grey { background: #f5f5f5; color: #bbb; }
+    .legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: #555; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+    /* Confirm popup */
+    .popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; align-items: center; justify-content: center; }
+    .popup-overlay.open { display: flex; }
+    .popup-box { background: white; border-radius: 20px; padding: 28px; max-width: 340px; width: 90%; text-align: center; }
+    .popup-box h3 { font-size: 1.1rem; font-weight: 900; margin-bottom: 8px; }
+    .popup-box p { font-size: 0.9rem; color: #555; margin-bottom: 20px; line-height: 1.5; }
+    .popup-actions { display: flex; gap: 10px; }
+    .popup-actions button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-family: Nunito; font-size: 0.95rem; font-weight: 900; cursor: pointer; }
+    .btn-cancel { background: #f0f0f0; color: #555; }
+    .btn-confirm { background: #2e7d32; color: white; }
+
+    /* Success screen */
+    .success-screen { display: none; text-align: center; }
+    .success-emoji { font-size: 4rem; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<div class="logo">
+  <img src="icon.png" alt="PolyABC"/>
+  <span>PolyABC</span>
+</div>
+
+<div class="card" id="main-card">
+
+  <!-- EXAM SCREEN -->
+  <div id="exam-screen">
+    <div class="card-title">📝 English Placement Test</div>
+    <div class="card-sub">Answer all questions honestly — this helps us place you in the right class!</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="question-num" id="q-num">Question 1 of 15</div>
+    <div class="question-text" id="q-text"></div>
+    <div class="options" id="q-options"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="result-screen" style="display:none;" class="result-screen">
+    <div class="card-title">🎉 Test Complete!</div>
+    <div class="result-level" id="result-level">A1</div>
+    <div class="level-badge" id="level-badge">Beginner</div>
+    <div class="level-desc" id="level-desc"></div>
+    <div style="background:#f8f9fa;border-radius:12px;padding:12px;margin-bottom:20px;font-size:0.85rem;color:#555;">
+      📊 You got <strong id="score-text">0</strong> out of 15 correct
+    </div>
+    <button class="continue-btn" onclick="showBooking()">📅 Book Your Free Trial Class →</button>
+    <button onclick="signOut()" style="width:100%;padding:12px;background:transparent;border:2px solid #ddd;border-radius:12px;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;color:#888;">Not now — Sign Out</button>
+  </div>
+
+  <!-- BOOKING SCREEN -->
+  <div id="booking-screen" class="booking-screen">
+    <div class="card-title">📅 Book Your Free Trial</div>
+    <div class="card-sub" style="margin-bottom:16px;">Your level: <strong id="booking-level-tag" style="color:#1a73e8;"></strong> · Trial class is 15 minutes, free!</div>
+    <div class="time-row">
+      <div>
+        <label>Preferred time:</label>
+        <select id="time-select">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+      <button class="search-btn" onclick="searchSlots()">🔍 Search</button>
+    </div>
+    <div id="calendar-wrap" style="display:none;">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-month" id="cal-title"></div>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#c8e6c9;"></div>Teacher available</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffcdd2;"></div>Not available</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS SCREEN -->
+  <div id="success-screen" class="success-screen">
+    <div class="success-emoji">🎉</div>
+    <div class="card-title" style="font-size:1.3rem;margin-bottom:8px;">Request Sent!</div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:20px;">
+      We'll contact you soon to confirm your trial class.<br>
+      <strong id="success-details" style="color:#1a73e8;"></strong>
+    </div>
+    <button onclick="signOut()" style="width:100%;padding:14px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;color:white;">Done</button>
+  </div>
+
+</div>
+
+<!-- Confirm booking popup -->
+<div class="popup-overlay" id="confirm-popup">
+  <div class="popup-box">
+    <div style="font-size:2rem;margin-bottom:10px;">📅</div>
+    <h3>Confirm Trial Booking</h3>
+    <p id="confirm-text">Book this slot?</p>
+    <div class="popup-actions">
+      <button class="btn-cancel" onclick="document.getElementById('confirm-popup').classList.remove('open')">Cancel</button>
+      <button class="btn-confirm" onclick="confirmBooking()">Book Trial!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVER_URL = 'https://polyabc-server.onrender.com';
+let trialData = JSON.parse(localStorage.getItem('trialStudent') || '{}');
+let answers = [];
+let currentQ = 0;
+let score = 0;
+let detectedLevel = '';
+let selectedDate = null;
+let selectedTime = null;
+let availMap = {};
+let calYear, calMonth;
+
+// ── 15 CEFR-based placement questions ──
+const QUESTIONS = [
+  // A0/A1 - Very basic
+  { q: 'What ___ your name?', opts: ['is', 'are', 'am', 'be'], ans: 0 },
+  { q: '___ you speak English?', opts: ['Do', 'Does', 'Is', 'Are'], ans: 0 },
+  { q: 'She ___ a student.', opts: ['am', 'is', 'are', 'be'], ans: 1 },
+
+  // A1/A2 - Simple grammar
+  { q: 'I ___ to school every day.', opts: ['go', 'goes', 'going', 'went'], ans: 0 },
+  { q: 'Yesterday, we ___ to the cinema.', opts: ['go', 'goes', 'going', 'went'], ans: 3 },
+  { q: 'There ___ a lot of people at the party.', opts: ['was', 'were', 'is', 'are'], ans: 1 },
+
+  // A2/B1 - Intermediate grammar
+  { q: 'She has lived in Mexico ___ 2015.', opts: ['for', 'since', 'ago', 'before'], ans: 1 },
+  { q: '___ you ever been to New York?', opts: ['Have', 'Did', 'Was', 'Do'], ans: 0 },
+  { q: 'When I arrived, she ___ already left.', opts: ['has', 'had', 'was', 'did'], ans: 1 },
+
+  // B1/B2 - Upper intermediate
+  { q: 'If I ___ more money, I would travel the world.', opts: ['have', 'had', 'has', 'having'], ans: 1 },
+  { q: 'The homework must be ___ by tomorrow.', opts: ['submit', 'submits', 'submitted', 'submitting'], ans: 2 },
+  { q: 'Despite ___ tired, she kept working.', opts: ['be', 'been', 'being', 'to be'], ans: 2 },
+
+  // B2/C1 - Advanced
+  { q: 'Hardly ___ she sat down when the phone rang.', opts: ['had', 'has', 'did', 'was'], ans: 0 },
+  { q: 'The new law is intended to ___ corruption.', opts: ['curve', 'curb', 'cure', 'cut off'], ans: 1 },
+  { q: '___ to the bad weather, the event was cancelled.', opts: ['Despite', 'Although', 'Owing', 'Even though'], ans: 2 },
+];
+
+const LEVELS = [
+  { min: 0,  max: 2,  level: 'A0', name: 'Complete Beginner',    desc: 'You are just starting your English journey! A trial class will help you take your first steps.' },
+  { min: 3,  max: 5,  level: 'A1', name: 'Beginner',             desc: 'You know some basic English. A trial class will help us build on what you know.' },
+  { min: 6,  max: 8,  level: 'A2', name: 'Elementary',           desc: 'You can handle simple conversations. A trial class will help us find the right starting point.' },
+  { min: 9,  max: 10, level: 'B1', name: 'Intermediate',         desc: 'You can communicate in everyday situations. Great foundation to build on!' },
+  { min: 11, max: 12, level: 'B2', name: 'Upper Intermediate',   desc: 'You handle complex topics well. A trial class will help us tailor your learning path.' },
+  { min: 13, max: 15, level: 'C1', name: 'Advanced',             desc: 'Impressive! You have strong English skills. A trial class will show us how to push you further.' },
+];
+
+// ── Init ──
+window.onload = () => {
+  if (!trialData.id) { window.location.href = 'index.html'; return; }
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  populateTimeSelect();
+
+  // If student already has a level, skip to booking
+  if (trialData.hasLevel && trialData.level) {
+    detectedLevel = trialData.level;
+    skipToBooking();
+    return;
+  }
+  renderQuestion();
+};
+
+function populateTimeSelect() {
+  const sel = document.getElementById('time-select');
+  for (let h = 6; h <= 22; h++) {
+    ['00','30'].forEach(m => {
+      const val = `${String(h).padStart(2,'0')}:${m}`;
+      const disp = new Date(`2000-01-01T${val}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+      sel.innerHTML += `<option value="${val}">${disp}</option>`;
+    });
+  }
+}
+
+// ── Exam ──
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  document.getElementById('q-num').textContent = `Question ${currentQ+1} of ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('progress-fill').style.width = `${(currentQ/QUESTIONS.length)*100}%`;
+  document.getElementById('next-btn').style.display = 'none';
+
+  document.getElementById('q-options').innerHTML = q.opts.map((o,i) =>
+    `<button class="option" onclick="selectAnswer(${i})">${o}</button>`
+  ).join('');
+}
+
+function selectAnswer(idx) {
+  const q = QUESTIONS[currentQ];
+  const opts = document.querySelectorAll('.option');
+  opts.forEach(o => o.style.pointerEvents = 'none');
+  opts[idx].classList.add(idx === q.ans ? 'correct' : 'wrong');
+  if (idx !== q.ans) opts[q.ans].classList.add('correct');
+  if (idx === q.ans) score++;
+  answers.push(idx);
+  document.getElementById('next-btn').style.display = 'block';
+  document.getElementById('next-btn').textContent = currentQ === QUESTIONS.length-1 ? 'See Results 🎉' : 'Next →';
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= QUESTIONS.length) { showResults(); return; }
+  renderQuestion();
+}
+
+function showResults() {
+  const entry = LEVELS.find(l => score >= l.min && score <= l.max) || LEVELS[0];
+  detectedLevel = entry.level;
+
+  // Save level to server
+  fetch(`${SERVER_URL}/trial/save-level`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentId: trialData.id, level: detectedLevel })
+  });
+
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('exam-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  document.getElementById('result-level').textContent = entry.level;
+  document.getElementById('level-badge').textContent = entry.name;
+  document.getElementById('level-desc').textContent = entry.desc;
+  document.getElementById('score-text').textContent = `${score}`;
+}
+
+function skipToBooking() {
+  document.getElementById('exam-screen').style.display = 'none';
+  showBooking();
+}
+
+// ── Booking ──
+function showBooking() {
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('booking-screen').style.display = 'block';
+  document.getElementById('booking-level-tag').textContent = detectedLevel;
+}
+
+async function searchSlots() {
+  const time = document.getElementById('time-select').value;
+  if (!time) return;
+  selectedTime = time;
+  const res = await fetch(`${SERVER_URL}/trial/availability?time=${time}`);
+  availMap = await res.json();
+  document.getElementById('calendar-wrap').style.display = 'block';
+  renderCal();
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+function renderCal() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-title').textContent = `${months[calMonth]} ${calYear}`;
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html = days.map(d=>`<div class="cal-hdr">${d}</div>`).join('');
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysIn = new Date(calYear, calMonth+1, 0).getDate();
+  for (let i=0; i<firstDay; i++) html += `<div class="cal-day empty"></div>`;
+  for (let d=1; d<=daysIn; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast = ds < today;
+    const isToday = ds === today;
+    const color = availMap[ds];
+    let cls = 'cal-day';
+    let onclick = '';
+    if (isPast) cls += ' past';
+    else if (color === 'green') { cls += ' green'; onclick = `onclick="pickDate('${ds}')"` ; }
+    else cls += ' grey';
+    if (isToday) cls += ' today';
+    html += `<div class="${cls}" ${onclick}>${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+function pickDate(date) {
+  selectedDate = date;
+  const timeDisp = new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+  document.getElementById('confirm-text').innerHTML = `Book a free 15-minute Trial class on<br><strong>${date}</strong> at <strong>${timeDisp}</strong>?`;
+  document.getElementById('confirm-popup').classList.add('open');
+}
+
+async function confirmBooking() {
+  document.getElementById('confirm-popup').classList.remove('open');
+  await fetch(`${SERVER_URL}/trial/book`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ studentId: trialData.id, studentName: trialData.name, level: detectedLevel, date: selectedDate, time: selectedTime })
+  });
+  const timeDisp = new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+  document.getElementById('success-details').textContent = `${selectedDate} at ${timeDisp} (Guadalajara Time)`;
+  document.getElementById('booking-screen').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'block';
+}
+
+function signOut() {
+  localStorage.removeItem('trialStudent');
+  window.location.href = 'index.html';
+}
+</script>
+</body>
+</html>
