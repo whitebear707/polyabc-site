@@ -101,8 +101,24 @@
       #mobile-power:hover { background: #c62828; }
       .panel { padding: 12px; }
       #panel-calendar.active { flex-direction: column; height: auto; }
-      #cal-sidebar { width: 100%; border-right: none; border-bottom: 2px solid #e0e0e0; max-height: 400px; }
+      #cal-sidebar { display: none; }
       #cal-main { padding: 12px; }
+      #mobile-filter-btn { display: flex !important; }
+      #mobile-day-detail { display: block !important; }
+
+      /* Filter drawer */
+      #filter-drawer {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+        background: white; border-radius: 20px 20px 0 0;
+        padding: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+        transform: translateY(100%); transition: transform 0.3s ease;
+      }
+      #filter-drawer.open { transform: translateY(0); }
+      #filter-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.4); z-index: 499;
+      }
+      #filter-overlay.open { display: block; }
     }
     #attendance-btn-top { background: #0f3460; color: #a0c4ff; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top:hover { background: #1a73e8; color: white; }
@@ -315,6 +331,12 @@
 
     <!-- MAIN CALENDAR -->
     <div id="cal-main">
+      <!-- Mobile filter button + day detail -->
+      <div id="mobile-filter-btn" style="display:none;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <button onclick="openFilterDrawer()" style="background:#0f3460;color:#a0c4ff;border:none;padding:8px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">🔍 Filter</button>
+        <button onclick="document.getElementById('mobile-day-detail').style.display=document.getElementById('mobile-day-detail').style.display==='none'?'block':'none'" style="background:#f0f4f8;color:#555;border:none;padding:8px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">📋 Day Detail</button>
+      </div>
+      <div id="mobile-day-detail" style="display:none;margin-bottom:12px;background:white;border-radius:12px;padding:12px;border:1px solid #e0e0e0;"></div>
       <div class="master-cal-nav">
         <button onclick="masterPrevMonth()">‹</button>
         <h2 id="master-cal-title"></h2>
@@ -442,6 +464,37 @@
       <div id="attendance-detail-content"></div>
     </div>
   </div>
+
+<!-- Mobile Filter Drawer -->
+<div id="filter-overlay" onclick="closeFilterDrawer()"></div>
+<div id="filter-drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">🔍 Filter Calendar</div>
+    <button onclick="closeFilterDrawer()" style="background:#f0f0f0;border:none;width:30px;height:30px;border-radius:50%;font-size:1.1rem;cursor:pointer;">×</button>
+  </div>
+  <div style="margin-bottom:12px;">
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher</label>
+    <select id="teacher-filter-mobile" onchange="document.getElementById('teacher-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+      <option value="">-- Any Teacher --</option>
+    </select>
+  </div>
+  <div style="margin-bottom:12px;">
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Day of Week</label>
+    <select id="day-filter-mobile" onchange="document.getElementById('day-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+      <option value="">-- Any Day --</option>
+      <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+      <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+    </select>
+  </div>
+  <div style="margin-bottom:16px;">
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Time</label>
+    <input type="time" id="time-filter-mobile" oninput="document.getElementById('time-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button onclick="clearMobileFilters()" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Clear</button>
+    <button onclick="closeFilterDrawer()" style="flex:1;padding:10px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Apply</button>
+  </div>
+</div>
 
 </div><!-- end dashboard -->
 
@@ -727,6 +780,31 @@ async function loadGroups() {
   allGroups = await res.json();
 }
 
+function openFilterDrawer() {
+  // Sync mobile filters from desktop values
+  document.getElementById('teacher-filter-mobile').innerHTML = document.getElementById('teacher-filter').innerHTML;
+  document.getElementById('teacher-filter-mobile').value = document.getElementById('teacher-filter').value;
+  document.getElementById('day-filter-mobile').value = document.getElementById('day-filter').value;
+  document.getElementById('time-filter-mobile').value = document.getElementById('time-filter').value;
+  document.getElementById('filter-drawer').classList.add('open');
+  document.getElementById('filter-overlay').classList.add('open');
+}
+
+function closeFilterDrawer() {
+  document.getElementById('filter-drawer').classList.remove('open');
+  document.getElementById('filter-overlay').classList.remove('open');
+}
+
+function clearMobileFilters() {
+  document.getElementById('teacher-filter-mobile').value = '';
+  document.getElementById('day-filter-mobile').value = '';
+  document.getElementById('time-filter-mobile').value = '';
+  document.getElementById('teacher-filter').value = '';
+  document.getElementById('day-filter').value = '';
+  document.getElementById('time-filter').value = '';
+  renderMasterCalendar();
+}
+
 // ── MOBILE MENU ──
 function toggleMenu() {
   document.getElementById('hamburger-menu').classList.toggle('open');
@@ -917,6 +995,8 @@ function renderDayDetail(dateStr) {
     });
   }
   detail.innerHTML = html;
+  const mobileDetail = document.getElementById('mobile-day-detail');
+  if (mobileDetail) { mobileDetail.innerHTML = html; mobileDetail.style.display = 'block'; }
 }
 
 function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
