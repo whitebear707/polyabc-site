@@ -582,11 +582,16 @@ function logout() {
 
 // ── LOAD ALL DATA ──
 let allStudents = [];
+let allTrialBookings = [];
 
 async function loadAll() {
-  await loadRooms(); // must load rooms first
+  await loadRooms();
   await Promise.all([loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
   try { await loadStudents(); } catch(e) { allStudents = []; }
+  try {
+    const res = await fetch(`${SERVER_URL}/trial/bookings`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    allTrialBookings = await res.json();
+  } catch(e) { allTrialBookings = []; }
 }
 
 async function loadStudents() {
@@ -718,9 +723,13 @@ function renderMasterCalendar() {
     const assignHtml = assignments.length > 0
       ? `<div class="cal-day-assigned">📋 ${assignments.length} class${assignments.length>1?'es':''}</div>` : '';
 
+    const trialOnDay = allTrialBookings.filter(b => b.date === dateStr && b.status === 'pending');
+    const trialHtml = trialOnDay.length > 0
+      ? `<div style="font-size:0.65rem;color:#9c27b0;font-weight:900;">⭐ ${trialOnDay.length} trial</div>` : '';
+
     html += `<div class="${cls}" onclick="selectDay('${dateStr}')">
       <div class="cal-day-num">${d}</div>
-      ${countHtml}${assignHtml}
+      ${countHtml}${assignHtml}${trialHtml}
     </div>`;
   }
 
@@ -747,6 +756,24 @@ function renderDayDetail(dateStr) {
 
   let html = `<div style="font-weight:900;color:#1a1a2e;font-size:1rem;margin-bottom:14px;">📅 ${dateStr}</div>`;
 
+  // Show pending trial requests for this day
+  const trialsOnDay = allTrialBookings.filter(b => b.date === dateStr && b.status === 'pending');
+  if (trialsOnDay.length > 0) {
+    html += `<div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:10px;margin-bottom:12px;">
+      <div style="font-size:0.82rem;font-weight:900;color:#6a1b9a;margin-bottom:6px;">⭐ Trial Requests</div>
+      ${trialsOnDay.map(b => `
+        <div style="background:white;border-radius:8px;padding:8px 10px;margin-bottom:4px;">
+          <div style="font-weight:900;font-size:0.85rem;">${b.studentName} <span style="background:#e8f0fe;color:#1a73e8;padding:2px 6px;border-radius:8px;font-size:0.75rem;">${b.level}</span></div>
+          <div style="font-size:0.78rem;color:#555;margin:2px 0;">🕐 ${fmt12(b.time)} (Guadalajara Time)</div>
+          <button onclick="openTrialAssignModal('${b._id}','${b.studentName}','${b.level}','${dateStr}','${b.time}')"
+            style="margin-top:4px;background:#6a1b9a;color:white;border:none;padding:5px 12px;border-radius:6px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">
+            👩‍🏫 Assign Teacher
+          </button>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
   if (teachers.length === 0) {
     html += `<div style="color:#aaa;text-align:center;padding:20px;font-size:0.9rem;">No teachers available on this day.</div>`;
   } else {
@@ -772,6 +799,51 @@ function renderDayDetail(dateStr) {
     });
   }
   detail.innerHTML = html;
+}
+
+function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
+  const panel = document.getElementById('assign-day-panel');
+  panel.innerHTML = `
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">⭐ Assign Trial Class</div>
+    <div style="background:#f3e5f5;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-weight:900;">${studentName} <span style="background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:10px;font-size:0.8rem;">${level}</span></div>
+      <div style="font-size:0.85rem;color:#555;margin-top:4px;">📅 ${dateStr} · 🕐 ${fmt12(time)}</div>
+    </div>
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Time (Guadalajara)</label>
+      <input type="time" value="${time}" disabled style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;background:#f5f5f5;color:#888;cursor:not-allowed;"/>
+      <div style="font-size:0.72rem;color:#e65100;margin-top:3px;">🔒 Time locked — set by student</div>
+    </div>
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Assign Teacher</label>
+      <select id="trial-assign-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        ${rooms.map(r=>`<option value="${r.room}">Teacher ${r.teacherName||'—'} · Room ${r.room}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="saveTrialAssignment('${bookingId}','${dateStr}','${time}')" style="flex:1;padding:10px;background:#6a1b9a;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Assign</button>
+    </div>`;
+  document.getElementById('assign-day-overlay').style.display = 'flex';
+}
+
+async function saveTrialAssignment(bookingId, dateStr, time) {
+  const room = document.getElementById('trial-assign-room').value;
+  // Mark booking as assigned
+  await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room })
+  });
+  // Create the assignment on calendar
+  await fetch(`${SERVER_URL}/assignments`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room, date: dateStr, time, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
+  });
+  document.getElementById('assign-day-overlay').style.display = 'none';
+  await loadAllAssignmentsData();
+  allTrialBookings = allTrialBookings.map(b => b._id === bookingId ? {...b, status:'assigned'} : b);
+  renderMasterCalendar();
+  renderDayDetail(dateStr);
 }
 
 function openAssignGroupModal(dateStr, room) {
