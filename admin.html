@@ -257,6 +257,31 @@
 </div>
 
 <!-- DASHBOARD -->
+<!-- PWA Install Popup -->
+<div id="admin-pwa-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:24px;padding:28px 24px;max-width:320px;width:90%;text-align:center;font-family:Nunito,sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+    <img src="icon.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:14px;"/>
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Install PolyABC Admin</div>
+    <div style="font-size:0.9rem;color:#666;margin-bottom:20px;line-height:1.5;">Install the app for quick access to the admin panel in portrait mode!</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="dismissAdminInstall()" style="flex:1;padding:11px;background:#f0f0f0;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:#555;">Not now</button>
+      <button onclick="installAdminApp()" style="flex:1;padding:11px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:white;">📲 Install!</button>
+    </div>
+  </div>
+</div>
+
+<!-- iOS Install Instructions -->
+<div id="admin-ios-popup" onclick="closeAdminIosPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;padding-bottom:20px;">
+  <div onclick="event.stopPropagation()" style="background:white;border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center;font-family:Nunito,sans-serif;">
+    <div style="font-size:2rem;margin-bottom:8px;">📲</div>
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Install PolyABC Admin</div>
+    <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:16px;">
+      Tap the <strong>Share button</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
+    </div>
+    <button onclick="closeAdminIosPopup()" style="background:#1a73e8;color:white;border:none;padding:10px 28px;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:700;cursor:pointer;">Got it!</button>
+  </div>
+</div>
+
 <div id="dashboard">
 
   <!-- MOBILE HEADER -->
@@ -696,6 +721,24 @@ function showAlert(emoji, title, body, buttons) {
 function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
 
 // ── LOGIN ──
+// ── PWA Install ──
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); _installPrompt = e;
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) setTimeout(showAdminInstall, 1000);
+});
+window.addEventListener('appinstalled', () => { document.getElementById('admin-pwa-popup').style.display='none'; });
+if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) setTimeout(showAdminInstall, 1000);
+function showAdminInstall() { document.getElementById('admin-pwa-popup').style.display='flex'; }
+function installAdminApp() {
+  document.getElementById('admin-pwa-popup').style.display='none';
+  if (_installPrompt) { _installPrompt.prompt(); _installPrompt.userChoice.then(()=>{ _installPrompt=null; }); }
+  else { document.getElementById('admin-ios-popup').style.display='flex'; }
+}
+function dismissAdminInstall() { document.getElementById('admin-pwa-popup').style.display='none'; }
+function closeAdminIosPopup() { document.getElementById('admin-ios-popup').style.display='none'; }
+
 async function doLogin() {
   const pass = document.getElementById('login-pass').value.trim();
   if (!pass) return;
