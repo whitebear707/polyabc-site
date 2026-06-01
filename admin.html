@@ -193,7 +193,7 @@
       <button class="nav-btn" id="nav-students" onclick="showPanel('students')">🎓 Students</button>
       <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
       <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
-      <button id="attendance-btn-top" onclick="showPanel('attendance')">📋 Attendance</button>
+      <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
     </div>
     <div id="header-center"><img src="LOGO.png" alt="PolyABC"/></div>
     <div id="header-right">
@@ -636,6 +636,9 @@ function showPanel(name) {
     if (panel) panel.classList.toggle('active', p === name);
     if (btn)   btn.classList.toggle('active', p === name);
   });
+  // Also handle attendance-btn-top for backward compatibility
+  const attBtn = document.getElementById('attendance-btn-top');
+  if (attBtn) attBtn.style.background = name === 'attendance' ? '#1a73e8' : '';
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   { renderMasterCalendar(); loadTrialBookings(); }
