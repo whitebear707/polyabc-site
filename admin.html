@@ -411,14 +411,18 @@
 <div class="modal-overlay" id="add-student-modal">
   <div class="modal-box">
     <div class="modal-title">Add Student</div>
-    <div class="field-group"><label>Student Name</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
-    <div class="field-group"><label>Password</label><input type="text" id="global-student-pass" placeholder="e.g. juan123"/></div>
     <div class="field-group">
       <label>Student Type</label>
-      <select id="global-student-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+      <select id="global-student-type" onchange="onStudentTypeChange()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
         <option value="">Regular Student</option>
         <option value="Trial">🎓 Trial (takes placement test on login)</option>
       </select>
+    </div>
+    <div class="field-group"><label>Student Name</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="text" id="global-student-pass" placeholder="e.g. juan123"/>
+      <div id="trial-pass-hint" style="display:none;font-size:0.75rem;color:#888;margin-top:3px;">🔒 Auto-generated for trial students</div>
     </div>
     <div class="field-group">
       <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
@@ -1273,11 +1277,37 @@ function toggleNewGroupFields() {
   document.getElementById('new-group-fields').style.display = val === '__new__' ? 'block' : 'none';
 }
 
+async function onStudentTypeChange() {
+  const type = document.getElementById('global-student-type').value;
+  const passInput = document.getElementById('global-student-pass');
+  const hint = document.getElementById('trial-pass-hint');
+  if (type === 'Trial') {
+    // Fetch next trial password from server
+    const res = await fetch(`${SERVER_URL}/trial/next-password`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const data = await res.json();
+    passInput.value = data.password;
+    passInput.style.background = '#f5f5f5';
+    passInput.style.color = '#888';
+    passInput.readOnly = true;
+    hint.style.display = 'block';
+  } else {
+    passInput.value = '';
+    passInput.style.background = '';
+    passInput.style.color = '';
+    passInput.readOnly = false;
+    hint.style.display = 'none';
+  }
+}
+
 function openAddStudentModal() {
   document.getElementById('global-student-name').value = '';
   document.getElementById('global-student-pass').value = '';
+  document.getElementById('global-student-type').value = '';
   document.getElementById('global-student-error').style.display = 'none';
   document.getElementById('new-group-fields').style.display = 'none';
+  document.getElementById('trial-pass-hint').style.display = 'none';
+  const passInput = document.getElementById('global-student-pass');
+  passInput.style.background = ''; passInput.style.color = ''; passInput.readOnly = false;
   const roomSel = document.getElementById('global-student-room');
   roomSel.innerHTML = '<option value="">-- No room --</option>' +
     rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
