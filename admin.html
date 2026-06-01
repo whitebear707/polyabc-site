@@ -482,6 +482,21 @@
     </div>
   </div>
 </div>
+
+<!-- Trial Copy Message Modal -->
+<div class="modal-overlay" id="trial-copy-modal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-title">✅ Trial Student Created!</div>
+    <div style="font-size:0.85rem;color:#555;margin-bottom:12px;">Copy and send this message to the student:</div>
+    <textarea id="trial-copy-text" readonly style="width:100%;height:180px;padding:12px;border-radius:10px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;line-height:1.6;resize:none;background:#f8f9fa;color:#1a1a2e;"></textarea>
+    <div id="trial-copy-confirm" style="display:none;color:#2e7d32;font-size:0.85rem;font-weight:700;margin-top:6px;">✅ Copied to clipboard!</div>
+    <div class="modal-actions" style="margin-top:12px;">
+      <button class="btn btn-gray" onclick="document.getElementById('trial-copy-modal').classList.remove('open')">Close</button>
+      <button class="btn btn-blue" onclick="copyTrialMessage()">📋 Copy Message</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="group-modal">
   <div class="modal-box" style="max-width:540px;">
     <div class="modal-title" id="group-modal-title">Create Group</div>
@@ -1364,6 +1379,51 @@ async function saveGlobalStudent() {
   await loadStudents();
   renderAllStudents();
   renderGroups();
+
+  // Show copy message for trial students
+  if (classType === 'Trial') {
+    showTrialCopyMessage(name, pass);
+  }
+}
+
+// ── TRIAL COPY MESSAGE ──
+function showTrialCopyMessage(name, password) {
+  const url = 'https://whitebear707.github.io/polyabc-site/';
+  // Calculate expiry date (5 days from now)
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate() + 5);
+  const expiryStr = expiry.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const message = `Hola ${name}! 👋
+
+Para tu clase de prueba gratis, por favor sigue estos pasos:
+
+🌐 Ve a: ${url}
+🏫 Room: 101
+🔑 Password: ${password}
+
+⚠️ Esta información se expira el ${expiryStr}.
+
+¡Te esperamos! 😊
+PolyABC`;
+
+  document.getElementById('trial-copy-text').value = message;
+  document.getElementById('trial-copy-confirm').style.display = 'none';
+  document.getElementById('trial-copy-modal').classList.add('open');
+}
+
+function copyTrialMessage() {
+  const text = document.getElementById('trial-copy-text').value;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('trial-copy-confirm').style.display = 'block';
+    setTimeout(() => document.getElementById('trial-copy-confirm').style.display = 'none', 3000);
+  }).catch(() => {
+    // Fallback for older browsers
+    document.getElementById('trial-copy-text').select();
+    document.execCommand('copy');
+    document.getElementById('trial-copy-confirm').style.display = 'block';
+    setTimeout(() => document.getElementById('trial-copy-confirm').style.display = 'none', 3000);
+  });
 }
 
 // ── GROUPS PANEL ──
