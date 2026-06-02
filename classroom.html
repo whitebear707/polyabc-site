@@ -1560,7 +1560,7 @@ const REACTION_SOUNDS = {
 // Special burst emojis for certain reactions
 const REACTION_BURST = {
   '❤️': ['❤️','💕','💖','💗','💓','🌸','💝'],
-  '😱': ['😱'],
+  '😱': ['😱','❗','😱','❗','😱','🔴','❗'],
 };
 
 const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63','#00bcd4'];
@@ -1593,24 +1593,31 @@ function showReaction(emoji) {
       }, i * 80);
     }
     // Colorful confetti falls TOP to BOTTOM
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
-        el.style.cssText = `
-          position:fixed;
-          left:${rect.left + Math.random() * rect.width}px;
-          top:${rect.top}px;
-          width:${8 + Math.random() * 8}px;
-          height:${8 + Math.random() * 8}px;
-          background:${CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)]};
-          border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
-          pointer-events:none;
-          z-index:9998;
-          animation:confettiFall ${1.5 + Math.random() * 2}s ease-in forwards;
-          transform:rotate(${Math.random() * 360}deg);
-        `;
+        const size = 10 + Math.random() * 10;
+        const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        const dur = 1.5 + Math.random() * 2;
+        el.style.position = 'fixed';
+        el.style.left = `${rect.left + Math.random() * rect.width}px`;
+        el.style.top = `${rect.top - size}px`;
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.background = color;
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9998';
+        el.style.transform = `rotate(${Math.random() * 360}deg)`;
+        el.style.transition = 'none';
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        // Force reflow then animate
+        el.getBoundingClientRect();
+        el.style.transition = `transform ${dur}s ease-in, top ${dur}s ease-in, opacity 0.3s ease ${dur - 0.3}s`;
+        el.style.top = `${rect.bottom + size}px`;
+        el.style.transform = `rotate(${Math.random() * 720}deg)`;
+        setTimeout(() => { el.style.opacity = '0'; }, (dur - 0.3) * 1000);
+        setTimeout(() => el.remove(), (dur + 0.5) * 1000);
       }, i * 40);
     }
     return;
