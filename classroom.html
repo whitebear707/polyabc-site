@@ -1639,21 +1639,13 @@ function renderLeaderboard(stars) {
     </div>`;
   }).join('');
 
-  // Update star counters on all video slots by matching student name
+  // Update reward counters on all video slots
   document.querySelectorAll('.student-wrap').forEach(wrap => {
     const label = wrap.querySelector('.student-label-below');
     if (!label) return;
     const name = label.textContent.trim().replace(/\s*\(You\)$/, '');
-    const count = stars[name];
-    if (!count) return;
-    let counter = wrap.querySelector('.star-counter');
-    if (!counter) {
-      counter = document.createElement('div');
-      counter.className = 'star-counter';
-      counter.style.cssText = 'text-align:center;font-size:0.75rem;font-weight:700;color:#ffd740;';
-      wrap.appendChild(counter);
-    }
-    counter.textContent = '⭐'.repeat(Math.min(count, 5)) + (count > 5 ? ` x${count}` : '');
+    const socketId = wrap.id?.replace('wrap-','');
+    if (socketId && rewardCounts[socketId]) updateRewardCounter(socketId);
   });
 }
 
