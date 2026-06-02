@@ -105,6 +105,15 @@
   .dice-cube div { background:hsla(220,85%,50%,0.92);display:block;position:absolute;width:200px;height:200px;border:3px solid #1a3a8f;border-radius:16px; }
   @media (max-width: 768px) {
     #dice-inner { margin-bottom: 30vh; }
+    #dice-inner .dice-container { width: 120px; height: 120px; }
+    #dice-inner .dice-cube { top: 60px; }
+    #dice-inner .dice-cube div { width: 120px; height: 120px; }
+    #dice-inner .dice-face-front  { transform: translateZ(60px); }
+    #dice-inner .dice-face-back   { transform: rotateX(-180deg) translateZ(60px); }
+    #dice-inner .dice-face-right  { transform: rotateY(90deg) translateZ(60px); }
+    #dice-inner .dice-face-left   { transform: rotateY(-90deg) translateZ(60px); }
+    #dice-inner .dice-face-top    { transform: rotateX(90deg) translateZ(60px); }
+    #dice-inner .dice-face-bottom { transform: rotateX(-90deg) translateZ(60px); }
     #coin-inner { margin-bottom: 30vh; }
   }
   .dice-face-front  { transform:translateZ(100px); }
