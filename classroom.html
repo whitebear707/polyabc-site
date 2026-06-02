@@ -1597,7 +1597,7 @@ function showReaction(emoji) {
         el.style.cssText = `position:fixed;pointer-events:none;z-index:9997;font-size:${0.8+Math.random()*0.8}rem;opacity:0.6;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
         document.body.appendChild(el);
         let y = rect.top;
-        const vy = 6 + Math.random() * 6;
+        const vy = 4 + Math.random() * 4;
         const id = setInterval(() => {
           y += vy;
           el.style.top = y + 'px';
