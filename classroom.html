@@ -1587,17 +1587,24 @@ function flipCoin() {
     transform:translate(-50%,-50%);font-size:5rem;pointer-events:none;z-index:9999;`;
   el.textContent = '🪙';
   document.body.appendChild(el);
-  // Slow spin over 2.5 seconds
+  // Slow spin — alternates between faces
   let angle = 0;
   let speed = 30;
   const id = setInterval(() => {
     angle += speed;
     speed = Math.max(speed * 0.97, 2);
+    // Show face based on rotation angle
+    el.textContent = Math.floor(angle / 180) % 2 === 0 ? '🤪' : '🦅';
     el.style.transform = `translate(-50%,-50%) rotateY(${angle}deg) scale(1.2)`;
     if (speed <= 2.1) {
       clearInterval(id);
-      el.remove();
-      showResultOnCanvas('🪙', isHeads ? '🌕 Heads!' : '🌑 Tails!');
+      el.textContent = isHeads ? '🦅' : '🤪';
+      el.style.transform = `translate(-50%,-50%) scale(1.4)`;
+      // Show result card after 3 seconds
+      setTimeout(() => {
+        el.remove();
+        showResultOnCanvas(isHeads ? '🦅' : '🤪', isHeads ? 'Eagle! 🦅' : 'Silly Face! 🤪');
+      }, 3000);
     }
   }, 16);
 }
@@ -1609,36 +1616,32 @@ function rollDice(count) {
   const container = document.getElementById('whiteboard-wrap');
   const rect = container.getBoundingClientRect();
 
-  // Create one display per die
-  const displays = results.map((result, idx) => {
+  // Wrap in dark card so dice show on white canvas
+  const card = document.createElement('div');
+  card.style.cssText = `position:fixed;
+    left:${rect.left + rect.width/2}px;
+    top:${rect.top + rect.height/2}px;
+    transform:translate(-50%,-50%);
+    background:rgba(22,33,62,0.92);border-radius:20px;padding:16px 24px;
+    display:flex;gap:12px;align-items:center;justify-content:center;
+    pointer-events:none;z-index:9999;`;
+  document.body.appendChild(card);
+
+  const displays = results.map((result) => {
     const el = document.createElement('div');
-    const offset = count === 1 ? 0 : (idx === 0 ? -60 : 60);
-    el.style.cssText = `position:fixed;
-      left:${rect.left + rect.width/2 + offset}px;
-      top:${rect.top + rect.height/2}px;
-      transform:translate(-50%,-50%);
-      font-size:5rem;pointer-events:none;z-index:9999;
-      font-family:Nunito,sans-serif;transition:font-size 0.2s;`;
+    el.style.cssText = `font-size:5rem;color:white;transition:font-size 0.2s;`;
     el.textContent = DICE_FACES[0];
-    document.body.appendChild(el);
+    card.appendChild(el);
     return { el, result };
   });
 
-  // Rapid shuffle then slow to result
-  let tick = 0;
-  let interval = 50; // start fast
   let elapsed = 0;
+  let interval = 50;
   const totalDuration = 2000;
 
   function spin() {
-    tick++;
-    // Show random face on each die
-    displays.forEach(d => {
-      d.el.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
-    });
-
+    displays.forEach(d => { d.el.textContent = DICE_FACES[Math.floor(Math.random() * 6)]; });
     elapsed += interval;
-    // Slow down gradually
     if (elapsed < totalDuration * 0.6) interval = 50;
     else if (elapsed < totalDuration * 0.8) interval = 100;
     else if (elapsed < totalDuration * 0.9) interval = 200;
@@ -1647,12 +1650,16 @@ function rollDice(count) {
     if (elapsed < totalDuration) {
       setTimeout(spin, interval);
     } else {
-      // Land on result
       displays.forEach(d => { d.el.textContent = DICE_FACES[d.result - 1]; d.el.style.fontSize = '6rem'; });
       const total = results.reduce((a,b) => a+b, 0);
       const sub = count === 1 ? `You rolled ${total}!` : `${results.join(' + ')} = ${total}!`;
+      // Add result text to card
+      const subEl = document.createElement('div');
+      subEl.style.cssText = `color:#a0c4ff;font-size:1rem;font-weight:700;font-family:Nunito,sans-serif;text-align:center;margin-top:8px;`;
+      subEl.textContent = sub;
+      card.appendChild(subEl);
       if (window._socket) window._socket.emit('show-result', { room: ROOM, text: displays.map(d=>DICE_FACES[d.result-1]).join(' '), sub });
-      setTimeout(() => displays.forEach(d => d.el.remove()), 2500);
+      setTimeout(() => card.remove(), 3000);
     }
   }
   spin();
