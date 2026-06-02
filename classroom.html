@@ -101,14 +101,14 @@
     animation: fallDown 2s ease-in forwards;
   }
   @keyframes floatUp {
-    0%   { transform: translateY(0) scale(1); opacity: 1; }
-    50%  { transform: translateY(calc(var(--rise-dist, -40vh) * -1)) scale(1.2); opacity: 1; }
-    100% { transform: translateY(calc(var(--rise-dist, -40vh) * -2)) scale(0.8); opacity: 0; }
+    0%   { transform: translateY(0);       opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateY(-110vh);  opacity: 0; }
   }
   @keyframes fallDown {
-    0%   { transform: translateY(0); opacity: 1; }
+    0%   { transform: translateY(0);      opacity: 1; }
     80%  { opacity: 1; }
-    100% { transform: translateY(var(--fall-dist, 100vh)); opacity: 0; }
+    100% { transform: translateY(110vh);  opacity: 0; }
   }
   @keyframes confettiFall {
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
@@ -1625,10 +1625,9 @@ function showReaction(emoji) {
         el.style.setProperty('--fall-dist', `${rect.height}px`);
       } else {
         el.style.left = `${x}px`;
-        el.style.top = `${rect.bottom - 80}px`;
-        el.style.animationDuration = `${2 + Math.random() * 1.5}s`;
+        el.style.top = `${rect.bottom}px`;
+        el.style.animationDuration = `${2 + Math.random() * 1}s`;
         el.className = 'floating-reaction-canvas';
-        el.style.setProperty('--rise-dist', `${rect.height * 0.85}px`);
       }
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 4000);
