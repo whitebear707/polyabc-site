@@ -130,10 +130,13 @@
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
-  @keyframes coinSpin {
-    0%   { transform: translate(-50%,-50%) rotateY(0deg) scale(1); }
-    50%  { transform: translate(-50%,-50%) rotateY(900deg) scale(1.3); }
-    100% { transform: translate(-50%,-50%) rotateY(1800deg) scale(1); }
+  @keyframes flipHeads {
+    from { transform: rotateY(0); }
+    to   { transform: rotateY(1800deg); }
+  }
+  @keyframes flipTails {
+    from { transform: rotateY(0); }
+    to   { transform: rotateY(1980deg); }
   }
   @keyframes popIn {
     0%   { transform: translate(-50%,-50%) scale(0.5); opacity:0; }
@@ -322,6 +325,17 @@
       <button id="cam-all-btn" onclick="toggleCamAll()" title="Enable/Disable All Cameras" style="flex:1;background:#0f3460;color:white;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:1rem;">📷 All</button>
     </div>
     <div id="right-panel-title">Students</div>
+  </div>
+</div>
+
+<!-- COIN FLIP OVERLAY -->
+<div id="coin-overlay" onclick="closeCoinOnBg(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;flex-direction:column;font-family:Nunito,sans-serif;">
+  <div id="coin-inner" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+    <div id="coin-flip" onclick="event.stopPropagation();doFlipCoin()" style="position:relative;margin:0 auto 20px;width:140px;height:140px;cursor:pointer;transform-style:preserve-3d;">
+      <div class="coin-side-a" style="position:absolute;width:100%;height:100%;border-radius:50%;backface-visibility:hidden;background:radial-gradient(circle at 35% 35%,#ffe680,#c8960c,#7a5800);box-shadow:inset 0 0 45px rgba(255,255,255,.3),0 12px 20px -10px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:3rem;z-index:2;">🦅</div>
+      <div class="coin-side-b" style="position:absolute;width:100%;height:100%;border-radius:50%;backface-visibility:hidden;background:radial-gradient(circle at 35% 35%,#ff9999,#bb0000,#7a0000);box-shadow:inset 0 0 45px rgba(255,255,255,.3),0 12px 20px -10px rgba(0,0,0,.4);transform:rotateY(-180deg);display:flex;align-items:center;justify-content:center;font-size:3rem;">🤪</div>
+    </div>
+    <div id="coin-result" style="color:white;font-size:1.3rem;font-weight:900;min-height:36px;opacity:0;transition:opacity 0.5s;text-align:center;"></div>
   </div>
 </div>
 
@@ -1603,50 +1617,36 @@ function showResultOnCanvas(text, sub) {
 }
 
 function flipCoin() {
-  const isHeads = Math.random() < 0.5;
-  const container = document.getElementById('whiteboard-wrap');
-  const rect = container.getBoundingClientRect();
+  const overlay = document.getElementById('coin-overlay');
+  const coin = document.getElementById('coin-flip');
+  const result = document.getElementById('coin-result');
+  coin.style.animation = 'none';
+  coin.className = '';
+  result.style.opacity = '0';
+  result.textContent = '';
+  overlay.style.display = 'flex';
+}
 
-  const wrap = document.createElement('div');
-  wrap.style.cssText = `position:fixed;left:${rect.left+rect.width/2}px;top:${rect.top+rect.height/2}px;
-    transform:translate(-50%,-50%);pointer-events:none;z-index:9999;
-    width:120px;height:120px;perspective:400px;`;
+function doFlipCoin() {
+  const coin = document.getElementById('coin-flip');
+  const result = document.getElementById('coin-result');
+  const isHeads = Math.random() <= 0.5;
+  coin.style.animation = 'none';
+  result.style.opacity = '0';
+  setTimeout(() => {
+    coin.style.animation = `${isHeads ? 'flipHeads' : 'flipTails'} 3s ease-out forwards`;
+    setTimeout(() => {
+      result.textContent = isHeads ? '🦅 Eagle!' : '🤪 Silly Face!';
+      result.style.opacity = '1';
+      if (window._socket) window._socket.emit('show-result', { room: ROOM, text: isHeads ? '🦅' : '🤪', sub: isHeads ? 'Eagle!' : 'Silly Face!' });
+    }, 3100);
+  }, 50);
+}
 
-  const coin = document.createElement('div');
-  coin.style.cssText = `width:120px;height:120px;border-radius:50%;
-    background:radial-gradient(circle at 35% 35%, #ffe680, #c8960c, #7a5800);
-    border:4px solid #a07010;
-    display:flex;align-items:center;justify-content:center;
-    font-size:3.5rem;box-shadow:0 4px 15px rgba(0,0,0,0.4);`;
-  coin.textContent = '🤪';
-  wrap.appendChild(coin);
-  document.body.appendChild(wrap);
-
-  let angle = 0;
-  let speed = 25;
-  const id = setInterval(() => {
-    angle += speed;
-    speed = Math.max(speed * 0.975, 2);
-    coin.style.transform = `rotateY(${angle}deg)`;
-    // Show correct face based on angle
-    const face = Math.floor(angle / 180) % 2;
-    coin.textContent = face === 0 ? '🤪' : '🦅';
-    // Squeeze effect mid-flip
-    const squeeze = Math.abs(Math.cos(angle * Math.PI / 180));
-    coin.style.transform = `rotateY(${angle}deg) scaleX(${Math.max(squeeze, 0.1)})`;
-
-    if (speed <= 2.05) {
-      clearInterval(id);
-      const finalFace = isHeads ? '🦅' : '🤪';
-      coin.textContent = finalFace;
-      coin.style.transform = 'scaleX(1)';
-      coin.style.boxShadow = '0 0 20px rgba(255,215,0,0.8)';
-      setTimeout(() => {
-        wrap.remove();
-        showResultOnCanvas(finalFace, isHeads ? 'Eagle! 🦅' : 'Silly Face! 🤪');
-      }, 2500);
-    }
-  }, 16);
+function closeCoinOnBg(e) {
+  if (e.target === document.getElementById('coin-overlay')) {
+    document.getElementById('coin-overlay').style.display = 'none';
+  }
 }
 
 const DICE_FACE_HTML = `
