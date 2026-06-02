@@ -245,6 +245,11 @@
   <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
     <button id="new-class-btn" onclick="newClass()" style="display:none;background:#6a1b9a;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">✨ NEW</button>
+    <div id="reward-selector" style="display:none;gap:4px;align-items:center;">
+      <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
+      <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
+      <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
+    </div>
     <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
@@ -708,7 +713,7 @@ function connectSocket() {
       </div>`;
     }
   });
-  socket.on('star-given', ({ name }) => showStarCelebration(name));
+  socket.on('star-given', ({ name, emoji }) => showStarCelebration(name, emoji || '⭐'));
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
@@ -1138,6 +1143,7 @@ async function loadTodayAssignment() {
     if (ctrl) ctrl.style.display = 'flex';
     document.getElementById('reactions-panel').style.display = 'block';
     document.getElementById('tool-laser').style.display = 'inline-flex';
+    document.getElementById('reward-selector').style.display = 'flex';
     checkTeacherRoomLock();
   } else {
     const leaveBtn = document.getElementById('leave-btn');
@@ -1530,23 +1536,62 @@ function muteAll() {
   });
 }
 
-const starCounts = {};
+let currentRewardType = 'star';
+const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇' };
+const rewardCounts = {}; // { socketId: { star: 0, trophy: 0, medal: 0 } }
+
+function setRewardType(type) {
+  currentRewardType = type;
+  ['star','trophy','medal'].forEach(t => {
+    const btn = document.getElementById(`reward-${t}-btn`);
+    if (btn) btn.style.border = t === type ? '2px solid #ffd740' : '2px solid transparent';
+  });
+}
 
 function giveStar(socketId, name) {
-  if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId });
-  // Update local star counter
-  starCounts[socketId] = (starCounts[socketId] || 0) + 1;
+  const type = currentRewardType;
+  const emoji = REWARD_EMOJI[type];
+  if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji });
+
+  if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
+  rewardCounts[socketId][type]++;
+  updateRewardCounter(socketId);
+  playTadaSound();
+  showStarCelebration(name, emoji);
+}
+
+function updateRewardCounter(socketId) {
   const wrap = document.getElementById(`wrap-${socketId}`);
-  if (wrap) {
-    let counter = wrap.querySelector('.star-counter');
-    if (!counter) {
-      counter = document.createElement('div');
-      counter.className = 'star-counter';
-      counter.style.cssText = 'text-align:center;font-size:0.75rem;font-weight:700;color:#ffd740;';
-      wrap.appendChild(counter);
-    }
-    counter.textContent = '⭐'.repeat(Math.min(starCounts[socketId], 5)) + (starCounts[socketId] > 5 ? ` x${starCounts[socketId]}` : '');
+  if (!wrap) return;
+  let counter = wrap.querySelector('.star-counter');
+  if (!counter) {
+    counter = document.createElement('div');
+    counter.className = 'star-counter';
+    counter.style.cssText = 'text-align:center;font-size:0.72rem;font-weight:700;margin-top:2px;';
+    wrap.appendChild(counter);
   }
+  const c = rewardCounts[socketId] || { star:0, trophy:0, medal:0 };
+  const parts = [];
+  if (c.star > 0)   parts.push(`${c.star}x⭐`);
+  if (c.trophy > 0) parts.push(`${c.trophy}x🏆`);
+  if (c.medal > 0)  parts.push(`${c.medal}x🥇`);
+  counter.textContent = parts.join(' ');
+}
+
+function playTadaSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523, 659, 784, 1047, 784, 1047];
+    notes.forEach((freq, i) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq; o.type = 'sine';
+      const t = ctx.currentTime + i * 0.08;
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      o.start(t); o.stop(t + 0.15);
+    });
+  } catch(e) {}
 }
 
 function toggleLeaderboard() {
@@ -1558,15 +1603,18 @@ function renderLeaderboard(stars) {
   const list = document.getElementById('leaderboard-list');
   const entries = Object.entries(stars).sort((a, b) => b[1] - a[1]);
   if (entries.length === 0) { list.innerHTML = '<div style="color:#aaa;text-align:center;">No stars yet!</div>'; return; }
-  const medals = ['🥇','🥈','🥉'];
-  list.innerHTML = entries.map(([name, count], i) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
-      <span style="font-weight:700;color:${i===0?'#ffd740':i===1?'#c0c0c0':i===2?'#cd7f32':'#a0c4ff'};">
-        ${medals[i] || `${i+1}.`} ${name}
-      </span>
-      <span style="font-size:0.95rem;color:#ffd740;font-weight:900;">${'⭐'.repeat(Math.min(count,5))}${count>5?` x${count}`:''}</span>
-    </div>
-  `).join('');
+  list.innerHTML = entries.map(([name, count], i) => {
+    const c = typeof count === 'object' ? count : { star: count, trophy: 0, medal: 0 };
+    const total = (c.star||0) + (c.trophy||0) + (c.medal||0);
+    const parts = [];
+    if (c.star > 0)   parts.push(`${c.star}x⭐`);
+    if (c.trophy > 0) parts.push(`${c.trophy}x🏆`);
+    if (c.medal > 0)  parts.push(`${c.medal}x🥇`);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <span style="font-weight:700;color:${i===0?'#ffd740':i===1?'#c0c0c0':i===2?'#cd7f32':'#a0c4ff'};">${i+1}. ${name}</span>
+      <span style="font-size:0.85rem;">${parts.join(' ')}</span>
+    </div>`;
+  }).join('');
 
   // Update star counters on all video slots by matching student name
   document.querySelectorAll('.student-wrap').forEach(wrap => {
@@ -1586,11 +1634,12 @@ function renderLeaderboard(stars) {
   });
 }
 
-function showStarCelebration(name) {
+function showStarCelebration(name, emoji) {
+  emoji = emoji || '⭐';
   const overlay = document.getElementById('star-overlay');
   const nameEl = document.getElementById('star-name');
   const canvas = document.getElementById('confetti-canvas');
-  nameEl.innerHTML = `⭐ Great job, ${name}! ⭐`;
+  nameEl.innerHTML = `${emoji} Great job, ${name}! ${emoji}`;
   nameEl.style.animation = 'none'; nameEl.offsetHeight; nameEl.style.animation = 'starPop 0.6s ease-out forwards';
   overlay.style.display = 'flex';
   canvas.width = window.innerWidth; canvas.height = window.innerHeight;
