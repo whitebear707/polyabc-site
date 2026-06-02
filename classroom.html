@@ -221,7 +221,7 @@
 
     <!-- Reactions Panel -->
     <div id="reactions-panel" style="margin-top:8px;">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
         <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
         <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
         <button class="reaction-btn" onclick="sendReaction('😊')">😊</button>
@@ -1544,6 +1544,13 @@ const REACTION_SOUNDS = {
   '👍': [523, 659],
 };
 
+// Special burst emojis for certain reactions
+const REACTION_BURST = {
+  '🎉': ['🎉','🎊','✨','⭐','🌟','💫','🎈'],
+  '❤️': ['❤️','💕','💖','💗','💓','🌸','💝'],
+  '😱': ['❗','❗','⚠️','❗','🔴','❗'],
+};
+
 function playReactionSound(emoji) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1576,13 +1583,22 @@ function sendReaction(emoji) {
 
 function showReaction(emoji) {
   playReactionSound(emoji);
-  const el = document.createElement('div');
-  el.className = 'floating-reaction';
-  el.textContent = emoji;
-  el.style.left = `${10 + Math.random() * 80}vw`;
-  el.style.bottom = '10vh';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2600);
+  const burst = REACTION_BURST[emoji] || [emoji];
+  const count = burst.length > 1 ? 12 : 10;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'floating-reaction';
+      const pick = burst[Math.floor(Math.random() * burst.length)];
+      el.textContent = pick;
+      el.style.left = `${5 + Math.random() * 90}vw`;
+      el.style.bottom = `${5 + Math.random() * 15}vh`;
+      el.style.fontSize = `${1.5 + Math.random() * 2}rem`;
+      el.style.animationDuration = `${2 + Math.random() * 1.5}s`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }, i * 80);
+  }
 }
 
 function leaveClass() {
