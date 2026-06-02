@@ -1582,7 +1582,7 @@ function showReaction(emoji) {
     for (let i = 0; i < 20; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
-        el.textContent = '😢';
+        el.textContent = Math.random() > 0.3 ? '💧' : '🌧️';
         el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
         document.body.appendChild(el);
         let y = rect.top;
