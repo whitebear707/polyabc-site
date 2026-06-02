@@ -262,7 +262,7 @@
     <div id="my-controls" style="display:none;"></div>
 
     <!-- Reactions Panel -->
-    <div id="reactions-panel" style="margin-top:8px;">
+    <div id="reactions-panel" style="margin-top:8px;display:none;">
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
         <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
         <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
@@ -1123,6 +1123,7 @@ async function loadTodayAssignment() {
     if (IS_TEACHER) {
     const ctrl = document.getElementById('right-panel-controls');
     if (ctrl) ctrl.style.display = 'flex';
+    document.getElementById('reactions-panel').style.display = 'block';
     checkTeacherRoomLock();
   } else {
     const leaveBtn = document.getElementById('leave-btn');
@@ -1747,8 +1748,9 @@ const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c2
 function showReaction(emoji) {
   playReactionSound(emoji);
   const container = document.getElementById('whiteboard-wrap');
-  if (!container) return;
-  const rect = container.getBoundingClientRect();
+  const rawRect = container ? container.getBoundingClientRect() : null;
+  // Fallback to full window if canvas not measured yet
+  const rect = (rawRect && rawRect.width > 0) ? rawRect : { left:0, top:0, bottom:window.innerHeight, width:window.innerWidth, height:window.innerHeight };
 
   const isSad = emoji === '😢';
 
