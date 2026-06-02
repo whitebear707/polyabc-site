@@ -1582,17 +1582,16 @@ function showReaction(emoji) {
     for (let i = 0; i < 20; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
-        el.style.position = 'fixed';
-        el.style.pointerEvents = 'none';
-        el.style.zIndex = '9999';
-        el.style.fontSize = `${3 + Math.random() * 2}rem`;
-        el.style.left = `${rect.left + Math.random() * rect.width}px`;
-        el.style.top = `${rect.top}px`;
-        el.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
-        el.className = 'falling-reaction-canvas';
         el.textContent = '😢';
+        el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${3+Math.random()*2}rem;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        let y = rect.top;
+        const vy = 3 + Math.random() * 3;
+        const id = setInterval(() => {
+          y += vy;
+          el.style.top = y + 'px';
+          if (y > rect.bottom + 60) { clearInterval(id); el.remove(); }
+        }, 16);
       }, i * 100);
     }
     return;
@@ -1630,19 +1629,18 @@ function showReaction(emoji) {
       setTimeout(() => {
         const el = document.createElement('div');
         const size = 8 + Math.random() * 10;
-        el.style.position = 'fixed';
-        el.style.pointerEvents = 'none';
-        el.style.zIndex = '9998';
-        el.style.width = `${size}px`;
-        el.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.4)}px`;
-        el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-        el.style.left = `${rect.left + Math.random() * rect.width}px`;
-        el.style.top = `${rect.top}px`;
-        el.style.animationDuration = `${1.5 + Math.random() * 2}s`;
-        el.className = 'falling-reaction-canvas';
+        el.style.cssText = `position:fixed;pointer-events:none;z-index:9998;width:${size}px;height:${size*(Math.random()>0.5?1:0.4)}px;background:${CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        let y = rect.top;
+        let r = Math.random() * 360;
+        const vy = 2 + Math.random() * 4;
+        const vr = (Math.random()-0.5) * 10;
+        const id = setInterval(() => {
+          y += vy; r += vr;
+          el.style.top = y + 'px';
+          el.style.transform = `rotate(${r}deg)`;
+          if (y > rect.bottom + 20) { clearInterval(id); el.remove(); }
+        }, 16);
       }, i * 30);
     }
   }
