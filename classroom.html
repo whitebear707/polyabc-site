@@ -1592,34 +1592,36 @@ function showReaction(emoji) {
         setTimeout(() => el.remove(), 4000);
       }, i * 80);
     }
-    // Colorful confetti falls TOP to BOTTOM
-    for (let i = 0; i < 50; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        const size = 10 + Math.random() * 10;
-        const color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
-        const dur = 1.5 + Math.random() * 2;
-        el.style.position = 'fixed';
-        el.style.left = `${rect.left + Math.random() * rect.width}px`;
-        el.style.top = `${rect.top - size}px`;
-        el.style.width = `${size}px`;
-        el.style.height = `${size}px`;
-        el.style.background = color;
-        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
-        el.style.pointerEvents = 'none';
-        el.style.zIndex = '9998';
-        el.style.transform = `rotate(${Math.random() * 360}deg)`;
-        el.style.transition = 'none';
-        document.body.appendChild(el);
-        // Force reflow then animate
-        el.getBoundingClientRect();
-        el.style.transition = `transform ${dur}s ease-in, top ${dur}s ease-in, opacity 0.3s ease ${dur - 0.3}s`;
-        el.style.top = `${rect.bottom + size}px`;
-        el.style.transform = `rotate(${Math.random() * 720}deg)`;
-        setTimeout(() => { el.style.opacity = '0'; }, (dur - 0.3) * 1000);
-        setTimeout(() => el.remove(), (dur + 0.5) * 1000);
-      }, i * 40);
+    // Canvas-based confetti confined to whiteboard area
+    const cvs = document.createElement('canvas');
+    cvs.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none;z-index:9998;`;
+    cvs.width = rect.width; cvs.height = rect.height;
+    document.body.appendChild(cvs);
+    const ctx = cvs.getContext('2d');
+    const pieces = Array.from({length: 120}, () => ({
+      x: Math.random() * rect.width, y: -20,
+      r: Math.random() * 8 + 4,
+      d: Math.random() * 80 + 20,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      tilt: Math.random() * 10 - 5, tiltAngle: 0, tiltSpeed: Math.random() * 0.1 + 0.05
+    }));
+    let frame = 0;
+    function drawConfetti() {
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      pieces.forEach(p => {
+        ctx.beginPath(); ctx.lineWidth = p.r; ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4); ctx.stroke();
+        p.tiltAngle += p.tiltSpeed;
+        p.y += (Math.cos(frame / 10 + p.d) + p.r / 4) * 3;
+        p.tilt = Math.sin(p.tiltAngle) * 12;
+        if (p.y > cvs.height) { p.y = -20; p.x = Math.random() * cvs.width; }
+      });
+      frame++;
+      if (frame < 180) requestAnimationFrame(drawConfetti);
+      else cvs.remove();
     }
+    drawConfetti();
     return;
   }
 
