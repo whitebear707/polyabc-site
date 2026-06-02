@@ -1781,6 +1781,7 @@ function doFlipCoin() {
     setTimeout(() => {
       result.textContent = isHeads ? '🦅 Eagle!' : '🤪 Silly Face!';
       result.style.opacity = '1';
+      setTimeout(() => { document.getElementById('coin-overlay').style.display = 'none'; }, 3000);
     }, 3100);
   }, 50);
 }
@@ -1852,6 +1853,7 @@ function rollDice3D() {
   setTimeout(() => {
     document.getElementById('dice-result-num').textContent = _diceCount === 1 ? total : `${values.join(' + ')} = ${total}`;
     document.getElementById('dice-result-label').style.opacity = '1';
+    setTimeout(() => { document.getElementById('dice-overlay').style.display = 'none'; }, 3000);
   }, 2200);
 }
 
