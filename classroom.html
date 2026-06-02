@@ -1665,6 +1665,7 @@ function showReaction(emoji) {
     drawFrame();
     return;
   }
+}
 
 function playReactionSound(emoji) {
   try {
@@ -1694,34 +1695,6 @@ function playReactionSound(emoji) {
 function sendReaction(emoji) {
   showReaction(emoji);
   if (window._socket) window._socket.emit('reaction', { room: ROOM, emoji });
-}
-
-function showReaction(emoji) {
-  playReactionSound(emoji);
-  const burst = REACTION_BURST[emoji] || [emoji];
-  const count = burst.length > 1 ? 12 : 10;
-  const isSad = emoji === '😢';
-
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.className = isSad ? 'falling-reaction' : 'floating-reaction';
-      const pick = burst[Math.floor(Math.random() * burst.length)];
-      el.textContent = pick;
-      el.style.left = `${5 + Math.random() * 90}vw`;
-      if (isSad) {
-        el.style.top = `-5vh`;
-        el.style.fontSize = `${2.5 + Math.random() * 1.5}rem`;
-        el.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
-      } else {
-        el.style.bottom = `${5 + Math.random() * 15}vh`;
-        el.style.fontSize = `${1.5 + Math.random() * 2}rem`;
-        el.style.animationDuration = `${2 + Math.random() * 1.5}s`;
-      }
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 3500);
-    }, i * 80);
-  }
 }
 
 function leaveClass() {
