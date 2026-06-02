@@ -1910,6 +1910,7 @@ async function loadPayroll() {
             <td style="padding:6px 10px;">${c.classType}</td>
             <td style="padding:6px 10px;">${c.studentsShowed}/${c.expectedStudents}</td>
             <td style="padding:6px 10px;color:#888;">${c.payNote}</td>
+            <td style="padding:6px 10px;">${buildPayrollTags(c)}</td>
             <td style="padding:6px 10px;text-align:right;font-weight:900;color:#2e7d32;">$${c.classPay.toFixed(2)}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No classes this period</div>'}
@@ -1935,6 +1936,52 @@ function clearAttSearch() {
   document.getElementById('att-to').value = '';
   document.getElementById('att-room').value = '';
   document.getElementById('attendance-cards').innerHTML = '';
+}
+
+function buildStatusTags(r) {
+  const tags = [];
+  const tag = (color, bg, text) => `<span style="background:${bg};color:${color};padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:900;">${text}</span>`;
+
+  // Completed
+  if (r.endType === 'completed') tags.push(tag('white', '#2e7d32', '✅ COMPLETED'));
+  else if (r.endType === 'ended_early') tags.push(tag('white', '#e65100', '⚠️ ENDED EARLY'));
+  else if (r.endType === 'invalid_termination') tags.push(tag('white', '#b71c1c', '⚠️ INVALID TERMINATION'));
+
+  // Late to greeting window
+  if (r.teacherLoginAt && r.classStartedAt) {
+    const loginTime = new Date(r.teacherLoginAt);
+    const startTime = new Date(r.classStartedAt);
+    if (loginTime > startTime) {
+      const diffMins = Math.round((loginTime - startTime) / 60000);
+      tags.push(tag('white', '#e53935', `🔴 LATE +${diffMins}min`));
+    }
+  }
+
+  // Opened late
+  if (r.teacherOpenedAt && r.classStartedAt) {
+    const openedTime = new Date(r.teacherOpenedAt);
+    const startTime = new Date(r.classStartedAt);
+    if (openedTime > startTime) {
+      const diffMins = Math.round((openedTime - startTime) / 60000);
+      tags.push(tag('white', '#c62828', `🔴 OPENED LATE +${diffMins}min`));
+    }
+  }
+
+  // No show
+  if (!r.teacherLoginAt && !r.teacherOpenedAt) tags.push(tag('white', '#b71c1c', '🔴 NO SHOW'));
+
+  return tags.join('') || tag('#555', '#f0f0f0', 'No status');
+}
+
+function buildPayrollTags(c) {
+  if (!c.endType && !c.late && !c.openedLate) return '';
+  const tags = [];
+  if (c.endType === 'completed') tags.push(`<span style="background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ COMPLETED</span>`);
+  if (c.endType === 'ended_early') tags.push(`<span style="background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⚠️ ENDED EARLY</span>`);
+  if (c.endType === 'invalid_termination') tags.push(`<span style="background:#ffebee;color:#b71c1c;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⚠️ INVALID</span>`);
+  if (c.late) tags.push(`<span style="background:#ffebee;color:#e53935;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">🔴 LATE</span>`);
+  if (c.openedLate) tags.push(`<span style="background:#ffebee;color:#c62828;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">🔴 OPENED LATE</span>`);
+  return tags.join(' ');
 }
 
 async function loadAttendance() {
@@ -2060,10 +2107,13 @@ function openAttDetail(idx) {
       </div>
       <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:16px;">
         <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">TEACHER</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
-          <div><div style="font-size:0.75rem;color:#888;">Logged In</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px;">
+          <div><div style="font-size:0.75rem;color:#888;">Greeting Window</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
           <div><div style="font-size:0.75rem;color:#888;">Opened Class</div><div style="font-weight:900;color:#2e7d32;">${fmtT(r.teacherOpenedAt)}</div></div>
           <div><div style="font-size:0.75rem;color:#888;">Closed Class</div><div style="font-weight:900;color:#e53935;">${fmtT(r.classEndedAt)}</div></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${buildStatusTags(r)}
         </div>
       </div>
       <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">STUDENTS</div>

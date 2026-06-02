@@ -254,6 +254,7 @@
   <div style="display:flex;align-items:center;gap:10px;">
     <img src="LOGO.png" alt="PolyABC"/>
     <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
+    <div id="owed-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#e53935;background:rgba(229,57,53,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #e53935;">⏱ Owed: 0:00</div>
   </div>
   <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
@@ -1259,6 +1260,19 @@ function startTimer(assignment) {
   const duration = getDuration(assignment.classType);
   const warnAt = duration - 10;
   let autoOpened = false;
+  let classStartedEmitted = false;
+  let owedTimerStarted = false;
+  let owedSecs = 0;
+  window._assignmentStartMins = t2m(assignment.time);
+
+  // Check if teacher is LATE (already past scheduled start)
+  const nowCheck = nowGDL();
+  const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
+  const schedStart = t2m(assignment.time);
+  if (IS_TEACHER && nowMinsCheck > schedStart) {
+    owedSecs = Math.round((nowMinsCheck - schedStart) * 60);
+    showLateWarning('LATE', owedSecs);
+  }
 
   timerInterval = setInterval(() => {
     const now = nowGDL();
@@ -1270,13 +1284,24 @@ function startTimer(assignment) {
       timerEl.textContent=`-${mm}:${String(ss).padStart(2,'0')}`; timerEl.style.color='#a0c4ff'; return;
     }
 
-    // Auto-open class when timer hits 0 (scheduled start time)
+    // Timer hit 0 — official class start
+    if (!classStartedEmitted) {
+      classStartedEmitted = true;
+      if (IS_TEACHER && window._socket) window._socket.emit('class-started', { room: ROOM });
+    }
+
+    // Auto-open class when timer hits 0
     if (IS_TEACHER && !autoOpened && !classIsOpen && elapsed >= 0) {
-      autoOpened = true;
-      classIsOpen = true;
+      autoOpened = true; classIsOpen = true;
       const btn = document.getElementById('open-class-btn');
       if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; }
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
+    }
+
+    // Owed timer — counts down owed seconds
+    if (IS_TEACHER && owedSecs > 0 && !owedTimerStarted) {
+      owedTimerStarted = true;
+      startOwedTimer(owedSecs, duration);
     }
 
     const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
@@ -2157,6 +2182,36 @@ function scaleCanvas() {
   }
   wrap.style.overflow = 'hidden';
   wrap.style.background = '#ffffff';
+}
+
+function showLateWarning(type, secs) {
+  const mm = Math.floor(secs/60), ss = secs % 60;
+  const timeStr = `${mm}:${String(ss).padStart(2,'0')}`;
+  // Flash warning in topbar
+  const label = document.createElement('div');
+  label.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#e53935;color:white;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;padding:6px 20px;border-radius:20px;z-index:9999;';
+  label.textContent = `🔴 ${type} — ${timeStr} behind schedule`;
+  document.body.appendChild(label);
+  setTimeout(() => label.remove(), 6000);
+}
+
+function startOwedTimer(owedSecsTotal, classDuration) {
+  const owedEl = document.getElementById('owed-timer');
+  if (!owedEl) return;
+  owedEl.style.display = 'block';
+  // Owed counts DOWN as teacher makes up time beyond scheduled end
+  const timerEl = document.getElementById('class-timer');
+  let owedInterval = setInterval(() => {
+    const now = nowGDL();
+    const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+    // Time elapsed beyond scheduled duration
+    const extra = (nowMins - window._assignmentStartMins - classDuration) * 60;
+    const remaining = Math.max(0, owedSecsTotal - extra);
+    const mm = Math.floor(remaining/60), ss = Math.floor(remaining%60);
+    owedEl.textContent = `⏱ Owed: ${mm}:${String(ss).padStart(2,'0')}`;
+    owedEl.style.color = remaining === 0 ? '#69f0ae' : '#e53935';
+    if (remaining === 0) { owedEl.textContent = '✅ Time made up!'; setTimeout(() => owedEl.style.display='none', 3000); clearInterval(owedInterval); }
+  }, 1000);
 }
 
 function setTool(tool) {
