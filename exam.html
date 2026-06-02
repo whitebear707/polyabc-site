@@ -403,11 +403,13 @@ function renderCal() {
   for (let d=1; d<=daysIn; d++) {
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isPast = ds < today;
-    const isToday = ds === today;
     const color = availMap[ds];
+    // Check 24hr minimum
+    const dateTime = new Date(`${ds}T${selectedTime || '00:00'}:00`);
+    const tooSoon = (dateTime - new Date()) / 3600000 < 24;
     let cls = 'cal-day';
     let onclick = '';
-    if (isPast) cls += ' past';
+    if (isPast || tooSoon) cls += ' past';
     else if (color === 'green') { cls += ' green'; onclick = `onclick="pickDate('${ds}')"` ; }
     else cls += ' grey';
     if (isToday) cls += ' today';
@@ -417,6 +419,14 @@ function renderCal() {
 }
 
 function pickDate(date) {
+  // Check 24hr minimum
+  const selected = new Date(`${date}T${selectedTime}:00`);
+  const now = new Date();
+  const diffHrs = (selected - now) / 3600000;
+  if (diffHrs < 24) {
+    alert('Please select a date at least 24 hours from now.');
+    return;
+  }
   selectedDate = date;
   const timeDisp = new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
   document.getElementById('confirm-text').innerHTML = `Book a free 15-minute Trial class on<br><strong>${date}</strong> at <strong>${timeDisp}</strong>?`;

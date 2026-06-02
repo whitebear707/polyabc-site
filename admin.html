@@ -1322,7 +1322,7 @@ async function saveTeacher() {
   } else {
     const res = await fetch(`${SERVER_URL}/rooms`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ room, teacherName: name, teacherPassword: pass })
+      body: JSON.stringify({ room, teacherName: name, teacherPassword: pass, hourlyRate: parseFloat(rate)||0 })
     });
     const data = await res.json();
     if (!data.success) { showAlert('😬','Oh No! Woops!',data.message||'Could not create room.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
@@ -1720,6 +1720,7 @@ function populateGroupStudentSelect() {
 function addStudentToGroup() {
   const val = document.getElementById('group-add-student-select').value;
   if (!val) return;
+  if (_groupStudents.length >= 6) { showAlert('😬','Oh No! Woops!','Groups can have a maximum of 6 students.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
   if (!_groupStudents.includes(val)) _groupStudents.push(val);
   renderGroupStudentChips();
   populateGroupStudentSelect();
