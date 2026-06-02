@@ -2213,23 +2213,26 @@ function startOwedTimer(owedSecsTotal, classDuration) {
   owedEl.textContent = `⏱ Owed: ${owedMins} min`;
   owedEl.style.color = '#e53935';
 
-  // Watch for when class passes original end time — then start countdown
+  let countdown = owedMins * 60; // seconds to count down
+  let started = false;
+
   const owedInterval = setInterval(() => {
     const now = nowGDL();
     const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
     const originalEnd = window._assignmentStartMins + classDuration;
+
     if (nowMins >= originalEnd) {
-      // Now count down remaining owed time
-      const extraMins = nowMins - originalEnd;
-      const remaining = Math.max(0, owedMins - extraMins);
-      const mm = Math.floor(remaining), ss = Math.floor((remaining % 1) * 60);
-      owedEl.textContent = `⏱ Owed: ${mm}:${String(ss).padStart(2,'0')}`;
-      owedEl.style.color = remaining === 0 ? '#69f0ae' : '#e53935';
-      if (remaining === 0) {
+      if (!started) started = true;
+      countdown--;
+      if (countdown <= 0) {
         owedEl.textContent = '✅ Time made up!';
-        setTimeout(() => { owedEl.style.display = 'none'; }, 3000);
+        owedEl.style.color = '#69f0ae';
         clearInterval(owedInterval);
+        setTimeout(() => { owedEl.style.display = 'none'; }, 3000);
+        return;
       }
+      const mm = Math.floor(countdown / 60), ss = countdown % 60;
+      owedEl.textContent = `⏱ Owed: ${mm}:${String(ss).padStart(2,'0')}`;
     }
   }, 1000);
 }
