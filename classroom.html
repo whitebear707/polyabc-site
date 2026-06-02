@@ -1641,6 +1641,7 @@ function showReaction(emoji) {
     const origJSON = cvs.toJSON(['data']);
     let frame = 0;
     function drawFrame() {
+      cvs.renderAll(); // clear to current canvas state first
       const ctx = cvs.getContext();
       pieces.forEach(p => {
         p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
