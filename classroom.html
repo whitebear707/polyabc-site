@@ -1592,8 +1592,29 @@ function showReaction(emoji) {
         setTimeout(() => el.remove(), 4000);
       }, i * 80);
     }
-    // Use proven star celebration confetti - just without a name
-    showStarCelebration('');
+    // Simple colored confetti emojis - no canvas nonsense!
+    const confettiEmojis = ['🎊','🎊','🎊','🎊','🎊','🎊','🎉'];
+    for (let i = 0; i < 30; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9999';
+        el.style.fontSize = `${2 + Math.random() * 2}rem`;
+        el.style.left = `${rect.left + Math.random() * rect.width}px`;
+        el.style.top = `${rect.top + Math.random() * rect.height}px`;
+        el.style.opacity = '0';
+        el.style.transition = `opacity 0.2s, transform ${1.5 + Math.random()}s ease-out`;
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '1';
+          el.style.transform = `translateY(-${50 + Math.random() * 200}px) rotate(${Math.random() * 360}deg)`;
+        }, 10);
+        setTimeout(() => { el.style.opacity = '0'; }, 1200 + Math.random() * 500);
+        setTimeout(() => el.remove(), 2500);
+      }, i * 60);
+    }
     return;
   }
 
