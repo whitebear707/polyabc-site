@@ -1592,17 +1592,18 @@ function showReaction(emoji) {
         setTimeout(() => el.remove(), 4000);
       }, i * 80);
     }
-    // Canvas-based confetti confined to whiteboard area
-    const cvs = document.createElement('canvas');
-    cvs.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none;z-index:9998;`;
-    cvs.width = rect.width; cvs.height = rect.height;
-    document.body.appendChild(cvs);
+    // Reuse the existing star celebration canvas - same proven method
+    const overlay = document.getElementById('star-overlay');
+    const cvs = document.getElementById('confetti-canvas');
+    overlay.style.display = 'flex';
+    document.getElementById('star-name').innerHTML = '';
+    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
     const ctx = cvs.getContext('2d');
-    const pieces = Array.from({length: 120}, () => ({
-      x: Math.random() * rect.width, y: -20,
-      r: Math.random() * 8 + 4,
-      d: Math.random() * 80 + 20,
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    const colors = CONFETTI_COLORS;
+    const pieces = Array.from({length: 150}, () => ({
+      x: Math.random() * cvs.width, y: -20,
+      r: Math.random() * 8 + 3, d: Math.random() * 80 + 20,
+      color: colors[Math.floor(Math.random() * colors.length)],
       tilt: Math.random() * 10 - 5, tiltAngle: 0, tiltSpeed: Math.random() * 0.1 + 0.05
     }));
     let frame = 0;
@@ -1618,8 +1619,8 @@ function showReaction(emoji) {
         if (p.y > cvs.height) { p.y = -20; p.x = Math.random() * cvs.width; }
       });
       frame++;
-      if (frame < 180) requestAnimationFrame(drawConfetti);
-      else cvs.remove();
+      if (frame < 200) requestAnimationFrame(drawConfetti);
+      else { ctx.clearRect(0, 0, cvs.width, cvs.height); overlay.style.display = 'none'; }
     }
     drawConfetti();
     return;
