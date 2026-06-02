@@ -1774,12 +1774,13 @@ function doFlipCoin() {
   const isHeads = Math.random() <= 0.5;
   coin.style.animation = 'none';
   result.style.opacity = '0';
+  // Broadcast immediately so student sees it at same time
+  if (window._socket) window._socket.emit('show-result', { room: ROOM, text: isHeads ? '🦅' : '🤪', sub: isHeads ? 'Eagle!' : 'Silly Face!', type: 'coin', extra: { isHeads } });
   setTimeout(() => {
     coin.style.animation = `${isHeads ? 'flipHeads' : 'flipTails'} 3s ease-out forwards`;
     setTimeout(() => {
       result.textContent = isHeads ? '🦅 Eagle!' : '🤪 Silly Face!';
       result.style.opacity = '1';
-      broadcastResult(isHeads ? '🦅' : '🤪', isHeads ? 'Eagle!' : 'Silly Face!', 'coin', { isHeads });
     }, 3100);
   }, 50);
 }
@@ -1836,23 +1837,21 @@ function openDice(count) {
 function rollDice3D() {
   const results = [];
   for (let i = 0; i < _diceCount; i++) {
-    const val = Math.floor(Math.random() * 6); // 0-5 index
+    const val = Math.floor(Math.random() * 6);
     results.push(val);
     const cube = document.getElementById(`dice-cube-${i}`);
     const rot = DICE_ROTATIONS[val];
-    // Add extra full spins for animation drama
     const extraX = (Math.floor(Math.random()*3)+2) * 360;
     const extraY = (Math.floor(Math.random()*3)+2) * 360;
     cube.style.transform = `rotateX(${rot.x + extraX}deg) rotateY(${rot.y + extraY}deg)`;
   }
-
-  // Show result after animation
+  const values = results.map(r => r+1);
+  const total = values.reduce((a,b) => a+b, 0);
+  // Broadcast immediately so student animates at same time
+  if (window._socket) window._socket.emit('show-result', { room: ROOM, text: `🎲`, sub: _diceCount === 1 ? `Rolled a ${total}!` : `Total: ${total}!`, type: 'dice', extra: { values, total, count: _diceCount } });
   setTimeout(() => {
-    const values = results.map(r => r + 1);
-    const total = values.reduce((a,b) => a+b, 0);
     document.getElementById('dice-result-num').textContent = _diceCount === 1 ? total : `${values.join(' + ')} = ${total}`;
     document.getElementById('dice-result-label').style.opacity = '1';
-    broadcastResult(`🎲 ${values.join(' ')}`, _diceCount === 1 ? `Rolled a ${total}!` : `Total: ${total}!`, 'dice', { values, total, count: _diceCount });
   }, 2200);
 }
 
