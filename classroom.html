@@ -114,7 +114,11 @@
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
-  @keyframes pulse-glow-green {
+  @keyframes coinSpin {
+    0%   { transform: translate(-50%,-50%) rotateY(0deg) scale(1); }
+    50%  { transform: translate(-50%,-50%) rotateY(900deg) scale(1.3); }
+    100% { transform: translate(-50%,-50%) rotateY(1800deg) scale(1); }
+  }
     0%   { box-shadow: 0 0 0 0 rgba(46,125,50,0.7); }
     70%  { box-shadow: 0 0 0 10px rgba(46,125,50,0); }
     100% { box-shadow: 0 0 0 0 rgba(46,125,50,0); }
@@ -244,6 +248,14 @@
         <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
         <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
         <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+      </div>
+      <!-- Divider -->
+      <div style="border-top:1px solid rgba(255,255,255,0.15);margin:8px 0;"></div>
+      <!-- Coin & Dice -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
+        <button class="reaction-btn" onclick="flipCoin()" title="Coin Flip">🪙</button>
+        <button class="reaction-btn" onclick="rollDice(1)" title="Roll 1 Die">🎲</button>
+        <button class="reaction-btn" style="grid-column:span 2;" onclick="rollDice(2)" title="Roll 2 Dice">🎲🎲</button>
       </div>
     </div>
   </div><!-- end left-panel -->
@@ -646,6 +658,7 @@ function connectSocket() {
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
   socket.on('reaction', ({ emoji }) => showReaction(emoji));
+  socket.on('show-result', ({ text, sub }) => showResultOnCanvas(text, sub));
   socket.on('waiting-count', ({ count }) => {
     if (!IS_TEACHER) return;
     const badge = document.getElementById('waiting-badge');
@@ -1544,6 +1557,47 @@ function showStarCelebration(name) {
     else { ctx.clearRect(0,0,canvas.width,canvas.height); overlay.style.display = 'none'; }
   }
   draw();
+}
+
+// ── COIN FLIP & DICE ──
+function showResultOnCanvas(text, sub) {
+  const container = document.getElementById('whiteboard-wrap');
+  const rect = container.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;left:${rect.left + rect.width/2}px;top:${rect.top + rect.height/2}px;transform:translate(-50%,-50%);
+    background:rgba(22,33,62,0.92);color:white;border-radius:20px;padding:20px 32px;text-align:center;
+    pointer-events:none;z-index:9999;font-family:Nunito,sans-serif;animation:floatUp 2.5s ease-out forwards;`;
+  el.innerHTML = `<div style="font-size:3.5rem;">${text}</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#a0c4ff;">${sub}</div>`;
+  document.body.appendChild(el);
+  if (window._socket) window._socket.emit('show-result', { room: ROOM, text, sub });
+  setTimeout(() => el.remove(), 3000);
+}
+
+function flipCoin() {
+  const result = Math.random() < 0.5 ? '🌕 Heads!' : '🌑 Tails!';
+  const emoji = Math.random() < 0.5 ? '🪙' : '🪙';
+  // Animate spinning coin
+  const container = document.getElementById('whiteboard-wrap');
+  const rect = container.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;left:${rect.left + rect.width/2}px;top:${rect.top + rect.height/2}px;
+    transform:translate(-50%,-50%);font-size:5rem;pointer-events:none;z-index:9999;
+    animation:coinSpin 0.8s ease-out forwards;`;
+  el.textContent = '🪙';
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.remove();
+    showResultOnCanvas('🪙', result);
+  }, 800);
+}
+
+function rollDice(count) {
+  const dice = Array.from({length: count}, () => Math.ceil(Math.random() * 6));
+  const faces = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
+  const display = dice.map(d => faces[d]).join(' ');
+  const total = dice.reduce((a,b) => a+b, 0);
+  const sub = count === 1 ? `You rolled ${total}!` : `You rolled ${dice.join(' + ')} = ${total}!`;
+  showResultOnCanvas(display, sub);
 }
 
 // ── REACTIONS ──
