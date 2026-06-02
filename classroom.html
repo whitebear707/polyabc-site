@@ -1592,37 +1592,8 @@ function showReaction(emoji) {
         setTimeout(() => el.remove(), 4000);
       }, i * 80);
     }
-    // Reuse the existing star celebration canvas - same proven method
-    const overlay = document.getElementById('star-overlay');
-    const cvs = document.getElementById('confetti-canvas');
-    overlay.style.display = 'flex';
-    document.getElementById('star-name').innerHTML = '';
-    cvs.width = window.innerWidth; cvs.height = window.innerHeight;
-    const ctx = cvs.getContext('2d');
-    const colors = CONFETTI_COLORS;
-    const pieces = Array.from({length: 150}, () => ({
-      x: Math.random() * cvs.width, y: -20,
-      r: Math.random() * 8 + 3, d: Math.random() * 80 + 20,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      tilt: Math.random() * 10 - 5, tiltAngle: 0, tiltSpeed: Math.random() * 0.1 + 0.05
-    }));
-    let frame = 0;
-    function drawConfetti() {
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
-      pieces.forEach(p => {
-        ctx.beginPath(); ctx.lineWidth = p.r; ctx.strokeStyle = p.color;
-        ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
-        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4); ctx.stroke();
-        p.tiltAngle += p.tiltSpeed;
-        p.y += (Math.cos(frame / 10 + p.d) + p.r / 4) * 3;
-        p.tilt = Math.sin(p.tiltAngle) * 12;
-        if (p.y > cvs.height) { p.y = -20; p.x = Math.random() * cvs.width; }
-      });
-      frame++;
-      if (frame < 200) requestAnimationFrame(drawConfetti);
-      else { ctx.clearRect(0, 0, cvs.width, cvs.height); overlay.style.display = 'none'; }
-    }
-    drawConfetti();
+    // Use proven star celebration confetti - just without a name
+    showStarCelebration('');
     return;
   }
 
