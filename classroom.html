@@ -628,6 +628,11 @@ function connectSocket() {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
     }
+    // Students connect to other students (not teacher - teacher handles that)
+    if (!IS_TEACHER && role === 'student') {
+      setTimeout(() => callAudioPeer(socketId, socket), 1000);
+      setTimeout(() => callVideoPeer(socketId, socket), 1200);
+    }
     if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
       setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON(['data']) }), 1500);
     }
@@ -1068,8 +1073,8 @@ function createVideoSlot(socketId, role, name) {
     const lbl = document.getElementById('left-label'); lbl.textContent = ''; lbl.style.zIndex = '3';
     const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) { nameAbove.textContent = `Teacher ${name || ''}`; nameAbove.style.display = 'block'; }
   } else if (!IS_TEACHER && role === 'student') {
-    // Students don't see other students — skip
-    return;
+    // Students now see other students
+    showStudentSlot(socketId, name);
   } else {
     // Teacher sees all students
     showStudentSlot(socketId, name);
