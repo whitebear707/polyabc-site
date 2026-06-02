@@ -1750,7 +1750,7 @@ const REACTION_BURST = {
 
 const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63','#00bcd4','#ff69b4','#7fff00'];
 
-// Single global particle system - no more 40 setIntervals!
+// Single global particle system
 let _particles = [];
 let _particleRAF = null;
 
@@ -1759,7 +1759,7 @@ function startParticleLoop() {
   function loop() {
     _particles = _particles.filter(p => {
       p.y += p.vy;
-      p.el.style.top = p.y + 'px';
+      p.el.style.transform = `translateY(${p.y - p.startY}px)`;
       if (p.vy < 0 && p.y < p.minY) { p.el.remove(); return false; }
       if (p.vy > 0 && p.y > p.maxY) { p.el.remove(); return false; }
       return true;
@@ -1770,6 +1770,14 @@ function startParticleLoop() {
   _particleRAF = requestAnimationFrame(loop);
 }
 
+function spawnEmoji(text, x, startY, vy, minY, maxY, size, zIndex) {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;pointer-events:none;z-index:${zIndex||9999};font-size:${size}rem;left:${x}px;top:${startY}px;will-change:transform;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  _particles.push({ el, y: startY, startY, vy, minY, maxY });
+}
+
 function showReaction(emoji) {
   playReactionSound(emoji);
   const container = document.getElementById('whiteboard-wrap');
@@ -1777,53 +1785,26 @@ function showReaction(emoji) {
   const rect = (rawRect && rawRect.width > 0) ? rawRect : { left:0, top:0, bottom:window.innerHeight, width:window.innerWidth, height:window.innerHeight };
 
   const isSad = emoji === '😢';
+  const burst = REACTION_BURST[emoji] || [emoji];
 
   if (isSad) {
-    // 😢 floats UP
-    for (let i = 0; i < 12; i++) {
-      const el = document.createElement('div');
-      el.textContent = '😢';
-      el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;left:${rect.left+Math.random()*rect.width}px;`;
-      const startY = rect.bottom + i * 20;
-      el.style.top = startY + 'px';
-      document.body.appendChild(el);
-      _particles.push({ el, y: startY, vy: -(3+Math.random()*2), minY: rect.top - 80, maxY: 99999 });
+    for (let i = 0; i < 8; i++)
+      spawnEmoji('😢', rect.left+Math.random()*rect.width, rect.bottom, -(3+Math.random()*2), rect.top-80, 99999, 5+Math.random()*2);
+    for (let i = 0; i < 30; i++)
+      spawnEmoji('💧', rect.left+Math.random()*rect.width, rect.top, 4+Math.random()*4, -9999, rect.bottom+20, 0.8+Math.random()*0.6, 9997);
+  } else {
+    for (let i = 0; i < 10; i++) {
+      const pick = burst[Math.floor(Math.random()*burst.length)];
+      spawnEmoji(pick, rect.left+Math.random()*rect.width, rect.bottom+Math.random()*20, -(3+Math.random()*3), rect.top-80, 99999, 5+Math.random()*3);
     }
-    // 💧 drops fall DOWN
-    for (let i = 0; i < 50; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.textContent = '💧';
-        el.style.cssText = `position:fixed;pointer-events:none;z-index:9997;font-size:${0.8+Math.random()*0.8}rem;opacity:0.65;left:${rect.left+Math.random()*rect.width}px;`;
-        const startY = rect.top - 10;
-        el.style.top = startY + 'px';
-        document.body.appendChild(el);
-        _particles.push({ el, y: startY, vy: 4+Math.random()*4, minY: -9999, maxY: rect.bottom + 20 });
-        startParticleLoop();
-      }, i * 20);
-    }
-    startParticleLoop();
-    return;
-  }
-
-  // All other emojis float UP
-  const burst = REACTION_BURST[emoji] || [emoji];
-  for (let i = 0; i < 20; i++) {
-    const el = document.createElement('div');
-    el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;text-shadow:0 2px 8px rgba(0,0,0,0.3);left:${rect.left+Math.random()*rect.width}px;`;
-    el.textContent = burst[Math.floor(Math.random()*burst.length)];
-    const startY = rect.bottom + Math.random() * 40;
-    el.style.top = startY + 'px';
-    document.body.appendChild(el);
-    _particles.push({ el, y: startY, vy: -(3+Math.random()*3), minY: rect.top - 80, maxY: 99999 });
   }
   startParticleLoop();
 
   // Celebration confetti on canvas
   if (emoji === '🎉' && canvas && !window._confettiRAF) {
     const cvs = canvas;
-    const pieces = Array.from({length: 560}, () => ({
-      x: Math.random()*cvs.width, y:-10, vy:3+Math.random()*5, vx:(Math.random()-0.5)*3,
+    const pieces = Array.from({length:300}, () => ({
+      x:Math.random()*cvs.width, y:-10, vy:3+Math.random()*5, vx:(Math.random()-0.5)*3,
       size:6+Math.random()*8, color:CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
       rot:Math.random()*360, rotV:(Math.random()-0.5)*8, round:Math.random()>0.5
     }));
