@@ -90,7 +90,16 @@
   .reaction-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.2); }
   .reaction-btn:active { transform: scale(0.95); }
 
-  /* 3D Dice */
+  /* Laser pointer */
+  #laser-dot {
+    position: fixed; width: 18px; height: 18px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #ff6666, #ff0000);
+    box-shadow: 0 0 8px 4px rgba(255,0,0,0.6), 0 0 20px 8px rgba(255,0,0,0.3);
+    pointer-events: none; z-index: 99999; display: none;
+    transform: translate(-50%, -50%);
+  }
+  body.laser-mode { cursor: none !important; }
+  body.laser-mode * { cursor: none !important; }
   .dice-container { width:200px;height:200px;position:relative;perspective:1000px;perspective-origin:50% 100%; }
   .dice-cube { width:100%;height:100%;top:100px;position:absolute;transform-style:preserve-3d;transition:transform 2s ease-out;cursor:pointer; }
   .dice-cube div { background:hsla(220,85%,50%,0.92);display:block;position:absolute;width:200px;height:200px;border:3px solid #1a3a8f;border-radius:16px; }
@@ -292,6 +301,7 @@
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
       <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
+      <button class="tool-btn" id="tool-laser" onclick="setTool('laser')" style="display:none;">🔴 Laser</button>
       <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
       <input type="range" id="brush-size" min="2" max="30" value="5" onchange="setBrushSize(this.value)"/>
@@ -327,6 +337,8 @@
     <div id="right-panel-title">Students</div>
   </div>
 </div>
+
+<div id="laser-dot"></div>
 
 <!-- COIN FLIP OVERLAY -->
 <div id="coin-overlay" onclick="closeCoinOnBg(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;flex-direction:column;font-family:Nunito,sans-serif;">
@@ -702,6 +714,7 @@ function connectSocket() {
 
   socket.on('reaction', ({ emoji }) => showReaction(emoji));
   socket.on('show-result', ({ text, sub }) => showResultOnCanvas(text, sub));
+  socket.on('laser-move', ({ x, y }) => { if (!IS_TEACHER) showRemoteLaser(x, y); });
   socket.on('waiting-count', ({ count }) => {
     if (!IS_TEACHER) return;
     const badge = document.getElementById('waiting-badge');
@@ -1124,6 +1137,7 @@ async function loadTodayAssignment() {
     const ctrl = document.getElementById('right-panel-controls');
     if (ctrl) ctrl.style.display = 'flex';
     document.getElementById('reactions-panel').style.display = 'block';
+    document.getElementById('tool-laser').style.display = 'inline-flex';
     checkTeacherRoomLock();
   } else {
     const leaveBtn = document.getElementById('leave-btn');
@@ -2012,12 +2026,43 @@ function scaleCanvas() {
 
 function setTool(tool) {
   if (!IS_TEACHER && window._canDraw === false) return;
+  // Exit laser mode if switching away
+  if (currentTool === 'laser' && tool !== 'laser') exitLaser();
   currentTool = tool;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById(`tool-${tool}`).classList.add('selected');
+  document.getElementById(`tool-${tool}`)?.classList.add('selected');
   if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
-  else if (tool === 'erase') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = '#ffffff'; canvas.freeDrawingBrush.width = 20; }
+  else if (tool === 'laser') { canvas.isDrawingMode = false; enterLaser(); }
   else { canvas.isDrawingMode = false; }
+}
+
+function enterLaser() {
+  document.body.classList.add('laser-mode');
+  document.getElementById('laser-dot').style.display = 'block';
+  document.addEventListener('mousemove', onLaserMove);
+}
+
+function exitLaser() {
+  document.body.classList.remove('laser-mode');
+  document.getElementById('laser-dot').style.display = 'none';
+  document.removeEventListener('mousemove', onLaserMove);
+  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: null, y: null });
+}
+
+function onLaserMove(e) {
+  const dot = document.getElementById('laser-dot');
+  dot.style.left = e.clientX + 'px';
+  dot.style.top = e.clientY + 'px';
+  // Broadcast to students
+  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+}
+
+function showRemoteLaser(xRatio, yRatio) {
+  const dot = document.getElementById('laser-dot');
+  if (xRatio === null) { dot.style.display = 'none'; return; }
+  dot.style.display = 'block';
+  dot.style.left = (xRatio * window.innerWidth) + 'px';
+  dot.style.top = (yRatio * window.innerHeight) + 'px';
 }
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
