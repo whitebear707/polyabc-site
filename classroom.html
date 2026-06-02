@@ -119,6 +119,11 @@
     50%  { transform: translate(-50%,-50%) rotateY(900deg) scale(1.3); }
     100% { transform: translate(-50%,-50%) rotateY(1800deg) scale(1); }
   }
+  @keyframes popIn {
+    0%   { transform: translate(-50%,-50%) scale(0.5); opacity:0; }
+    70%  { transform: translate(-50%,-50%) scale(1.1); opacity:1; }
+    100% { transform: translate(-50%,-50%) scale(1);   opacity:1; }
+  }
     0%   { box-shadow: 0 0 0 0 rgba(46,125,50,0.7); }
     70%  { box-shadow: 0 0 0 10px rgba(46,125,50,0); }
     100% { box-shadow: 0 0 0 0 rgba(46,125,50,0); }
@@ -1566,7 +1571,7 @@ function showResultOnCanvas(text, sub) {
   const el = document.createElement('div');
   el.style.cssText = `position:fixed;left:${rect.left + rect.width/2}px;top:${rect.top + rect.height/2}px;transform:translate(-50%,-50%);
     background:rgba(22,33,62,0.92);color:white;border-radius:20px;padding:20px 32px;text-align:center;
-    pointer-events:none;z-index:9999;font-family:Nunito,sans-serif;animation:floatUp 2.5s ease-out forwards;`;
+    pointer-events:none;z-index:9999;font-family:Nunito,sans-serif;animation:popIn 0.3s ease-out forwards;`;
   el.innerHTML = `<div style="font-size:3.5rem;">${text}</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#a0c4ff;">${sub}</div>`;
   document.body.appendChild(el);
   if (window._socket) window._socket.emit('show-result', { room: ROOM, text, sub });
@@ -1574,30 +1579,83 @@ function showResultOnCanvas(text, sub) {
 }
 
 function flipCoin() {
-  const result = Math.random() < 0.5 ? '🌕 Heads!' : '🌑 Tails!';
-  const emoji = Math.random() < 0.5 ? '🪙' : '🪙';
-  // Animate spinning coin
+  const isHeads = Math.random() < 0.5;
   const container = document.getElementById('whiteboard-wrap');
   const rect = container.getBoundingClientRect();
   const el = document.createElement('div');
   el.style.cssText = `position:fixed;left:${rect.left + rect.width/2}px;top:${rect.top + rect.height/2}px;
-    transform:translate(-50%,-50%);font-size:5rem;pointer-events:none;z-index:9999;
-    animation:coinSpin 0.8s ease-out forwards;`;
+    transform:translate(-50%,-50%);font-size:5rem;pointer-events:none;z-index:9999;`;
   el.textContent = '🪙';
   document.body.appendChild(el);
-  setTimeout(() => {
-    el.remove();
-    showResultOnCanvas('🪙', result);
-  }, 800);
+  // Slow spin over 2.5 seconds
+  let angle = 0;
+  let speed = 30;
+  const id = setInterval(() => {
+    angle += speed;
+    speed = Math.max(speed * 0.97, 2);
+    el.style.transform = `translate(-50%,-50%) rotateY(${angle}deg) scale(1.2)`;
+    if (speed <= 2.1) {
+      clearInterval(id);
+      el.remove();
+      showResultOnCanvas('🪙', isHeads ? '🌕 Heads!' : '🌑 Tails!');
+    }
+  }, 16);
 }
 
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
 function rollDice(count) {
-  const dice = Array.from({length: count}, () => Math.ceil(Math.random() * 6));
-  const faces = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
-  const display = dice.map(d => faces[d]).join(' ');
-  const total = dice.reduce((a,b) => a+b, 0);
-  const sub = count === 1 ? `You rolled ${total}!` : `You rolled ${dice.join(' + ')} = ${total}!`;
-  showResultOnCanvas(display, sub);
+  const results = Array.from({length: count}, () => Math.ceil(Math.random() * 6));
+  const container = document.getElementById('whiteboard-wrap');
+  const rect = container.getBoundingClientRect();
+
+  // Create one display per die
+  const displays = results.map((result, idx) => {
+    const el = document.createElement('div');
+    const offset = count === 1 ? 0 : (idx === 0 ? -60 : 60);
+    el.style.cssText = `position:fixed;
+      left:${rect.left + rect.width/2 + offset}px;
+      top:${rect.top + rect.height/2}px;
+      transform:translate(-50%,-50%);
+      font-size:5rem;pointer-events:none;z-index:9999;
+      font-family:Nunito,sans-serif;transition:font-size 0.2s;`;
+    el.textContent = DICE_FACES[0];
+    document.body.appendChild(el);
+    return { el, result };
+  });
+
+  // Rapid shuffle then slow to result
+  let tick = 0;
+  let interval = 50; // start fast
+  let elapsed = 0;
+  const totalDuration = 2000;
+
+  function spin() {
+    tick++;
+    // Show random face on each die
+    displays.forEach(d => {
+      d.el.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
+    });
+
+    elapsed += interval;
+    // Slow down gradually
+    if (elapsed < totalDuration * 0.6) interval = 50;
+    else if (elapsed < totalDuration * 0.8) interval = 100;
+    else if (elapsed < totalDuration * 0.9) interval = 200;
+    else interval = 350;
+
+    if (elapsed < totalDuration) {
+      setTimeout(spin, interval);
+    } else {
+      // Land on result
+      displays.forEach(d => { d.el.textContent = DICE_FACES[d.result - 1]; d.el.style.fontSize = '6rem'; });
+      const total = results.reduce((a,b) => a+b, 0);
+      const sub = count === 1 ? `You rolled ${total}!` : `${results.join(' + ')} = ${total}!`;
+      if (window._socket) window._socket.emit('show-result', { room: ROOM, text: displays.map(d=>DICE_FACES[d.result-1]).join(' '), sub });
+      setTimeout(() => displays.forEach(d => d.el.remove()), 2500);
+    }
+  }
+  spin();
 }
 
 // ── REACTIONS ──
