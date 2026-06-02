@@ -1884,6 +1884,14 @@ let _particleRAF = null;
 
 function showReaction(emoji) {
   playReactionSound(emoji);
+
+  // Simple guaranteed display - no animation dependency
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:8rem;pointer-events:none;z-index:99999;';
+  el.textContent = emoji;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+
   const container = document.getElementById('whiteboard-wrap');
   const rawRect = container ? container.getBoundingClientRect() : null;
   const rect = (rawRect && rawRect.width > 0) ? rawRect : { left:0, top:0, bottom:window.innerHeight, width:window.innerWidth, height:window.innerHeight };
