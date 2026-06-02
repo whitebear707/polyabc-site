@@ -1606,15 +1606,20 @@ function showStarCelebration(name) {
 // ── COIN FLIP & DICE ──
 function showResultOnCanvas(text, sub) {
   const container = document.getElementById('whiteboard-wrap');
-  const rect = container.getBoundingClientRect();
+  const rect = container ? container.getBoundingClientRect() : null;
+  const r = (rect && rect.width > 0) ? rect : { left: window.innerWidth/2-100, top: window.innerHeight/2-60, width: 200, height: 120 };
   const el = document.createElement('div');
-  el.style.cssText = `position:fixed;left:${rect.left + rect.width/2}px;top:${rect.top + rect.height/2}px;transform:translate(-50%,-50%);
+  el.style.cssText = `position:fixed;left:${r.left + r.width/2}px;top:${r.top + r.height/2}px;transform:translate(-50%,-50%);
     background:rgba(22,33,62,0.92);color:white;border-radius:20px;padding:20px 32px;text-align:center;
     pointer-events:none;z-index:9999;font-family:Nunito,sans-serif;animation:popIn 0.3s ease-out forwards;`;
   el.innerHTML = `<div style="font-size:3.5rem;">${text}</div><div style="font-size:1rem;font-weight:700;margin-top:4px;color:#a0c4ff;">${sub}</div>`;
   document.body.appendChild(el);
-  if (window._socket) window._socket.emit('show-result', { room: ROOM, text, sub });
   setTimeout(() => el.remove(), 3000);
+}
+
+function broadcastResult(text, sub) {
+  // Only teacher broadcasts — students just display
+  if (IS_TEACHER && window._socket) window._socket.emit('show-result', { room: ROOM, text, sub });
 }
 
 function flipCoin() {
@@ -1639,7 +1644,7 @@ function doFlipCoin() {
     setTimeout(() => {
       result.textContent = isHeads ? '🦅 Eagle!' : '🤪 Silly Face!';
       result.style.opacity = '1';
-      if (window._socket) window._socket.emit('show-result', { room: ROOM, text: isHeads ? '🦅' : '🤪', sub: isHeads ? 'Eagle!' : 'Silly Face!' });
+      broadcastResult(isHeads ? '🦅' : '🤪', isHeads ? 'Eagle!' : 'Silly Face!');
     }, 3100);
   }, 50);
 }
@@ -1712,7 +1717,7 @@ function rollDice3D() {
     const total = values.reduce((a,b) => a+b, 0);
     document.getElementById('dice-result-num').textContent = _diceCount === 1 ? total : `${values.join(' + ')} = ${total}`;
     document.getElementById('dice-result-label').style.opacity = '1';
-    if (window._socket) window._socket.emit('show-result', { room: ROOM, text: `🎲 ${values.join(' + ')}`, sub: _diceCount === 1 ? `Rolled a ${total}!` : `Total: ${total}!` });
+    broadcastResult(`🎲 ${values.join(' ')}`, _diceCount === 1 ? `Rolled a ${total}!` : `Total: ${total}!`);
   }, 2200);
 }
 
@@ -1798,19 +1803,26 @@ function showReaction(emoji) {
       const pick = burst[Math.floor(Math.random() * burst.length)];
       el.textContent = pick;
       const x = rect.left + Math.random() * rect.width;
-      if (isSad) {
-        el.style.left = `${x}px`;
-        el.style.top = `${rect.top}px`;
-        el.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
-        el.className = 'falling-reaction-canvas';
-      } else {
-        el.style.left = `${x}px`;
-        el.style.top = `${rect.bottom}px`;
-        el.style.animationDuration = `${2 + Math.random() * 1}s`;
-        el.className = 'floating-reaction-canvas';
-      }
+      el.style.left = `${x}px`;
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 4000);
+
+      if (isSad) {
+        let y = rect.top;
+        const vy = 4 + Math.random() * 4;
+        el.style.top = `${y}px`;
+        const id = setInterval(() => {
+          y += vy; el.style.top = `${y}px`;
+          if (y > rect.bottom + 60) { clearInterval(id); el.remove(); }
+        }, 16);
+      } else {
+        let y = rect.bottom;
+        const vy = 4 + Math.random() * 3;
+        el.style.top = `${y}px`;
+        const id = setInterval(() => {
+          y -= vy; el.style.top = `${y}px`;
+          if (y < rect.top - 80) { clearInterval(id); el.remove(); }
+        }, 16);
+      }
     }, i * 80);
   }
 
