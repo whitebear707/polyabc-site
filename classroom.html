@@ -1627,7 +1627,7 @@ function showReaction(emoji) {
   if (emoji === '🎉') {
     // Draw confetti directly on the fabric canvas - guaranteed to show!
     const cvs = canvas; // fabric canvas already exists and works
-    const pieces = Array.from({length: 80}, () => ({
+    const pieces = Array.from({length: 560}, () => ({
       x: Math.random() * cvs.width,
       y: -10,
       vy: 3 + Math.random() * 5,
