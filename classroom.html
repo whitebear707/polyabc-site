@@ -1576,14 +1576,14 @@ function showReaction(emoji) {
   const isSad = emoji === '😢';
 
   const burst = REACTION_BURST[emoji] || [emoji];
-  const count = isSad ? 0 : 25;
+  const count = isSad ? 0 : 40;
 
   if (isSad) {
     for (let i = 0; i < 20; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
         el.textContent = '😢';
-        el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${3+Math.random()*2}rem;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
+        el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
         document.body.appendChild(el);
         let y = rect.top;
         const vy = 3 + Math.random() * 3;
@@ -1603,7 +1603,7 @@ function showReaction(emoji) {
       el.style.position = 'fixed';
       el.style.pointerEvents = 'none';
       el.style.zIndex = '9999';
-      el.style.fontSize = `${4 + Math.random() * 2}rem`;
+      el.style.fontSize = `${6 + Math.random() * 3}rem`;
       el.style.textShadow = '0 2px 8px rgba(0,0,0,0.3)';
       const pick = burst[Math.floor(Math.random() * burst.length)];
       el.textContent = pick;
@@ -1626,8 +1626,8 @@ function showReaction(emoji) {
 
   if (emoji === '🎉') {
     const cvs = canvas;
-    // Cancel any running confetti animation
-    if (window._confettiRAF) { cancelAnimationFrame(window._confettiRAF); window._confettiRAF = null; cvs.renderAll(); }
+    // Don't restart if already running - just keep going
+    if (!window._confettiRAF) {
     const pieces = Array.from({length: 560}, () => ({
       x: Math.random() * cvs.width,
       y: -10,
@@ -1665,11 +1665,17 @@ function showReaction(emoji) {
       else { window._confettiRAF = null; cvs.loadFromJSON(origJSON, () => cvs.renderAll()); }
     }
     window._confettiRAF = requestAnimationFrame(drawFrame);
+    } // end if !_confettiRAF
     return;
   }
 }
 
 function playReactionSound(emoji) {
+  playReactionSoundOnce(emoji);
+  setTimeout(() => playReactionSoundOnce(emoji), 600);
+}
+
+function playReactionSoundOnce(emoji) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const notes = REACTION_SOUNDS[emoji];
@@ -1695,6 +1701,11 @@ function playReactionSound(emoji) {
 }
 
 function sendReaction(emoji) {
+  // Gray out button for 3 seconds to prevent spam
+  const btns = document.querySelectorAll('.reaction-btn');
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
+  setTimeout(() => btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; }), 3000);
+
   showReaction(emoji);
   if (window._socket) window._socket.emit('reaction', { room: ROOM, emoji });
 }
