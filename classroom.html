@@ -103,6 +103,10 @@
   .dice-container { width:200px;height:200px;position:relative;perspective:1000px;perspective-origin:50% 100%; }
   .dice-cube { width:100%;height:100%;top:100px;position:absolute;transform-style:preserve-3d;transition:transform 2s ease-out;cursor:pointer; }
   .dice-cube div { background:hsla(220,85%,50%,0.92);display:block;position:absolute;width:200px;height:200px;border:3px solid #1a3a8f;border-radius:16px; }
+  @media (max-width: 768px) {
+    #dice-inner { margin-bottom: 30vh; }
+    #coin-inner { margin-bottom: 30vh; }
+  }
   .dice-face-front  { transform:translateZ(100px); }
   .dice-face-back   { transform:rotateX(-180deg) translateZ(100px); }
   .dice-face-right  { transform:rotateY(90deg) translateZ(100px); }
