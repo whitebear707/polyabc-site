@@ -1561,6 +1561,7 @@ const REACTION_SOUNDS = {
 const REACTION_BURST = {
   '❤️': ['❤️','💕','💖','💗','💓','🌸','💝'],
   '😱': ['😱','❗','😱','❗','😱','🔴','❗'],
+  '🎉': ['🎉','🎊','🎉','🎊','🎉','🎊','🎊'],
 };
 
 const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63','#00bcd4'];
@@ -1572,54 +1573,9 @@ function showReaction(emoji) {
   const rect = container.getBoundingClientRect();
 
   const isSad = emoji === '😢';
-  const isCelebration = emoji === '🎉';
-
-  if (isCelebration) {
-    // 🎉 emojis float UP from bottom
-    for (let i = 0; i < 10; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.style.position = 'fixed';
-        el.style.pointerEvents = 'none';
-        el.style.zIndex = '9999';
-        el.style.fontSize = `${4 + Math.random() * 2}rem`;
-        el.style.left = `${rect.left + Math.random() * rect.width}px`;
-        el.style.top = `${rect.bottom}px`;
-        el.style.animationDuration = `${2 + Math.random() * 1}s`;
-        el.className = 'floating-reaction-canvas';
-        el.textContent = '🎉';
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
-      }, i * 80);
-    }
-    // Simple colored confetti emojis - no canvas nonsense!
-    const confettiEmojis = ['🎊','🎊','🎊','🎊','🎊','🎊','🎉'];
-    for (let i = 0; i < 30; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
-        el.style.position = 'fixed';
-        el.style.pointerEvents = 'none';
-        el.style.zIndex = '9999';
-        el.style.fontSize = `${2 + Math.random() * 2}rem`;
-        el.style.left = `${rect.left + Math.random() * rect.width}px`;
-        el.style.top = `${rect.top + Math.random() * rect.height}px`;
-        el.style.opacity = '0';
-        el.style.transition = `opacity 0.2s, transform ${1.5 + Math.random()}s ease-out`;
-        document.body.appendChild(el);
-        setTimeout(() => {
-          el.style.opacity = '1';
-          el.style.transform = `translateY(-${50 + Math.random() * 200}px) rotate(${Math.random() * 360}deg)`;
-        }, 10);
-        setTimeout(() => { el.style.opacity = '0'; }, 1200 + Math.random() * 500);
-        setTimeout(() => el.remove(), 2500);
-      }, i * 60);
-    }
-    return;
-  }
 
   const burst = REACTION_BURST[emoji] || [emoji];
-  const count = isSad ? 15 : 10;
+  const count = isSad ? 15 : 25;
 
   for (let i = 0; i < count; i++) {
     setTimeout(() => {
