@@ -90,7 +90,23 @@
   .reaction-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.2); }
   .reaction-btn:active { transform: scale(0.95); }
 
-  /* Floating reaction animation */
+  /* 3D Dice */
+  .dice-container { width:200px;height:200px;position:relative;perspective:1000px;perspective-origin:50% 100%; }
+  .dice-cube { width:100%;height:100%;top:100px;position:absolute;transform-style:preserve-3d;transition:transform 2s ease-out;cursor:pointer; }
+  .dice-cube div { background:hsla(220,85%,50%,0.92);display:block;position:absolute;width:200px;height:200px;border:3px solid #1a3a8f;border-radius:16px; }
+  .dice-face-front  { transform:translateZ(100px); }
+  .dice-face-back   { transform:rotateX(-180deg) translateZ(100px); }
+  .dice-face-right  { transform:rotateY(90deg) translateZ(100px); }
+  .dice-face-left   { transform:rotateY(-90deg) translateZ(100px); }
+  .dice-face-top    { transform:rotateX(90deg) translateZ(100px); }
+  .dice-face-bottom { transform:rotateX(-90deg) translateZ(100px); }
+  .ddot { display:block;position:absolute;width:34px;height:34px;background:white;border-radius:50%; }
+  .dice-face-front .ddot1 { top:83px;left:83px; }
+  .dice-face-back .ddot1 { top:43px;left:43px; } .dice-face-back .ddot2 { top:123px;left:123px; }
+  .dice-face-right .ddot1 { top:43px;left:83px; } .dice-face-right .ddot2 { top:83px;left:83px; } .dice-face-right .ddot3 { top:123px;left:83px; }
+  .dice-face-left .ddot1 { top:43px;left:43px; } .dice-face-left .ddot2 { top:43px;left:123px; } .dice-face-left .ddot3 { top:123px;left:43px; } .dice-face-left .ddot4 { top:123px;left:123px; }
+  .dice-face-top .ddot1 { top:43px;left:43px; } .dice-face-top .ddot2 { top:43px;left:123px; } .dice-face-top .ddot3 { top:83px;left:83px; } .dice-face-top .ddot4 { top:123px;left:43px; } .dice-face-top .ddot5 { top:123px;left:123px; }
+  .dice-face-bottom .ddot1 { top:43px;left:43px; } .dice-face-bottom .ddot2 { top:43px;left:83px; } .dice-face-bottom .ddot3 { top:43px;left:123px; } .dice-face-bottom .ddot4 { top:123px;left:43px; } .dice-face-bottom .ddot5 { top:123px;left:83px; } .dice-face-bottom .ddot6 { top:123px;left:123px; }
   .floating-reaction, .floating-reaction-canvas {
     position: fixed; pointer-events: none; z-index: 9999;
     animation: floatUp 2.5s ease-out forwards;
@@ -259,8 +275,8 @@
       <!-- Coin & Dice -->
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
         <button class="reaction-btn" onclick="flipCoin()" title="Coin Flip">🪙</button>
-        <button class="reaction-btn" onclick="rollDice(1)" title="Roll 1 Die">🎲</button>
-        <button class="reaction-btn" style="grid-column:span 2;" onclick="rollDice(2)" title="Roll 2 Dice">🎲🎲</button>
+        <button class="reaction-btn" onclick="openDice(1)" title="Roll 1 Die">🎲</button>
+        <button class="reaction-btn" style="grid-column:span 2;" onclick="openDice(2)" title="Roll 2 Dice">🎲🎲</button>
       </div>
     </div>
   </div><!-- end left-panel -->
@@ -307,6 +323,13 @@
     </div>
     <div id="right-panel-title">Students</div>
   </div>
+</div>
+
+<!-- 3D DICE OVERLAY -->
+<div id="dice-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;flex-direction:column;font-family:Nunito,sans-serif;">
+  <div id="dice-result-label" style="color:white;font-size:1.2rem;font-weight:900;margin-bottom:20px;opacity:0;transition:opacity 0.5s;">You rolled a <span id="dice-result-num" style="color:#ffd740;font-size:1.8rem;"></span></div>
+  <div id="dice-containers" style="display:flex;gap:60px;align-items:center;justify-content:center;"></div>
+  <button onclick="closeDice()" style="margin-top:40px;background:#e53935;color:white;border:none;padding:10px 28px;border-radius:12px;font-family:Nunito;font-size:1rem;font-weight:700;cursor:pointer;">Close</button>
 </div>
 
 <!-- STAR CELEBRATION -->
@@ -1625,63 +1648,74 @@ function flipCoin() {
   }, 16);
 }
 
-const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const DICE_FACE_HTML = `
+  <div class="dice-face-front"><span class="ddot ddot1"></span></div>
+  <div class="dice-face-back"><span class="ddot ddot1"></span><span class="ddot ddot2"></span></div>
+  <div class="dice-face-right"><span class="ddot ddot1"></span><span class="ddot ddot2"></span><span class="ddot ddot3"></span></div>
+  <div class="dice-face-left"><span class="ddot ddot1"></span><span class="ddot ddot2"></span><span class="ddot ddot3"></span><span class="ddot ddot4"></span></div>
+  <div class="dice-face-top"><span class="ddot ddot1"></span><span class="ddot ddot2"></span><span class="ddot ddot3"></span><span class="ddot ddot4"></span><span class="ddot ddot5"></span></div>
+  <div class="dice-face-bottom"><span class="ddot ddot1"></span><span class="ddot ddot2"></span><span class="ddot ddot3"></span><span class="ddot ddot4"></span><span class="ddot ddot5"></span><span class="ddot ddot6"></span></div>`;
 
-function rollDice(count) {
-  const results = Array.from({length: count}, () => Math.floor(Math.random() * 6)); // 0-5 index
-  const container = document.getElementById('whiteboard-wrap');
-  const rect = container.getBoundingClientRect();
+// Map face rotations to values: front=1, back=2, right=3, left=4, top=5, bottom=6
+const DICE_ROTATIONS = [
+  { x:0,   y:0   }, // front  = 1
+  { x:180, y:0   }, // back   = 2
+  { x:0,   y:-90 }, // right  = 3
+  { x:0,   y:90  }, // left   = 4
+  { x:-90, y:0   }, // top    = 5
+  { x:90,  y:0   }, // bottom = 6
+];
 
-  const card = document.createElement('div');
-  card.style.cssText = `position:fixed;left:${rect.left+rect.width/2}px;top:${rect.top+rect.height/2}px;
-    transform:translate(-50%,-50%);background:rgba(22,33,62,0.95);border-radius:20px;padding:20px 28px;
-    display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
-    pointer-events:none;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.5);`;
-  document.body.appendChild(card);
+let _diceCount = 1;
 
-  const diceRow = document.createElement('div');
-  diceRow.style.cssText = 'display:flex;gap:16px;';
-  card.appendChild(diceRow);
+function openDice(count) {
+  _diceCount = count;
+  const overlay = document.getElementById('dice-overlay');
+  const container = document.getElementById('dice-containers');
+  const label = document.getElementById('dice-result-label');
+  container.innerHTML = '';
+  label.style.opacity = '0';
+  overlay.style.display = 'flex';
 
-  const displays = results.map(r => {
-    const el = document.createElement('div');
-    el.style.cssText = 'font-size:5rem;color:white;';
-    el.textContent = DICE_FACES[0];
-    diceRow.appendChild(el);
-    return { el, finalIndex: r };
-  });
-
-  const subEl = document.createElement('div');
-  subEl.style.cssText = 'color:#a0c4ff;font-size:1rem;font-weight:700;font-family:Nunito,sans-serif;display:none;';
-  card.appendChild(subEl);
-
-  // Shuffle schedule: fast then slow
-  const schedule = [];
-  for (let i = 0; i < 30; i++) schedule.push(50);   // fast
-  for (let i = 0; i < 10; i++) schedule.push(100);  // medium
-  for (let i = 0; i < 5; i++)  schedule.push(200);  // slow
-  for (let i = 0; i < 3; i++)  schedule.push(350);  // very slow
-
-  let step = 0;
-  function spin() {
-    if (step < schedule.length) {
-      displays.forEach(d => { d.el.textContent = DICE_FACES[Math.floor(Math.random()*6)]; });
-      setTimeout(spin, schedule[step++]);
-    } else {
-      // Land on final result
-      displays.forEach(d => {
-        d.el.textContent = DICE_FACES[d.finalIndex];
-        d.el.style.fontSize = '6rem';
-      });
-      const total = results.reduce((a,b) => a+b, 0) + count; // add count because index is 0-based
-      const values = results.map(r => r+1);
-      subEl.textContent = count === 1 ? `You rolled ${values[0]}!` : `${values.join(' + ')} = ${total}!`;
-      subEl.style.display = 'block';
-      if (window._socket) window._socket.emit('show-result', { room: ROOM, text: displays.map(d=>DICE_FACES[d.finalIndex]).join(' '), sub: subEl.textContent });
-      setTimeout(() => card.remove(), 3000);
-    }
+  // Create dice
+  for (let i = 0; i < count; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'dice-container';
+    const cube = document.createElement('div');
+    cube.className = 'dice-cube';
+    cube.id = `dice-cube-${i}`;
+    cube.innerHTML = DICE_FACE_HTML;
+    cube.onclick = () => rollDice3D();
+    wrap.appendChild(cube);
+    container.appendChild(wrap);
   }
-  spin();
+}
+
+function rollDice3D() {
+  const results = [];
+  for (let i = 0; i < _diceCount; i++) {
+    const val = Math.floor(Math.random() * 6); // 0-5 index
+    results.push(val);
+    const cube = document.getElementById(`dice-cube-${i}`);
+    const rot = DICE_ROTATIONS[val];
+    // Add extra full spins for animation drama
+    const extraX = (Math.floor(Math.random()*3)+2) * 360;
+    const extraY = (Math.floor(Math.random()*3)+2) * 360;
+    cube.style.transform = `rotateX(${rot.x + extraX}deg) rotateY(${rot.y + extraY}deg)`;
+  }
+
+  // Show result after animation
+  setTimeout(() => {
+    const values = results.map(r => r + 1);
+    const total = values.reduce((a,b) => a+b, 0);
+    document.getElementById('dice-result-num').textContent = _diceCount === 1 ? total : `${values.join(' + ')} = ${total}`;
+    document.getElementById('dice-result-label').style.opacity = '1';
+    if (window._socket) window._socket.emit('show-result', { room: ROOM, text: `🎲 ${values.join(' + ')}`, sub: _diceCount === 1 ? `Rolled a ${total}!` : `Total: ${total}!` });
+  }, 2200);
+}
+
+function closeDice() {
+  document.getElementById('dice-overlay').style.display = 'none';
 }
 
 // ── REACTIONS ──
