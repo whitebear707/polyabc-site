@@ -1824,7 +1824,7 @@ function openDice(count) {
 
 function rollDice3D() {
   const results = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < _diceCount; i++) {
     const val = Math.floor(Math.random() * 6);
     results.push(val);
     const cube = document.getElementById(`dice-cube-${i}`);
