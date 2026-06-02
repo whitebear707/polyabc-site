@@ -1750,96 +1750,82 @@ const REACTION_BURST = {
 
 const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63','#00bcd4','#ff69b4','#7fff00'];
 
+// Single global particle system - no more 40 setIntervals!
+let _particles = [];
+let _particleRAF = null;
+
+function startParticleLoop() {
+  if (_particleRAF) return;
+  function loop() {
+    _particles = _particles.filter(p => {
+      p.y += p.vy;
+      p.el.style.top = p.y + 'px';
+      if (p.vy < 0 && p.y < p.minY) { p.el.remove(); return false; }
+      if (p.vy > 0 && p.y > p.maxY) { p.el.remove(); return false; }
+      return true;
+    });
+    if (_particles.length > 0) _particleRAF = requestAnimationFrame(loop);
+    else _particleRAF = null;
+  }
+  _particleRAF = requestAnimationFrame(loop);
+}
+
 function showReaction(emoji) {
   playReactionSound(emoji);
   const container = document.getElementById('whiteboard-wrap');
   const rawRect = container ? container.getBoundingClientRect() : null;
-  // Fallback to full window if canvas not measured yet
   const rect = (rawRect && rawRect.width > 0) ? rawRect : { left:0, top:0, bottom:window.innerHeight, width:window.innerWidth, height:window.innerHeight };
 
   const isSad = emoji === '😢';
 
-  const burst = REACTION_BURST[emoji] || [emoji];
-  const count = isSad ? 0 : 40;
-
   if (isSad) {
-    // Big 😢 emojis float UP
-    for (let i = 0; i < 15; i++) {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.textContent = '😢';
-        el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;left:${rect.left+Math.random()*rect.width}px;top:${rect.bottom}px;animation:floatUp ${2+Math.random()}s ease-out forwards;`;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
-      }, i * 100);
+    // 😢 floats UP
+    for (let i = 0; i < 12; i++) {
+      const el = document.createElement('div');
+      el.textContent = '😢';
+      el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;left:${rect.left+Math.random()*rect.width}px;`;
+      const startY = rect.bottom + i * 20;
+      el.style.top = startY + 'px';
+      document.body.appendChild(el);
+      _particles.push({ el, y: startY, vy: -(3+Math.random()*2), minY: rect.top - 80, maxY: 99999 });
     }
-    // Tiny 💧 drops fall in background
-    for (let i = 0; i < 80; i++) {
+    // 💧 drops fall DOWN
+    for (let i = 0; i < 50; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
         el.textContent = '💧';
-        el.style.cssText = `position:fixed;pointer-events:none;z-index:9997;font-size:${0.8+Math.random()*0.8}rem;opacity:0.6;left:${rect.left+Math.random()*rect.width}px;top:${rect.top}px;`;
+        el.style.cssText = `position:fixed;pointer-events:none;z-index:9997;font-size:${0.8+Math.random()*0.8}rem;opacity:0.65;left:${rect.left+Math.random()*rect.width}px;`;
+        const startY = rect.top - 10;
+        el.style.top = startY + 'px';
         document.body.appendChild(el);
-        let y = rect.top;
-        const vy = 4 + Math.random() * 4;
-        const id = setInterval(() => {
-          y += vy;
-          el.style.top = y + 'px';
-          if (y > rect.bottom + 20) { clearInterval(id); el.remove(); }
-        }, 16);
-      }, i * 15);
+        _particles.push({ el, y: startY, vy: 4+Math.random()*4, minY: -9999, maxY: rect.bottom + 20 });
+        startParticleLoop();
+      }, i * 20);
     }
+    startParticleLoop();
     return;
   }
 
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      const el = document.createElement('div');
-      el.style.position = 'fixed';
-      el.style.pointerEvents = 'none';
-      el.style.zIndex = '9999';
-      el.style.fontSize = `${6 + Math.random() * 3}rem`;
-      el.style.textShadow = '0 2px 8px rgba(0,0,0,0.3)';
-      const pick = burst[Math.floor(Math.random() * burst.length)];
-      el.textContent = pick;
-      const x = rect.left + Math.random() * rect.width;
-      el.style.left = `${x}px`;
-      document.body.appendChild(el);
-
-      if (isSad) {
-        let y = rect.top;
-        const vy = 4 + Math.random() * 4;
-        el.style.top = `${y}px`;
-        const id = setInterval(() => {
-          y += vy; el.style.top = `${y}px`;
-          if (y > rect.bottom + 60) { clearInterval(id); el.remove(); }
-        }, 16);
-      } else {
-        let y = rect.bottom;
-        const vy = 4 + Math.random() * 3;
-        el.style.top = `${y}px`;
-        const id = setInterval(() => {
-          y -= vy; el.style.top = `${y}px`;
-          if (y < rect.top - 80) { clearInterval(id); el.remove(); }
-        }, 16);
-      }
-    }, i * 80);
+  // All other emojis float UP
+  const burst = REACTION_BURST[emoji] || [emoji];
+  for (let i = 0; i < 20; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${5+Math.random()*3}rem;text-shadow:0 2px 8px rgba(0,0,0,0.3);left:${rect.left+Math.random()*rect.width}px;`;
+    el.textContent = burst[Math.floor(Math.random()*burst.length)];
+    const startY = rect.bottom + Math.random() * 40;
+    el.style.top = startY + 'px';
+    document.body.appendChild(el);
+    _particles.push({ el, y: startY, vy: -(3+Math.random()*3), minY: rect.top - 80, maxY: 99999 });
   }
+  startParticleLoop();
 
-  if (emoji === '🎉') {
+  // Celebration confetti on canvas
+  if (emoji === '🎉' && canvas && !window._confettiRAF) {
     const cvs = canvas;
-    // Don't restart if already running - just keep going
-    if (!window._confettiRAF) {
     const pieces = Array.from({length: 560}, () => ({
-      x: Math.random() * cvs.width,
-      y: -10,
-      vy: 3 + Math.random() * 5,
-      vx: (Math.random() - 0.5) * 3,
-      size: 6 + Math.random() * 8,
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-      rot: Math.random() * 360,
-      rotV: (Math.random() - 0.5) * 8,
-      round: Math.random() > 0.5,
+      x: Math.random()*cvs.width, y:-10, vy:3+Math.random()*5, vx:(Math.random()-0.5)*3,
+      size:6+Math.random()*8, color:CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
+      rot:Math.random()*360, rotV:(Math.random()-0.5)*8, round:Math.random()>0.5
     }));
     const origJSON = cvs.toJSON(['data']);
     let frame = 0;
@@ -1847,28 +1833,18 @@ function showReaction(emoji) {
       cvs.renderAll();
       const ctx = cvs.getContext();
       pieces.forEach(p => {
-        p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot * Math.PI / 180);
-        ctx.fillStyle = p.color;
-        if (p.round) {
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size/2, 0, Math.PI*2);
-          ctx.fill();
-        } else {
-          ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
-        }
+        p.y+=p.vy; p.x+=p.vx; p.rot+=p.rotV;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color;
+        if (p.round) { ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill(); }
+        else ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
         ctx.restore();
-        if (p.y > cvs.height) { p.y = -10; p.x = Math.random() * cvs.width; }
+        if (p.y>cvs.height) { p.y=-10; p.x=Math.random()*cvs.width; }
       });
       frame++;
-      if (frame < 400) window._confettiRAF = requestAnimationFrame(drawFrame);
-      else { window._confettiRAF = null; cvs.loadFromJSON(origJSON, () => cvs.renderAll()); }
+      if (frame<400) window._confettiRAF = requestAnimationFrame(drawFrame);
+      else { window._confettiRAF=null; cvs.loadFromJSON(origJSON,()=>cvs.renderAll()); }
     }
     window._confettiRAF = requestAnimationFrame(drawFrame);
-    } // end if !_confettiRAF
-    return;
   }
 }
 
