@@ -1625,8 +1625,9 @@ function showReaction(emoji) {
   }
 
   if (emoji === '🎉') {
-    // Draw confetti directly on the fabric canvas - guaranteed to show!
-    const cvs = canvas; // fabric canvas already exists and works
+    const cvs = canvas;
+    // Cancel any running confetti animation
+    if (window._confettiRAF) { cancelAnimationFrame(window._confettiRAF); window._confettiRAF = null; cvs.renderAll(); }
     const pieces = Array.from({length: 560}, () => ({
       x: Math.random() * cvs.width,
       y: -10,
@@ -1641,7 +1642,7 @@ function showReaction(emoji) {
     const origJSON = cvs.toJSON(['data']);
     let frame = 0;
     function drawFrame() {
-      cvs.renderAll(); // clear to current canvas state first
+      cvs.renderAll();
       const ctx = cvs.getContext();
       pieces.forEach(p => {
         p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
@@ -1660,10 +1661,10 @@ function showReaction(emoji) {
         if (p.y > cvs.height) { p.y = -10; p.x = Math.random() * cvs.width; }
       });
       frame++;
-      if (frame < 180) requestAnimationFrame(drawFrame);
-      else cvs.loadFromJSON(origJSON, () => cvs.renderAll());
+      if (frame < 400) window._confettiRAF = requestAnimationFrame(drawFrame);
+      else { window._confettiRAF = null; cvs.loadFromJSON(origJSON, () => cvs.renderAll()); }
     }
-    drawFrame();
+    window._confettiRAF = requestAnimationFrame(drawFrame);
     return;
   }
 }
