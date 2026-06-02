@@ -114,6 +114,7 @@
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
+  @keyframes pulse-glow-green {
     0%   { box-shadow: 0 0 0 0 rgba(46,125,50,0.7); }
     70%  { box-shadow: 0 0 0 10px rgba(46,125,50,0); }
     100% { box-shadow: 0 0 0 0 rgba(46,125,50,0); }
@@ -1578,27 +1579,20 @@ function showReaction(emoji) {
   const count = isSad ? 0 : 25;
 
   if (isSad) {
-    // Rain drops falling using rAF
-    const drops = [];
     for (let i = 0; i < 20; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
-        el.style.cssText = `position:fixed;pointer-events:none;z-index:9999;font-size:${3+Math.random()*2}rem;`;
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9999';
+        el.style.fontSize = `${3 + Math.random() * 2}rem`;
+        el.style.left = `${rect.left + Math.random() * rect.width}px`;
+        el.style.top = `${rect.top}px`;
+        el.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
+        el.className = 'falling-reaction-canvas';
         el.textContent = '😢';
-        const px = rect.left + Math.random() * rect.width;
-        el.style.left = px + 'px';
-        el.style.top = rect.top + 'px';
         document.body.appendChild(el);
-        drops.push({ el, x: px, y: rect.top, vy: 3 + Math.random() * 3 });
-        let dtick = 0;
-        function animateDrop() {
-          dtick++;
-          drops.forEach(p => { p.y += p.vy; p.el.style.top = p.y + 'px'; });
-          const alive = drops.filter(p => p.y < rect.bottom + 60);
-          if (alive.length > 0 && dtick < 150) requestAnimationFrame(animateDrop);
-          else drops.forEach(p => p.el.remove());
-        }
-        if (drops.length === 1) requestAnimationFrame(animateDrop);
+        setTimeout(() => el.remove(), 4000);
       }, i * 100);
     }
     return;
@@ -1631,34 +1625,26 @@ function showReaction(emoji) {
     }, i * 80);
   }
 
-  // Extra colored confetti divs for celebration
   if (emoji === '🎉') {
-    const pieces = [];
-    for (let i = 0; i < 60; i++) {
-      const el = document.createElement('div');
-      const size = 8 + Math.random() * 10;
-      el.style.cssText = `position:fixed;pointer-events:none;z-index:9998;width:${size}px;height:${size * (Math.random()>0.5?1:0.4)}px;background:${CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};`;
-      const px = rect.left + Math.random() * rect.width;
-      const py = rect.top - 20;
-      el.style.left = px + 'px';
-      el.style.top = py + 'px';
-      document.body.appendChild(el);
-      pieces.push({ el, x: px, y: py, vy: 2 + Math.random() * 4, vx: (Math.random()-0.5)*2, rot: Math.random()*360, rotV: (Math.random()-0.5)*8 });
+    for (let i = 0; i < 50; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        const size = 8 + Math.random() * 10;
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9998';
+        el.style.width = `${size}px`;
+        el.style.height = `${size * (Math.random() > 0.5 ? 1 : 0.4)}px`;
+        el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        el.style.left = `${rect.left + Math.random() * rect.width}px`;
+        el.style.top = `${rect.top}px`;
+        el.style.animationDuration = `${1.5 + Math.random() * 2}s`;
+        el.className = 'falling-reaction-canvas';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 30);
     }
-    let tick = 0;
-    function animateConfetti() {
-      tick++;
-      pieces.forEach(p => {
-        p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
-        p.el.style.top = p.y + 'px';
-        p.el.style.left = p.x + 'px';
-        p.el.style.transform = `rotate(${p.rot}deg)`;
-        p.el.style.opacity = tick > 80 ? Math.max(0, 1 - (tick-80)/40) : '1';
-      });
-      if (tick < 120) requestAnimationFrame(animateConfetti);
-      else pieces.forEach(p => p.el.remove());
-    }
-    requestAnimationFrame(animateConfetti);
   }
 }
 
