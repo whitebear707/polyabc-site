@@ -1559,9 +1559,8 @@ const REACTION_SOUNDS = {
 
 // Special burst emojis for certain reactions
 const REACTION_BURST = {
-  '🎉': null, // special confetti handled separately
   '❤️': ['❤️','💕','💖','💗','💓','🌸','💝'],
-  '😱': ['❗','❗','⚠️','❗','🔴','❗'],
+  '😱': ['😱'],
 };
 
 const CONFETTI_COLORS = ['#ff4444','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63','#00bcd4'];
@@ -1576,7 +1575,24 @@ function showReaction(emoji) {
   const isCelebration = emoji === '🎉';
 
   if (isCelebration) {
-    // Colorful confetti squares/circles falling from top
+    // 🎉 emojis float UP from bottom
+    for (let i = 0; i < 10; i++) {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.style.position = 'fixed';
+        el.style.pointerEvents = 'none';
+        el.style.zIndex = '9999';
+        el.style.fontSize = `${4 + Math.random() * 2}rem`;
+        el.style.left = `${rect.left + Math.random() * rect.width}px`;
+        el.style.top = `${rect.bottom}px`;
+        el.style.animationDuration = `${2 + Math.random() * 1}s`;
+        el.className = 'floating-reaction-canvas';
+        el.textContent = '🎉';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }, i * 80);
+    }
+    // Colorful confetti falls TOP to BOTTOM
     for (let i = 0; i < 40; i++) {
       setTimeout(() => {
         const el = document.createElement('div');
@@ -1589,13 +1605,13 @@ function showReaction(emoji) {
           background:${CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)]};
           border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
           pointer-events:none;
-          z-index:9999;
+          z-index:9998;
           animation:confettiFall ${1.5 + Math.random() * 2}s ease-in forwards;
           transform:rotate(${Math.random() * 360}deg);
         `;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 4000);
-      }, i * 50);
+      }, i * 40);
     }
     return;
   }
@@ -1611,18 +1627,14 @@ function showReaction(emoji) {
       el.style.zIndex = '9999';
       el.style.fontSize = `${4 + Math.random() * 2}rem`;
       el.style.textShadow = '0 2px 8px rgba(0,0,0,0.3)';
-
       const pick = burst[Math.floor(Math.random() * burst.length)];
       el.textContent = pick;
-
       const x = rect.left + Math.random() * rect.width;
-
       if (isSad) {
         el.style.left = `${x}px`;
         el.style.top = `${rect.top}px`;
         el.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
         el.className = 'falling-reaction-canvas';
-        el.style.setProperty('--fall-dist', `${rect.height}px`);
       } else {
         el.style.left = `${x}px`;
         el.style.top = `${rect.bottom}px`;
