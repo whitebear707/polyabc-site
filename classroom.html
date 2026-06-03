@@ -792,6 +792,11 @@ function connectSocket() {
 
   socket.on('timer-info', ({ assignment }) => {
     if (!IS_TEACHER) startTimer(assignment);
+    else {
+      // Ensure timer is running for teacher too (fallback if loadSchedule missed it)
+      const timerEl = document.getElementById('class-timer');
+      if (timerEl && timerEl.style.display === 'none') startTimer(assignment);
+    }
   });
 
   socket.on('new-class', () => {
@@ -2204,7 +2209,7 @@ function scaleCanvas() {
   const h = wrap.clientHeight;
   const scaleW = w / CANVAS_W;
   const scaleH = h / CANVAS_H;
-  const scale = Math.min(scaleW, scaleH); // fit within available space
+  const scale = Math.min(scaleW, scaleH);
   const transform = `scale(${scale})`;
   const container = document.querySelector('.canvas-container');
   if (container) {
@@ -2213,8 +2218,10 @@ function scaleCanvas() {
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.left = '0';
+    // Set wrap size to match scaled canvas so clicks align perfectly
+    wrap.style.width = (CANVAS_W * scale) + 'px';
+    wrap.style.height = (CANVAS_H * scale) + 'px';
   }
-  // Apply same transform to screenshare video/canvas so drawing coords align perfectly
   const sc = document.getElementById('screenshare-vid') || document.getElementById('screenshare-img');
   if (sc) {
     sc.style.transform = transform;
