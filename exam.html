@@ -380,7 +380,9 @@ async function searchSlots() {
   if (!time) return;
   selectedTime = time;
   const res = await fetch(`${SERVER_URL}/trial/availability?time=${time}`);
-  availMap = await res.json();
+  const data = await res.json();
+  availMap = data.colorMap || data;
+  window._hasOverride = data.hasOverride || false;
   document.getElementById('calendar-wrap').style.display = 'block';
   renderCal();
 }
@@ -407,7 +409,7 @@ function renderCal() {
     const color = availMap[ds];
     // Check 24hr minimum
     const dateTime = new Date(`${ds}T${selectedTime || '00:00'}:00`);
-    const tooSoon = (dateTime - new Date()) / 3600000 < 24;
+    const tooSoon = !window._hasOverride && (dateTime - new Date()) / 3600000 < 24;
     let cls = 'cal-day';
     let onclick = '';
     if (isPast || tooSoon) cls += ' past';
@@ -420,13 +422,10 @@ function renderCal() {
 }
 
 function pickDate(date) {
-  // Check 24hr minimum
-  const selected = new Date(`${date}T${selectedTime}:00`);
-  const now = new Date();
-  const diffHrs = (selected - now) / 3600000;
-  if (diffHrs < 24) {
-    alert('Please select a date at least 24 hours from now.');
-    return;
+  if (!window._hasOverride) {
+    const selected = new Date(`${date}T${selectedTime}:00`);
+    const diffHrs = (selected - new Date()) / 3600000;
+    if (diffHrs < 24) { alert('Please select a date at least 24 hours from now.'); return; }
   }
   selectedDate = date;
   const timeDisp = new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
