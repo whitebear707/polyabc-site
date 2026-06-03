@@ -586,7 +586,11 @@ The owed timer was incorrectly triggering for on-time teachers.
   - `sessionId` stored in attendance record for direct payroll matching
   - **Result**: 3 classes same day same teacher → 3 perfect separate attendance records, always, forever
   - **Bugfix**: teacher login was crashing the server — `sessionId` was in both `$set` and `$setOnInsert` in the attendance upsert. MongoDB error code 40. Fixed by removing it from `$set` (it's already included via `...key` in `$setOnInsert`)
-- **GLOBAL PASSWORD UNIQUENESS**
+- **4 BUG FIXES (testing session)**
+  - **Owed timer false positive**: added explicit guard — only triggers if `lateBy > 2` (genuinely past scheduled start by more than 2 min grace)
+  - **Confetti too long**: cut from 400 frames (~6.7s) to 160 frames (~2.7s), added fade-out in last 30 frames
+  - **Payroll paying full for invalid_termination**: now calculates actual minutes taught from `classStartedAt`→`classEndedAt`, pays proportionally. Incomplete rows highlighted red with ⚠️ on pay amount. `payNote` shows `⚠️ Incomplete — X/Y min paid`
+  - **Teacher reconnect window**: extended from 5 minutes (300000ms) to 10 minutes (600000ms)
   - No two users (teachers or students) can share a password anywhere in the system
   - `isTrialPassword()` helper blocks `try1`–`try20` from being assigned to anyone except trial students — reserved just like room 101
   - `passwordTaken()` helper checks all teacher passwords + all room student lists + standalone students collection in one shot
