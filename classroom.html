@@ -431,7 +431,9 @@ const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem(
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
 const studentSlots = {};
 
-document.getElementById('room-label').textContent = `Room: ${ROOM}`;
+document.getElementById('room-label').textContent = SESSION_ID
+  ? `Room: ${ROOM} · #${SESSION_ID.slice(-6)}`
+  : `Room: ${ROOM}`;
 document.getElementById('room-label').style.background = '#e65100';
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
@@ -1208,7 +1210,19 @@ function getDuration(ct) {
 }
 
 function nowGDL() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+  // Extract time parts directly from Guadalajara locale string
+  // Using new Date(localeString) is broken — it re-interprets the string as local time
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Mexico_City',
+    hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: false, year: 'numeric', month: 'numeric', day: 'numeric'
+  }).formatToParts(now);
+  const get = type => parseInt(parts.find(p => p.type === type).value);
+  // Build a date object with Guadalajara's actual h/m/s values
+  const gdl = new Date(now);
+  gdl.setHours(get('hour') % 24, get('minute'), get('second'), 0);
+  return gdl;
 }
 
 function t2m(t) { if (!t) return 0; const [h,m] = t.split(':').map(Number); return h*60+m; }
