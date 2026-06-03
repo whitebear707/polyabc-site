@@ -1037,9 +1037,19 @@ function startAudioRelay(socket) {
   window._audioSocket = socket;
   socket.on('audio-offer', async ({ from, offer }) => {
     try {
-      const pc = createAudioPeer(from, socket);
-      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') return;
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      let pc = audioPeers[from];
+      if (!pc) pc = createAudioPeer(from, socket);
+      // Polite peer: if collision, rollback and restart
+      if (pc.signalingState !== 'stable') {
+        if (pc.signalingState === 'have-local-offer') {
+          await Promise.all([
+            pc.setLocalDescription({ type: 'rollback' }),
+            pc.setRemoteDescription(new RTCSessionDescription(offer))
+          ]);
+        } else return;
+      } else {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      }
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('audio-answer', { to: from, answer: pc.localDescription });
@@ -2006,7 +2016,7 @@ function showReaction(emoji) {
         if (p.y>cvs.height) { p.y=-10; p.x=Math.random()*cvs.width; }
       });
       frame++;
-      if (frame<200) window._confettiRAF = requestAnimationFrame(drawFrame);
+      if (frame<120) window._confettiRAF = requestAnimationFrame(drawFrame);
       else { window._confettiRAF=null; cvs.loadFromJSON(origJSON,()=>cvs.renderAll()); }
     }
     window._confettiRAF = requestAnimationFrame(drawFrame);
@@ -2177,7 +2187,7 @@ function scaleCanvas() {
   const h = wrap.clientHeight;
   const scaleW = w / CANVAS_W;
   const scaleH = h / CANVAS_H;
-  const scale = Math.max(scaleW, scaleH);
+  const scale = Math.min(scaleW, scaleH); // fit within available space
   const transform = `scale(${scale})`;
   const container = document.querySelector('.canvas-container');
   if (container) {
