@@ -371,7 +371,8 @@ function skipToBooking() {
 function showBooking() {
   document.getElementById('result-screen').style.display = 'none';
   document.getElementById('booking-screen').style.display = 'block';
-  document.getElementById('booking-level-tag').textContent = detectedLevel;
+  const tag = document.getElementById('booking-level-tag');
+  if (tag) tag.textContent = detectedLevel;
 }
 
 async function searchSlots() {
@@ -412,7 +413,7 @@ function renderCal() {
     if (isPast || tooSoon) cls += ' past';
     else if (color === 'green') { cls += ' green'; onclick = `onclick="pickDate('${ds}')"` ; }
     else cls += ' grey';
-    if (isToday) cls += ' today';
+    if (ds === today) cls += ' today';
     html += `<div class="${cls}" ${onclick}>${d}</div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
