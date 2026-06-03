@@ -568,3 +568,50 @@ The owed timer was incorrectly triggering for on-time teachers.
 3. Reduce mobile lag / test on second device
 4. Harden auth/security (admin panel has no real auth)
 5. Improve long-term maintainability (split large files)
+
+---
+
+## 16. Session Changelog (most recent first)
+
+### Session 4 — Claude (latest)
+- Rewrote attendance system: `attKeyAsync()` queries DB directly for scheduledTime
+- Fixed owed timer false positives (2+ min threshold, once at page load)
+- Fixed New Trial button not disappearing on assignment
+- Fixed Reset All password always failing
+- Fixed student moving objects when draw disabled
+- Added 5s cooldown on reward buttons
+- Full-screen confetti overlay
+- 15-min trial booking intervals, all 24 hours shown
+- Coin/dice animations now show on student side simultaneously
+- Added laser pointer tool (teacher only, real-time to students)
+- Added ⭐🏆🥇 reward selector
+- Added 3D CSS dice with real dot faces
+- Added CSS coin flip with 🦅/🤪 sides
+- Reactions panel hidden from students, panel shows teacher-only
+- Full emoji reaction system with particle engine
+- AI_NOTES.md now updated on every commit
+
+### Session 3 — Claude
+- WebRTC polite peer pattern for race conditions
+- Admin panel mobile layout + hamburger menu
+- Payroll calculation system
+- Attendance per-class tracking with Mexico City timezone fix
+- Trial student flow (Room 101, 24hr limit, booking calendar)
+- Class scheduling with room locks
+- PWA setup
+
+### Session 2 — Claude
+- Classroom tools: reactions, coin, dice, laser pointer, rewards
+- Student-to-student video enabled
+- Canvas scaling fix (Math.min)
+- Star reward + confetti system
+- Leave class modal
+- Student waiting screens
+
+### Session 1 — Claude
+- Initial platform build
+- WebRTC audio/video
+- Whiteboard (Fabric.js)
+- Room lock/open system
+- Dynamic student video slots
+- Screen sharing
