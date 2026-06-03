@@ -1410,10 +1410,12 @@ async function addStudentToRoom() {
   const dup = checkDuplicatePassword(pass, null);
   if (dup) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
-  await fetch(`${SERVER_URL}/rooms/${_currentRoomForStudents}/students`, {
+  const res  = await fetch(`${SERVER_URL}/rooms/${_currentRoomForStudents}/students`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ name, password: pass })
   });
+  const data = await res.json();
+  if (!data.success) { err.textContent = '⚠️ ' + (data.message || 'Could not add student.'); err.style.display = 'block'; return; }
   document.getElementById('new-student-name').value = '';
   document.getElementById('new-student-pass').value = '';
   await loadRooms();
@@ -2202,3 +2204,4 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAlert
 </script>
 </body>
 </html>
+
