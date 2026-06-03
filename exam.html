@@ -305,7 +305,7 @@ function showWaitingScreen(date, time) {
 
 function populateTimeSelect() {
   const sel = document.getElementById('time-select');
-  for (let h = 6; h <= 22; h++) {
+  for (let h = 0; h <= 23; h++) {
     ['00','15','30','45'].forEach(m => {
       const val = `${String(h).padStart(2,'0')}:${m}`;
       const disp = new Date(`2000-01-01T${val}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
