@@ -326,6 +326,7 @@
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
+      <button onclick="openResetModal()" title="Reset All Data" style="background:none;border:none;color:#555;font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:8px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#555'">🪐</button>
     </div>
   </div>
 
@@ -524,6 +525,25 @@
   <div style="display:flex;gap:10px;">
     <button onclick="clearMobileFilters()" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Clear</button>
     <button onclick="closeFilterDrawer()" style="flex:1;padding:10px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Apply</button>
+  </div>
+</div>
+
+<!-- Reset All Modal -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal-box" style="max-width:400px;text-align:center;">
+    <div style="font-size:3rem;margin-bottom:8px;">🪐</div>
+    <div class="modal-title" style="color:#e53935;">Reset All Data</div>
+    <div style="font-size:0.9rem;color:#555;margin-bottom:20px;line-height:1.6;">
+      This will permanently delete <strong>ALL</strong> teachers, students, groups, assignments, attendance, and payroll records.<br><br>
+      <strong style="color:#e53935;">This cannot be undone.</strong><br><br>
+      Enter your admin password to confirm:
+    </div>
+    <input type="password" id="reset-password" placeholder="Admin password" style="width:100%;padding:12px;border-radius:10px;border:2px solid #e53935;font-family:Nunito;font-size:1rem;margin-bottom:12px;outline:none;text-align:center;"/>
+    <div id="reset-error" style="display:none;color:#e53935;font-size:0.85rem;margin-bottom:10px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="document.getElementById('reset-modal').classList.remove('open');document.getElementById('reset-password').value='';">Cancel</button>
+      <button onclick="confirmReset()" style="background:#e53935;color:white;border:none;padding:10px 20px;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">💣 Reset Everything</button>
+    </div>
   </div>
 </div>
 
@@ -1771,6 +1791,26 @@ async function doDeleteGroup(id) {
   await fetch(`${SERVER_URL}/groups/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await loadGroups();
   renderGroups();
+}
+
+function openResetModal() {
+  document.getElementById('reset-password').value = '';
+  document.getElementById('reset-error').style.display = 'none';
+  document.getElementById('reset-modal').classList.add('open');
+}
+
+async function confirmReset() {
+  const pw = document.getElementById('reset-password').value;
+  const errEl = document.getElementById('reset-error');
+  if (!pw) { errEl.textContent = 'Please enter your password.'; errEl.style.display = 'block'; return; }
+  const res = await fetch(`${SERVER_URL}/admin/reset-all`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ confirmPassword: pw })
+  });
+  const data = await res.json();
+  if (!data.success) { errEl.textContent = data.message || 'Wrong password.'; errEl.style.display = 'block'; return; }
+  document.getElementById('reset-modal').classList.remove('open');
+  showAlert('🪐', 'Reset Complete', 'All data has been wiped. The platform is now blank and ready to go live!', [{ label: 'OK', fn: 'closeAlert();logout()', primary: true }]);
 }
 
 // ── TRIAL NOTIFICATIONS ──
