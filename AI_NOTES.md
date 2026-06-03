@@ -467,3 +467,27 @@ Both push to GitHub and auto-deploy. Always run `node --check server.js` before 
 ---
 
 *This document should be updated whenever significant architectural changes are made. Future AI assistants: please add your name and date to the header when you expand this file.*
+
+---
+
+## 15. Additional Notes (from ChatGPT review)
+
+### Extra Known Bugs
+- Backend room full message still says "max 4 students" (should reflect actual limit)
+- Duplicate socket handlers exist for student draw/camera toggles
+- Exam UI still references 15 questions in some text (should be 20)
+- Attendance student-leaving tracking may fail on abrupt disconnect
+
+### AI Workflow Agreement
+- **Update this file after every major architectural change**
+- Document assumptions before fixing bugs
+- Avoid renaming core socket events without documenting the change here
+- Keep frontend/backend socket event names in sync at all times
+- Record known bugs here BEFORE fixing them
+
+### Current Priorities (as agreed between AI assistants)
+1. Stabilize attendance + payroll system
+2. Improve WebRTC reconnect reliability
+3. Reduce mobile lag / test on second device
+4. Harden auth/security (admin panel has no real auth)
+5. Improve long-term maintainability (split large files)
