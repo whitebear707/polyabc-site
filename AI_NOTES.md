@@ -585,6 +585,15 @@ The owed timer was incorrectly triggering for on-time teachers.
   - `roomSessionId[room]` cleared on `end-class` so next class starts fresh
   - `sessionId` stored in attendance record for direct payroll matching
   - **Result**: 3 classes same day same teacher → 3 perfect separate attendance records, always, forever
+- **GLOBAL PASSWORD UNIQUENESS**
+  - No two users (teachers or students) can share a password anywhere in the system
+  - `isTrialPassword()` helper blocks `try1`–`try20` from being assigned to anyone except trial students — reserved just like room 101
+  - `passwordTaken()` helper checks all teacher passwords + all room student lists + standalone students collection in one shot
+  - Enforced at every password-setting endpoint: create room, edit room, add student to room, edit student, teacher self-update, create standalone student
+  - Self-edit allowed (teacher/student can re-save their own existing password without conflict)
+- **STUDENT DUPLICATE PASSWORD ERROR MESSAGE**
+  - `addStudentToRoom()` in admin.html was not reading the server response — silently swallowed errors
+  - Now reads `data.success` and displays `data.message` in the existing `add-student-error` element if blocked
 
 ### Session 4 — Claude (latest)
 - Rewrote attendance system: `attKeyAsync()` queries DB directly for scheduledTime
