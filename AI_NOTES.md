@@ -587,10 +587,14 @@ The owed timer was incorrectly triggering for on-time teachers.
   - **Result**: 3 classes same day same teacher → 3 perfect separate attendance records, always, forever
   - **Bugfix**: teacher login was crashing the server — `sessionId` was in both `$set` and `$setOnInsert` in the attendance upsert. MongoDB error code 40. Fixed by removing it from `$set` (it's already included via `...key` in `$setOnInsert`)
 - **4 BUG FIXES (testing session)**
-  - **Owed timer false positive**: added explicit guard — only triggers if `lateBy > 2` (genuinely past scheduled start by more than 2 min grace)
+  - **nowGDL() timezone bug**: `new Date(localeString)` was re-interpreting Guadalajara time string as browser local time (Tijuana = 1hr off). Fixed to use `Intl.DateTimeFormat.formatToParts()` and extract h/m/s directly — now returns correct Guadalajara time regardless of where the browser is
+  - **Room label shows session ID**: room label now shows `Room: 21 · #b7d945` (last 6 chars of sessionId) for easy support reference
+  - **Duplicate attendance records**: all upsert queries now use `{ sessionId }` as primary key when available — reconnects always update the same record instead of creating new ones
+  - **classType/groupName snapshotted**: stored directly on attendance record at creation — display never depends on assignment still existing in calendar
+  - **All attendance writes use sessionId key**: class-opened, class-started, end-class, student-leaving, record-class-end, disconnect — all consistent
   - **Confetti too long**: cut from 400 frames (~6.7s) to 160 frames (~2.7s), added fade-out in last 30 frames
-  - **Payroll paying full for invalid_termination**: now calculates actual minutes taught from `classStartedAt`→`classEndedAt`, pays proportionally. Incomplete rows highlighted red with ⚠️ on pay amount. `payNote` shows `⚠️ Incomplete — X/Y min paid`
-  - **Teacher reconnect window**: extended from 5 minutes (300000ms) to 10 minutes (600000ms)
+  - **Payroll paying full for invalid_termination**: now calculates actual minutes taught, pays proportionally, highlights red with ⚠️
+  - **Teacher reconnect window**: extended from 5 minutes to 10 minutes
   - No two users (teachers or students) can share a password anywhere in the system
   - `isTrialPassword()` helper blocks `try1`–`try20` from being assigned to anyone except trial students — reserved just like room 101
   - `passwordTaken()` helper checks all teacher passwords + all room student lists + standalone students collection in one shot
