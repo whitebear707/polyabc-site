@@ -615,3 +615,7 @@ The owed timer was incorrectly triggering for on-time teachers.
 - Room lock/open system
 - Dynamic student video slots
 - Screen sharing
+
+### Session 4 continued — fixes after successful attendance test
+- Canvas click area fixed: `wrap.style.width/height` set to scaled canvas size so right side is clickable
+- Timer now shows reliably: teacher gets fallback from `timer-info` if `loadSchedule` missed it
