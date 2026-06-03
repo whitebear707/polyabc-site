@@ -594,6 +594,11 @@ The owed timer was incorrectly triggering for on-time teachers.
 - **STUDENT DUPLICATE PASSWORD ERROR MESSAGE**
   - `addStudentToRoom()` in admin.html was not reading the server response — silently swallowed errors
   - Now reads `data.success` and displays `data.message` in the existing `add-student-error` element if blocked
+- **SERVICE WORKER FIX (critical)**
+  - `sw.js` was intercepting ALL fetch requests including backend API calls and socket.io
+  - This caused fake CORS errors and blocked teachers from logging in entirely
+  - Fixed: SW now only handles same-origin requests (GitHub Pages assets), backend calls pass through untouched
+  - Bumped cache name to `polyabc-v2` + added `skipWaiting()`/`clients.claim()` so the fix activates immediately and clears the broken old SW
 
 ### Session 4 — Claude (latest)
 - Rewrote attendance system: `attKeyAsync()` queries DB directly for scheduledTime
