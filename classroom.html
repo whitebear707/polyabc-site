@@ -1286,17 +1286,17 @@ function startTimer(assignment) {
   let owedSecs = 0;
   window._assignmentStartMins = t2m(assignment.time);
 
-  // Only show owed timer if teacher enters class more than 2 mins after scheduled start
-  // This check runs ONCE at page load — not inside the interval
+  // Only show owed timer if teacher joins MORE than 2 mins after scheduled start
+  // lateBy must be positive (past start time) AND greater than 2 mins threshold
   if (IS_TEACHER) {
     const nowCheck = nowGDL();
     const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
     const schedStart = t2m(assignment.time);
     const lateBy = nowMinsCheck - schedStart;
-    if (lateBy > 2) {
+    if (lateBy > 2) { // only if genuinely past start time by more than 2 min grace period
       owedSecs = Math.round(lateBy * 60);
       showLateWarning('LATE', owedSecs);
-      startOwedTimer(owedSecs, duration); // start immediately, don't wait for interval
+      startOwedTimer(owedSecs, duration);
       owedTimerStarted = true;
     }
   }
@@ -2024,6 +2024,9 @@ function showReaction(emoji) {
     let frame = 0;
     function drawFrame() {
       ctx.clearRect(0, 0, W, H);
+      // Fade out in last 30 frames
+      const opacity = frame > 130 ? 1 - (frame - 130) / 30 : 1;
+      ctx.globalAlpha = opacity;
       pieces.forEach(p => {
         p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
         ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
@@ -2034,7 +2037,7 @@ function showReaction(emoji) {
         if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
       });
       frame++;
-      if (frame < 400) window._confettiRAF = requestAnimationFrame(drawFrame);
+      if (frame < 160) window._confettiRAF = requestAnimationFrame(drawFrame);
       else { window._confettiRAF = null; overlay.remove(); }
     }
     window._confettiRAF = requestAnimationFrame(drawFrame);
