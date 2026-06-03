@@ -1,5 +1,5 @@
 # PolyABC — AI Collaboration Notes
-> Last updated by: Claude (Anthropic)  
+> Last updated by: Claude (Anthropic) — Session 4
 > Purpose: Shared memory for AI assistants working on this project. Read this FIRST before touching any code.
 
 ---
@@ -399,18 +399,31 @@ If teacher closes browser mid-class:
 | Duplicate student on teacher side after reconnect | Unresolved | `user-joined` fires twice |
 | Laser misalignment on mobile | Unresolved | Canvas scale vs window ratio differs |
 
+### ✅ Fixed Session 4
+| Fix | Notes |
+|---|---|
+| Attendance double records | Rewrote to use `attKeyAsync` — DB lookup instead of client-side cache |
+| Student missing from attendance/payroll | `attKeyAsync` guarantees correct scheduledTime for all writes |
+| endType always 'ended_early' | Now compares now vs scheduled start + duration |
+| Owed timer false positive | Only triggers if teacher 2+ mins late, checked once at page load |
+| New Trial button not disappearing on assign | Cleared `isNewTrial` on trial assignment |
+| Reset All password always wrong | Uses `getAdminPassword()` with env var fallback |
+| Student moving objects when draw disabled | New canvas objects inherit `selectable:false` immediately |
+| Reward button spammable | 5-second cooldown per student button |
+| Confetti only on whiteboard canvas | Full-screen overlay canvas (`position:fixed, 100vw×100vh`) |
+| Trial time slots 30-min only | Now 15-min intervals, all 24 hours shown |
+
 ### ⏳ Partially Implemented
 | Feature | Status | Notes |
 |---|---|---|
 | `timeOverride` for teachers | Checkbox added to modal, save/use not implemented | Bypasses 24hr trial booking limit |
-| Payroll for trial classes | May be fixed by `scheduledTime` fix — needs retest | |
 | Student fullscreen prompt | Not implemented | |
 
 ### 💳 Technical Debt
 - No authentication on admin panel (just password modal for destructive actions)
 - Canvas updates sent as full JSON on every stroke — expensive at scale
 - No rate limiting on socket events
-- `roomScheduledTime` map is in-memory — resets on server restart (attendance could lose scheduledTime mid-class after crash)
+- `roomScheduledTime` is a cache — cleared on server restart. `getScheduledTime()` re-queries DB automatically so this is safe.
 - Single server instance — no horizontal scaling
 
 ---
@@ -470,7 +483,71 @@ Both push to GitHub and auto-deploy. Always run `node --check server.js` before 
 
 ---
 
-## 15. Additional Notes (from ChatGPT review)
+## ⚠️ CRITICAL: Attendance System (Rewritten Session 4)
+
+### The Old Way (DO NOT REVERT)
+Previously attendance used `attKey(room)` which read `roomScheduledTime[room]` — an in-memory cache populated when the client emitted `timer-info`. This caused race conditions: if teacher/student joined before `timer-info` fired, records were created with `scheduledTime: ''`, creating duplicate records and missing student data.
+
+We tried a pending queue system — it was too complex and still had race conditions.
+
+### The New Way (Current)
+`attKeyAsync(room)` — an async function that looks up scheduledTime **directly from MongoDB**:
+
+```javascript
+async function attKeyAsync(room) {
+  const today = todayGDL();
+  const st = await getScheduledTime(room); // queries assignments collection
+  return { room, date: today, scheduledTime: st || '' };
+}
+
+async function getScheduledTime(room) {
+  if (roomScheduledTime[room]) return roomScheduledTime[room]; // cache hit
+  const today = todayGDL();
+  const assignment = await assignmentsCol().findOne({ room, date: today });
+  if (assignment?.time) {
+    roomScheduledTime[room] = assignment.time; // populate cache
+    return assignment.time;
+  }
+  return null;
+}
+```
+
+**Every** attendance operation uses `attKeyAsync`:
+- `join-room` (teacher) → `attKeyAsync` → upsert with `teacherLoginAt`
+- `join-room` (student) → `attKeyAsync` → push to students array
+- `class-opened` → `attKeyAsync` → set `teacherOpenedAt`
+- `class-started` → `attKeyAsync` → set `classStartedAt`
+- `end-class` → `attKeyAsync` → set `classEndedAt` + `endType`
+- `student-leaving` → `attKeyAsync` → set `students.$.leftAt`
+- `disconnect` → `attKeyAsync` (via `.then()`) → set `leftAt` or `invalid_termination`
+
+### endType Logic
+`end-class` calculates `endType` using scheduled time + duration:
+```javascript
+const schedEnd = new Date(nowTs);
+schedEnd.setHours(hh, mm + durationMins, 0, 0); // scheduled end time
+endType = nowTs >= schedEnd ? 'completed' : 'ended_early';
+```
+This means: class is `completed` if teacher ends it at or after the scheduled end time.
+
+### Payroll Merge Safety Net
+Payroll endpoint merges records by `date + scheduledTime` before calculating, in case two records ever get created for the same class. This handles legacy data and edge cases without breaking anything.
+
+---
+
+## ⚠️ CRITICAL: Owed Timer (Fixed Session 4)
+
+The owed timer was incorrectly triggering for on-time teachers. 
+
+**Rules:**
+- Only shows if teacher enters classroom MORE THAN 2 minutes after scheduled start
+- Checked ONCE at page load — never inside the `setInterval` loop
+- Shows fixed label "Late: X min owed" while class is running
+- Only starts counting DOWN after the original scheduled end time passes
+
+**Do not move the owed timer check back inside the setInterval — it will fire for every teacher.**
+
+---
 
 ### Extra Known Bugs
 - Backend room full message still says "max 4 students" (should reflect actual limit)
