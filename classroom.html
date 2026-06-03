@@ -1995,29 +1995,36 @@ function showReaction(emoji) {
     }, i * 80);
   }
 
-  if (emoji === '🎉' && canvas && !window._confettiRAF) {
-    const cvs = canvas;
-    const pieces = Array.from({length:300}, () => ({
-      x:Math.random()*cvs.width, y:-10, vy:3+Math.random()*5, vx:(Math.random()-0.5)*3,
-      size:6+Math.random()*8, color:CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
-      rot:Math.random()*360, rotV:(Math.random()-0.5)*8, round:Math.random()>0.5
+  if (emoji === '🎉' && !window._confettiRAF) {
+    const W = window.innerWidth, H = window.innerHeight;
+    const overlay = document.createElement('canvas');
+    overlay.style.cssText = `position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9998;`;
+    overlay.width = W; overlay.height = H;
+    document.body.appendChild(overlay);
+    const ctx = overlay.getContext('2d');
+    const pieces = Array.from({length: 300}, () => ({
+      x: Math.random() * W, y: -20 - Math.random() * H,
+      vy: 3 + Math.random() * 5, vx: (Math.random() - 0.5) * 3,
+      size: 6 + Math.random() * 8,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      rot: Math.random() * 360, rotV: (Math.random() - 0.5) * 8,
+      round: Math.random() > 0.5
     }));
-    const origJSON = cvs.toJSON(['data']);
     let frame = 0;
     function drawFrame() {
-      cvs.renderAll();
-      const ctx = cvs.getContext();
+      ctx.clearRect(0, 0, W, H);
       pieces.forEach(p => {
-        p.y+=p.vy; p.x+=p.vx; p.rot+=p.rotV;
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180); ctx.fillStyle=p.color;
-        if (p.round) { ctx.beginPath(); ctx.arc(0,0,p.size/2,0,Math.PI*2); ctx.fill(); }
-        else ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+        p.y += p.vy; p.x += p.vx; p.rot += p.rotV;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        if (p.round) { ctx.beginPath(); ctx.arc(0, 0, p.size/2, 0, Math.PI*2); ctx.fill(); }
+        else ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
         ctx.restore();
-        if (p.y>cvs.height) { p.y=-10; p.x=Math.random()*cvs.width; }
+        if (p.y > H + 20) { p.y = -20; p.x = Math.random() * W; }
       });
       frame++;
-      if (frame<120) window._confettiRAF = requestAnimationFrame(drawFrame);
-      else { window._confettiRAF=null; cvs.loadFromJSON(origJSON,()=>cvs.renderAll()); }
+      if (frame < 400) window._confettiRAF = requestAnimationFrame(drawFrame);
+      else { window._confettiRAF = null; overlay.remove(); }
     }
     window._confettiRAF = requestAnimationFrame(drawFrame);
   }
@@ -2225,28 +2232,26 @@ function startOwedTimer(owedSecsTotal, classDuration) {
   if (!owedEl) return;
   owedEl.style.display = 'block';
   const owedMins = Math.ceil(owedSecsTotal / 60);
-  owedEl.textContent = `⏱ Owed: ${owedMins} min`;
+  owedEl.textContent = `⏱ Late: ${owedMins} min owed`;
   owedEl.style.color = '#e53935';
 
-  let countdown = owedMins * 60; // seconds to count down
-  let started = false;
-
+  // Only start counting down AFTER the original class end time
   const owedInterval = setInterval(() => {
     const now = nowGDL();
     const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
     const originalEnd = window._assignmentStartMins + classDuration;
 
     if (nowMins >= originalEnd) {
-      if (!started) started = true;
-      countdown--;
-      if (countdown <= 0) {
+      const secsOver = Math.round((nowMins - originalEnd) * 60);
+      const remaining = owedSecsTotal - secsOver;
+      if (remaining <= 0) {
         owedEl.textContent = '✅ Time made up!';
         owedEl.style.color = '#69f0ae';
         clearInterval(owedInterval);
         setTimeout(() => { owedEl.style.display = 'none'; }, 3000);
         return;
       }
-      const mm = Math.floor(countdown / 60), ss = countdown % 60;
+      const mm = Math.floor(remaining / 60), ss = remaining % 60;
       owedEl.textContent = `⏱ Owed: ${mm}:${String(ss).padStart(2,'0')}`;
     }
   }, 1000);
