@@ -1958,14 +1958,14 @@ async function loadPayroll() {
             <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
             <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
           </tr></thead>
-          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;">
+          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.isIncomplete ? 'background:#fff8f8;' : ''}">
             <td style="padding:6px 10px;">${c.date}</td>
             <td style="padding:6px 10px;font-weight:700;">${c.groupName}</td>
             <td style="padding:6px 10px;">${c.classType}</td>
             <td style="padding:6px 10px;">${c.studentsShowed}/${c.expectedStudents}</td>
-            <td style="padding:6px 10px;color:#888;">${c.payNote}</td>
+            <td style="padding:6px 10px;color:${c.isIncomplete ? '#b71c1c' : '#888'};">${c.payNote}</td>
             <td style="padding:6px 10px;">${buildPayrollTags(c)}</td>
-            <td style="padding:6px 10px;text-align:right;font-weight:900;color:#2e7d32;">$${c.classPay.toFixed(2)}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:900;color:${c.isIncomplete ? '#b71c1c' : '#2e7d32'};">${c.isIncomplete ? '⚠️ ' : ''}$${c.classPay.toFixed(2)}</td>
           </tr>`).join('')}</tbody>
         </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No classes this period</div>'}
       </div>
