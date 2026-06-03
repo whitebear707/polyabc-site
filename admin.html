@@ -1122,6 +1122,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
 
 async function saveTrialAssignment(bookingId, dateStr, time) {
   const room = document.getElementById('trial-assign-room').value;
+  const gdlTime = toGDLTime(dateStr, time); // Convert from browser local time to Guadalajara time
   // Mark booking as assigned
   await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
@@ -1130,7 +1131,7 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   // Create the assignment on calendar
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, date: dateStr, time, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
+    body: JSON.stringify({ room, date: dateStr, time: gdlTime, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
   });
   document.getElementById('assign-day-overlay').style.display = 'none';
   await loadAllAssignmentsData();
@@ -1212,11 +1213,27 @@ function onAssignSelectionChange() {
   }
 }
 
+// Convert a time string typed in the browser's local timezone to Guadalajara time
+// This ensures assignments are always stored in Mexico City time regardless of where admin is
+function toGDLTime(dateStr, timeStr) {
+  // Build a date object as if the typed time is in the browser's local timezone
+  const localDate = new Date(`${dateStr}T${timeStr}:00`);
+  // Get what that moment looks like in Guadalajara
+  const gdlStr = localDate.toLocaleString('en-US', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  // gdlStr is like "14:15" — parse it
+  const [h, m] = gdlStr.split(':');
+  return `${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+}
+
 async function saveAssignGroup(dateStr, room) {
   const selVal = document.getElementById('modal-group-select').value;
   if (!selVal) { showAlert('😬','Oh No! Woops!','Please select a group or student.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
-  const time = document.getElementById('modal-assign-time').value;
-  if (!time) { showAlert('😬','Oh No! Woops!','Please set a time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  const rawTime = document.getElementById('modal-assign-time').value;
+  if (!rawTime) { showAlert('😬','Oh No! Woops!','Please set a time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  const time = toGDLTime(dateStr, rawTime); // Convert from browser local time to Guadalajara time
   const classType = document.getElementById('modal-class-type').value;
   if (!classType) { showAlert('😬','Oh No! Woops!','Please select a class type.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
 
