@@ -1355,7 +1355,6 @@ async function saveTeacher() {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ room, teacherName: name, teacherPassword: pass, hourlyRate: parseFloat(rate)||0, timeOverride })
     });
-    });
     const data = await res.json();
     if (!data.success) { showAlert('😬','Oh No! Woops!',data.message||'Could not create room.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
   }
