@@ -168,9 +168,15 @@
   <a class="admin-link" href="admin.html">Admin / Teacher Panel</a>
 
   <script>
-    // Register PWA service worker
+    // Self-healing service worker: unregister any old SW first, then register the new one.
+    // This ensures users never get stuck with a broken SW — no manual steps needed.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        const unregisterAll = registrations.map(r => r.unregister());
+        Promise.all(unregisterAll).then(() => {
+          navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+      });
     }
 
     // ── PWA Install Prompt ──
@@ -317,3 +323,4 @@
 </div>
 </body>
 </html>
+
