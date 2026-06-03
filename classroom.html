@@ -1280,15 +1280,18 @@ function startTimer(assignment) {
   let owedSecs = 0;
   window._assignmentStartMins = t2m(assignment.time);
 
-  // Check if TEACHER is late (already past scheduled start by more than 1 min)
+  // Only show owed timer if teacher enters class more than 2 mins after scheduled start
+  // This check runs ONCE at page load — not inside the interval
   if (IS_TEACHER) {
     const nowCheck = nowGDL();
     const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
     const schedStart = t2m(assignment.time);
     const lateBy = nowMinsCheck - schedStart;
-    if (lateBy > 1) { // more than 1 minute late
+    if (lateBy > 2) {
       owedSecs = Math.round(lateBy * 60);
       showLateWarning('LATE', owedSecs);
+      startOwedTimer(owedSecs, duration); // start immediately, don't wait for interval
+      owedTimerStarted = true;
     }
   }
 
@@ -1316,11 +1319,7 @@ function startTimer(assignment) {
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
     }
 
-    // Owed timer — counts down owed seconds
-    if (IS_TEACHER && owedSecs > 0 && !owedTimerStarted) {
-      owedTimerStarted = true;
-      startOwedTimer(owedSecs, duration);
-    }
+    // Owed timer already started at page load if teacher was late
 
     const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
     timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
