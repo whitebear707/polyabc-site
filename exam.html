@@ -284,6 +284,14 @@ window.onload = async () => {
     skipToBooking();
     return;
   }
+
+  // Check if exam was finished but booking not yet done (refresh mid-booking)
+  if (trialData.examDone) {
+    detectedLevel = trialData.level || '';
+    skipToBooking();
+    return;
+  }
+
   renderQuestion();
 };
 
@@ -349,7 +357,11 @@ function showResults() {
     body: JSON.stringify({ studentId: trialData.id, level: detectedLevel })
   });
 
-  // Skip result screen — go straight to booking
+  // Save level to localStorage so refresh stays on booking screen
+  trialData.hasLevel = true;
+  trialData.level = detectedLevel;
+  localStorage.setItem('trialStudent', JSON.stringify(trialData));
+
   document.getElementById('progress-fill').style.width = '100%';
   document.getElementById('exam-screen').style.display = 'none';
   showBooking();
