@@ -1122,7 +1122,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
 
 async function saveTrialAssignment(bookingId, dateStr, time) {
   const room = document.getElementById('trial-assign-room').value;
-  const gdlTime = toGDLTime(dateStr, time); // Convert from browser local time to Guadalajara time
+  // time already comes from server-driven dropdown — no conversion needed
   // Mark booking as assigned
   await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
@@ -1131,7 +1131,7 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   // Create the assignment on calendar
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, date: dateStr, time: gdlTime, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
+    body: JSON.stringify({ room, date: dateStr, time, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
   });
   document.getElementById('assign-day-overlay').style.display = 'none';
   await loadAllAssignmentsData();
@@ -1188,14 +1188,17 @@ function _showAssignGroupModal(dateStr, room) {
       </select>
     </div>
     <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Time <span style="color:#e53935;">*</span></label>
-      <input type="time" id="modal-assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
-      <div style="font-size:0.72rem;color:#888;margin-top:3px;">⏰ Guadalajara Time — Required</div>
+      <select id="modal-assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
+        <option value="">⏳ Loading Guadalajara times...</option>
+      </select>
+      <div style="font-size:0.72rem;color:#2e7d32;margin-top:3px;">🌎 All times are Guadalajara time (pulled from server)</div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
       <button onclick="saveAssignGroup('${dateStr}','${room}')" style="flex:1;padding:10px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
+  populateGDLTimeDropdown(dateStr); // Populate time slots from server Guadalajara clock
 }
 
 function onAssignSelectionChange() {
@@ -1213,19 +1216,57 @@ function onAssignSelectionChange() {
   }
 }
 
-// Convert a time string typed in the browser's local timezone to Guadalajara time
-// This ensures assignments are always stored in Mexico City time regardless of where admin is
-function toGDLTime(dateStr, timeStr) {
-  // Build a date object as if the typed time is in the browser's local timezone
-  const localDate = new Date(`${dateStr}T${timeStr}:00`);
-  // Get what that moment looks like in Guadalajara
-  const gdlStr = localDate.toLocaleString('en-US', {
-    timeZone: 'America/Mexico_City',
-    hour: '2-digit', minute: '2-digit', hour12: false
-  });
-  // gdlStr is like "14:15" — parse it
-  const [h, m] = gdlStr.split(':');
-  return `${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+// Populate the time dropdown with 15-minute slots from server's Guadalajara clock
+// This is bulletproof — browser timezone is never involved
+async function populateGDLTimeDropdown(dateStr) {
+  const sel = document.getElementById('modal-assign-time');
+  if (!sel) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/server-time`);
+    const { time, date } = await res.json();
+    const [nowH, nowM] = time.split(':').map(Number);
+    const nowMins = nowH * 60 + nowM;
+    const isToday = date === dateStr;
+
+    const slots = [];
+    // Generate every 15-min slot from 6:00 AM to 10:00 PM
+    for (let m = 6 * 60; m <= 22 * 60; m += 15) {
+      const h = Math.floor(m / 60), min = m % 60;
+      const val = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+      const h12 = h % 12 || 12, ap = h >= 12 ? 'PM' : 'AM';
+      const label12 = `${h12}:${String(min).padStart(2,'0')} ${ap}`;
+      // For today, show how far away each slot is
+      let label = label12;
+      if (isToday) {
+        const diff = m - nowMins;
+        if (diff < 0) label = `${label12}  (past)`;
+        else if (diff === 0) label = `${label12}  (now)`;
+        else if (diff < 60) label = `${label12}  (in ${diff} min)`;
+        else { const dh = Math.floor(diff/60), dm = diff%60; label = `${label12}  (in ${dh}h${dm ? ' '+dm+'min' : ''})`; }
+      }
+      slots.push({ val, label, past: isToday && m < nowMins });
+    }
+
+    sel.innerHTML = '<option value="">-- Select time --</option>';
+    // Group: upcoming first, then past
+    const upcoming = slots.filter(s => !s.past);
+    const past = slots.filter(s => s.past);
+    if (upcoming.length) {
+      const og = document.createElement('optgroup'); og.label = isToday ? '⏰ Upcoming (GDL)' : '⏰ Available times (GDL)';
+      upcoming.forEach(s => { const o = document.createElement('option'); o.value = s.val; o.textContent = s.label; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+    if (past.length) {
+      const og = document.createElement('optgroup'); og.label = '📋 Earlier today';
+      past.forEach(s => { const o = document.createElement('option'); o.value = s.val; o.textContent = s.label; og.appendChild(o); });
+      sel.appendChild(og);
+    }
+    // Auto-select next upcoming slot
+    const next = upcoming.find(s => !s.past);
+    if (next) sel.value = next.val;
+  } catch(e) {
+    sel.innerHTML = '<option value="">⚠️ Could not load times — check connection</option>';
+  }
 }
 
 async function saveAssignGroup(dateStr, room) {
@@ -1233,7 +1274,7 @@ async function saveAssignGroup(dateStr, room) {
   if (!selVal) { showAlert('😬','Oh No! Woops!','Please select a group or student.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
   const rawTime = document.getElementById('modal-assign-time').value;
   if (!rawTime) { showAlert('😬','Oh No! Woops!','Please set a time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
-  const time = toGDLTime(dateStr, rawTime); // Convert from browser local time to Guadalajara time
+  const time = rawTime; // Already Guadalajara time — came from server
   const classType = document.getElementById('modal-class-type').value;
   if (!classType) { showAlert('😬','Oh No! Woops!','Please select a class type.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
 
