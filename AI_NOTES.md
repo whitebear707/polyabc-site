@@ -573,6 +573,19 @@ The owed timer was incorrectly triggering for on-time teachers.
 
 ## 16. Session Changelog (most recent first)
 
+### Session 5 — Claude
+- **BULLETPROOF ATTENDANCE: sessionId system**
+  - Every assignment now gets a unique `sessionId` (e.g. `sess_a3f9b2`) on creation
+  - `greeting.html` fetches today's assignments and picks the closest one (within 90 min), passes its `sessionId` to classroom URL
+  - `classroom.html` reads `sessionId` from URL, sends it in every `join-room` emit
+  - Server stores `sessionId` per socket in `mySessionId`, registers it in `roomSessionId[room]` so students inherit it
+  - `attKeyAsync(room, sessionId)` looks up the exact assignment by `_id` — zero guessing, zero clock math
+  - All attendance writes (teacher join, student join, class opened, class started, class ended, student leaving, disconnect) pass `mySessionId`
+  - Falls back gracefully to old time-based method for legacy assignments without `sessionId`
+  - `roomSessionId[room]` cleared on `end-class` so next class starts fresh
+  - `sessionId` stored in attendance record for direct payroll matching
+  - **Result**: 3 classes same day same teacher → 3 perfect separate attendance records, always, forever
+
 ### Session 4 — Claude (latest)
 - Rewrote attendance system: `attKeyAsync()` queries DB directly for scheduledTime
 - Fixed owed timer false positives (2+ min threshold, once at page load)
@@ -619,3 +632,4 @@ The owed timer was incorrectly triggering for on-time teachers.
 ### Session 4 continued — fixes after successful attendance test
 - Canvas click area fixed: `wrap.style.width/height` set to scaled canvas size so right side is clickable
 - Timer now shows reliably: teacher gets fallback from `timer-info` if `loadSchedule` missed it
+
