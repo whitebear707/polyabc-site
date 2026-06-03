@@ -425,6 +425,7 @@
 const SERVER_URL   = "https://polyabc-server.onrender.com";
 const params       = new URLSearchParams(window.location.search);
 const ROOM         = params.get('room') || '001';
+const SESSION_ID   = params.get('sessionId') || null; // Unique ID for this class session — used to stamp attendance records
 const IS_TEACHER   = !!localStorage.getItem('adminToken');
 const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
@@ -569,13 +570,13 @@ function connectSocket() {
     // Only rejoin if we were actually in the class (not on waiting screen)
     const waitingScreen = document.getElementById('waiting-screen');
     const isWaiting = waitingScreen && waitingScreen.style.display !== 'none';
-    if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID });
   });
 
   socket.on('connect', () => {
     document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
     document.getElementById('room-label').style.background = '#e65100';
-    socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID });
   });
 
   socket.on('room-joined', async ({ name }) => {
@@ -713,11 +714,11 @@ function connectSocket() {
   });
 
   socket.on('class-opened', () => {
-    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN }); }
+    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID }); }
   });
 
   socket.on('spot-available', () => {
-    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN }); }
+    if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID }); }
   });
 
   socket.on('class-closed', () => {
@@ -838,7 +839,7 @@ function connectSocket() {
   socket.on('disconnect', () => { document.getElementById('room-label').style.background = '#e65100'; });
   socket.on('reconnect', () => {
     document.getElementById('room-label').style.background = '#2e7d32';
-    if (window._whiteboardInit) socket.emit('join-room', { room: ROOM, token: MY_TOKEN });
+    if (window._whiteboardInit) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID });
   });
 
   socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
@@ -2386,3 +2387,4 @@ startMedia();
 </script>
 </body>
 </html>
+
