@@ -574,6 +574,12 @@ The owed timer was incorrectly triggering for on-time teachers.
 ## 16. Session Changelog (most recent first)
 
 ### Session 5 — Claude
+- **ATTENDANCE + PAYROLL DISPLAY FIXES**
+  - Attendance list and detail now use stamped `r.scheduledTime`, `r.groupName`, `r.classType` from the record itself — not from the assignment in the calendar
+  - Session ID (`#b7d945`) shown in attendance list, detail view, and payroll rows
+  - Payroll uses `att.scheduledTime` (stamped) instead of `assignment?.time`
+  - Late teacher pay deduction: calculates `lateMins` from `teacherLoginAt` vs `scheduledTime`, deducts from pay with note `⚠️ Late X min — Y/Z min paid` (2 min grace period)
+  - `groupName` and `classType` passed from attendance record to payroll classes array
 - **BULLETPROOF ATTENDANCE: sessionId system**
   - Every assignment now gets a unique `sessionId` (e.g. `sess_a3f9b2`) on creation
   - `greeting.html` fetches today's assignments and picks the closest one (within 90 min), passes its `sessionId` to classroom URL
