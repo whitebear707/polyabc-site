@@ -1300,9 +1300,10 @@ function startTimer(assignment) {
   let owedSecs = 0;
   window._assignmentStartMins = t2m(assignment.time);
 
-  // Only show owed timer if teacher joins MORE than 2 mins after scheduled start
-  // lateBy must be positive (past start time) AND greater than 2 mins threshold
-  if (IS_TEACHER) {
+  // Only check owed timer ONCE — on the very first startTimer call
+  // If startTimer is called again (e.g. student joins, timer-info re-fires) we skip this
+  if (IS_TEACHER && !window._owedTimerChecked) {
+    window._owedTimerChecked = true;
     const nowCheck = nowGDL();
     const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
     const schedStart = t2m(assignment.time);
