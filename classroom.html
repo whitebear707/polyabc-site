@@ -49,7 +49,7 @@
     .ctrl-btn.active { background: #e53935; }
 
     #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-    #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #ffffff; min-height: 0; }
+    #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #ffffff; min-height: 0; min-width: 0; }
     #whiteboard-canvas { display: block; }
 
     #toolbar { background: #16213e; border-top: 2px solid #0f3460; padding: 8px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
@@ -1280,13 +1280,14 @@ function startTimer(assignment) {
   let owedSecs = 0;
   window._assignmentStartMins = t2m(assignment.time);
 
-  // Check if TEACHER is late (already past scheduled start) — student lateness is irrelevant
+  // Check if TEACHER is late (already past scheduled start by more than 1 min)
   if (IS_TEACHER) {
     const nowCheck = nowGDL();
     const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
     const schedStart = t2m(assignment.time);
-    if (nowMinsCheck > schedStart) {
-      owedSecs = Math.round((nowMinsCheck - schedStart) * 60);
+    const lateBy = nowMinsCheck - schedStart;
+    if (lateBy > 1) { // more than 1 minute late
+      owedSecs = Math.round(lateBy * 60);
       showLateWarning('LATE', owedSecs);
     }
   }
@@ -1614,6 +1615,11 @@ function setRewardType(type) {
 }
 
 function giveStar(socketId, name) {
+  // 5 second cooldown per student
+  const btnId = `star-btn-${socketId}`;
+  const btn = document.getElementById(btnId);
+  if (btn && btn.disabled) return;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; setTimeout(() => { btn.disabled = false; btn.style.opacity = '1'; }, 5000); }
   const type = currentRewardType;
   const emoji = REWARD_EMOJI[type];
   if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji });
@@ -2072,7 +2078,7 @@ function sendReaction(emoji) {
 
 function leaveClass() {
   if (!IS_TEACHER) {
-    if (window._socket) window._socket.emit('student-leaving', { room: ROOM });
+    if (window._socket) window._socket.emit('student-leaving', { room: ROOM, name: NAME });
     setTimeout(() => {
       if (captureInterval) clearInterval(captureInterval);
       if (window._socket) window._socket.disconnect();
@@ -2175,7 +2181,12 @@ let canvas, currentTool = 'draw', suppressSync = false;
 function initWhiteboard(socket) {
   if (window._whiteboardInit) return; window._whiteboardInit = true;
   canvas = new fabric.Canvas('whiteboard-canvas', { width: CANVAS_W, height: CANVAS_H, isDrawingMode: true, backgroundColor: '#ffffff' });
-  canvas.freeDrawingBrush.color = '#000000'; canvas.freeDrawingBrush.width = 5;
+  canvas.on('object:added', (e) => {
+    if (!IS_TEACHER && window._canDraw === false) {
+      e.target.selectable = false;
+      e.target.evented = false;
+    }
+  });
   scaleCanvas(); window.addEventListener('resize', scaleCanvas); setupOwnSlot();
   canvas.on('path:created', (e) => { if (suppressSync) return; window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() }); });
   let _syncTimer = null;
