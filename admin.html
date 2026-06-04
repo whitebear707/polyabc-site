@@ -1229,41 +1229,60 @@ async function populateGDLTimeDropdown(dateStr) {
     const isToday = date === dateStr;
 
     const slots = [];
-    // Generate every 15-min slot from 6:00 AM to 10:00 PM
-    for (let m = 6 * 60; m <= 22 * 60; m += 15) {
+    // Full 24 hours, every 15 minutes — 24/7 school
+    for (let m = 0; m < 24 * 60; m += 15) {
       const h = Math.floor(m / 60), min = m % 60;
       const val = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
       const h12 = h % 12 || 12, ap = h >= 12 ? 'PM' : 'AM';
       const label12 = `${h12}:${String(min).padStart(2,'0')} ${ap}`;
-      // For today, show how far away each slot is
       let label = label12;
       if (isToday) {
         const diff = m - nowMins;
-        if (diff < 0) label = `${label12}  (past)`;
-        else if (diff === 0) label = `${label12}  (now)`;
-        else if (diff < 60) label = `${label12}  (in ${diff} min)`;
-        else { const dh = Math.floor(diff/60), dm = diff%60; label = `${label12}  (in ${dh}h${dm ? ' '+dm+'min' : ''})`; }
+        if (diff === 0)       label = `${label12}  ← right now`;
+        else if (diff > 0 && diff < 60)  label = `${label12}  (in ${diff} min)`;
+        else if (diff > 0)   { const dh = Math.floor(diff/60), dm = diff%60; label = `${label12}  (in ${dh}h${dm ? ' '+dm+'min' : ''})`; }
+        else                  label = `${label12}  (earlier today)`;
       }
       slots.push({ val, label, past: isToday && m < nowMins });
     }
 
-    sel.innerHTML = '<option value="">-- Select time --</option>';
-    // Group: upcoming first, then past
+    sel.innerHTML = '';
+
+    // "Right now" option at the very top for today
+    if (isToday) {
+      // Find the closest slot to right now
+      const closestSlot = slots.reduce((best, s) => {
+        const diff = Math.abs(parseInt(s.val.replace(':','')) / 100 * 60 + parseInt(s.val.split(':')[1]) - nowMins);
+        const bestDiff = Math.abs(parseInt(best.val.replace(':','')) / 100 * 60 + parseInt(best.val.split(':')[1]) - nowMins);
+        return diff < bestDiff ? s : best;
+      });
+      const nowOpt = document.createElement('option');
+      nowOpt.value = closestSlot.val;
+      const h12 = nowH % 12 || 12, ap = nowH >= 12 ? 'PM' : 'AM';
+      nowOpt.textContent = `⚡ Right now (~${h12}:${String(nowM).padStart(2,'0')} ${ap} GDL)`;
+      sel.appendChild(nowOpt);
+    }
+
+    // Upcoming slots
     const upcoming = slots.filter(s => !s.past);
     const past = slots.filter(s => s.past);
+
     if (upcoming.length) {
-      const og = document.createElement('optgroup'); og.label = isToday ? '⏰ Upcoming (GDL)' : '⏰ Available times (GDL)';
+      const og = document.createElement('optgroup');
+      og.label = isToday ? '⏰ Upcoming — Guadalajara Time' : '⏰ All times — Guadalajara Time';
       upcoming.forEach(s => { const o = document.createElement('option'); o.value = s.val; o.textContent = s.label; og.appendChild(o); });
       sel.appendChild(og);
     }
     if (past.length) {
-      const og = document.createElement('optgroup'); og.label = '📋 Earlier today';
+      const og = document.createElement('optgroup');
+      og.label = '📋 Earlier today';
       past.forEach(s => { const o = document.createElement('option'); o.value = s.val; o.textContent = s.label; og.appendChild(o); });
       sel.appendChild(og);
     }
-    // Auto-select next upcoming slot
-    const next = upcoming.find(s => !s.past);
-    if (next) sel.value = next.val;
+
+    // Auto-select "Right now" for today, first slot for future dates
+    if (!isToday && upcoming.length) sel.value = upcoming[0].val;
+
   } catch(e) {
     sel.innerHTML = '<option value="">⚠️ Could not load times — check connection</option>';
   }
