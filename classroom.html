@@ -582,8 +582,13 @@ function connectSocket() {
     socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID });
   });
 
-  socket.on('room-joined', async ({ name }) => {
+  socket.on('room-joined', async ({ name, teacherLoginAt }) => {
     _joinedName = name; _joinedSocket = socket;
+    // Store original login time from server — used for owed timer on reconnects
+    // This prevents the timer from thinking teacher is late based on reconnect time
+    if (IS_TEACHER && teacherLoginAt && !window._originalLoginAt) {
+      window._originalLoginAt = teacherLoginAt;
+    }
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
@@ -1305,11 +1310,25 @@ function startTimer(assignment) {
   // If startTimer is called again (e.g. student joins, timer-info re-fires) we skip this
   if (IS_TEACHER && !window._owedTimerChecked) {
     window._owedTimerChecked = true;
-    const nowCheck = nowGDL();
-    const nowMinsCheck = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60;
     const schedStart = t2m(assignment.time);
-    const lateBy = nowMinsCheck - schedStart;
-    if (lateBy > 2) { // only if genuinely past start time by more than 2 min grace period
+
+    // If server sent back the original teacherLoginAt, use that to calculate lateness
+    // This way reconnects don't recalculate based on reconnect time
+    let lateBy;
+    if (window._originalLoginAt) {
+      const loginDate = new Date(window._originalLoginAt);
+      const gdlStr = loginDate.toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      const parts = gdlStr.split(':').map(Number);
+      const loginMins = (parts[0] % 24) * 60 + parts[1] + parts[2] / 60;
+      lateBy = loginMins - schedStart;
+      if (lateBy > 720) lateBy -= 1440;
+      if (lateBy < -720) lateBy += 1440;
+    } else {
+      const nowCheck = nowGDL();
+      lateBy = nowCheck.getHours()*60 + nowCheck.getMinutes() + nowCheck.getSeconds()/60 - schedStart;
+    }
+
+    if (lateBy > 2) {
       owedSecs = Math.round(lateBy * 60);
       showLateWarning('LATE', owedSecs);
       startOwedTimer(owedSecs, duration);
