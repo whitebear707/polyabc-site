@@ -13,29 +13,16 @@
     #topbar {
       background: #16213e;
       border-bottom: 2px solid #0f3460;
-      padding: 10px 20px;
+      padding: 10px 24px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 16px;
     }
-    #topbar img { height: 40px; }
+    #topbar img { height: 40px; cursor: pointer; flex-shrink: 0; }
     #topbar .teacher-name { font-size: 1rem; font-weight: 900; color: #a0c4ff; }
+    #pay-period-header { margin-left: auto; }
 
-    .back-btn {
-      background: #0f3460;
-      color: white;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 10px;
-      font-family: Nunito, sans-serif;
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .back-btn:hover { background: #1a73e8; }
-
-    #main { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+    #main { padding: 24px; }
 
     .section-title {
       font-size: 1.1rem;
@@ -238,10 +225,9 @@
 <body>
 
 <div id="topbar">
-  <img src="LOGO.png" alt="PolyABC"/>
+  <a href="greeting.html"><img src="LOGO.png" alt="PolyABC"/></a>
   <span class="teacher-name" id="teacher-name-label">Loading...</span>
   <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
-  <button class="back-btn" onclick="goBack()">← Back</button>
 </div>
 
 <div id="main">
