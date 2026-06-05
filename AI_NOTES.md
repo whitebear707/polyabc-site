@@ -574,6 +574,20 @@ The owed timer was incorrectly triggering for on-time teachers.
 ## 16. Session Changelog (most recent first)
 
 ### Session 5 — Claude
+- **PAY PERIODS** — cutoff dates are 14th and 29th of every month
+  - Period 1: 30th of prev month → 14th (paid on 15th)
+  - Period 2: 15th → 29th (paid on 30th)
+  - Example: June 4 → showing May 30 – Jun 14
+- **TEACHER SCHEDULE — PAY PERIOD BANNER**
+  - Top of schedule page shows current period + total earned so far
+  - Calls `/payroll?from=&to=` — teachers allowed on this endpoint
+  - Removed redundant GDL time notice (was showing twice)
+- **BUGS QUEUED FOR NEXT SESSION**
+  - 🔔 Teacher gets no notification when student is waiting
+  - 📹 Teacher disconnect slot should show school logo placeholder
+  - 👥 Student clone slots build up on each reconnect
+  - 🏆 Reward text needs black outline on yellow text
+  - 🔒 Security hardening (last)
 - **STUDENT GREETING PAGE (new file: student-greeting.html)**
   - Students now redirect to student-greeting.html after login (index.html stores studentRoom)
   - Same speedometer speed test as teacher — Enter Class disabled until test is run
