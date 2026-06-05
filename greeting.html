@@ -117,11 +117,17 @@
       const todayA = assignments.filter(a => a.date === today);
       if (!todayA.length) return null;
       const nowMins = nowGDLMins();
+      // Match classroom's 20-minute early window — same logic as checkTeacherRoomLock
       let best = null, bestDiff = Infinity;
       for (const a of todayA) {
         const [hh, mm] = a.time.split(':').map(Number);
-        const diff = Math.abs(nowMins - (hh * 60 + mm));
-        if (diff < bestDiff && diff <= 90) { bestDiff = diff; best = a; }
+        const aMins = hh * 60 + mm;
+        const duration = a.classType?.includes('40') ? 40 : a.classType?.includes('50') ? 50 : a.classType === 'Trial' ? 15 : 30;
+        // Within window: 20 min before start to end of class
+        if (nowMins >= aMins - 20 && nowMins < aMins + duration) {
+          const diff = Math.abs(nowMins - aMins);
+          if (diff < bestDiff) { bestDiff = diff; best = a; }
+        }
       }
       return best?.sessionId || null;
     } catch(e) { return null; }
@@ -130,8 +136,24 @@
   async function init() {
     checkNewAssignments();
     _sessionId = await getActiveSessionId();
-    const cached = _sessionId && localStorage.getItem(`nettest_${_sessionId}`);
-    if (cached) { _netResult = JSON.parse(cached); unlockEnterBtn(_netResult); }
+
+    const speedBtn = document.getElementById('speed-btn');
+
+    if (!_sessionId) {
+      // No class within 20 min window — disable speed test too
+      speedBtn.disabled = true;
+      speedBtn.style.opacity = '0.4';
+      speedBtn.style.cursor = 'not-allowed';
+      speedBtn.textContent = '📶 No class scheduled soon';
+      return;
+    }
+
+    // Class is coming up — check if test already done
+    const cached = localStorage.getItem(`nettest_${_sessionId}`);
+    if (cached) {
+      _netResult = JSON.parse(cached);
+      unlockEnterBtn(_netResult);
+    }
   }
   init();
 
