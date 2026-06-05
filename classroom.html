@@ -2224,6 +2224,9 @@ function initWhiteboard(socket) {
 
 function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
+  // Reset to 100% first so we read the true available space — otherwise it can't grow back
+  wrap.style.width = '100%';
+  wrap.style.height = '100%';
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
   const scaleW = w / CANVAS_W;
