@@ -1056,8 +1056,11 @@ function renderDayDetail(dateStr) {
       const hoursHtml = t.hours ? `${fmt12(t.hours.start)} – ${fmt12(t.hours.end)}${t.hours.tz ? ' <span style="font-size:0.75rem;color:#aaa;">('+t.hours.tz.split('/').pop().replace(/_/g,' ')+')</span>' : ''}` : 'Hours not set';
       const assignHtml = assignments.map(a => {
         const g = allGroups.find(g => g._id === a.groupId);
+        const debtBadge = g?.debtMins > 0
+          ? `<span style="background:#b71c1c;color:white;font-size:0.68rem;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px;">-${g.debtMins} min</span>`
+          : '';
         return `<div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span>${fmt12(a.time)} · ${g ? g.name : a.level+' '+a.classType}</span>
+          <span>${fmt12(a.time)} · ${g ? g.name : a.level+' '+a.classType}${debtBadge}</span>
           <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
         </div>`;
       }).join('');
@@ -2035,12 +2038,12 @@ async function loadPayroll() {
             <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
             <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
           </tr></thead>
-          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.isIncomplete ? 'background:#fff8f8;' : ''}">
+          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.isIncomplete ? 'background:#fff8f8;' : c.debtPayoffMins > 0 ? 'background:#fffde7;' : ''}">
             <td style="padding:6px 10px;">${c.date}</td>
             <td style="padding:6px 10px;font-weight:700;">${c.groupName}${c.sessionId ? ` <span style="font-size:0.7rem;color:#aaa;font-family:monospace;">#${c.sessionId.slice(-6)}</span>` : ''}</td>
             <td style="padding:6px 10px;">${c.classType}</td>
             <td style="padding:6px 10px;">${c.studentsShowed}/${c.expectedStudents}</td>
-            <td style="padding:6px 10px;color:${c.isIncomplete ? '#b71c1c' : '#888'};">${c.payNote}</td>
+            <td style="padding:6px 10px;color:${c.isIncomplete ? '#b71c1c' : '#888'};">${c.payNote}${c.debtPayoffMins > 0 ? ` <span style="background:#ffd700;color:#1a1a2e;font-size:0.7rem;padding:1px 6px;border-radius:8px;font-weight:900;">🏅 +${c.debtPayoffMins} min${c.debtCleared ? ' CLEARED' : ''}</span>` : ''}</td>
             <td style="padding:6px 10px;">${buildPayrollTags(c)}</td>
             <td style="padding:6px 10px;text-align:right;font-weight:900;color:${c.isIncomplete ? '#b71c1c' : '#2e7d32'};">${c.isIncomplete ? '⚠️ ' : ''}$${c.classPay.toFixed(2)}</td>
           </tr>`).join('')}</tbody>
@@ -2263,6 +2266,7 @@ function openAttDetail(idx) {
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${r.disconnects?.length ? '10px' : '0'};">
           ${buildStatusTags(r)}
+          ${r.debtPayoffMins > 0 ? `<span style="background:#ffd700;color:#1a1a2e;padding:3px 10px;border-radius:10px;font-size:0.78rem;font-weight:900;">🏅 ${r.debtPayoffMins} min debt paid${r.debtCleared ? ' — DEBT CLEARED ✅' : ''}</span>` : ''}
         </div>
         ${r.disconnects?.length ? `
         <div style="margin-top:10px;">
