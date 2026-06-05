@@ -582,6 +582,12 @@ The owed timer was incorrectly triggering for on-time teachers.
   - Top of schedule page shows current period + total earned so far
   - Calls `/payroll?from=&to=` — teachers allowed on this endpoint
   - Removed redundant GDL time notice (was showing twice)
+- **5 BUG FIXES**
+  - **Teacher waiting notification**: greeting.html polls `/waiting-count/:room` every 8s, shows red pulsing badge when students are waiting
+  - **Teacher disconnect logo placeholder**: when teacher disconnects, their video slot shows PolyABC logo + "Reconnecting..." — restored on reconnect
+  - **Student clone slots fixed**: `showStudentSlot()` now checks for existing slot by name before creating new one, removes old socketId slot on reconnect
+  - **Reward text black outline**: added 4-directional text-shadow black strokes to `#star-name` — yellow text now readable on white background
+  - **Group debt badges on master calendar**: day cells show `-5m` red badges when assigned groups have debt
 - **BUGS QUEUED FOR NEXT SESSION**
   - 🔔 Teacher gets no notification when student is waiting
   - 📹 Teacher disconnect slot should show school logo placeholder
