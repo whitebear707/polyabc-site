@@ -272,7 +272,8 @@
             localStorage.removeItem('adminToken');
             localStorage.setItem('studentToken', data.token);
             localStorage.setItem('studentName', data.name);
-            window.location.href = `classroom.html?room=${room}`;
+            localStorage.setItem('studentRoom', room);
+            window.location.href = `student-greeting.html`;
           }
         } else {
           document.getElementById('join-error').textContent = 'Wrong room or password. Please try again.';
