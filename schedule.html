@@ -244,9 +244,17 @@
 </div>
 
 <div id="main">
-  <!-- GDL TIME NOTICE -->
-  <div style="background:#0f3460;border:1px solid #1a73e8;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#a0c4ff;">
-    🕐 All times are in <strong style="color:white;">Guadalajara Time (Central Mexico)</strong> &nbsp;|&nbsp; <span id="gdl-current-time"></span>
+  <!-- PAY PERIOD HEADER -->
+  <div id="pay-period-banner" style="background:#0f3460;border:1px solid #ffd700;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:0.75rem;color:#a0c4ff;font-weight:700;">💰 CURRENT PAY PERIOD</div>
+      <div style="font-size:0.95rem;font-weight:900;color:white;" id="pay-period-dates">Loading...</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:0.75rem;color:#a0c4ff;font-weight:700;">EARNED SO FAR</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#ffd700;" id="pay-period-total">$—</div>
+      <div style="font-size:0.68rem;color:#667;">pesos · based on completed classes</div>
+    </div>
   </div>
 
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
@@ -303,6 +311,55 @@
   let dates     = {}; // { 'YYYY-MM-DD': 'available' | 'unavailable' }
   let assignments = []; // from server
 
+  // Calculate current pay period based on GDL date
+  // Pay periods: 30th/1st→14th (paid 15th), 15th→29th (paid 30th)
+  function getPayPeriod() {
+    const now = new Date();
+    const gdlStr = now.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const [y, m, d] = gdlStr.split('-').map(Number);
+    const day = d;
+
+    let fromDate, toDate;
+    if (day <= 14) {
+      // Period: 30th of previous month → 14th of this month
+      const prevMonth = m === 1 ? 12 : m - 1;
+      const prevYear  = m === 1 ? y - 1 : y;
+      fromDate = `${prevYear}-${String(prevMonth).padStart(2,'0')}-30`;
+      toDate   = `${y}-${String(m).padStart(2,'0')}-14`;
+    } else {
+      // Period: 15th → 29th of this month
+      fromDate = `${y}-${String(m).padStart(2,'0')}-15`;
+      toDate   = `${y}-${String(m).padStart(2,'0')}-29`;
+    }
+    return { fromDate, toDate };
+  }
+
+  function fmtPayDate(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${MONTHS_SHORT[m-1]} ${d}`;
+  }
+
+  async function loadPayPeriod(room) {
+    const { fromDate, toDate } = getPayPeriod();
+    document.getElementById('pay-period-dates').textContent = `${fmtPayDate(fromDate)} – ${fmtPayDate(toDate)}`;
+
+    try {
+      // Fetch payroll for this teacher filtered to current pay period
+      const res = await fetch(`${SERVER_URL}/payroll?from=${fromDate}&to=${toDate}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      // Find this teacher's total
+      const myRoom = localStorage.getItem('teacherRoom');
+      const myEntry = (data || []).find(t => t.room === myRoom);
+      const total = myEntry ? myEntry.totalPay : 0;
+      document.getElementById('pay-period-total').textContent = `$${total.toFixed(2)}`;
+    } catch(e) {
+      document.getElementById('pay-period-total').textContent = '$—';
+    }
+  }
+
   async function init() {
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
@@ -312,10 +369,6 @@
     const aData = await aRes.json();
     dayHours = aData.dayHours || {};
     dates    = aData.dates    || {};
-
-    // Update GDL current time display
-    updateGDLDisplay();
-    setInterval(updateGDLDisplay, 30000);
 
     // Mark schedule as viewed — clear notification badge
     localStorage.setItem(`lastScheduleView_${room}`, new Date().toISOString());
@@ -330,15 +383,12 @@
     } catch(e) {}
     window._attendanceRecords = attendanceRecords;
 
+    // Load pay period banner
+    loadPayPeriod(room);
+
     renderDayHours();
     renderCalendar();
     renderUpcomingClasses();
-  }
-
-  function updateGDLDisplay() {
-    const now = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
-    const el = document.getElementById('gdl-current-time');
-    if (el) el.textContent = `Current time: ${now}`;
   }
 
   function renderUpcomingClasses() {
