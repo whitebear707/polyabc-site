@@ -2259,6 +2259,12 @@ function openAttDetail(idx) {
       </div>
       <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:16px;">
         <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">TEACHER</div>
+        ${r.networkTest ? `<div style="font-size:0.78rem;padding:6px 10px;border-radius:8px;margin-bottom:8px;font-weight:700;
+          background:${r.networkTest.quality==='good'?'rgba(0,230,118,0.08)':r.networkTest.quality==='fair'?'rgba(255,215,64,0.08)':'rgba(255,82,82,0.08)'};
+          color:${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};
+          border:1px solid ${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};">
+          ${r.networkTest.quality==='good'?'🟢':'🟡'} Network at join: ${r.networkTest.avgPing}ms ping${r.networkTest.packetLoss>0?', '+r.networkTest.packetLoss+'% packet loss':''} — ${r.networkTest.quality.toUpperCase()}
+        </div>` : ''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px;">
           <div><div style="font-size:0.75rem;color:#888;">Greeting Window</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
           <div><div style="font-size:0.75rem;color:#888;">Opened Class</div><div style="font-weight:900;color:#2e7d32;">${fmtT(r.teacherOpenedAt)}</div></div>
