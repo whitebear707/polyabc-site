@@ -322,6 +322,13 @@
 
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
+    // Fetch attendance records to show class completion status
+    let attendanceRecords = [];
+    try {
+      const attRes = await fetch(`${SERVER_URL}/attendance?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      attendanceRecords = await attRes.json();
+    } catch(e) {}
+    window._attendanceRecords = attendanceRecords;
 
     renderDayHours();
     renderCalendar();
@@ -552,11 +559,22 @@
       const dot = assigned.length > 0
         ? `<span class="day-dot">${hasNew ? '⭐' : '📋'} ${assigned.length}</span>`
         : '';
+
+      // Show class status on past days
+      let statusDot = '';
+      if (isPast && assigned.length > 0) {
+        const dayRecords = (window._attendanceRecords || []).filter(r => r.date === dateStr);
+        const allCompleted = assigned.every(a => dayRecords.find(r => r.sessionId === a.sessionId && r.endType === 'completed'));
+        const anyIncomplete = assigned.some(a => dayRecords.find(r => r.sessionId === a.sessionId && (r.endType === 'ended_early' || r.endType === 'invalid_termination')));
+        if (allCompleted) statusDot = `<span style="font-size:0.6rem;display:block;color:#00c853;font-weight:900;">✅</span>`;
+        else if (anyIncomplete) statusDot = `<span style="font-size:0.6rem;display:block;color:#e53935;font-weight:900;">⚠️</span>`;
+      }
+
       const click = assigned.length > 0
         ? `onclick="showAssignments('${dateStr}')"`
         : isPast ? '' : `onclick="toggleDay('${dateStr}')"`;
 
-      html += `<div class="${cls}" ${click}><span class="day-num">${d}</span>${dot}</div>`;
+      html += `<div class="${cls}" ${click}><span class="day-num">${d}</span>${dot}${statusDot}</div>`;
     }
 
     // Next month padding
@@ -581,12 +599,23 @@
     const title = document.getElementById('assignment-date-title');
     const dayAssignments = assignments.filter(a => a.date === dateStr);
     title.textContent = `📋 Classes on ${dateStr}`;
-    list.innerHTML = dayAssignments.map(a => `
+    list.innerHTML = dayAssignments.map(a => {
+      // Match attendance record by sessionId
+      const att = (window._attendanceRecords || []).find(r => r.sessionId === a.sessionId);
+      let statusBadge = '';
+      if (att?.endType === 'completed') {
+        statusBadge = `<span style="background:#00c853;color:white;font-size:0.7rem;padding:2px 8px;border-radius:8px;font-weight:900;margin-left:6px;">✅ COMPLETED</span>`;
+      } else if (att?.endType === 'ended_early' || att?.endType === 'invalid_termination') {
+        statusBadge = `<span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 8px;border-radius:8px;font-weight:900;margin-left:6px;">⚠️ INCOMPLETE</span>`;
+      } else if (att?.teacherLoginAt) {
+        statusBadge = `<span style="background:#1a73e8;color:white;font-size:0.7rem;padding:2px 8px;border-radius:8px;font-weight:900;margin-left:6px;">🔵 IN PROGRESS</span>`;
+      }
+      return `
       <div class="assignment-row">
-        <div class="a-time">🕐 ${fmt12(a.time)}</div>
-        <div class="a-detail">👥 ${a.students} student${a.students !== 1 ? 's' : ''} &nbsp;|&nbsp; 🎓 Level ${a.level} &nbsp;|&nbsp; ⏱ ${a.classType}</div>
+        <div class="a-time">🕐 ${fmt12(a.time)} ${statusBadge}</div>
+        <div class="a-detail">👥 ${a.students} student${a.students !== 1 ? 's' : ''} &nbsp;|&nbsp; 🎓 Level ${a.level} &nbsp;|&nbsp; ⏱ ${a.classType}${a.groupName ? ' &nbsp;|&nbsp; 👤 '+a.groupName : ''}</div>
       </div>
-    `).join('') || '<div style="color:#888;text-align:center;">No classes assigned.</div>';
+    `}).join('') || '<div style="color:#888;text-align:center;">No classes assigned.</div>';
     modal.style.display = 'flex';
   }
 
