@@ -155,6 +155,32 @@
       unlockEnterBtn(_netResult);
     }
   }
+  // Poll for waiting students every 8 seconds — notify teacher if students are waiting
+  async function pollWaitingStudents() {
+    try {
+      const res = await fetch(`${SERVER_URL}/waiting-count/${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      const { count } = await res.json();
+      const btn = document.getElementById('enter-btn');
+      const speedBtn = document.getElementById('speed-btn');
+      let badge = document.getElementById('waiting-notif');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = 'waiting-notif';
+          badge.style.cssText = 'background:#e53935;color:white;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:900;text-align:center;margin-top:8px;animation:pulse-red 1s infinite;';
+          document.querySelector('.card').appendChild(badge);
+        }
+        badge.textContent = `🔔 ${count} student${count > 1 ? 's' : ''} waiting for class to open!`;
+      } else if (badge) {
+        badge.remove();
+      }
+    } catch(e) {}
+  }
+
+  // Start polling when page loads
+  pollWaitingStudents();
+  setInterval(pollWaitingStudents, 8000);
+
   init();
 
   function unlockEnterBtn(result) {
