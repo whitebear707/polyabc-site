@@ -2224,7 +2224,6 @@ function initWhiteboard(socket) {
 
 function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
-  // Reset to 100% first so we read the true available space — otherwise it can't grow back
   wrap.style.width = '100%';
   wrap.style.height = '100%';
   const w = wrap.clientWidth;
@@ -2232,16 +2231,14 @@ function scaleCanvas() {
   const scaleW = w / CANVAS_W;
   const scaleH = h / CANVAS_H;
   const scale = Math.min(scaleW, scaleH);
-  const scaledW = CANVAS_W * scale;
-  const scaledH = CANVAS_H * scale;
   const transform = `scale(${scale})`;
   const container = document.querySelector('.canvas-container');
   if (container) {
     container.style.transform = transform;
     container.style.transformOrigin = 'top left';
     container.style.position = 'absolute';
-    container.style.top = Math.max(0, (h - scaledH) / 2) + 'px';
-    container.style.left = Math.max(0, (w - scaledW) / 2) + 'px';
+    container.style.top = '0';
+    container.style.left = '0';
   }
   const sc = document.getElementById('screenshare-vid') || document.getElementById('screenshare-img');
   if (sc) {
