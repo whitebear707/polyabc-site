@@ -102,6 +102,9 @@
 
 <div class="room-badge" id="room-badge"></div>
 
+<!-- Network test result — shown before entering class -->
+<div id="network-result" style="width:100%;max-width:380px;margin-top:10px;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:700;text-align:center;display:none;"></div>
+
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
 
@@ -144,6 +147,9 @@
   }
   checkNewAssignments();
 
+  // Run network test in background on page load so result is ready before teacher enters class
+  getActiveSessionId().then(sessionId => runNetworkTest(sessionId));
+
   function nowGDLMins() {
     const now = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
     const [h, m] = now.split(':').map(Number);
@@ -173,12 +179,79 @@
     } catch(e) { return null; }
   }
 
+  async function runNetworkTest(sessionId) {
+    // Skip if already tested for this sessionId
+    const cacheKey = `nettest_${sessionId}`;
+    if (sessionId && localStorage.getItem(cacheKey)) return JSON.parse(localStorage.getItem(cacheKey));
+
+    const resultEl = document.getElementById('network-result');
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#0f3460';
+    resultEl.style.color = '#a0c4ff';
+    resultEl.textContent = '🔍 Checking your connection...';
+
+    const pings = [];
+    let failed = 0;
+    const attempts = 5;
+
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const start = performance.now();
+        await fetch(`${SERVER_URL}/server-time?_=${Date.now()}`, { cache: 'no-store' });
+        pings.push(Math.round(performance.now() - start));
+      } catch(e) { failed++; }
+    }
+
+    const packetLoss = Math.round((failed / attempts) * 100);
+    const avgPing = pings.length ? Math.round(pings.reduce((a,b) => a+b, 0) / pings.length) : 9999;
+
+    let quality, color, bg, message;
+    if (avgPing < 150 && packetLoss === 0) {
+      quality = 'good'; color = '#00e676'; bg = 'rgba(0,230,118,0.1)';
+      message = `🟢 Great connection — ${avgPing}ms ping`;
+    } else if (avgPing < 400 && packetLoss <= 20) {
+      quality = 'fair'; color = '#ffd740'; bg = 'rgba(255,215,64,0.1)';
+      message = `🟡 Fair connection — ${avgPing}ms ping${packetLoss > 0 ? `, ${packetLoss}% packet loss` : ''}. Class may have minor issues.`;
+    } else {
+      quality = 'poor'; color = '#ff5252'; bg = 'rgba(255,82,82,0.1)';
+      message = `🔴 Unstable connection — ${avgPing}ms ping${packetLoss > 0 ? `, ${packetLoss}% packet loss` : ''}. If you experience issues during class, please check your internet connection.`;
+    }
+
+    resultEl.style.background = bg;
+    resultEl.style.color = color;
+    resultEl.style.border = `1px solid ${color}`;
+    resultEl.textContent = message;
+
+    const result = { avgPing, packetLoss, quality, testedAt: new Date().toISOString() };
+
+    // Cache so reconnects skip the test
+    if (sessionId) localStorage.setItem(cacheKey, JSON.stringify(result));
+
+    return result;
+  }
+
+  async function stampNetworkTest(sessionId, result) {
+    if (!sessionId || !result) return;
+    try {
+      await fetch(`${SERVER_URL}/attendance/network-test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sessionId, networkTest: result })
+      });
+    } catch(e) {}
+  }
+
   async function enterClass() {
     const sessionId = await getActiveSessionId();
+    // Run network test (skipped automatically if already done for this session)
+    const netResult = await runNetworkTest(sessionId);
+    // Stamp on attendance record
+    if (sessionId) await stampNetworkTest(sessionId, netResult);
     const url = sessionId
       ? `classroom.html?room=${room}&sessionId=${sessionId}`
       : `classroom.html?room=${room}`;
-    window.location.href = url;
+    // Short delay so user sees the result before entering
+    setTimeout(() => { window.location.href = url; }, netResult?.quality === 'good' ? 800 : 2000);
   }
 
   function goSchedule() {
