@@ -992,6 +992,16 @@ function renderMasterCalendar() {
 
     const countHtml = teachers.length > 0
       ? `<div class="cal-day-count">✅ ${teachers.length} teacher${teachers.length>1?'s':''}</div>` : '';
+
+    // Show debt badges on calendar day
+    const debtGroups = assignments.reduce((acc, a) => {
+      const g = allGroups.find(g => g._id === a.groupId);
+      if (g?.debtMins > 0) acc.push(`-${g.debtMins}m`);
+      return acc;
+    }, []);
+    const debtHtml = debtGroups.length > 0
+      ? `<div style="font-size:0.6rem;color:#b71c1c;font-weight:900;">${debtGroups.join(' ')}</div>` : '';
+
     const assignHtml = assignments.length > 0
       ? `<div class="cal-day-assigned">📋 ${assignments.length} class${assignments.length>1?'es':''}</div>` : '';
 
@@ -1001,7 +1011,7 @@ function renderMasterCalendar() {
 
     html += `<div class="${cls}" onclick="selectDay('${dateStr}')">
       <div class="cal-day-num">${d}</div>
-      ${countHtml}${assignHtml}${trialHtml}
+      ${countHtml}${assignHtml}${debtHtml}${trialHtml}
     </div>`;
   }
 
