@@ -574,7 +574,21 @@ The owed timer was incorrectly triggering for on-time teachers.
 ## 16. Session Changelog (most recent first)
 
 ### Session 5 — Claude
-- **SCHEDULE INCOMPLETE/COMPLETED STATUS**
+- **STUDENT GREETING PAGE (new file: student-greeting.html)**
+  - Students now redirect to student-greeting.html after login (index.html stores studentRoom)
+  - Same speedometer speed test as teacher — Enter Class disabled until test is run
+  - Skip on reconnect — cached by sessionId in localStorage, instant re-entry
+  - Student network result stamped on their entry in attendance: `students.$.networkTest`
+  - `POST /attendance/network-test/student` endpoint added
+  - **My Schedule** — shows only upcoming classes for this student's room
+  - Times shown in student's local browser timezone with GDL time shown alongside
+  - Format: `5:00 PM your time · 6:00 PM GDL` — this is the ONLY place browser timezone is used
+  - Upcoming classes show `⚡ In 30 min` or `🔴 Happening now!` hints
+- **ATTENDANCE NETWORK COVERAGE**
+  - Teacher network test already shown in attendance detail
+  - Student rows now show NETWORK column with 🟢/🟡/🔴 badge + ping
+  - Full ping/download/upload/quality/timestamp stored per student
+  - If Jimmy had 🔴 Poor connection at class start — it's permanently on record
   - schedule.html fetches attendance records on load via `GET /attendance?room=X`
   - Each class in the day modal shows `✅ COMPLETED`, `⚠️ INCOMPLETE`, or `🔵 IN PROGRESS` badge
   - Calendar day cells show `✅` or `⚠️` indicator on past days with classes
