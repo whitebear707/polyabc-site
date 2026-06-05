@@ -25,7 +25,7 @@
     .btn-exit:hover { border-color: #e53935; color: #e53935; }
 
     /* Network test modal */
-    #net-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+    #net-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; flex-shrink: 0; }
     #net-box { background: #16213e; border-radius: 24px; padding: 28px 24px; width: 90%; max-width: 340px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     #net-title { font-size: 1rem; font-weight: 900; color: #a0c4ff; margin-bottom: 20px; }
     #net-verdict { display: none; font-size: 2.5rem; margin-bottom: 6px; }
@@ -40,7 +40,7 @@
     .net-close-btn { width: 100%; padding: 10px; border-radius: 12px; border: none; background: #0f3460; color: #a0c4ff; font-family: Nunito; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
 
     /* Schedule modal */
-    #sched-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+    #sched-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
     #sched-box { background: #16213e; border-radius: 24px; padding: 24px; width: 100%; max-width: 380px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
     .sched-item { background: #0f3460; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
     .sched-day { font-size: 0.8rem; color: #a0c4ff; font-weight: 700; margin-bottom: 4px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
 
-<img src="LOGO.png" class="logo" alt="PolyABC"/>
+<a href="index.html"><img src="LOGO.png" class="logo" alt="PolyABC" style="cursor:pointer;"/></a>
 <div class="welcome-title">Welcome, <span id="student-name">Student</span>! 👋</div>
 
 <div class="card">
@@ -180,19 +180,19 @@
     document.getElementById('m-loss').textContent   = packetLoss;
 
     let quality, emoji, label, color;
-    if (avgPing < 100 && jitter < 30 && packetLoss === 0) {
+    if (avgPing < 80 && jitter < 20 && packetLoss === 0) {
       quality = 'good'; emoji = '🟢'; label = 'Great Connection'; color = '#00c853';
-    } else if (avgPing < 250 && jitter < 80 && packetLoss <= 5) {
-      quality = 'fair'; emoji = '🟡'; label = 'Fair Connection'; color = '#ffd740';
+    } else if (avgPing < 200 && jitter < 50 && packetLoss <= 3) {
+      quality = 'fair'; emoji = '🟡'; label = 'Fair Connection — You may experience minor audio or video issues during class.'; color = '#ffd740';
     } else {
-      quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — If you experience issues during class, please check your internet.'; color = '#e53935';
+      quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — You may experience significant issues during class. Please check your internet.'; color = '#e53935';
     }
 
     document.getElementById('net-verdict').textContent = emoji;
     document.getElementById('net-verdict').style.display = 'block';
     const lbl = document.getElementById('net-verdict-label');
     lbl.textContent = label; lbl.style.color = color;
-    lbl.style.fontSize = quality === 'poor' ? '0.82rem' : '1.1rem';
+    lbl.style.fontSize = quality === 'good' ? '1.1rem' : '0.88rem';
     lbl.style.display = 'block';
     document.getElementById('net-title').textContent = '✅ Test complete';
     document.getElementById('net-enter-btn').style.display = 'block';
