@@ -208,7 +208,7 @@
     for (let i = 0; i < total; i++) {
       try {
         const s = performance.now();
-        await fetch(`${SERVER_URL}/server-time?_=${Date.now()}_${i}`, { cache: 'no-store' });
+        await fetch(`https://1.1.1.1/cdn-cgi/trace?_=${Date.now()}_${i}`, { cache: 'no-store', mode: 'no-cors' });
         times.push(performance.now() - s);
       } catch(e) { failed++; }
       if (times.length && i % 10 === 9) {
@@ -226,9 +226,9 @@
     document.getElementById('m-loss').textContent   = packetLoss;
 
     let quality, emoji, label, color;
-    if (avgPing < 80 && jitter < 20 && packetLoss === 0) {
+    if (avgPing < 50 && jitter < 20 && packetLoss === 0) {
       quality = 'good'; emoji = '🟢'; label = 'Great Connection'; color = '#00c853';
-    } else if (avgPing < 200 && jitter < 50 && packetLoss <= 3) {
+    } else if (avgPing < 120 && jitter < 50 && packetLoss <= 3) {
       quality = 'fair'; emoji = '🟡'; label = 'Fair Connection — You may experience minor audio or video issues during class.'; color = '#ffd740';
     } else {
       quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — You may experience significant issues during class. Please check your internet.'; color = '#e53935';
