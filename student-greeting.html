@@ -212,7 +212,7 @@
     let downloadMbps = 0;
     try {
       const s = performance.now();
-      const res = await fetch(`${SERVER_URL}/speed-test/download?size=200000&_=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(`${SERVER_URL}/speed-test/download?size=5000000&_=${Date.now()}`, { cache: 'no-store' });
       const blob = await res.blob();
       downloadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
     } catch(e) {}
@@ -223,7 +223,7 @@
     document.getElementById('speed-title').textContent = '⬆️ Testing upload...';
     let uploadMbps = 0;
     try {
-      const blob = new Blob([new Uint8Array(100000)]);
+      const blob = new Blob([new Uint8Array(2000000)]);
       const s = performance.now();
       await fetch(`${SERVER_URL}/speed-test/upload`, { method: 'POST', body: blob, headers: { 'Content-Type': 'application/octet-stream' }, cache: 'no-store' });
       uploadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
