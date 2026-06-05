@@ -574,7 +574,23 @@ The owed timer was incorrectly triggering for on-time teachers.
 ## 16. Session Changelog (most recent first)
 
 ### Session 5 — Claude
-- **TEACHER DISCONNECT/RECONNECT STAMPING**
+- **SCHEDULE INCOMPLETE/COMPLETED STATUS**
+  - schedule.html fetches attendance records on load via `GET /attendance?room=X`
+  - Each class in the day modal shows `✅ COMPLETED`, `⚠️ INCOMPLETE`, or `🔵 IN PROGRESS` badge
+  - Calendar day cells show `✅` or `⚠️` indicator on past days with classes
+  - Matched by `sessionId` — bulletproof, works even if assignment is deleted
+- **NETWORK TEST ON GREETING PAGE**
+  - Runs automatically on page load (background), result ready before teacher clicks Enter
+  - Pings server 5 times, calculates avg ping + packet loss
+  - Shows 🟢 Great / 🟡 Fair / 🔴 Poor with specific numbers
+  - Poor/Fair shows: "If you experience issues during class, please check your internet connection"
+  - Result stamped on attendance record (`networkTest: { avgPing, packetLoss, quality, testedAt }`)
+  - Skipped on reconnect — cached in localStorage by sessionId, teacher gets back in instantly
+  - Attendance detail shows network quality at time of join
+  - `POST /attendance/network-test` endpoint added to server
+- **MOBILE ROOM LABEL FIX**
+  - Removed `display: none !important` override for `#room-label` on mobile
+  - Now shows inline with proper sizing — session ID `#b7d945` visible on mobile too
   - Every teacher disconnect pushes `{ disconnectedAt, reconnectedAt: null, gapMins: null }` to `disconnects[]` array on attendance record
   - When teacher reconnects, finds last open disconnect entry, stamps `reconnectedAt` + calculates `gapMins`
   - `totalDisconnectMins` recalculated on every reconnect and on `end-class`
