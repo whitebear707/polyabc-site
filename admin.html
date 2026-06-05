@@ -2218,15 +2218,20 @@ function openAttDetail(idx) {
       <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
       <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
       <td>—</td>
+      <td>—</td>
     </tr>`;
     const disconnects = actual.disconnects || [];
     const totalGap = disconnects.reduce((s, d) => s + (d.gapMins || 0), 0);
     const disconnectBadge = disconnects.length > 0
-      ? `<span style="font-size:0.7rem;background:#ffebee;color:#b71c1c;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:4px;">⚡ ${disconnects.length}x disconnected · ${totalGap} min</span>`
+      ? `<span style="font-size:0.7rem;background:#ffebee;color:#b71c1c;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:4px;">⚡ ${disconnects.length}x · ${totalGap} min</span>`
       : '';
+    const net = actual.networkTest;
+    const netBadge = net
+      ? `<span style="font-size:0.7rem;padding:1px 6px;border-radius:8px;font-weight:700;background:${net.quality==='good'?'rgba(0,200,83,0.1)':net.quality==='fair'?'rgba(255,215,64,0.1)':'rgba(229,57,53,0.1)'};color:${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};border:1px solid ${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};">${net.quality==='good'?'🟢':net.quality==='fair'?'🟡':'🔴'} ${net.avgPing}ms</span>`
+      : '<span style="color:#667;font-size:0.75rem;">—</span>';
     const disconnectDetail = disconnects.length > 0 ? `
       <tr style="background:#fff8f8;">
-        <td colspan="4" style="padding:4px 12px 8px;">
+        <td colspan="5" style="padding:4px 12px 8px;">
           <table style="width:100%;font-size:0.75rem;border-collapse:collapse;">
             <tr><th style="color:#888;text-align:left;padding:2px 6px;">#</th><th style="color:#888;text-align:left;padding:2px 6px;">Disconnected</th><th style="color:#888;text-align:left;padding:2px 6px;">Reconnected</th><th style="color:#888;text-align:right;padding:2px 6px;">Gap</th></tr>
             ${disconnects.map((d,i) => `<tr>
@@ -2243,6 +2248,7 @@ function openAttDetail(idx) {
       <td style="color:#2e7d32;font-weight:700;">${fmtT(actual.joinedAt)}</td>
       <td>${fmtT(actual.leftAt || r.classEndedAt)}</td>
       <td style="color:${totalGap > 0 ? '#b71c1c' : '#888'};font-weight:${totalGap > 0 ? '700' : '400'};">${totalGap > 0 ? totalGap + ' min' : '—'}</td>
+      <td>${netBadge}</td>
     </tr>${disconnectDetail}`;
   };
 
@@ -2301,6 +2307,7 @@ function openAttDetail(idx) {
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">JOINED</th>
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">LEFT</th>
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#b71c1c;font-weight:900;">DISCONNECT</th>
+          <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#1a73e8;font-weight:900;">NETWORK</th>
         </tr></thead>
         <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No students recorded</td></tr>'}</tbody>
       </table>
