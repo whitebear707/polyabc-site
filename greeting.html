@@ -8,88 +8,55 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Nunito', sans-serif;
-      background: #1a1a2e;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 20px 24px;
-    }
-
+    body { font-family: 'Nunito', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 24px; }
     .logo { height: 70px; margin-bottom: 8px; }
-
-    .welcome-title {
-      font-size: 1.3rem;
-      font-weight: 900;
-      color: white;
-      text-align: center;
-      margin-bottom: 4px;
-    }
-
-    .welcome-sub { display: none; }
-
-    .card {
-      background: #16213e;
-      border-radius: 20px;
-      padding: 20px;
-      width: 100%;
-      max-width: 380px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
-    }
-
-    .greeting-btn {
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-family: Nunito, sans-serif;
-      font-size: 1rem;
-      font-weight: 900;
-      cursor: pointer;
-      transition: transform 0.15s, background 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-    .greeting-btn:hover { transform: scale(1.02); }
-
-    .btn-enter    { background: #1a73e8; color: white; }
-    .btn-enter:hover { background: #1558b0; }
-
+    .welcome-title { font-size: 1.3rem; font-weight: 900; color: white; text-align: center; margin-bottom: 4px; }
+    .card { background: #16213e; border-radius: 20px; padding: 20px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+    .greeting-btn { padding: 14px; border-radius: 12px; border: none; font-family: Nunito, sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: transform 0.15s, background 0.2s, opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .greeting-btn:hover:not(:disabled) { transform: scale(1.02); }
+    .btn-enter { background: #1a73e8; color: white; }
+    .btn-enter:disabled { background: #334; color: #667; cursor: not-allowed; opacity: 0.5; }
+    .btn-enter:not(:disabled):hover { background: #1558b0; }
+    .btn-speed { background: #00897b; color: white; }
+    .btn-speed:hover { background: #00695c; }
     .btn-schedule { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; }
     .btn-schedule:hover { background: #1a3a6e; }
-
-    @keyframes pulse-red {
-    0%   { box-shadow: 0 0 0 0 rgba(229,57,53,0.7); }
-    70%  { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
-    100% { box-shadow: 0 0 0 0 rgba(229,57,53,0); }
-  }
     .btn-exit:hover { border-color: #e53935; color: #e53935; background: transparent; }
+    @keyframes pulse-red { 0%{box-shadow:0 0 0 0 rgba(229,57,53,0.7)}70%{box-shadow:0 0 0 8px rgba(229,57,53,0)}100%{box-shadow:0 0 0 0 rgba(229,57,53,0)} }
 
-    .room-badge {
-      text-align: center;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #556;
-      margin-top: 4px;
-    }
+    /* Speed test modal */
+    #speed-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; }
+    #speed-box { background:#16213e; border-radius:24px; padding:28px 24px; width:90%; max-width:360px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+    #speed-title { font-size:1.1rem; font-weight:900; color:white; margin-bottom:20px; }
+
+    /* Speedometer */
+    .speedometer { position:relative; width:220px; height:120px; margin:0 auto 20px; }
+    .speedometer svg { width:100%; height:100%; }
+
+    /* Metrics row */
+    .metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+    .metric { background:#0f3460; border-radius:12px; padding:10px 6px; }
+    .metric-val { font-size:1.3rem; font-weight:900; color:white; }
+    .metric-unit { font-size:0.65rem; color:#a0c4ff; font-weight:700; margin-top:2px; }
+    .metric-label { font-size:0.7rem; color:#667; margin-top:2px; }
+
+    /* Result banner */
+    #speed-result { display:none; border-radius:12px; padding:12px; font-size:0.9rem; font-weight:700; margin-bottom:16px; }
+    #speed-enter-btn { display:none; width:100%; padding:14px; border-radius:12px; border:none; background:#1a73e8; color:white; font-family:Nunito; font-size:1rem; font-weight:900; cursor:pointer; }
+    #speed-enter-btn:hover { background:#1558b0; }
   </style>
 </head>
 <body>
 
 <img src="LOGO.png" class="logo" alt="PolyABC"/>
 <div class="welcome-title">Welcome, Teacher <span id="teacher-name">Teacher</span>!</div>
-<div class="welcome-sub" id="room-sub">Room —</div>
 
 <div class="card">
-  <button class="greeting-btn btn-enter" onclick="enterClass()">
+  <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>
     🎓 Enter Class
+  </button>
+  <button class="greeting-btn btn-speed" id="speed-btn" onclick="openSpeedTest()">
+    📶 Run Speed Test
   </button>
   <button class="greeting-btn btn-schedule" onclick="goSchedule()" style="position:relative;">
     📅 My Schedule
@@ -100,36 +67,80 @@
   </button>
 </div>
 
-<div class="room-badge" id="room-badge"></div>
+<!-- Speed test modal -->
+<div id="speed-modal">
+  <div id="speed-box">
+    <div id="speed-title">🔍 Testing your connection...</div>
 
-<!-- Network test result — shown before entering class -->
-<div id="network-result" style="width:100%;max-width:380px;margin-top:10px;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:700;text-align:center;display:none;"></div>
+    <!-- Speedometer SVG -->
+    <div class="speedometer">
+      <svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background arc -->
+        <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#0f3460" stroke-width="16" stroke-linecap="round"/>
+        <!-- Color zones: green, yellow, red -->
+        <path d="M 20 110 A 90 90 0 0 1 87 27" fill="none" stroke="#00c853" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <path d="M 87 27 A 90 90 0 0 1 153 27" fill="none" stroke="#ffd740" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <path d="M 153 27 A 90 90 0 0 1 200 110" fill="none" stroke="#e53935" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <!-- Active arc -->
+        <path id="speed-arc" d="M 20 110 A 90 90 0 0 1 20 110" fill="none" stroke="#00c853" stroke-width="16" stroke-linecap="round" style="transition:all 0.5s ease;"/>
+        <!-- Needle -->
+        <line id="speed-needle" x1="110" y1="110" x2="110" y2="30" stroke="white" stroke-width="3" stroke-linecap="round" style="transform-origin:110px 110px;transform:rotate(-90deg);transition:transform 0.5s ease;"/>
+        <circle cx="110" cy="110" r="6" fill="white"/>
+        <!-- Labels -->
+        <text x="18" y="118" fill="#667" font-size="9" font-family="Nunito" font-weight="700">0</text>
+        <text x="100" y="18" fill="#667" font-size="9" font-family="Nunito" font-weight="700" text-anchor="middle">50</text>
+        <text x="196" y="118" fill="#667" font-size="9" font-family="Nunito" font-weight="700" text-anchor="end">100+</text>
+        <!-- Center value -->
+        <text id="speed-center-val" x="110" y="90" fill="white" font-size="22" font-family="Nunito" font-weight="900" text-anchor="middle">—</text>
+        <text id="speed-center-unit" x="110" y="104" fill="#a0c4ff" font-size="9" font-family="Nunito" font-weight="700" text-anchor="middle">Mbps</text>
+      </svg>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-val" id="m-ping">—</div>
+        <div class="metric-unit">ms</div>
+        <div class="metric-label">Ping</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="m-down">—</div>
+        <div class="metric-unit">Mbps</div>
+        <div class="metric-label">Download</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" id="m-up">—</div>
+        <div class="metric-unit">Mbps</div>
+        <div class="metric-label">Upload</div>
+      </div>
+    </div>
+
+    <div id="speed-result"></div>
+    <button id="speed-enter-btn" onclick="proceedToClass()">🎓 Enter Class</button>
+    <button onclick="closeSpeedModal()" style="margin-top:10px;width:100%;padding:10px;border-radius:12px;border:none;background:#0f3460;color:#a0c4ff;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">Close</button>
+  </div>
+</div>
 
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
 
-  // Request fullscreen on mobile
   if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
     document.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
     }, { once: true });
   }
 
-  // Check token
   const token = localStorage.getItem('teacherToken');
   const room  = localStorage.getItem('teacherRoom');
   const name  = localStorage.getItem('teacherName');
 
-  if (!token || !room) {
-    window.location.href = 'index.html';
-  }
+  if (!token || !room) window.location.href = 'index.html';
 
   document.getElementById('teacher-name').textContent = name || 'Teacher';
-  document.getElementById('room-sub').textContent = `Room ${room}`;
 
-  // Check for new assignments since last schedule view
+  let _sessionId = null;
+  let _netResult = null;
+
+  // Check for new assignments
   async function checkNewAssignments() {
     try {
       const lastViewed = localStorage.getItem(`lastScheduleView_${room}`) || '2000-01-01T00:00:00.000Z';
@@ -137,18 +148,10 @@
       const assignments = await res.json();
       const newCount = assignments.filter(a => a.createdAt && a.createdAt > lastViewed).length;
       const badge = document.getElementById('notif-badge');
-      if (newCount > 0) {
-        badge.textContent = newCount;
-        badge.style.display = 'flex';
-      } else {
-        badge.style.display = 'none';
-      }
+      badge.textContent = newCount;
+      badge.style.display = newCount > 0 ? 'flex' : 'none';
     } catch(e) {}
   }
-  checkNewAssignments();
-
-  // Run network test in background on page load so result is ready before teacher enters class
-  getActiveSessionId().then(sessionId => runNetworkTest(sessionId));
 
   function nowGDLMins() {
     const now = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -161,77 +164,164 @@
       const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
       const assignments = await res.json();
       if (!assignments.length) return null;
-
-      // Find the assignment closest to now (within 90 min window) — same day only
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
       const todayAssignments = assignments.filter(a => a.date === today);
       if (!todayAssignments.length) return null;
-
       const nowMins = nowGDLMins();
       let best = null, bestDiff = Infinity;
       for (const a of todayAssignments) {
         const [hh, mm] = a.time.split(':').map(Number);
-        const aMins = hh * 60 + mm;
-        const diff = Math.abs(nowMins - aMins);
+        const diff = Math.abs(nowMins - (hh * 60 + mm));
         if (diff < bestDiff && diff <= 90) { bestDiff = diff; best = a; }
       }
       return best?.sessionId || null;
     } catch(e) { return null; }
   }
 
-  async function runNetworkTest(sessionId) {
-    // Skip if already tested for this sessionId
-    const cacheKey = `nettest_${sessionId}`;
-    if (sessionId && localStorage.getItem(cacheKey)) return JSON.parse(localStorage.getItem(cacheKey));
+  // Check on load if test already done for this session
+  async function init() {
+    checkNewAssignments();
+    _sessionId = await getActiveSessionId();
+    const cacheKey = `nettest_${_sessionId}`;
+    if (_sessionId && localStorage.getItem(cacheKey)) {
+      // Already tested — unlock Enter Class immediately
+      _netResult = JSON.parse(localStorage.getItem(cacheKey));
+      unlockEnterBtn(_netResult);
+    }
+  }
+  init();
 
-    const resultEl = document.getElementById('network-result');
-    resultEl.style.display = 'block';
-    resultEl.style.background = '#0f3460';
-    resultEl.style.color = '#a0c4ff';
-    resultEl.textContent = '🔍 Checking your connection...';
+  function unlockEnterBtn(result) {
+    const btn = document.getElementById('enter-btn');
+    const speedBtn = document.getElementById('speed-btn');
+    btn.disabled = false;
+    const color = result.quality === 'good' ? '#00c853' : result.quality === 'fair' ? '#ffd740' : '#e53935';
+    const emoji = result.quality === 'good' ? '🟢' : result.quality === 'fair' ? '🟡' : '🔴';
+    speedBtn.textContent = `${emoji} ${result.quality === 'good' ? 'Great' : result.quality === 'fair' ? 'Fair' : 'Poor'} — ${result.avgPing}ms · ${result.downloadMbps}↓ · ${result.uploadMbps}↑ Mbps`;
+    speedBtn.style.background = result.quality === 'good' ? '#1b5e20' : result.quality === 'fair' ? '#f57f17' : '#b71c1c';
+    speedBtn.onclick = openSpeedTest;
+  }
 
+  // Speedometer needle animation
+  function setNeedle(mbps) {
+    const clamped = Math.min(mbps, 100);
+    const angle = -90 + (clamped / 100) * 180; // -90 to +90 degrees
+    document.getElementById('speed-needle').style.transform = `rotate(${angle}deg)`;
+    document.getElementById('speed-center-val').textContent = mbps >= 100 ? '100+' : mbps.toFixed(1);
+    // Update arc color
+    const color = mbps >= 25 ? '#00c853' : mbps >= 10 ? '#ffd740' : '#e53935';
+    document.getElementById('speed-arc').setAttribute('stroke', color);
+    // Update arc path
+    const rad = (angle - 90) * Math.PI / 180; // convert to SVG angle
+    // Actually simpler: just use the needle angle to draw arc
+    const arcAngle = (-90 + angle) * Math.PI / 180;
+    const x = 110 + 90 * Math.cos((-90 + angle) * Math.PI / 180 - Math.PI/2 + Math.PI);
+    const y = 110 + 90 * Math.sin((-90 + angle) * Math.PI / 180 - Math.PI/2 + Math.PI);
+    // Keep arc simple — just color the needle, arc static
+  }
+
+  async function openSpeedTest() {
+    document.getElementById('speed-modal').style.display = 'flex';
+    await runSpeedTest();
+  }
+
+  function closeSpeedModal() {
+    document.getElementById('speed-modal').style.display = 'none';
+  }
+
+  async function runSpeedTest() {
+    document.getElementById('speed-title').textContent = '🔍 Testing your connection...';
+    document.getElementById('speed-result').style.display = 'none';
+    document.getElementById('speed-enter-btn').style.display = 'none';
+    document.getElementById('m-ping').textContent = '—';
+    document.getElementById('m-down').textContent = '—';
+    document.getElementById('m-up').textContent = '—';
+    document.getElementById('speed-center-val').textContent = '—';
+    document.getElementById('speed-needle').style.transform = 'rotate(-90deg)';
+
+    // Step 1: Ping test
+    document.getElementById('speed-title').textContent = '📡 Measuring ping...';
     const pings = [];
     let failed = 0;
-    const attempts = 5;
-
-    for (let i = 0; i < attempts; i++) {
+    for (let i = 0; i < 5; i++) {
       try {
         const start = performance.now();
         await fetch(`${SERVER_URL}/server-time?_=${Date.now()}`, { cache: 'no-store' });
         pings.push(Math.round(performance.now() - start));
       } catch(e) { failed++; }
     }
+    const packetLoss = Math.round((failed / 5) * 100);
+    const avgPing = pings.length ? Math.round(pings.reduce((a,b)=>a+b,0)/pings.length) : 9999;
+    document.getElementById('m-ping').textContent = avgPing >= 9999 ? '∞' : avgPing;
 
-    const packetLoss = Math.round((failed / attempts) * 100);
-    const avgPing = pings.length ? Math.round(pings.reduce((a,b) => a+b, 0) / pings.length) : 9999;
+    // Step 2: Download test — download a blob from server
+    document.getElementById('speed-title').textContent = '⬇️ Testing download...';
+    let downloadMbps = 0;
+    try {
+      const dlStart = performance.now();
+      // Download ~200KB of data
+      const res = await fetch(`${SERVER_URL}/speed-test/download?size=200000&_=${Date.now()}`, { cache: 'no-store' });
+      const blob = await res.blob();
+      const dlTime = (performance.now() - dlStart) / 1000;
+      downloadMbps = parseFloat(((blob.size * 8) / dlTime / 1000000).toFixed(1));
+    } catch(e) { downloadMbps = 0; }
+    document.getElementById('m-down').textContent = downloadMbps;
+    setNeedle(downloadMbps);
 
+    // Step 3: Upload test — upload ~100KB of data
+    document.getElementById('speed-title').textContent = '⬆️ Testing upload...';
+    let uploadMbps = 0;
+    try {
+      const blob = new Blob([new Uint8Array(100000)]);
+      const upStart = performance.now();
+      await fetch(`${SERVER_URL}/speed-test/upload`, {
+        method: 'POST', body: blob,
+        headers: { 'Content-Type': 'application/octet-stream' },
+        cache: 'no-store'
+      });
+      const upTime = (performance.now() - upStart) / 1000;
+      uploadMbps = parseFloat(((blob.size * 8) / upTime / 1000000).toFixed(1));
+    } catch(e) { uploadMbps = 0; }
+    document.getElementById('m-up').textContent = uploadMbps;
+
+    // Final verdict
     let quality, color, bg, message;
-    if (avgPing < 150 && packetLoss === 0) {
-      quality = 'good'; color = '#00e676'; bg = 'rgba(0,230,118,0.1)';
-      message = `🟢 Great connection — ${avgPing}ms ping`;
-    } else if (avgPing < 400 && packetLoss <= 20) {
+    if (avgPing < 150 && downloadMbps >= 5 && uploadMbps >= 2 && packetLoss === 0) {
+      quality = 'good'; color = '#00c853'; bg = 'rgba(0,200,83,0.1)';
+      message = '🟢 Great connection! You\'re good to go.';
+    } else if (avgPing < 400 && downloadMbps >= 2 && packetLoss <= 20) {
       quality = 'fair'; color = '#ffd740'; bg = 'rgba(255,215,64,0.1)';
-      message = `🟡 Fair connection — ${avgPing}ms ping${packetLoss > 0 ? `, ${packetLoss}% packet loss` : ''}. Class may have minor issues.`;
+      message = `🟡 Fair connection. Class may have minor audio or video issues.`;
     } else {
-      quality = 'poor'; color = '#ff5252'; bg = 'rgba(255,82,82,0.1)';
-      message = `🔴 Unstable connection — ${avgPing}ms ping${packetLoss > 0 ? `, ${packetLoss}% packet loss` : ''}. If you experience issues during class, please check your internet connection.`;
+      quality = 'poor'; color = '#e53935'; bg = 'rgba(229,57,53,0.1)';
+      message = `🔴 Unstable connection detected. If you experience issues during class, please check your internet.`;
     }
 
+    document.getElementById('speed-title').textContent = '✅ Test complete';
+    const resultEl = document.getElementById('speed-result');
+    resultEl.style.display = 'block';
     resultEl.style.background = bg;
     resultEl.style.color = color;
     resultEl.style.border = `1px solid ${color}`;
     resultEl.textContent = message;
 
-    const result = { avgPing, packetLoss, quality, testedAt: new Date().toISOString() };
+    const enterBtn = document.getElementById('speed-enter-btn');
+    enterBtn.style.display = 'block';
 
-    // Cache so reconnects skip the test
-    if (sessionId) localStorage.setItem(cacheKey, JSON.stringify(result));
+    const result = { avgPing, packetLoss, downloadMbps, uploadMbps, quality, testedAt: new Date().toISOString() };
+    _netResult = result;
 
-    return result;
+    // Cache so reconnects skip
+    if (_sessionId) {
+      localStorage.setItem(`nettest_${_sessionId}`, JSON.stringify(result));
+      // Stamp on attendance
+      stampNetworkTest(_sessionId, result);
+    }
+
+    unlockEnterBtn(result);
   }
 
   async function stampNetworkTest(sessionId, result) {
-    if (!sessionId || !result) return;
     try {
       await fetch(`${SERVER_URL}/attendance/network-test`, {
         method: 'POST',
@@ -241,22 +331,21 @@
     } catch(e) {}
   }
 
-  async function enterClass() {
-    const sessionId = await getActiveSessionId();
-    // Run network test (skipped automatically if already done for this session)
-    const netResult = await runNetworkTest(sessionId);
-    // Stamp on attendance record
-    if (sessionId) await stampNetworkTest(sessionId, netResult);
-    const url = sessionId
-      ? `classroom.html?room=${room}&sessionId=${sessionId}`
+  async function proceedToClass() {
+    const url = _sessionId
+      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
       : `classroom.html?room=${room}`;
-    // Short delay so user sees the result before entering
-    setTimeout(() => { window.location.href = url; }, netResult?.quality === 'good' ? 800 : 2000);
+    window.location.href = url;
   }
 
-  function goSchedule() {
-    window.location.href = 'schedule.html';
+  async function enterClass() {
+    const url = _sessionId
+      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
+      : `classroom.html?room=${room}`;
+    window.location.href = url;
   }
+
+  function goSchedule() { window.location.href = 'schedule.html'; }
 
   function exitToLogin() {
     localStorage.removeItem('teacherToken');
@@ -267,4 +356,3 @@
 </script>
 </body>
 </html>
-
