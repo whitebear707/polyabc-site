@@ -255,6 +255,7 @@
     <img src="LOGO.png" alt="PolyABC"/>
     <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
     <div id="owed-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#e53935;background:rgba(229,57,53,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #e53935;">⏱ Owed: 0:00</div>
+    <div id="debt-payoff-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#ffd700;background:rgba(255,215,0,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #ffd700;">🏅 +0:00 paying debt</div>
   </div>
   <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
@@ -1345,6 +1346,21 @@ function startTimer(assignment) {
     const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
     timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
     timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
+
+    // Debt payoff counter — starts after class duration ends, counts full minutes only
+    if (IS_TEACHER && elapsed >= duration) {
+      const overMins = elapsed - duration; // minutes past class end
+      const fullMinsOver = Math.floor(overMins); // only full minutes count
+      if (fullMinsOver > 0) {
+        const debtEl = document.getElementById('debt-payoff-timer');
+        if (debtEl) {
+          debtEl.style.display = 'block';
+          const om = Math.floor(overMins), os = Math.floor((overMins%1)*60);
+          debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt`;
+          window._debtPayoffMins = fullMinsOver; // track for end-class emit
+        }
+      }
+    }
   }, 1000);
   if (IS_TEACHER && window._socket) window._socket.emit('timer-info', { room: ROOM, assignment });
 }
@@ -2113,7 +2129,12 @@ function leaveClass() {
 }
 
 function teacherBRB() { document.getElementById('leave-modal').style.display = 'none'; if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }
-function teacherEndClass() { document.getElementById('leave-modal').style.display = 'none'; if (window._socket) window._socket.emit('end-class', { room: ROOM }); setTimeout(() => { if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }, 500); }
+function teacherEndClass() {
+  document.getElementById('leave-modal').style.display = 'none';
+  const debtPayoffMins = window._debtPayoffMins || 0;
+  if (window._socket) window._socket.emit('end-class', { room: ROOM, debtPayoffMins });
+  setTimeout(() => { if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'index.html'; }, 500);
+}
 
 // ── WebRTC Screenshare (peer-to-peer, zero server bandwidth) ──
 const ssPeers = {}; // studentSocketId -> RTCPeerConnection
