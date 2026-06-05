@@ -2227,7 +2227,7 @@ function openAttDetail(idx) {
       : '';
     const net = actual.networkTest;
     const netBadge = net
-      ? `<span style="font-size:0.7rem;padding:1px 6px;border-radius:8px;font-weight:700;background:${net.quality==='good'?'rgba(0,200,83,0.1)':net.quality==='fair'?'rgba(255,215,64,0.1)':'rgba(229,57,53,0.1)'};color:${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};border:1px solid ${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};">${net.quality==='good'?'🟢':net.quality==='fair'?'🟡':'🔴'} ${net.avgPing}ms</span>`
+      ? `<span style="font-size:0.7rem;padding:1px 6px;border-radius:8px;font-weight:700;background:${net.quality==='good'?'rgba(0,200,83,0.1)':net.quality==='fair'?'rgba(255,215,64,0.1)':'rgba(229,57,53,0.1)'};color:${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};border:1px solid ${net.quality==='good'?'#00c853':net.quality==='fair'?'#ffd740':'#e53935'};">${net.quality==='good'?'🟢':net.quality==='fair'?'🟡':'🔴'} ${net.avgPing}ms · ${net.jitter||'—'}ms jitter</span>`
       : '<span style="color:#667;font-size:0.75rem;">—</span>';
     const disconnectDetail = disconnects.length > 0 ? `
       <tr style="background:#fff8f8;">
@@ -2269,7 +2269,7 @@ function openAttDetail(idx) {
           background:${r.networkTest.quality==='good'?'rgba(0,230,118,0.08)':r.networkTest.quality==='fair'?'rgba(255,215,64,0.08)':'rgba(255,82,82,0.08)'};
           color:${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};
           border:1px solid ${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};">
-          ${r.networkTest.quality==='good'?'🟢':'🟡'} Network at join: ${r.networkTest.avgPing}ms ping${r.networkTest.packetLoss>0?', '+r.networkTest.packetLoss+'% packet loss':''} — ${r.networkTest.quality.toUpperCase()}
+          ${r.networkTest.quality==='good'?'🟢':'🟡'} Network at join: ${r.networkTest.avgPing}ms ping · ${r.networkTest.jitter||'—'}ms jitter · ${r.networkTest.packetLoss}% loss — ${r.networkTest.quality.toUpperCase()}
         </div>` : ''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px;">
           <div><div style="font-size:0.75rem;color:#888;">Greeting Window</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
