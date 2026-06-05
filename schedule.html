@@ -245,16 +245,9 @@
 
 <div id="main">
   <!-- PAY PERIOD HEADER -->
-  <div id="pay-period-banner" style="background:#0f3460;border:1px solid #ffd700;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-    <div>
-      <div style="font-size:0.75rem;color:#a0c4ff;font-weight:700;">💰 CURRENT PAY PERIOD</div>
-      <div style="font-size:0.95rem;font-weight:900;color:white;" id="pay-period-dates">Loading...</div>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:0.75rem;color:#a0c4ff;font-weight:700;">EARNED SO FAR</div>
-      <div style="font-size:1.4rem;font-weight:900;color:#ffd700;" id="pay-period-total">$—</div>
-      <div style="font-size:0.68rem;color:#667;">pesos · based on completed classes</div>
-    </div>
+  <div id="pay-period-banner" style="background:#0f3460;border:1px solid #ffd700;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:0.95rem;font-weight:900;color:white;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <span>💰 Your Pay: <span id="pay-period-dates" style="color:#ffd700;">Loading...</span></span>
+    <span id="pay-period-total" style="color:#ffd700;">$— MXN</span>
   </div>
 
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
@@ -354,9 +347,9 @@
       const myRoom = localStorage.getItem('teacherRoom');
       const myEntry = (data || []).find(t => t.room === myRoom);
       const total = myEntry ? myEntry.totalPay : 0;
-      document.getElementById('pay-period-total').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('pay-period-total').textContent = `$${total.toFixed(2)} MXN`;
     } catch(e) {
-      document.getElementById('pay-period-total').textContent = '$—';
+      document.getElementById('pay-period-total').textContent = '$— MXN';
     }
   }
 
