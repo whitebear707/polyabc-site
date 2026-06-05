@@ -21,32 +21,33 @@
     .btn-speed:hover { background: #00695c; }
     .btn-schedule { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; }
     .btn-schedule:hover { background: #1a3a6e; }
+    .btn-exit { background: transparent; color: #667; border: 2px solid #334; }
     .btn-exit:hover { border-color: #e53935; color: #e53935; }
 
-    /* Speed test modal */
-    #speed-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; }
-    #speed-box { background:#16213e; border-radius:24px; padding:28px 24px; width:90%; max-width:360px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-    #speed-title { font-size:1.1rem; font-weight:900; color:white; margin-bottom:20px; }
-    .speedometer { position:relative; width:220px; height:120px; margin:0 auto 20px; }
-    .speedometer svg { width:100%; height:100%; }
-    .metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
-    .metric { background:#0f3460; border-radius:12px; padding:10px 6px; }
-    .metric-val { font-size:1.3rem; font-weight:900; color:white; }
-    .metric-unit { font-size:0.65rem; color:#a0c4ff; font-weight:700; margin-top:2px; }
-    .metric-label { font-size:0.7rem; color:#667; margin-top:2px; }
-    #speed-result { display:none; border-radius:12px; padding:12px; font-size:0.9rem; font-weight:700; margin-bottom:16px; }
-    #speed-enter-btn { display:none; width:100%; padding:14px; border-radius:12px; border:none; background:#1a73e8; color:white; font-family:Nunito; font-size:1rem; font-weight:900; cursor:pointer; }
-    #speed-enter-btn:hover { background:#1558b0; }
+    /* Network test modal */
+    #net-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+    #net-box { background: #16213e; border-radius: 24px; padding: 28px 24px; width: 90%; max-width: 340px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    #net-title { font-size: 1rem; font-weight: 900; color: #a0c4ff; margin-bottom: 20px; }
+    #net-verdict { display: none; font-size: 2.5rem; margin-bottom: 6px; }
+    #net-verdict-label { display: none; font-size: 1rem; font-weight: 900; margin-bottom: 20px; }
+    .net-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .net-card { background: #0f3460; border-radius: 12px; padding: 12px 6px; }
+    .net-val { font-size: 1.4rem; font-weight: 900; color: white; }
+    .net-unit { font-size: 0.65rem; color: #a0c4ff; font-weight: 700; margin-top: 2px; }
+    .net-lbl { font-size: 0.7rem; color: #667; margin-top: 3px; }
+    #net-enter-btn { display: none; width: 100%; padding: 14px; border-radius: 12px; border: none; background: #1a73e8; color: white; font-family: Nunito; font-size: 1rem; font-weight: 900; cursor: pointer; margin-bottom: 10px; }
+    #net-enter-btn:hover { background: #1558b0; }
+    .net-close-btn { width: 100%; padding: 10px; border-radius: 12px; border: none; background: #0f3460; color: #a0c4ff; font-family: Nunito; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
 
     /* Schedule modal */
-    #sched-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; padding:20px; }
-    #sched-box { background:#16213e; border-radius:24px; padding:24px; width:100%; max-width:380px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-    .sched-item { background:#0f3460; border-radius:12px; padding:12px 14px; margin-bottom:10px; }
-    .sched-day { font-size:0.8rem; color:#a0c4ff; font-weight:700; margin-bottom:4px; }
-    .sched-time { font-size:1.1rem; font-weight:900; color:white; }
-    .sched-gdl { font-size:0.75rem; color:#556; margin-top:2px; }
-    .sched-type { font-size:0.78rem; color:#ffd740; font-weight:700; margin-top:4px; }
-    .sched-soon { font-size:0.72rem; color:#00e676; font-weight:900; margin-top:4px; }
+    #sched-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+    #sched-box { background: #16213e; border-radius: 24px; padding: 24px; width: 100%; max-width: 380px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+    .sched-item { background: #0f3460; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+    .sched-day { font-size: 0.8rem; color: #a0c4ff; font-weight: 700; margin-bottom: 4px; }
+    .sched-time { font-size: 1.1rem; font-weight: 900; color: white; }
+    .sched-gdl { font-size: 0.75rem; color: #556; margin-top: 2px; }
+    .sched-type { font-size: 0.78rem; color: #ffd740; font-weight: 700; margin-top: 4px; }
+    .sched-soon { font-size: 0.72rem; font-weight: 900; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -55,38 +56,25 @@
 <div class="welcome-title">Welcome, <span id="student-name">Student</span>! 👋</div>
 
 <div class="card">
-  <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>
-    🎓 Enter Class
-  </button>
-  <button class="greeting-btn btn-speed" id="speed-btn" onclick="openSpeedTest()">
-    📶 Run Speed Test
-  </button>
-  <button class="greeting-btn btn-schedule" onclick="openSchedule()">
-    📅 My Schedule
-  </button>
-  <button class="greeting-btn btn-exit" onclick="exitToLogin()" style="background:transparent;color:#667;border:2px solid #334;">
-    🚪 Exit
-  </button>
+  <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>🎓 Enter Class</button>
+  <button class="greeting-btn btn-speed" id="speed-btn" onclick="openNetTest()">📶 Run Speed Test</button>
+  <button class="greeting-btn btn-schedule" onclick="openSchedule()">📅 My Schedule</button>
+  <button class="greeting-btn btn-exit" onclick="exitToLogin()">🚪 Exit</button>
 </div>
 
 <!-- Network Test Modal -->
-<div id="speed-modal">
-  <div id="speed-box">
-    <div id="speed-title">📡 Ready to test your connection</div>
-    <div id="speed-verdict"></div>
-    <div id="speed-verdict-label"></div>
-    <div class="net-metrics">
-      <div class="net-metric"><div class="net-metric-val" id="m-ping">—</div><div class="net-metric-unit">ms</div><div class="net-metric-label">Ping</div></div>
-      <div class="net-metric"><div class="net-metric-val" id="m-jitter">—</div><div class="net-metric-unit">ms</div><div class="net-metric-label">Jitter</div></div>
-      <div class="net-metric"><div class="net-metric-val" id="m-loss">—</div><div class="net-metric-unit">%</div><div class="net-metric-label">Packet Loss</div></div>
+<div id="net-modal">
+  <div id="net-box">
+    <div id="net-title">📡 Ready to test your connection</div>
+    <div id="net-verdict"></div>
+    <div id="net-verdict-label"></div>
+    <div class="net-grid">
+      <div class="net-card"><div class="net-val" id="m-ping">—</div><div class="net-unit">ms</div><div class="net-lbl">Ping</div></div>
+      <div class="net-card"><div class="net-val" id="m-jitter">—</div><div class="net-unit">ms</div><div class="net-lbl">Jitter</div></div>
+      <div class="net-card"><div class="net-val" id="m-loss">—</div><div class="net-unit">%</div><div class="net-lbl">Packet Loss</div></div>
     </div>
-    <button id="speed-enter-btn" onclick="proceedToClass()">🎓 Enter Class</button>
-    <button class="speed-close-btn" onclick="document.getElementById(\'speed-modal\').style.display=\'none\'">Close</button>
-  </div>
-</div>
-    <div id="speed-result"></div>
-    <button id="speed-enter-btn" onclick="proceedToClass()">🎓 Enter Class</button>
-    <button onclick="document.getElementById('speed-modal').style.display='none'" style="margin-top:10px;width:100%;padding:10px;border-radius:12px;border:none;background:#0f3460;color:#a0c4ff;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">Close</button>
+    <button id="net-enter-btn" onclick="proceedToClass()">🎓 Enter Class</button>
+    <button class="net-close-btn" onclick="document.getElementById('net-modal').style.display='none'">Close</button>
   </div>
 </div>
 
@@ -95,7 +83,7 @@
   <div id="sched-box">
     <div style="font-size:1.1rem;font-weight:900;color:white;margin-bottom:16px;">📅 My Schedule</div>
     <div id="sched-list"><div style="color:#667;text-align:center;">Loading...</div></div>
-    <button onclick="document.getElementById('sched-modal').style.display='none'" style="margin-top:12px;width:100%;padding:10px;border-radius:12px;border:none;background:#0f3460;color:#a0c4ff;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">Close</button>
+    <button class="net-close-btn" style="margin-top:12px;" onclick="document.getElementById('sched-modal').style.display='none'">Close</button>
   </div>
 </div>
 
@@ -111,15 +99,12 @@
   const token = localStorage.getItem('studentToken');
   const room  = localStorage.getItem('studentRoom');
   const name  = localStorage.getItem('studentName');
-
-  if (!token || !room) { window.location.href = 'index.html'; }
-
+  if (!token || !room) window.location.href = 'index.html';
   document.getElementById('student-name').textContent = name || 'Student';
 
   let _sessionId = null;
   let _netResult = null;
 
-  // Get today's sessionId for this student's room
   function nowGDLMins() {
     const s = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
     const [h, m] = s.split(':').map(Number);
@@ -147,117 +132,81 @@
 
   async function init() {
     _sessionId = await getActiveSessionId();
-    const cacheKey = `nettest_${_sessionId}`;
-    if (_sessionId && localStorage.getItem(cacheKey)) {
-      _netResult = JSON.parse(localStorage.getItem(cacheKey));
-      unlockEnterBtn(_netResult);
-    }
+    const cached = _sessionId && localStorage.getItem(`nettest_${_sessionId}`);
+    if (cached) { _netResult = JSON.parse(cached); unlockEnterBtn(_netResult); }
   }
   init();
 
   function unlockEnterBtn(result) {
-    const btn = document.getElementById('enter-btn');
-    const speedBtn = document.getElementById('speed-btn');
-    btn.disabled = false;
+    document.getElementById('enter-btn').disabled = false;
     const emoji = result.quality === 'good' ? '🟢' : result.quality === 'fair' ? '🟡' : '🔴';
-    speedBtn.textContent = `${emoji} ${result.quality === 'good' ? 'Great' : result.quality === 'fair' ? 'Fair' : 'Poor'} — ${result.avgPing}ms · ${result.downloadMbps}↓ · ${result.uploadMbps}↑ Mbps`;
-    speedBtn.style.background = result.quality === 'good' ? '#1b5e20' : result.quality === 'fair' ? '#f57f17' : '#b71c1c';
-    speedBtn.onclick = openSpeedTest;
+    const btn = document.getElementById('speed-btn');
+    btn.textContent = `${emoji} ${result.avgPing}ms ping · ${result.jitter}ms jitter · ${result.packetLoss}% loss`;
+    btn.style.background = result.quality === 'good' ? '#1b5e20' : result.quality === 'fair' ? '#f57f17' : '#b71c1c';
+    btn.onclick = openNetTest;
   }
 
-  function setNeedle(mbps) {
-    const angle = -90 + (Math.min(mbps, 100) / 100) * 180;
-    document.getElementById('speed-needle').style.transform = `rotate(${angle}deg)`;
-    document.getElementById('speed-center-val').textContent = mbps >= 100 ? '100+' : mbps.toFixed(1);
+  function openNetTest() {
+    document.getElementById('net-modal').style.display = 'flex';
+    runNetTest();
   }
 
-  async function openSpeedTest() {
-    document.getElementById('speed-modal').style.display = 'flex';
-    await runSpeedTest();
-  }
+  async function runNetTest() {
+    document.getElementById('net-title').textContent = '📡 Testing your connection...';
+    document.getElementById('net-verdict').style.display = 'none';
+    document.getElementById('net-verdict-label').style.display = 'none';
+    document.getElementById('net-enter-btn').style.display = 'none';
+    ['m-ping','m-jitter','m-loss'].forEach(id => document.getElementById(id).textContent = '—');
 
-  async function runSpeedTest() {
-    document.getElementById('speed-title').textContent = '🔍 Testing your connection...';
-    document.getElementById('speed-result').style.display = 'none';
-    document.getElementById('speed-enter-btn').style.display = 'none';
-    ['m-ping','m-down','m-up'].forEach(id => document.getElementById(id).textContent = '—');
-    document.getElementById('speed-center-val').textContent = '—';
-    document.getElementById('speed-needle').style.transform = 'rotate(-90deg)';
-
-    // Ping
-    document.getElementById('speed-title').textContent = '📡 Measuring ping...';
-    const pings = []; let failed = 0;
-    for (let i = 0; i < 5; i++) {
+    const times = []; let failed = 0; const total = 50;
+    for (let i = 0; i < total; i++) {
       try {
         const s = performance.now();
-        await fetch(`${SERVER_URL}/server-time?_=${Date.now()}`, { cache: 'no-store' });
-        pings.push(Math.round(performance.now() - s));
+        await fetch(`${SERVER_URL}/server-time?_=${Date.now()}_${i}`, { cache: 'no-store' });
+        times.push(performance.now() - s);
       } catch(e) { failed++; }
+      if (times.length && i % 10 === 9) {
+        document.getElementById('m-ping').textContent = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+        document.getElementById('net-title').textContent = `📡 Testing... ${Math.round((i+1)/total*100)}%`;
+      }
     }
-    const packetLoss = Math.round((failed / 5) * 100);
-    const avgPing = pings.length ? Math.round(pings.reduce((a,b)=>a+b,0)/pings.length) : 9999;
-    document.getElementById('m-ping').textContent = avgPing >= 9999 ? '∞' : avgPing;
 
-    // Download
-    document.getElementById('speed-title').textContent = '⬇️ Testing download...';
-    let downloadMbps = 0;
-    try {
-      const s = performance.now();
-      const res = await fetch(`${SERVER_URL}/speed-test/download?size=5000000&_=${Date.now()}`, { cache: 'no-store' });
-      const blob = await res.blob();
-      downloadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
-    } catch(e) {}
-    document.getElementById('m-down').textContent = downloadMbps;
-    setNeedle(downloadMbps);
+    const avgPing    = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 9999;
+    const jitter     = times.length ? Math.round(Math.max(...times) - Math.min(...times)) : 0;
+    const packetLoss = Math.round((failed / total) * 100);
 
-    // Upload
-    document.getElementById('speed-title').textContent = '⬆️ Testing upload...';
-    let uploadMbps = 0;
-    try {
-      const blob = new Blob([new Uint8Array(2000000)]);
-      const s = performance.now();
-      await fetch(`${SERVER_URL}/speed-test/upload`, { method: 'POST', body: blob, headers: { 'Content-Type': 'application/octet-stream' }, cache: 'no-store' });
-      uploadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
-    } catch(e) {}
-    document.getElementById('m-up').textContent = uploadMbps;
+    document.getElementById('m-ping').textContent   = avgPing >= 9999 ? '∞' : avgPing;
+    document.getElementById('m-jitter').textContent = jitter;
+    document.getElementById('m-loss').textContent   = packetLoss;
 
-    // Verdict
-    let quality, color, bg, message;
-    if (avgPing < 150 && downloadMbps >= 5 && uploadMbps >= 2 && packetLoss === 0) {
-      quality = 'good'; color = '#00c853'; bg = 'rgba(0,200,83,0.1)';
-      message = '🟢 Great connection! You\'re good to go.';
-    } else if (avgPing < 400 && downloadMbps >= 2 && packetLoss <= 20) {
-      quality = 'fair'; color = '#ffd740'; bg = 'rgba(255,215,64,0.1)';
-      message = '🟡 Fair connection. Class may have minor audio or video issues.';
+    let quality, emoji, label, color;
+    if (avgPing < 100 && jitter < 30 && packetLoss === 0) {
+      quality = 'good'; emoji = '🟢'; label = 'Great Connection'; color = '#00c853';
+    } else if (avgPing < 250 && jitter < 80 && packetLoss <= 5) {
+      quality = 'fair'; emoji = '🟡'; label = 'Fair Connection'; color = '#ffd740';
     } else {
-      quality = 'poor'; color = '#e53935'; bg = 'rgba(229,57,53,0.1)';
-      message = '🔴 Unstable connection. If you experience issues during class, please check your internet.';
+      quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — If you experience issues during class, please check your internet.'; color = '#e53935';
     }
 
-    document.getElementById('speed-title').textContent = '✅ Test complete';
-    const resultEl = document.getElementById('speed-result');
-    resultEl.style.display = 'block';
-    resultEl.style.background = bg; resultEl.style.color = color; resultEl.style.border = `1px solid ${color}`;
-    resultEl.textContent = message;
-    document.getElementById('speed-enter-btn').style.display = 'block';
+    document.getElementById('net-verdict').textContent = emoji;
+    document.getElementById('net-verdict').style.display = 'block';
+    const lbl = document.getElementById('net-verdict-label');
+    lbl.textContent = label; lbl.style.color = color;
+    lbl.style.fontSize = quality === 'poor' ? '0.82rem' : '1.1rem';
+    lbl.style.display = 'block';
+    document.getElementById('net-title').textContent = '✅ Test complete';
+    document.getElementById('net-enter-btn').style.display = 'block';
 
-    const result = { avgPing, packetLoss, downloadMbps, uploadMbps, quality, testedAt: new Date().toISOString() };
+    const result = { avgPing, jitter, packetLoss, quality, testedAt: new Date().toISOString() };
     _netResult = result;
     if (_sessionId) {
       localStorage.setItem(`nettest_${_sessionId}`, JSON.stringify(result));
-      stampNetworkTest(_sessionId, result);
+      fetch(`${SERVER_URL}/attendance/network-test/student`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sessionId: _sessionId, networkTest: result, studentName: name })
+      }).catch(() => {});
     }
     unlockEnterBtn(result);
-  }
-
-  async function stampNetworkTest(sessionId, result) {
-    try {
-      await fetch(`${SERVER_URL}/attendance/network-test/student`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ sessionId, networkTest: result, studentName: name })
-      });
-    } catch(e) {}
   }
 
   async function openSchedule() {
@@ -266,43 +215,25 @@
     try {
       const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
       const assignments = await res.json();
-      if (!assignments.length) { list.innerHTML = '<div style="color:#667;text-align:center;">No classes scheduled.</div>'; return; }
-
-      // Sort upcoming first
-      const now = new Date();
-      const sorted = assignments
-        .filter(a => a.date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }))
-        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+      const sorted = assignments.filter(a => a.date >= today).sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
       if (!sorted.length) { list.innerHTML = '<div style="color:#667;text-align:center;">No upcoming classes.</div>'; return; }
 
+      const now = new Date();
       list.innerHTML = sorted.map(a => {
-        // Convert GDL time to student's local time
         const [hh, mm] = a.time.split(':').map(Number);
-        // Build a date object in GDL time
+        // Convert GDL time to local browser time
         const gdlDate = new Date(`${a.date}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
-        // Get offset difference
         const gdlOffset = new Date(gdlDate.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })) - gdlDate;
         const localOffset = new Date(gdlDate.toLocaleString('en-US')) - gdlDate;
-        const utcTime = new Date(gdlDate.getTime() - gdlOffset + localOffset);
-
-        // Format local time
-        const localStr = utcTime.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        // Format GDL time
+        const localTime = new Date(gdlDate.getTime() - gdlOffset + localOffset);
+        const localStr = localTime.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         const gdlStr = `${hh % 12 || 12}:${String(mm).padStart(2,'0')} ${hh >= 12 ? 'PM' : 'AM'} GDL`;
-
-        // How far away?
-        const diffMs = utcTime - now;
-        const diffMins = Math.round(diffMs / 60000);
-        let soonTag = '';
-        if (diffMins > 0 && diffMins <= 90) {
-          soonTag = `<div class="sched-soon">⚡ In ${diffMins < 60 ? diffMins + ' min' : Math.floor(diffMins/60) + 'h ' + (diffMins%60 ? diffMins%60+'min' : '')}</div>`;
-        } else if (diffMins <= 0 && diffMins > -90) {
-          soonTag = `<div class="sched-soon" style="color:#ffd740;">🔴 Happening now!</div>`;
-        }
-
         const dayName = new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
+        const diffMins = Math.round((localTime - now) / 60000);
+        let soonTag = '';
+        if (diffMins > 0 && diffMins <= 90) soonTag = `<div class="sched-soon" style="color:#00e676;">⚡ In ${diffMins < 60 ? diffMins + ' min' : Math.floor(diffMins/60)+'h '+(diffMins%60?diffMins%60+'min':'')}</div>`;
+        else if (diffMins <= 0 && diffMins > -90) soonTag = `<div class="sched-soon" style="color:#ffd740;">🔴 Happening now!</div>`;
         return `<div class="sched-item">
           <div class="sched-day">📅 ${dayName}</div>
           <div class="sched-time">${localStr} <span style="font-size:0.75rem;color:#667;">your time</span></div>
@@ -311,29 +242,16 @@
           ${soonTag}
         </div>`;
       }).join('');
-    } catch(e) {
-      list.innerHTML = '<div style="color:#e53935;">Could not load schedule.</div>';
-    }
+    } catch(e) { list.innerHTML = '<div style="color:#e53935;">Could not load schedule.</div>'; }
   }
 
   function proceedToClass() {
-    const url = _sessionId
-      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
-      : `classroom.html?room=${room}`;
-    window.location.href = url;
+    window.location.href = _sessionId ? `classroom.html?room=${room}&sessionId=${_sessionId}` : `classroom.html?room=${room}`;
   }
 
-  function enterClass() {
-    const url = _sessionId
-      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
-      : `classroom.html?room=${room}`;
-    window.location.href = url;
-  }
-
+  function enterClass() { proceedToClass(); }
   function exitToLogin() {
-    localStorage.removeItem('studentToken');
-    localStorage.removeItem('studentName');
-    localStorage.removeItem('studentRoom');
+    ['studentToken','studentName','studentRoom'].forEach(k => localStorage.removeItem(k));
     window.location.href = 'index.html';
   }
 </script>
