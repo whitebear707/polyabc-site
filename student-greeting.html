@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="icon.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Welcome</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 24px; }
+    .logo { height: 70px; margin-bottom: 8px; }
+    .welcome-title { font-size: 1.3rem; font-weight: 900; color: white; text-align: center; margin-bottom: 12px; }
+    .card { background: #16213e; border-radius: 20px; padding: 20px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+    .greeting-btn { padding: 14px; border-radius: 12px; border: none; font-family: Nunito, sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: transform 0.15s, background 0.2s, opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .greeting-btn:hover:not(:disabled) { transform: scale(1.02); }
+    .btn-enter { background: #1a73e8; color: white; }
+    .btn-enter:disabled { background: #334; color: #667; cursor: not-allowed; opacity: 0.5; }
+    .btn-enter:not(:disabled):hover { background: #1558b0; }
+    .btn-speed { background: #00897b; color: white; }
+    .btn-speed:hover { background: #00695c; }
+    .btn-schedule { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; }
+    .btn-schedule:hover { background: #1a3a6e; }
+    .btn-exit:hover { border-color: #e53935; color: #e53935; }
+
+    /* Speed test modal */
+    #speed-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; }
+    #speed-box { background:#16213e; border-radius:24px; padding:28px 24px; width:90%; max-width:360px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+    #speed-title { font-size:1.1rem; font-weight:900; color:white; margin-bottom:20px; }
+    .speedometer { position:relative; width:220px; height:120px; margin:0 auto 20px; }
+    .speedometer svg { width:100%; height:100%; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+    .metric { background:#0f3460; border-radius:12px; padding:10px 6px; }
+    .metric-val { font-size:1.3rem; font-weight:900; color:white; }
+    .metric-unit { font-size:0.65rem; color:#a0c4ff; font-weight:700; margin-top:2px; }
+    .metric-label { font-size:0.7rem; color:#667; margin-top:2px; }
+    #speed-result { display:none; border-radius:12px; padding:12px; font-size:0.9rem; font-weight:700; margin-bottom:16px; }
+    #speed-enter-btn { display:none; width:100%; padding:14px; border-radius:12px; border:none; background:#1a73e8; color:white; font-family:Nunito; font-size:1rem; font-weight:900; cursor:pointer; }
+    #speed-enter-btn:hover { background:#1558b0; }
+
+    /* Schedule modal */
+    #sched-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; padding:20px; }
+    #sched-box { background:#16213e; border-radius:24px; padding:24px; width:100%; max-width:380px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+    .sched-item { background:#0f3460; border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+    .sched-day { font-size:0.8rem; color:#a0c4ff; font-weight:700; margin-bottom:4px; }
+    .sched-time { font-size:1.1rem; font-weight:900; color:white; }
+    .sched-gdl { font-size:0.75rem; color:#556; margin-top:2px; }
+    .sched-type { font-size:0.78rem; color:#ffd740; font-weight:700; margin-top:4px; }
+    .sched-soon { font-size:0.72rem; color:#00e676; font-weight:900; margin-top:4px; }
+  </style>
+</head>
+<body>
+
+<img src="LOGO.png" class="logo" alt="PolyABC"/>
+<div class="welcome-title">Welcome, <span id="student-name">Student</span>! 👋</div>
+
+<div class="card">
+  <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>
+    🎓 Enter Class
+  </button>
+  <button class="greeting-btn btn-speed" id="speed-btn" onclick="openSpeedTest()">
+    📶 Run Speed Test
+  </button>
+  <button class="greeting-btn btn-schedule" onclick="openSchedule()">
+    📅 My Schedule
+  </button>
+  <button class="greeting-btn btn-exit" onclick="exitToLogin()" style="background:transparent;color:#667;border:2px solid #334;">
+    🚪 Exit
+  </button>
+</div>
+
+<!-- Speed Test Modal -->
+<div id="speed-modal">
+  <div id="speed-box">
+    <div id="speed-title">🔍 Testing your connection...</div>
+    <div class="speedometer">
+      <svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#0f3460" stroke-width="16" stroke-linecap="round"/>
+        <path d="M 20 110 A 90 90 0 0 1 87 27" fill="none" stroke="#00c853" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <path d="M 87 27 A 90 90 0 0 1 153 27" fill="none" stroke="#ffd740" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <path d="M 153 27 A 90 90 0 0 1 200 110" fill="none" stroke="#e53935" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+        <line id="speed-needle" x1="110" y1="110" x2="110" y2="30" stroke="white" stroke-width="3" stroke-linecap="round" style="transform-origin:110px 110px;transform:rotate(-90deg);transition:transform 0.5s ease;"/>
+        <circle cx="110" cy="110" r="6" fill="white"/>
+        <text x="18" y="118" fill="#667" font-size="9" font-family="Nunito" font-weight="700">0</text>
+        <text x="100" y="18" fill="#667" font-size="9" font-family="Nunito" font-weight="700" text-anchor="middle">50</text>
+        <text x="196" y="118" fill="#667" font-size="9" font-family="Nunito" font-weight="700" text-anchor="end">100+</text>
+        <text id="speed-center-val" x="110" y="90" fill="white" font-size="22" font-family="Nunito" font-weight="900" text-anchor="middle">—</text>
+        <text id="speed-center-unit" x="110" y="104" fill="#a0c4ff" font-size="9" font-family="Nunito" font-weight="700" text-anchor="middle">Mbps</text>
+      </svg>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val" id="m-ping">—</div><div class="metric-unit">ms</div><div class="metric-label">Ping</div></div>
+      <div class="metric"><div class="metric-val" id="m-down">—</div><div class="metric-unit">Mbps</div><div class="metric-label">Download</div></div>
+      <div class="metric"><div class="metric-val" id="m-up">—</div><div class="metric-unit">Mbps</div><div class="metric-label">Upload</div></div>
+    </div>
+    <div id="speed-result"></div>
+    <button id="speed-enter-btn" onclick="proceedToClass()">🎓 Enter Class</button>
+    <button onclick="document.getElementById('speed-modal').style.display='none'" style="margin-top:10px;width:100%;padding:10px;border-radius:12px;border:none;background:#0f3460;color:#a0c4ff;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">Close</button>
+  </div>
+</div>
+
+<!-- Schedule Modal -->
+<div id="sched-modal">
+  <div id="sched-box">
+    <div style="font-size:1.1rem;font-weight:900;color:white;margin-bottom:16px;">📅 My Schedule</div>
+    <div id="sched-list"><div style="color:#667;text-align:center;">Loading...</div></div>
+    <button onclick="document.getElementById('sched-modal').style.display='none'" style="margin-top:12px;width:100%;padding:10px;border-radius:12px;border:none;background:#0f3460;color:#a0c4ff;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">Close</button>
+  </div>
+</div>
+
+<script>
+  const SERVER_URL = "https://polyabc-server.onrender.com";
+
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+    document.addEventListener('click', () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    }, { once: true });
+  }
+
+  const token = localStorage.getItem('studentToken');
+  const room  = localStorage.getItem('studentRoom');
+  const name  = localStorage.getItem('studentName');
+
+  if (!token || !room) { window.location.href = 'index.html'; }
+
+  document.getElementById('student-name').textContent = name || 'Student';
+
+  let _sessionId = null;
+  let _netResult = null;
+
+  // Get today's sessionId for this student's room
+  function nowGDLMins() {
+    const s = new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
+    const [h, m] = s.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  async function getActiveSessionId() {
+    try {
+      const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      const assignments = await res.json();
+      if (!assignments.length) return null;
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+      const todayA = assignments.filter(a => a.date === today);
+      if (!todayA.length) return null;
+      const nowMins = nowGDLMins();
+      let best = null, bestDiff = Infinity;
+      for (const a of todayA) {
+        const [hh, mm] = a.time.split(':').map(Number);
+        const diff = Math.abs(nowMins - (hh * 60 + mm));
+        if (diff < bestDiff && diff <= 90) { bestDiff = diff; best = a; }
+      }
+      return best?.sessionId || null;
+    } catch(e) { return null; }
+  }
+
+  async function init() {
+    _sessionId = await getActiveSessionId();
+    const cacheKey = `nettest_${_sessionId}`;
+    if (_sessionId && localStorage.getItem(cacheKey)) {
+      _netResult = JSON.parse(localStorage.getItem(cacheKey));
+      unlockEnterBtn(_netResult);
+    }
+  }
+  init();
+
+  function unlockEnterBtn(result) {
+    const btn = document.getElementById('enter-btn');
+    const speedBtn = document.getElementById('speed-btn');
+    btn.disabled = false;
+    const emoji = result.quality === 'good' ? '🟢' : result.quality === 'fair' ? '🟡' : '🔴';
+    speedBtn.textContent = `${emoji} ${result.quality === 'good' ? 'Great' : result.quality === 'fair' ? 'Fair' : 'Poor'} — ${result.avgPing}ms · ${result.downloadMbps}↓ · ${result.uploadMbps}↑ Mbps`;
+    speedBtn.style.background = result.quality === 'good' ? '#1b5e20' : result.quality === 'fair' ? '#f57f17' : '#b71c1c';
+    speedBtn.onclick = openSpeedTest;
+  }
+
+  function setNeedle(mbps) {
+    const angle = -90 + (Math.min(mbps, 100) / 100) * 180;
+    document.getElementById('speed-needle').style.transform = `rotate(${angle}deg)`;
+    document.getElementById('speed-center-val').textContent = mbps >= 100 ? '100+' : mbps.toFixed(1);
+  }
+
+  async function openSpeedTest() {
+    document.getElementById('speed-modal').style.display = 'flex';
+    await runSpeedTest();
+  }
+
+  async function runSpeedTest() {
+    document.getElementById('speed-title').textContent = '🔍 Testing your connection...';
+    document.getElementById('speed-result').style.display = 'none';
+    document.getElementById('speed-enter-btn').style.display = 'none';
+    ['m-ping','m-down','m-up'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('speed-center-val').textContent = '—';
+    document.getElementById('speed-needle').style.transform = 'rotate(-90deg)';
+
+    // Ping
+    document.getElementById('speed-title').textContent = '📡 Measuring ping...';
+    const pings = []; let failed = 0;
+    for (let i = 0; i < 5; i++) {
+      try {
+        const s = performance.now();
+        await fetch(`${SERVER_URL}/server-time?_=${Date.now()}`, { cache: 'no-store' });
+        pings.push(Math.round(performance.now() - s));
+      } catch(e) { failed++; }
+    }
+    const packetLoss = Math.round((failed / 5) * 100);
+    const avgPing = pings.length ? Math.round(pings.reduce((a,b)=>a+b,0)/pings.length) : 9999;
+    document.getElementById('m-ping').textContent = avgPing >= 9999 ? '∞' : avgPing;
+
+    // Download
+    document.getElementById('speed-title').textContent = '⬇️ Testing download...';
+    let downloadMbps = 0;
+    try {
+      const s = performance.now();
+      const res = await fetch(`${SERVER_URL}/speed-test/download?size=200000&_=${Date.now()}`, { cache: 'no-store' });
+      const blob = await res.blob();
+      downloadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
+    } catch(e) {}
+    document.getElementById('m-down').textContent = downloadMbps;
+    setNeedle(downloadMbps);
+
+    // Upload
+    document.getElementById('speed-title').textContent = '⬆️ Testing upload...';
+    let uploadMbps = 0;
+    try {
+      const blob = new Blob([new Uint8Array(100000)]);
+      const s = performance.now();
+      await fetch(`${SERVER_URL}/speed-test/upload`, { method: 'POST', body: blob, headers: { 'Content-Type': 'application/octet-stream' }, cache: 'no-store' });
+      uploadMbps = parseFloat(((blob.size * 8) / ((performance.now() - s) / 1000) / 1000000).toFixed(1));
+    } catch(e) {}
+    document.getElementById('m-up').textContent = uploadMbps;
+
+    // Verdict
+    let quality, color, bg, message;
+    if (avgPing < 150 && downloadMbps >= 5 && uploadMbps >= 2 && packetLoss === 0) {
+      quality = 'good'; color = '#00c853'; bg = 'rgba(0,200,83,0.1)';
+      message = '🟢 Great connection! You\'re good to go.';
+    } else if (avgPing < 400 && downloadMbps >= 2 && packetLoss <= 20) {
+      quality = 'fair'; color = '#ffd740'; bg = 'rgba(255,215,64,0.1)';
+      message = '🟡 Fair connection. Class may have minor audio or video issues.';
+    } else {
+      quality = 'poor'; color = '#e53935'; bg = 'rgba(229,57,53,0.1)';
+      message = '🔴 Unstable connection. If you experience issues during class, please check your internet.';
+    }
+
+    document.getElementById('speed-title').textContent = '✅ Test complete';
+    const resultEl = document.getElementById('speed-result');
+    resultEl.style.display = 'block';
+    resultEl.style.background = bg; resultEl.style.color = color; resultEl.style.border = `1px solid ${color}`;
+    resultEl.textContent = message;
+    document.getElementById('speed-enter-btn').style.display = 'block';
+
+    const result = { avgPing, packetLoss, downloadMbps, uploadMbps, quality, testedAt: new Date().toISOString() };
+    _netResult = result;
+    if (_sessionId) {
+      localStorage.setItem(`nettest_${_sessionId}`, JSON.stringify(result));
+      stampNetworkTest(_sessionId, result);
+    }
+    unlockEnterBtn(result);
+  }
+
+  async function stampNetworkTest(sessionId, result) {
+    try {
+      await fetch(`${SERVER_URL}/attendance/network-test/student`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sessionId, networkTest: result, studentName: name })
+      });
+    } catch(e) {}
+  }
+
+  async function openSchedule() {
+    document.getElementById('sched-modal').style.display = 'flex';
+    const list = document.getElementById('sched-list');
+    try {
+      const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      const assignments = await res.json();
+      if (!assignments.length) { list.innerHTML = '<div style="color:#667;text-align:center;">No classes scheduled.</div>'; return; }
+
+      // Sort upcoming first
+      const now = new Date();
+      const sorted = assignments
+        .filter(a => a.date >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+
+      if (!sorted.length) { list.innerHTML = '<div style="color:#667;text-align:center;">No upcoming classes.</div>'; return; }
+
+      list.innerHTML = sorted.map(a => {
+        // Convert GDL time to student's local time
+        const [hh, mm] = a.time.split(':').map(Number);
+        // Build a date object in GDL time
+        const gdlDate = new Date(`${a.date}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
+        // Get offset difference
+        const gdlOffset = new Date(gdlDate.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })) - gdlDate;
+        const localOffset = new Date(gdlDate.toLocaleString('en-US')) - gdlDate;
+        const utcTime = new Date(gdlDate.getTime() - gdlOffset + localOffset);
+
+        // Format local time
+        const localStr = utcTime.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        // Format GDL time
+        const gdlStr = `${hh % 12 || 12}:${String(mm).padStart(2,'0')} ${hh >= 12 ? 'PM' : 'AM'} GDL`;
+
+        // How far away?
+        const diffMs = utcTime - now;
+        const diffMins = Math.round(diffMs / 60000);
+        let soonTag = '';
+        if (diffMins > 0 && diffMins <= 90) {
+          soonTag = `<div class="sched-soon">⚡ In ${diffMins < 60 ? diffMins + ' min' : Math.floor(diffMins/60) + 'h ' + (diffMins%60 ? diffMins%60+'min' : '')}</div>`;
+        } else if (diffMins <= 0 && diffMins > -90) {
+          soonTag = `<div class="sched-soon" style="color:#ffd740;">🔴 Happening now!</div>`;
+        }
+
+        const dayName = new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+        return `<div class="sched-item">
+          <div class="sched-day">📅 ${dayName}</div>
+          <div class="sched-time">${localStr} <span style="font-size:0.75rem;color:#667;">your time</span></div>
+          <div class="sched-gdl">${gdlStr}</div>
+          <div class="sched-type">⏱ ${a.classType || ''}${a.groupName ? ' · ' + a.groupName : ''}</div>
+          ${soonTag}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      list.innerHTML = '<div style="color:#e53935;">Could not load schedule.</div>';
+    }
+  }
+
+  function proceedToClass() {
+    const url = _sessionId
+      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
+      : `classroom.html?room=${room}`;
+    window.location.href = url;
+  }
+
+  function enterClass() {
+    const url = _sessionId
+      ? `classroom.html?room=${room}&sessionId=${_sessionId}`
+      : `classroom.html?room=${room}`;
+    window.location.href = url;
+  }
+
+  function exitToLogin() {
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('studentName');
+    localStorage.removeItem('studentRoom');
+    window.location.href = 'index.html';
+  }
+</script>
+</body>
+</html>
