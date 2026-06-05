@@ -2208,28 +2208,44 @@ function openAttDetail(idx) {
   const expectedStudents = group?.students || [];
   const actualStudents   = r.students || [];
 
-  // Build student rows — mark no-shows
+  // Build student rows — mark no-shows and show disconnect log
+  const buildStudentRow = (name, actual) => {
+    if (!actual) return `<tr>
+      <td style="font-weight:700;">${name}</td>
+      <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
+      <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
+      <td>—</td>
+    </tr>`;
+    const disconnects = actual.disconnects || [];
+    const totalGap = disconnects.reduce((s, d) => s + (d.gapMins || 0), 0);
+    const disconnectBadge = disconnects.length > 0
+      ? `<span style="font-size:0.7rem;background:#ffebee;color:#b71c1c;padding:1px 6px;border-radius:8px;font-weight:700;margin-left:4px;">⚡ ${disconnects.length}x disconnected · ${totalGap} min</span>`
+      : '';
+    const disconnectDetail = disconnects.length > 0 ? `
+      <tr style="background:#fff8f8;">
+        <td colspan="4" style="padding:4px 12px 8px;">
+          <table style="width:100%;font-size:0.75rem;border-collapse:collapse;">
+            <tr><th style="color:#888;text-align:left;padding:2px 6px;">#</th><th style="color:#888;text-align:left;padding:2px 6px;">Disconnected</th><th style="color:#888;text-align:left;padding:2px 6px;">Reconnected</th><th style="color:#888;text-align:right;padding:2px 6px;">Gap</th></tr>
+            ${disconnects.map((d,i) => `<tr>
+              <td style="padding:2px 6px;color:#888;">${i+1}</td>
+              <td style="padding:2px 6px;color:#b71c1c;font-weight:700;">${fmtT(d.disconnectedAt)}</td>
+              <td style="padding:2px 6px;color:#2e7d32;font-weight:700;">${fmtT(d.reconnectedAt)}</td>
+              <td style="padding:2px 6px;text-align:right;font-weight:900;color:#b71c1c;">${d.gapMins != null ? d.gapMins + ' min' : '—'}</td>
+            </tr>`).join('')}
+          </table>
+        </td>
+      </tr>` : '';
+    return `<tr>
+      <td style="font-weight:700;">${name}${disconnectBadge}</td>
+      <td style="color:#2e7d32;font-weight:700;">${fmtT(actual.joinedAt)}</td>
+      <td>${fmtT(actual.leftAt || r.classEndedAt)}</td>
+      <td style="color:${totalGap > 0 ? '#b71c1c' : '#888'};font-weight:${totalGap > 0 ? '700' : '400'};">${totalGap > 0 ? totalGap + ' min' : '—'}</td>
+    </tr>${disconnectDetail}`;
+  };
+
   const studentRows = expectedStudents.length > 0
-    ? expectedStudents.map(name => {
-        const actual = actualStudents.find(s => s.name === name);
-        if (!actual) {
-          return `<tr>
-            <td style="font-weight:700;">${name}</td>
-            <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
-            <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
-          </tr>`;
-        }
-        return `<tr>
-          <td style="font-weight:700;">${name}</td>
-          <td style="color:#2e7d32;font-weight:700;">${fmtT(actual.joinedAt)}</td>
-          <td>${fmtT(actual.leftAt || r.classEndedAt)}</td>
-        </tr>`;
-      }).join('')
-    : actualStudents.map(s => `<tr>
-        <td style="font-weight:700;">${s.name}</td>
-        <td style="color:#2e7d32;font-weight:700;">${fmtT(s.joinedAt)}</td>
-        <td>${fmtT(s.leftAt || r.classEndedAt)}</td>
-      </tr>`).join('');
+    ? expectedStudents.map(name => buildStudentRow(name, actualStudents.find(s => s.name === name))).join('')
+    : actualStudents.map(s => buildStudentRow(s.name, s)).join('');
 
   document.getElementById('attendance-detail-content').innerHTML = `
     <div id="print-area" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
@@ -2274,6 +2290,7 @@ function openAttDetail(idx) {
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">NAME</th>
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">JOINED</th>
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#888;font-weight:900;">LEFT</th>
+          <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#b71c1c;font-weight:900;">DISCONNECT</th>
         </tr></thead>
         <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No students recorded</td></tr>'}</tbody>
       </table>
