@@ -240,16 +240,11 @@
 <div id="topbar">
   <img src="LOGO.png" alt="PolyABC"/>
   <span class="teacher-name" id="teacher-name-label">Loading...</span>
+  <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
   <button class="back-btn" onclick="goBack()">← Back</button>
 </div>
 
 <div id="main">
-  <!-- PAY PERIOD HEADER -->
-  <div id="pay-period-banner" style="background:#0f3460;border:1px solid #ffd700;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:0.95rem;font-weight:900;color:white;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-    <span>💰 Your Pay: <span id="pay-period-dates" style="color:#ffd700;">Loading...</span></span>
-    <span id="pay-period-total" style="color:#ffd700;">$— MXN</span>
-  </div>
-
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div style="font-size:0.75rem;color:#a0c4ff;margin-bottom:10px;">⏰ All times in Guadalajara Time (Central Mexico)</div>
   <div id="day-hours-card">
@@ -356,7 +351,7 @@
   async function init() {
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
-    document.getElementById('teacher-name-label').textContent = `Teacher ${info.teacherName || 'Teacher'} — Room ${info.room}`;
+    document.getElementById('teacher-name-label').textContent = `Room ${info.room} · Teacher ${info.teacherName || 'Teacher'}`;
 
     const aRes = await fetch(`${SERVER_URL}/availability`, { headers: { Authorization: `Bearer ${token}` } });
     const aData = await aRes.json();
