@@ -799,7 +799,9 @@ function connectSocket() {
     }
   });
 
-  socket.on('timer-info', ({ assignment }) => {
+  socket.on('timer-info', ({ assignment, groupDebtMins }) => {
+    // Store group debt so debt counter knows when to stop
+    if (groupDebtMins !== undefined) window._minutesOwed = groupDebtMins;
     if (!IS_TEACHER) startTimer(assignment);
     else {
       // Ensure timer is running for teacher too (fallback if loadSchedule missed it)
@@ -1297,6 +1299,15 @@ function checkTeacherRoomLock() {
     openBtn.title='';
     if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
+    // Fetch group debt for this assignment so debt counter knows when to stop
+    if (current.groupId && window._minutesOwed === undefined) {
+      fetch(`${SERVER_URL}/groups/${current.groupId}/debt`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } })
+        .then(r => r.json())
+        .then(d => { window._minutesOwed = d.debtMins || 0; })
+        .catch(() => { window._minutesOwed = 0; });
+    } else if (!current.groupId) {
+      window._minutesOwed = 0;
+    }
     // If already past start time and class not open yet, auto-open
     const nowMins = nowGDL().getHours()*60 + nowGDL().getMinutes();
     if (nowMins >= current.sm && !classIsOpen) {
@@ -1401,17 +1412,27 @@ function startTimer(assignment) {
     timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
 
     // Debt payoff counter — starts after class duration ends, counts full minutes only
+    // Capped at minutesOwed — teacher cannot earn more than durationMins total
     if (IS_TEACHER && elapsed >= duration) {
-      const overMins = elapsed - duration; // minutes past class end
-      const fullMinsOver = Math.floor(overMins); // only full minutes count
-      if (fullMinsOver > 0) {
-        const debtEl = document.getElementById('debt-payoff-timer');
-        if (debtEl) {
-          debtEl.style.display = 'block';
-          const om = Math.floor(overMins), os = Math.floor((overMins%1)*60);
-          debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt`;
-          window._debtPayoffMins = fullMinsOver; // track for end-class emit
+      const overMins = elapsed - duration;
+      const fullMinsOver = Math.floor(overMins);
+      const debtEl = document.getElementById('debt-payoff-timer');
+      if (debtEl && window._minutesOwed > 0) {
+        const cappedMins = Math.min(fullMinsOver, window._minutesOwed);
+        const om = Math.floor(overMins), os = Math.floor((overMins % 1) * 60);
+        debtEl.style.display = 'block';
+        if (cappedMins >= window._minutesOwed) {
+          // Debt fully paid!
+          debtEl.textContent = `🏅 Debt paid! +${window._minutesOwed} min`;
+          debtEl.style.color = '#00c853';
+          debtEl.style.border = '1px solid #00c853';
+          debtEl.style.background = 'rgba(0,200,83,0.15)';
+        } else {
+          debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt (${cappedMins}/${window._minutesOwed} min)`;
         }
+        window._debtPayoffMins = cappedMins;
+      } else if (debtEl && window._minutesOwed === 0) {
+        debtEl.style.display = 'none';
       }
     }
   }, 1000);
