@@ -574,6 +574,14 @@ The owed timer was incorrectly triggering for on-time teachers.
 ## 16. Session Changelog (most recent first)
 
 ### Session 5 — Claude
+- **TEACHER DISCONNECT/RECONNECT STAMPING**
+  - Every teacher disconnect pushes `{ disconnectedAt, reconnectedAt: null, gapMins: null }` to `disconnects[]` array on attendance record
+  - When teacher reconnects, finds last open disconnect entry, stamps `reconnectedAt` + calculates `gapMins`
+  - `totalDisconnectMins` recalculated on every reconnect and on `end-class`
+  - If teacher never reconnects (10 min timeout), stamps `reconnectedAt: 'never'` + `gapMins: 10`
+  - Attendance detail shows full disconnect log table: #, Disconnected, Reconnected, Gap
+  - Payroll deducts `totalDisconnectMins` from pay with note `⚠️ Disconnected X min — Y/Z min paid`
+  - Combined late + disconnect: `⚠️ Late X min + disconnected Y min — Z/30 min paid`
 - **ATTENDANCE + PAYROLL DISPLAY FIXES**
   - Attendance list and detail now use stamped `r.scheduledTime`, `r.groupName`, `r.classType` from the record itself — not from the assignment in the calendar
   - Session ID (`#b7d945`) shown in attendance list, detail view, and payroll rows
