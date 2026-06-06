@@ -1571,7 +1571,7 @@ function renderAllStudents() {
       ? `<span style="font-size:0.8rem;color:#e65100;">${s.trialDate} ${s.trialTime ? fmt12(s.trialTime) : ''}</span>`
       : '<span style="color:#aaa;">—</span>';
     return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
-      <td style="font-weight:700;">${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}</td>
+      <td style="font-weight:700;">${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}</td>
       <td style="color:#888;">${s.password}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
