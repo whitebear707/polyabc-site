@@ -1384,7 +1384,10 @@ function startTimer(assignment) {
   timerInterval = setInterval(() => {
     const now = nowGDL();
     const nowMins = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
-    const elapsed = nowMins - t2m(assignment.time);
+    let elapsed = nowMins - t2m(assignment.time);
+    // Handle midnight crossover — if diff is more than 12 hours off, adjust
+    if (elapsed < -720) elapsed += 1440;
+    if (elapsed > 720) elapsed -= 1440;
 
     if (elapsed < 0) {
       const s = Math.round(-elapsed*60), mm=Math.floor(s/60), ss=s%60;
