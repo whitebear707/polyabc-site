@@ -2221,11 +2221,12 @@ function teacherEndClass() {
   // Store end time for greeting page to display
   const endTime = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
   localStorage.setItem('lastClassEndedAt', endTime);
+  // Wait 2 seconds to ensure server fully processes end-class before disconnecting
   setTimeout(() => {
     if (captureInterval) clearInterval(captureInterval);
     if (window._socket) window._socket.disconnect();
     window.location.href = 'greeting.html';
-  }, 500);
+  }, 2000);
 }
 
 // ── WebRTC Screenshare (peer-to-peer, zero server bandwidth) ──
