@@ -14,13 +14,13 @@
       background: #16213e;
       border-bottom: 2px solid #0f3460;
       padding: 10px 24px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      gap: 16px;
     }
-    #topbar img { height: 40px; cursor: pointer; flex-shrink: 0; }
-    #topbar .teacher-name { font-size: 1rem; font-weight: 900; color: #a0c4ff; }
-    #pay-period-header { margin-left: auto; }
+    #topbar img { height: 44px; cursor: pointer; justify-self: center; }
+    #topbar .teacher-name { font-size: 1.1rem; font-weight: 900; color: #a0c4ff; }
+    #pay-period-header { justify-self: end; font-size: 0.85rem; }
 
     #main { padding: 24px; }
 
@@ -130,7 +130,9 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 4px;
+      max-width: 600px;
     }
+    #cal-container { max-width: 600px; }
     .cal-header {
       text-align: center;
       font-size: 0.78rem;
@@ -151,7 +153,8 @@
       transition: transform 0.1s;
       position: relative;
       padding: 4px;
-      min-height: 52px;
+      min-height: 40px;
+      max-height: 60px;
     }
     .cal-day:hover { transform: scale(1.05); }
     .cal-day.other-month { opacity: 0.25; cursor: default; pointer-events: none; }
@@ -241,6 +244,7 @@
   <div id="upcoming-classes" style="margin-bottom:24px;"></div>
 
   <p class="section-title">📅 My Availability Calendar</p>
+  <div id="cal-container">
   <div id="calendar-card">
     <div class="cal-nav">
       <button onclick="prevMonth()">‹</button>
@@ -254,9 +258,8 @@
       <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned</div>
     </div>
   </div>
+  </div><!-- end cal-container -->
 </div>
-
-<div id="save-bar">
   <span class="save-msg" id="save-msg">✅ Saved!</span>
   <button class="btn-save" onclick="saveAvailability()">💾 Save Schedule</button>
 </div>
