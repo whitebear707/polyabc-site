@@ -207,10 +207,12 @@
       padding: 12px 24px;
       display: flex;
       justify-content: center;
+      align-items: center;
       gap: 12px;
       z-index: 100;
+      position: fixed;
     }
-    .btn-save {
+    .save-msg { color: #69f0ae; font-weight: 700; font-size: 0.95rem; display: none; margin-right: 12px; }
       background: #1a73e8;
       color: white;
       border: none;
@@ -260,8 +262,11 @@
   </div>
   </div><!-- end cal-container -->
 </div>
-  <span class="save-msg" id="save-msg">✅ Saved!</span>
+<div id="save-bar">
   <button class="btn-save" onclick="saveAvailability()">💾 Save Schedule</button>
+</div>
+<div id="save-msg-bar" style="display:none;position:fixed;bottom:62px;left:0;right:0;text-align:center;z-index:101;">
+  <span id="save-msg" style="background:#1b5e20;color:#69f0ae;padding:6px 16px;border-radius:20px;font-weight:700;font-size:0.9rem;">✅ Saved!</span>
 </div>
 
 <!-- ASSIGNMENT DETAIL MODAL -->
@@ -664,7 +669,7 @@
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ dayHours, dates, timezone: tz })
     });
-    const msg = document.getElementById('save-msg');
+    const msg = document.getElementById('save-msg-bar');
     msg.style.display = 'block';
     setTimeout(() => msg.style.display = 'none', 2500);
   }
