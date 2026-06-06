@@ -2217,7 +2217,7 @@ function teacherBRB() { document.getElementById('leave-modal').style.display = '
 function teacherEndClass() {
   document.getElementById('leave-modal').style.display = 'none';
   const debtPayoffMins = window._debtPayoffMins || 0;
-  if (window._socket) window._socket.emit('end-class', { room: ROOM, debtPayoffMins });
+  if (window._socket) window._socket.emit('end-class', { room: ROOM, debtPayoffMins, sessionId: SESSION_ID });
   // Store end time for greeting page to display
   const endTime = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
   localStorage.setItem('lastClassEndedAt', endTime);
