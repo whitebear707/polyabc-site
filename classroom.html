@@ -1299,14 +1299,22 @@ function checkTeacherRoomLock() {
     openBtn.title='';
     if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
-    // Fetch group debt for this assignment so debt counter knows when to stop
-    if (current.groupId && window._minutesOwed === undefined) {
-      fetch(`${SERVER_URL}/groups/${current.groupId}/debt`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } })
-        .then(r => r.json())
-        .then(d => { window._minutesOwed = d.debtMins || 0; })
-        .catch(() => { window._minutesOwed = 0; });
-    } else if (!current.groupId) {
-      window._minutesOwed = 0;
+    // Fetch debt for this assignment so debt counter knows when to stop
+    if (window._minutesOwed === undefined) {
+      if (current.groupId) {
+        // Group class — fetch group debt
+        fetch(`${SERVER_URL}/groups/${current.groupId}/debt`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } })
+          .then(r => r.json())
+          .then(d => { window._minutesOwed = d.debtMins || 0; })
+          .catch(() => { window._minutesOwed = 0; });
+      } else if (current.classType && current.classType.includes('1v1') && current.students > 0) {
+        // 1v1 class — fetch student debt (first student in the attendance record)
+        // We fetch via the timer-info broadcast which includes groupDebtMins for groups
+        // For 1v1, server sends it via room-joined now
+        window._minutesOwed = 0; // will be updated via timer-info
+      } else {
+        window._minutesOwed = 0;
+      }
     }
     // If already past start time and class not open yet, auto-open
     const nowMins = nowGDL().getHours()*60 + nowGDL().getMinutes();
