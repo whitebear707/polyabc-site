@@ -588,6 +588,29 @@ The owed timer was incorrectly triggering for on-time teachers.
   - **Student clone slots fixed**: `showStudentSlot()` now checks for existing slot by name before creating new one, removes old socketId slot on reconnect
   - **Reward text black outline**: added 4-directional text-shadow black strokes to `#star-name` — yellow text now readable on white background
   - **Group debt badges on master calendar**: day cells show `-5m` red badges when assigned groups have debt
+- **PAYROLL FIXES (round 2)**
+  - Disconnect minutes always deducted from pay regardless of endType — teacher wasn't present, period
+  - `COMPLETED` class with disconnects: paid `durationMins - disconnectMins`
+  - Debt payoff has NO cap — teacher gets paid for ALL debt payoff minutes as legitimate extra work
+  - Alfred example: 30 min class + 5 min debt = 35 min pay = $116.67 ✅
+  - Edith example: 30 min - 5 min disconnect = 25 min pay = $83.33 ✅
+  - Ghost records (no matching assignment) skipped in payroll — no free pay
+  - Loose date-only assignment fallback removed — prevents ghost records matching wrong assignments
+- **END CLASS FLOW**
+  - `end-class` handler now cancels reconnect timer immediately — no ghost `invalid_termination`
+  - Teacher redirected to `greeting.html` after ending class (not `index.html`)
+  - Greeting page shows green banner: `✅ Class ended successfully — Ended at 6:35 PM GDL time`
+  - Banner shows once then clears from localStorage
+- **NETWORK TEST**
+  - Switched from pinging Render server to Cloudflare `1.1.1.1/cdn-cgi/trace`
+  - Cloudflare has nodes in GDL, CDMX, Monterrey, Tijuana area — accurate local latency
+  - Tighter thresholds: 🟢 < 50ms, 🟡 < 120ms, 🔴 >= 120ms
+- **GREETING PAGE — no class = disabled**
+  - Speed test button disabled/grayed when no class within 20-min window
+  - Shows `📶 No class scheduled soon` instead
+  - Uses same 20-min early window logic as classroom.html
+- **WAITING BADGE FIX**
+  - Fixed z-index and positioning on open-class-btn badge
 - **BUGS QUEUED FOR NEXT SESSION**
   - 🔔 Teacher gets no notification when student is waiting
   - 📹 Teacher disconnect slot should show school logo placeholder
