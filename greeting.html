@@ -43,8 +43,15 @@
 </head>
 <body>
 
-<a href="index.html"><img src="LOGO.png" class="logo" alt="PolyABC" style="cursor:pointer;"/></a>
+<img src="LOGO.png" class="logo" alt="PolyABC" style="cursor:pointer;" onclick="window.location.href='index.html'"/>
 <div class="welcome-title">Welcome, Teacher <span id="teacher-name">Teacher</span>!</div>
+
+<!-- Class ended banner — shown when returning from classroom -->
+<div id="class-ended-banner" style="display:none;background:rgba(0,200,83,0.1);border:1px solid #00c853;border-radius:12px;padding:12px 20px;width:100%;max-width:380px;text-align:center;margin-bottom:4px;">
+  <div style="font-size:1.2rem;">✅</div>
+  <div style="font-size:0.9rem;font-weight:900;color:#00c853;">Class ended successfully</div>
+  <div style="font-size:0.8rem;color:#a0c4ff;margin-top:2px;">Ended at <span id="class-ended-time"></span> Guadalajara time</div>
+</div>
 
 <div class="card">
   <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>🎓 Enter Class</button>
@@ -86,6 +93,14 @@
   const name  = localStorage.getItem('teacherName');
   if (!token || !room) window.location.href = 'index.html';
   document.getElementById('teacher-name').textContent = name || 'Teacher';
+
+  // Show class ended banner if returning from classroom
+  const lastEndedAt = localStorage.getItem('lastClassEndedAt');
+  if (lastEndedAt) {
+    document.getElementById('class-ended-banner').style.display = 'block';
+    document.getElementById('class-ended-time').textContent = lastEndedAt;
+    localStorage.removeItem('lastClassEndedAt'); // only show once
+  }
 
   let _sessionId = null;
   let _netResult = null;
