@@ -596,6 +596,11 @@ The owed timer was incorrectly triggering for on-time teachers.
   - Edith example: 30 min - 5 min disconnect = 25 min pay = $83.33 ✅
   - Ghost records (no matching assignment) skipped in payroll — no free pay
   - Loose date-only assignment fallback removed — prevents ghost records matching wrong assignments
+- **CRITICAL BUG FIX — classEndedAt not stamping (identified via commit 1267fcf)**
+  - Cause: ReferenceError — `lateMins` and `totalDisconnectMins` were used in `endType` calculation BEFORE they were declared. Handler crashed silently before reaching `classEndedAt` stamp.
+  - Symptoms: Attendance showed `Opened Class` ✅ and `Student Left` ✅ but `Closed Class` was blank ❌
+  - Fix: Moved `attRec`, `totalDisconnectMins`, and `lateMins` declarations ABOVE the `endType` calculation in `end-class` handler
+  - Also: Teacher now sends `SESSION_ID` with `end-class` emit so server can find attendance record reliably after reconnects
 - **END CLASS FLOW**
   - `end-class` handler now cancels reconnect timer immediately — no ghost `invalid_termination`
   - Teacher redirected to `greeting.html` after ending class (not `index.html`)
