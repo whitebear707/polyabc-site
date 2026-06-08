@@ -858,12 +858,16 @@ function connectSocket() {
     if (!IS_TEACHER) {
       const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'none';
       document.getElementById('room-label').style.background = '#2e7d32';
-      // Remove logo placeholder
       const logoPlaceholder = document.getElementById('teacher-logo-placeholder');
       if (logoPlaceholder) logoPlaceholder.style.display = 'none';
       const leftVid = document.getElementById('left-video');
       if (leftVid) leftVid.style.display = 'block';
     }
+  });
+
+  // Update running disconnect total so debt counter is accurate
+  socket.on('disconnect-total-update', ({ totalDisconnectMins }) => {
+    if (IS_TEACHER) window._totalDisconnectMins = totalDisconnectMins;
   });
 
   socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; } } });
@@ -1422,27 +1426,32 @@ function startTimer(assignment) {
     timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
     timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
 
-    // Debt payoff counter — starts after class duration ends, counts full minutes only
-    // Capped at minutesOwed — teacher cannot earn more than durationMins total
+    // Debt payoff counter — starts after class duration ends
+    // Total owed = previous group/student debt + THIS class's disconnects + lateness
     if (IS_TEACHER && elapsed >= duration) {
       const overMins = elapsed - duration;
       const fullMinsOver = Math.floor(overMins);
       const debtEl = document.getElementById('debt-payoff-timer');
-      if (debtEl && window._minutesOwed > 0) {
-        const cappedMins = Math.min(fullMinsOver, window._minutesOwed);
+
+      // Calculate total minutes owed: previous debt + current class disconnects
+      const prevDebt = window._minutesOwed || 0;
+      const currentDisconnects = window._totalDisconnectMins || 0;
+      const totalOwed = prevDebt + currentDisconnects;
+
+      if (debtEl && totalOwed > 0) {
+        const cappedMins = Math.min(fullMinsOver, totalOwed);
         const om = Math.floor(overMins), os = Math.floor((overMins % 1) * 60);
         debtEl.style.display = 'block';
-        if (cappedMins >= window._minutesOwed) {
-          // Debt fully paid!
-          debtEl.textContent = `🏅 Debt paid! +${window._minutesOwed} min`;
+        if (cappedMins >= totalOwed) {
+          debtEl.textContent = `🏅 Debt paid! +${totalOwed} min`;
           debtEl.style.color = '#00c853';
           debtEl.style.border = '1px solid #00c853';
           debtEl.style.background = 'rgba(0,200,83,0.15)';
         } else {
-          debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt (${cappedMins}/${window._minutesOwed} min)`;
+          debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt (${cappedMins}/${totalOwed} min)`;
         }
         window._debtPayoffMins = cappedMins;
-      } else if (debtEl && window._minutesOwed === 0) {
+      } else if (debtEl && totalOwed === 0) {
         debtEl.style.display = 'none';
       }
     }
