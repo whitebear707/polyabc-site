@@ -867,7 +867,24 @@ function connectSocket() {
 
   // Update running disconnect total so debt counter is accurate
   socket.on('disconnect-total-update', ({ totalDisconnectMins }) => {
-    if (IS_TEACHER) window._totalDisconnectMins = totalDisconnectMins;
+    if (IS_TEACHER) {
+      window._totalDisconnectMins = totalDisconnectMins;
+      window._disconnectStart = null; // clear active disconnect tracker
+    }
+  });
+
+  // Track when teacher's own socket disconnects
+  socket.on('disconnect', () => {
+    if (IS_TEACHER) window._disconnectStart = Date.now();
+  });
+
+  // When teacher reconnects, add the gap to running total temporarily
+  socket.on('connect', () => {
+    if (IS_TEACHER && window._disconnectStart) {
+      const gapMins = Math.round((Date.now() - window._disconnectStart) / 60000);
+      window._totalDisconnectMins = (window._totalDisconnectMins || 0) + gapMins;
+      window._disconnectStart = null;
+    }
   });
 
   socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; } } });
@@ -1433,10 +1450,10 @@ function startTimer(assignment) {
       const fullMinsOver = Math.floor(overMins);
       const debtEl = document.getElementById('debt-payoff-timer');
 
-      // Calculate total minutes owed: previous debt + current class disconnects
+      // Calculate total owed: previous group/student debt + confirmed disconnect mins + any active disconnect
       const prevDebt = window._minutesOwed || 0;
-      const currentDisconnects = window._totalDisconnectMins || 0;
-      const totalOwed = prevDebt + currentDisconnects;
+      const confirmedDisconnects = window._totalDisconnectMins || 0;
+      const totalOwed = prevDebt + confirmedDisconnects;
 
       if (debtEl && totalOwed > 0) {
         const cappedMins = Math.min(fullMinsOver, totalOwed);
