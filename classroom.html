@@ -1451,6 +1451,11 @@ function startTimer(assignment) {
           debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt (${cappedMins}/${totalOwed} min)`;
         }
         window._debtPayoffMins = cappedMins;
+        // Stamp debt payoff on server every full minute so it persists even if browser closes
+        if (IS_TEACHER && window._socket && cappedMins > (window._lastStampedDebtMins || 0)) {
+          window._lastStampedDebtMins = cappedMins;
+          window._socket.emit('debt-payoff-update', { room: ROOM, debtPayoffMins: cappedMins, sessionId: SESSION_ID });
+        }
       } else if (debtEl && totalOwed === 0) {
         debtEl.style.display = 'none';
       }
