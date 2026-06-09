@@ -2464,7 +2464,8 @@ async function checkDevPassword() {
   } catch(e) {
     // Fallback to allTeachers if available
     sel.innerHTML = '';
-    (allTeachers || []).forEach(t => {
+    const fallback = (typeof allTeachers !== 'undefined' ? allTeachers : []);
+    fallback.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.room; opt.textContent = `Room ${t.room} · ${t.teacherName}`;
       sel.appendChild(opt);
