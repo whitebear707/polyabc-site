@@ -2452,13 +2452,13 @@ async function checkDevPassword() {
   const sel = document.getElementById('dev-room');
   sel.innerHTML = '<option value="">Loading...</option>';
   try {
-    const res = await fetch(`${SERVER_URL}/teachers`, { headers: { Authorization: `Bearer ${adminToken}` } });
-    const teachers = await res.json();
+    const res = await fetch(`${SERVER_URL}/rooms`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    const rooms = await res.json();
     sel.innerHTML = '';
-    teachers.forEach(t => {
+    rooms.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.room;
-      opt.textContent = `Room ${t.room} · ${t.teacherName}`;
+      opt.textContent = `Room ${t.room} · ${t.teacherName || t.name || 'Teacher'}`;
       sel.appendChild(opt);
     });
   } catch(e) {
