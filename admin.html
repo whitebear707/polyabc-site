@@ -2437,7 +2437,7 @@ function openDevPanel() {
   setTimeout(() => document.getElementById('dev-pwd-input').focus(), 100);
 }
 
-function checkDevPassword() {
+async function checkDevPassword() {
   const pwd = document.getElementById('dev-pwd-input').value;
   if (pwd !== DEV_PASSWORD) {
     document.getElementById('dev-auth-error').style.display = 'block';
@@ -2448,14 +2448,29 @@ function checkDevPassword() {
   document.getElementById('dev-main-content').style.display = 'block';
   document.getElementById('dev-auth-error').style.display = 'none';
 
-  // Populate room dropdown
+  // Load teachers fresh from server
   const sel = document.getElementById('dev-room');
-  sel.innerHTML = '';
-  (allTeachers || []).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.room; opt.textContent = `Room ${t.room} · ${t.teacherName}`;
-    sel.appendChild(opt);
-  });
+  sel.innerHTML = '<option value="">Loading...</option>';
+  try {
+    const res = await fetch(`${SERVER_URL}/teachers`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    const teachers = await res.json();
+    sel.innerHTML = '';
+    teachers.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.room;
+      opt.textContent = `Room ${t.room} · ${t.teacherName}`;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // Fallback to allTeachers if available
+    sel.innerHTML = '';
+    (allTeachers || []).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.room; opt.textContent = `Room ${t.room} · ${t.teacherName}`;
+      sel.appendChild(opt);
+    });
+  }
+
   document.getElementById('dev-date').value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
   document.getElementById('dev-error').style.display = 'none';
   document.getElementById('dev-success').style.display = 'none';
