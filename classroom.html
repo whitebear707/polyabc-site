@@ -432,6 +432,11 @@ const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem(
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
 const studentSlots = {};
 
+// Get the stable identity (name) for a socketId — used for DOM lookups
+function getIdentity(socketId) {
+  return studentSlots[socketId] || socketId;
+}
+
 document.getElementById('room-label').textContent = SESSION_ID
   ? `Room: ${ROOM} · #${SESSION_ID.slice(-6)}`
   : `Room: ${ROOM}`;
@@ -1132,10 +1137,10 @@ function createVideoSlot(socketId, role, name) {
     // Student sees teacher
     teacherSocketId = socketId;
     document.getElementById('left-video').style.display = 'none';
-    let vid = document.getElementById(`vimg-${socketId}`);
+    let vid = document.getElementById(`vimg-${getIdentity(socketId)}`);
     if (!vid) {
       vid = document.createElement('video');
-      vid.id = `vimg-${socketId}`;
+      vid.id = `vimg-${getIdentity(socketId)}`;
       vid.autoplay = true; vid.playsInline = true; vid.muted = true;
       vid.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
       document.getElementById('left-video').parentElement.appendChild(vid);
@@ -1152,40 +1157,36 @@ function createVideoSlot(socketId, role, name) {
 }
 
 function showStudentSlot(socketId, name) {
-  if (studentSlots[socketId]) return;
+  const identity = name || socketId; // stable key — survives reconnects
 
-  // Remove any existing slot for this student name (from a previous socketId on reconnect)
-  const existingSocketId = Object.keys(studentSlots).find(sid => {
-    const lbl = document.getElementById(`lbl-${sid}`);
-    return lbl && lbl.textContent === (name || 'Student');
-  });
-  if (existingSocketId) {
-    const oldWrap = document.getElementById(`wrap-${existingSocketId}`);
-    if (oldWrap) oldWrap.remove();
-    delete studentSlots[existingSocketId];
+  // If slot already exists for this identity, just update socketId mapping and return
+  if (document.getElementById(`wrap-${identity}`)) {
+    // Update socketId -> identity mapping for existing slot
+    // Remove old socketId key if different
+    Object.keys(studentSlots).forEach(k => {
+      if (studentSlots[k] === identity && k !== identity) delete studentSlots[k];
+    });
+    studentSlots[socketId] = identity;
+    return;
   }
+
   const wrap = document.createElement('div');
-  wrap.className = 'student-wrap'; wrap.id = `wrap-${socketId}`;
+  wrap.className = 'student-wrap'; wrap.id = `wrap-${identity}`;
   const slot = document.createElement('div');
-  slot.className = 'student-box'; slot.id = `slot-${socketId}`;
-  // Use video element for WebRTC stream
-  slot.innerHTML = `<video id="vimg-${socketId}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}"></video>
-    ${IS_TEACHER ? `<div id="spk-${socketId}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
-  // Use click on slot div with delegation - survives video element replacement
+  slot.className = 'student-box'; slot.id = `slot-${identity}`;
+  slot.innerHTML = `<video id="vimg-${identity}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}"></video>
+    ${IS_TEACHER ? `<div id="spk-${identity}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
   if (IS_TEACHER) {
     slot.style.cursor = 'pointer';
     slot.addEventListener('click', (e) => {
-      // Only trigger if clicking the video area, not the speaker icon
-      if (!e.target.closest(`#spk-${socketId}`)) {
-        toggleStudentCamClick(socketId);
-      }
+      if (!e.target.closest(`#spk-${identity}`)) toggleStudentCamClick(socketId);
     });
-    const spk = slot.querySelector(`#spk-${socketId}`);
+    const spk = slot.querySelector(`#spk-${identity}`);
     if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(socketId); });
   }
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below';
-  lbl.id = `lbl-${socketId}`;
+  lbl.id = `lbl-${identity}`;
   lbl.textContent = name || 'Student';
   if (IS_TEACHER) {
     lbl.style.cssText = 'cursor:pointer;background:#2e7d32;color:white;border-radius:8px;padding:2px 6px;font-size:0.75rem;font-weight:700;text-align:center;margin-top:2px;';
@@ -1200,7 +1201,7 @@ function showStudentSlot(socketId, name) {
     wrap.appendChild(ctrls);
   }
   document.getElementById('right-panel').appendChild(wrap);
-  studentSlots[socketId] = socketId;
+  studentSlots[socketId] = identity;
 }
 
 function addDrawControlBtn(socketId, name) {
@@ -1235,9 +1236,32 @@ function setupOwnSlot() {
 }
 
 function removeRemote(socketId) {
-  if (socketId === teacherSocketId) { teacherSocketId = null; const img = document.getElementById(`vimg-${socketId}`); if (img) img.remove(); document.getElementById('left-video').style.display = 'block'; document.getElementById('left-label').textContent = 'Waiting for teacher...'; const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) nameAbove.style.display = 'none'; }
-  if (studentSlots[socketId]) { const slot = document.getElementById(`slot-${socketId}`); if (slot) slot.remove(); delete studentSlots[socketId]; const drawBtn = document.getElementById(`draw-btn-${socketId}`); if (drawBtn) drawBtn.remove(); }
-  delete remoteRoles[socketId]; delete remoteNames[socketId]; removeAudioPeer(socketId); removeVideoPeer(socketId);
+  if (socketId === teacherSocketId) {
+    teacherSocketId = null;
+    const img = document.getElementById(`vimg-${getIdentity(socketId)}`);
+    if (img) img.remove();
+    document.getElementById('left-video').style.display = 'block';
+    document.getElementById('left-label').textContent = 'Waiting for teacher...';
+    const nameAbove = document.getElementById('teacher-name-above');
+    if (nameAbove) nameAbove.style.display = 'none';
+  }
+  // Find identity for this socketId
+  const identity = studentSlots[socketId];
+  if (identity) {
+    // Only remove the slot if no other active socketId maps to this identity
+    const otherActive = Object.keys(studentSlots).find(k => k !== socketId && studentSlots[k] === identity);
+    if (!otherActive) {
+      const wrap = document.getElementById(`wrap-${identity}`);
+      if (wrap) wrap.remove();
+      const drawBtn = document.getElementById(`draw-btn-${socketId}`);
+      if (drawBtn) drawBtn.remove();
+    }
+    delete studentSlots[socketId];
+  }
+  delete remoteRoles[socketId];
+  delete remoteNames[socketId];
+  removeAudioPeer(socketId);
+  removeVideoPeer(socketId);
 }
 
 // ── TODAY'S ASSIGNMENT & TIMER ──
@@ -1596,8 +1620,8 @@ function enterClass() {
 }
 
 function updateMonkey(socketId) {
-  const wrap = document.getElementById(`wrap-${socketId}`); if (!wrap) return;
-  const slot = document.getElementById(`slot-${socketId}`); if (!slot) return;
+  const wrap = document.getElementById(`wrap-${getIdentity(socketId)}`); if (!wrap) return;
+  const slot = document.getElementById(`slot-${getIdentity(socketId)}`); if (!slot) return;
   let monkey = slot.querySelector('.monkey-overlay');
   if (!monkey) { monkey = document.createElement('img'); monkey.className = 'monkey-overlay'; monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;'; slot.appendChild(monkey); }
   const camBtn = wrap.querySelector('.cam-student-btn');
@@ -1655,7 +1679,7 @@ function toggleMuteAll() {
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: _allMuted });
-    const spk = document.getElementById(`spk-${socketId}`);
+    const spk = document.getElementById(`spk-${getIdentity(socketId)}`);
     if (spk) { spk.textContent = _allMuted ? '🔇' : '🔊'; spk.style.background = _allMuted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)'; }
   });
 }
@@ -1668,17 +1692,17 @@ function toggleCamAll() {
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: !_allCamOff });
-    const vid = document.getElementById(`vimg-${socketId}`);
+    const vid = document.getElementById(`vimg-${getIdentity(socketId)}`);
     if (vid) vid.dataset.camOff = String(_allCamOff);
     updateStudentMonkey(socketId);
   });
 }
 
 function updateStudentMonkey(socketId) {
-  const slot = document.getElementById(`slot-${socketId}`);
+  const slot = document.getElementById(`slot-${getIdentity(socketId)}`);
   if (!slot) return;
-  const camOff = document.getElementById(`vimg-${socketId}`)?.dataset?.camOff === 'true';
-  const spk = document.getElementById(`spk-${socketId}`);
+  const camOff = document.getElementById(`vimg-${getIdentity(socketId)}`)?.dataset?.camOff === 'true';
+  const spk = document.getElementById(`spk-${getIdentity(socketId)}`);
   const micOff = spk?.textContent === '🔇';
   let monkey = slot.querySelector('.monkey-placeholder');
   if (camOff) {
@@ -1695,7 +1719,7 @@ function updateStudentMonkey(socketId) {
 }
 
 function toggleStudentCamClick(socketId) {
-  const vid = document.getElementById(`vimg-${socketId}`);
+  const vid = document.getElementById(`vimg-${getIdentity(socketId)}`);
   const camOff = vid?.dataset?.camOff === 'true';
   const newCamOn = camOff;
   if (vid) vid.dataset.camOff = String(!newCamOn);
@@ -1704,7 +1728,7 @@ function toggleStudentCamClick(socketId) {
 }
 
 function toggleStudentMicOverlay(socketId) {
-  const spk = document.getElementById(`spk-${socketId}`);
+  const spk = document.getElementById(`spk-${getIdentity(socketId)}`);
   if (!spk) return;
   const isMuted = spk.textContent === '🔇';
   const newMuted = !isMuted;
@@ -1720,7 +1744,7 @@ function muteAll() {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: true });
     // Update button state
-    const wrap = document.getElementById(`wrap-${socketId}`);
+    const wrap = document.getElementById(`wrap-${getIdentity(socketId)}`);
     if (wrap) {
       const btn = wrap.querySelector('.mute-student-btn');
       if (btn) btn.textContent = '🔊 Unmute';
@@ -1729,7 +1753,7 @@ function muteAll() {
 }
 
 function muteStudent(socketId) {
-  const wrap = document.getElementById(`wrap-${socketId}`);
+  const wrap = document.getElementById(`wrap-${getIdentity(socketId)}`);
   const btn = wrap ? wrap.querySelector('.mute-student-btn') : null;
   let muting = true;
   if (btn) { const isMuted = btn.textContent.includes('Unmute'); muting = !isMuted; btn.textContent = isMuted ? '🔇 Mute' : '🔊 Unmute'; }
@@ -1784,7 +1808,7 @@ function giveStar(socketId, name) {
 }
 
 function updateRewardCounter(socketId) {
-  const wrap = document.getElementById(`wrap-${socketId}`);
+  const wrap = document.getElementById(`wrap-${getIdentity(socketId)}`);
   if (!wrap) return;
   let counter = wrap.querySelector('.star-counter');
   if (!counter) {
