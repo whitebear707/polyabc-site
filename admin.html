@@ -1026,6 +1026,9 @@ function renderMasterCalendar() {
 }
 
 function selectDay(dateStr) {
+  // Block past dates — no time machine for teachers! 😄
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  if (dateStr < today) return; // silently ignore clicks on past days
   selectedDate = dateStr;
   renderMasterCalendar();
   renderDayDetail(dateStr);
