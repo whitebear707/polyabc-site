@@ -2359,7 +2359,7 @@ function printAttDetail() {
 // ─── PARENT PANEL ADMIN FUNCTIONS ───
 async function generateRegCode() {
   const res = await fetch(`${SERVER_URL}/admin/reg-code`, {
-    method: 'POST', headers: { Authorization: `Bearer ${adminToken}` }
+    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
   const data = await res.json();
   if (data.code) {
@@ -2368,7 +2368,7 @@ async function generateRegCode() {
 }
 
 async function showStudentRequests() {
-  const res = await fetch(`${SERVER_URL}/admin/student-requests`, { headers: { Authorization: `Bearer ${adminToken}` } });
+  const res = await fetch(`${SERVER_URL}/admin/student-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
   const requests = await res.json();
   const modal = document.getElementById('student-requests-modal');
   const list = document.getElementById('requests-list');
@@ -2398,7 +2398,7 @@ async function showStudentRequests() {
 
 async function handleRequest(parentId, studentName, action) {
   await fetch(`${SERVER_URL}/admin/student-request/${action}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ parentId, studentName })
   });
   showStudentRequests(); // refresh
@@ -2407,7 +2407,7 @@ async function handleRequest(parentId, studentName, action) {
 
 async function toggleStudentPaid(studentName, paid) {
   await fetch(`${SERVER_URL}/admin/student-paid`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ studentName, paid })
   });
   loadStudents();
@@ -2520,7 +2520,7 @@ async function checkDevPassword() {
   const sel = document.getElementById('dev-room');
   sel.innerHTML = '<option value="">Loading...</option>';
   try {
-    const res = await fetch(`${SERVER_URL}/rooms`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    const res = await fetch(`${SERVER_URL}/rooms`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const rooms = await res.json();
     sel.innerHTML = '';
     rooms.forEach(t => {
@@ -2598,7 +2598,7 @@ async function submitDevRecord() {
   try {
     const res = await fetch(`${SERVER_URL}/admin/manual-attendance`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify(record)
     });
     const data = await res.json();
