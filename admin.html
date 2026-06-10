@@ -2050,7 +2050,7 @@ async function loadPayroll() {
             <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
             <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
           </tr></thead>
-          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.isIncomplete ? 'background:#fff8f8;' : c.debtPayoffMins > 0 ? 'background:#fffde7;' : ''}">
+          <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.teacherNoShow ? 'background:#f3e5f5;' : c.isIncomplete ? 'background:#fff8f8;' : c.debtPayoffMins > 0 ? 'background:#fffde7;' : ''}">
             <td style="padding:6px 10px;">${c.date}</td>
             <td style="padding:6px 10px;font-weight:700;">${c.groupName}${c.sessionId ? ` <span style="font-size:0.7rem;color:#aaa;font-family:monospace;">#${c.sessionId.slice(-6)}</span>` : ''}</td>
             <td style="padding:6px 10px;">${c.classType}</td>
@@ -2122,7 +2122,8 @@ function buildStatusTags(r) {
 function buildPayrollTags(c) {
   if (!c.endType && !c.late && !c.openedLate) return '';
   const tags = [];
-  if (c.endType === 'completed') tags.push(`<span style="background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ COMPLETED</span>`);
+  if (c.teacherNoShow) tags.push(`<span style="background:#4a148c;color:white;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⛔ TEACHER NO-SHOW</span>`);
+  else if (c.endType === 'completed') tags.push(`<span style="background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ COMPLETED</span>`);
   if (c.endType === 'ended_early') tags.push(`<span style="background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⚠️ ENDED EARLY</span>`);
   if (c.endType === 'invalid_termination') tags.push(`<span style="background:#ffebee;color:#b71c1c;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⚠️ INVALID</span>`);
   if (c.late) tags.push(`<span style="background:#ffebee;color:#e53935;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">🔴 LATE</span>`);
