@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="icon.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Parent Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #f0f4f8; min-height: 100vh; }
+    .header { background: #1a1a2e; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header img { height: 44px; cursor: pointer; }
+    .header-title { color: white; font-size: 1.1rem; font-weight: 900; }
+    .container { max-width: 500px; margin: 40px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    h2 { font-size: 1.4rem; font-weight: 900; color: #1a1a2e; margin-bottom: 6px; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+    .field { margin-bottom: 14px; }
+    label { display: block; font-weight: 700; font-size: 0.85rem; color: #444; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-family: Nunito; font-size: 0.95rem; transition: border 0.2s; }
+    input:focus, select:focus { outline: none; border-color: #1a73e8; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-family: Nunito; font-size: 1rem; font-weight: 900; cursor: pointer; margin-top: 8px; }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-primary:hover { background: #1558b0; }
+    .btn-secondary { background: #f0f4f8; color: #444; border: 2px solid #e0e0e0; }
+    .btn-secondary:hover { background: #e0e0e0; }
+    .btn-link { background: none; border: none; color: #1a73e8; font-family: Nunito; font-size: 0.9rem; font-weight: 700; cursor: pointer; padding: 4px; }
+    .error { color: #e53935; font-size: 0.85rem; margin-top: 8px; padding: 8px 12px; background: #fff5f5; border-radius: 8px; display: none; }
+    .success { color: #2e7d32; font-size: 0.85rem; margin-top: 8px; padding: 8px 12px; background: #f0fff4; border-radius: 8px; display: none; }
+    .divider { text-align: center; color: #888; font-size: 0.85rem; margin: 16px 0; position: relative; }
+    .divider::before { content: ''; position: absolute; left: 0; top: 50%; width: 45%; height: 1px; background: #e0e0e0; }
+    .divider::after { content: ''; position: absolute; right: 0; top: 50%; width: 45%; height: 1px; background: #e0e0e0; }
+    .step-indicator { display: flex; gap: 8px; margin-bottom: 24px; }
+    .step { flex: 1; height: 4px; border-radius: 2px; background: #e0e0e0; }
+    .step.active { background: #1a73e8; }
+    .step.done { background: #00c853; }
+
+    /* Dashboard styles */
+    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; }
+    .nav-tab { padding: 10px 20px; font-family: Nunito; font-size: 0.9rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+    .student-card { background: #f8f9ff; border: 2px solid #e8eeff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .student-name { font-size: 1.1rem; font-weight: 900; color: #1a1a2e; }
+    .paid-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 900; margin-left: 8px; }
+    .paid-yes { background: #e8f5e9; color: #2e7d32; }
+    .paid-no { background: #ffebee; color: #c62828; }
+    .att-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
+    .att-status { padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; }
+    .att-completed { background: #e8f5e9; color: #2e7d32; }
+    .att-incomplete { background: #fff3e0; color: #e65100; }
+    .att-invalid { background: #ffebee; color: #c62828; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="index.html"><img src="LOGO.png" alt="PolyABC"/></a>
+  <div class="header-title">Parent Panel / Panel de Padres</div>
+  <div id="header-user" style="color:#a0c4ff;font-size:0.85rem;font-weight:700;"></div>
+</div>
+
+<div class="container">
+
+  <!-- VERIFY EMAIL SCREEN -->
+  <div id="screen-verify" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+      <h2>Email Verified!</h2>
+      <p class="subtitle">Your account has been verified. You can now log in.</p>
+      <p style="color:#888;font-size:0.85rem;">Tu correo ha sido verificado. Ahora puedes iniciar sesión.</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+    </div>
+  </div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="screen-login">
+    <div class="card">
+      <h2>Welcome Back / Bienvenido</h2>
+      <p class="subtitle">Parent Panel / Panel de Padres</p>
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"/></div>
+      <div class="field"><label>Password / Contraseña</label><input type="password" id="login-password" placeholder="••••••••"/></div>
+      <div id="login-error" class="error"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In / Iniciar Sesión</button>
+      <div class="divider">or / o</div>
+      <button class="btn btn-secondary" onclick="showScreen('register-code')">Register / Registrarse</button>
+      <div style="text-align:center;margin-top:12px;">
+        <a href="index.html" style="color:#888;font-size:0.85rem;">← Back to main / Volver al inicio</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER STEP 1: CODE -->
+  <div id="screen-register-code" style="display:none;">
+    <div class="card">
+      <div class="step-indicator"><div class="step active" id="s1"></div><div class="step" id="s2"></div><div class="step" id="s3"></div></div>
+      <h2>Enter School Code</h2>
+      <p class="subtitle">Enter the registration code provided by the school.<br>Ingresa el código de registro dado por la escuela.</p>
+      <div class="field"><label>Registration Code / Código de Registro</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
+      <div id="code-error" class="error"></div>
+      <button class="btn btn-primary" onclick="validateCode()">Continue / Continuar</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back / Atrás</button></div>
+    </div>
+  </div>
+
+  <!-- REGISTER STEP 2: PARENT INFO -->
+  <div id="screen-register-parent" style="display:none;">
+    <div class="card">
+      <div class="step-indicator"><div class="step done" id="s1b"></div><div class="step active" id="s2b"></div><div class="step" id="s3b"></div></div>
+      <h2>Parent Information</h2>
+      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <div class="field">
+        <label>Relationship / Relación</label>
+        <select id="reg-relationship">
+          <option value="mother">Mother / Mamá</option>
+          <option value="father">Father / Papá</option>
+          <option value="guardian">Legal Guardian / Tutor Legal</option>
+        </select>
+      </div>
+      <div class="field"><label>Your Full Name / Tu Nombre Completo</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
+      <div class="field"><label>Phone Number / Teléfono</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="your@email.com"/></div>
+      <div class="field"><label>Password / Contraseña</label><input type="password" id="reg-password" placeholder="At least 6 characters"/></div>
+      <div id="parent-error" class="error"></div>
+      <button class="btn btn-primary" onclick="goToStudentInfo()">Continue / Continuar</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+    </div>
+  </div>
+
+  <!-- REGISTER STEP 3: STUDENT INFO -->
+  <div id="screen-register-student" style="display:none;">
+    <div class="card">
+      <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
+      <h2>Student Information</h2>
+      <p class="subtitle">Tell us about your child / Cuéntanos sobre tu hijo/a</p>
+      <div class="field"><label>Student First Name / Nombre del Estudiante</label><input type="text" id="reg-student-name" placeholder="Juan"/></div>
+      <div class="field"><label>Student Full Name / Nombre Completo</label><input type="text" id="reg-student-fullname" placeholder="Juan Carlos Garcia Lopez"/></div>
+      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Juanito"/></div>
+      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="reg-student-dob"/></div>
+      <div id="student-error" class="error"></div>
+      <button class="btn btn-primary" onclick="doRegister()">Submit / Enviar</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back / Atrás</button></div>
+    </div>
+  </div>
+
+  <!-- EMAIL SENT SCREEN -->
+  <div id="screen-email-sent" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:3rem;margin-bottom:12px;">📧</div>
+      <h2>Check Your Email!</h2>
+      <p class="subtitle">We sent a verification link to your email address.<br>Enviamos un enlace de verificación a tu correo.</p>
+      <p style="color:#888;font-size:0.85rem;margin-top:8px;">Once verified, you can log in and your child's enrollment request will be reviewed by the school.</p>
+      <p style="color:#888;font-size:0.85rem;margin-top:4px;">Una vez verificado, puedes iniciar sesión y la solicitud de inscripción será revisada por la escuela.</p>
+      <button class="btn btn-secondary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="screen-dashboard" style="display:none;">
+    <div class="card" style="padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="dash-welcome">Welcome!</div>
+          <div style="font-size:0.8rem;color:#888;">PolyABC Parent Panel</div>
+        </div>
+        <button onclick="doLogout()" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 14px;font-family:Nunito;font-weight:700;cursor:pointer;">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="dashboard-nav">
+        <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
+        <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
+      </div>
+
+      <!-- Students tab -->
+      <div id="panel-students">
+        <div id="students-list"></div>
+        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student / Agregar Estudiante</button>
+      </div>
+
+      <!-- Attendance tab -->
+      <div id="panel-attendance" style="display:none;">
+        <div id="attendance-list"></div>
+      </div>
+    </div>
+
+    <!-- Add student modal -->
+    <div id="add-student-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
+        <h2 style="margin-bottom:16px;">Add Student / Agregar Estudiante</h2>
+        <div class="field"><label>Registration Code / Código</label><input type="text" id="add-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;"/></div>
+        <div class="field"><label>Student First Name / Nombre</label><input type="text" id="add-name" placeholder="Juan"/></div>
+        <div class="field"><label>Full Name / Nombre Completo</label><input type="text" id="add-fullname" placeholder="Juan Carlos Garcia"/></div>
+        <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="add-dob"/></div>
+        <div id="add-error" class="error"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit / Enviar</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SERVER_URL = 'https://polyabc-server.onrender.com';
+let _validCode = '';
+let _parentToken = localStorage.getItem('parentToken');
+
+// Check for email verification token in URL
+const urlParams = new URLSearchParams(window.location.search);
+const verifyToken = urlParams.get('verify');
+if (verifyToken) {
+  fetch(`${SERVER_URL}/parent/verify?token=${verifyToken}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) showScreen('verify');
+      else { showScreen('login'); }
+    });
+} else if (_parentToken) {
+  loadDashboard();
+} else {
+  showScreen('login');
+}
+
+function showScreen(name) {
+  ['login','register-code','register-parent','register-student','email-sent','dashboard','verify'].forEach(s => {
+    const el = document.getElementById(`screen-${s}`);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById(`screen-${name}`);
+  if (target) target.style.display = 'block';
+}
+
+async function validateCode() {
+  const code = document.getElementById('reg-code').value.trim().toUpperCase();
+  const errEl = document.getElementById('code-error');
+  errEl.style.display = 'none';
+  if (!code) { errEl.textContent = 'Please enter a code / Por favor ingresa un código'; errEl.style.display = 'block'; return; }
+  const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+  const data = await res.json();
+  if (data.valid) { _validCode = code; showScreen('register-parent'); }
+  else { errEl.textContent = 'Invalid or already used code / Código inválido o ya usado'; errEl.style.display = 'block'; }
+}
+
+function goToStudentInfo() {
+  const errEl = document.getElementById('parent-error');
+  const name = document.getElementById('reg-parent-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd = document.getElementById('reg-password').value;
+  const phone = document.getElementById('reg-phone').value.trim();
+  if (!name || !email || !pwd || !phone) { errEl.textContent = 'Please fill all fields / Por favor llena todos los campos'; errEl.style.display = 'block'; return; }
+  if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  showScreen('register-student');
+}
+
+async function doRegister() {
+  const errEl = document.getElementById('student-error');
+  errEl.style.display = 'none';
+  const studentName = document.getElementById('reg-student-name').value.trim();
+  const dob = document.getElementById('reg-student-dob').value;
+  if (!studentName || !dob) { errEl.textContent = 'Please fill required fields / Por favor llena los campos requeridos'; errEl.style.display = 'block'; return; }
+
+  const body = {
+    code: _validCode,
+    relationship: document.getElementById('reg-relationship').value,
+    parentName: document.getElementById('reg-parent-name').value.trim(),
+    phone: document.getElementById('reg-phone').value.trim(),
+    email: document.getElementById('reg-email').value.trim(),
+    password: document.getElementById('reg-password').value,
+    studentName,
+    studentDOB: dob,
+    studentFullName: document.getElementById('reg-student-fullname').value.trim(),
+    studentNickname: document.getElementById('reg-student-nickname').value.trim()
+  };
+
+  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) showScreen('email-sent');
+  else { errEl.textContent = data.error || 'Registration failed / Error en registro'; errEl.style.display = 'block'; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  const res = await fetch(`${SERVER_URL}/parent/login`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pwd }) });
+  const data = await res.json();
+  if (data.success) {
+    localStorage.setItem('parentToken', data.token);
+    localStorage.setItem('parentName', data.parentName);
+    _parentToken = data.token;
+    loadDashboard();
+  } else {
+    errEl.textContent = data.error || 'Login failed / Error al iniciar sesión';
+    errEl.style.display = 'block';
+  }
+}
+
+async function loadDashboard() {
+  showScreen('dashboard');
+  document.getElementById('dash-welcome').textContent = `Welcome, ${localStorage.getItem('parentName') || 'Parent'}! 👋`;
+  document.getElementById('header-user').textContent = localStorage.getItem('parentName') || '';
+
+  const res = await fetch(`${SERVER_URL}/parent/dashboard`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+  if (!res.ok) { doLogout(); return; }
+  const data = await res.json();
+
+  // Render students
+  const list = document.getElementById('students-list');
+  if (!data.students?.length) {
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet / Sin estudiantes aún</div>';
+  } else {
+    list.innerHTML = data.students.map(s => `
+      <div class="student-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span class="student-name">${s.name}</span>
+            <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Paid / Pagado' : '❌ Unpaid / Sin pagar'}</span>
+          </div>
+          <span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;background:${s.status==='approved'?'#e8f5e9':s.status==='pending'?'#fff3e0':'#ffebee'};color:${s.status==='approved'?'#2e7d32':s.status==='pending'?'#e65100':'#c62828'};">
+            ${s.status==='approved'?'✅ Active':s.status==='pending'?'⏳ Pending Review':'❌ Denied'}
+          </span>
+        </div>
+        ${s.fullName ? `<div style="font-size:0.8rem;color:#888;margin-top:4px;">${s.fullName}</div>` : ''}
+        ${!s.paid ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing to activate / Por favor contacte a facturación para activar</div>' : ''}
+      </div>
+    `).join('');
+
+    // Render attendance
+    const attList = document.getElementById('attendance-list');
+    const allAtt = data.students.flatMap(s => (s.attendance || []).map(a => ({...a, studentName: s.name})));
+    allAtt.sort((a,b) => b.date.localeCompare(a.date));
+    if (!allAtt.length) {
+      attList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No attendance records yet</div>';
+    } else {
+      attList.innerHTML = allAtt.map(a => `
+        <div class="att-row">
+          <div>
+            <div style="font-weight:700;">${a.studentName}</div>
+            <div style="color:#888;font-size:0.8rem;">${a.date} · ${a.scheduledTime || ''} · ${a.classType || ''}</div>
+          </div>
+          <span class="att-status ${a.endType==='completed'?'att-completed':a.endType==='ended_early'?'att-incomplete':'att-invalid'}">
+            ${a.endType==='completed'?'✅ Complete':a.endType==='ended_early'?'⚠️ Incomplete':'❌ Invalid'}
+          </span>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function showTab(tab) {
+  document.getElementById('panel-students').style.display = tab === 'students' ? 'block' : 'none';
+  document.getElementById('panel-attendance').style.display = tab === 'attendance' ? 'block' : 'none';
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function showAddStudent() {
+  document.getElementById('add-student-modal').style.display = 'flex';
+}
+
+async function submitAddStudent() {
+  const code = document.getElementById('add-code').value.trim().toUpperCase();
+  const name = document.getElementById('add-name').value.trim();
+  const dob = document.getElementById('add-dob').value;
+  const errEl = document.getElementById('add-error');
+  errEl.style.display = 'none';
+  if (!code || !name || !dob) { errEl.textContent = 'Please fill all fields'; errEl.style.display = 'block'; return; }
+  const res = await fetch(`${SERVER_URL}/parent/add-student`, {
+    method: 'POST', headers: {'Content-Type':'application/json', Authorization: `Bearer ${_parentToken}`},
+    body: JSON.stringify({ code, studentName: name, studentDOB: dob, studentFullName: document.getElementById('add-fullname').value.trim() })
+  });
+  const data = await res.json();
+  if (data.success) { document.getElementById('add-student-modal').style.display = 'none'; loadDashboard(); }
+  else { errEl.textContent = data.error || 'Failed'; errEl.style.display = 'block'; }
+}
+
+function doLogout() {
+  localStorage.removeItem('parentToken');
+  localStorage.removeItem('parentName');
+  _parentToken = null;
+  showScreen('login');
+}
+</script>
+</body>
+</html>
