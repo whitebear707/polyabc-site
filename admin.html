@@ -2356,7 +2356,8 @@ function printAttDetail() {
 }
 
 // Initialize
-// ─── PARENT PANEL ADMIN FUNCTIONS ─── v2
+// ─── PARENT PANEL ADMIN FUNCTIONS ───
+const adminToken = currentToken; // alias for backward compatibility
 async function generateRegCode() {
   const res = await fetch(`${SERVER_URL}/admin/reg-code`, {
     method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
