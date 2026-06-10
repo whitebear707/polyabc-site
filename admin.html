@@ -2357,14 +2357,34 @@ function printAttDetail() {
 
 // Initialize
 // ─── PARENT PANEL ADMIN FUNCTIONS ───
-const adminToken = currentToken; // alias for backward compatibility
 async function generateRegCode() {
   const res = await fetch(`${SERVER_URL}/admin/reg-code`, {
     method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
   const data = await res.json();
   if (data.code) {
-    alert(`✅ Registration Code Generated:\n\n${data.code}\n\nShare this code with the parent to register their child.`);
+    // Show copyable modal instead of alert
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+      <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:380px;text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:8px;">🔑</div>
+        <div style="font-weight:900;font-size:1.1rem;margin-bottom:4px;">Registration Code Generated</div>
+        <div style="color:#888;font-size:0.85rem;margin-bottom:16px;">Share this code with the parent to register their child.</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input id="copy-code-input" value="${data.code}" readonly style="flex:1;padding:12px;border:2px solid #1a73e8;border-radius:10px;font-size:1.1rem;font-weight:900;text-align:center;letter-spacing:3px;color:#1a73e8;background:#f0f7ff;"/>
+          <button onclick="
+            document.getElementById('copy-code-input').select();
+            document.execCommand('copy');
+            this.textContent='✅';
+            setTimeout(()=>this.textContent='📋',1500);
+          " style="padding:12px 14px;background:#1a73e8;color:white;border:none;border-radius:10px;cursor:pointer;font-size:1.1rem;">📋</button>
+        </div>
+        <button onclick="this.closest('div[style]').remove()" style="width:100%;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Close</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   }
 }
 
