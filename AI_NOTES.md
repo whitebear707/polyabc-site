@@ -230,6 +230,13 @@
 
 ## CRITICAL BUG FIXES (Session 5)
 
+### parent.html — validateCode Missing async Keyword
+- **Problem:** Entire parent.html JS failed to parse — `doLogin`, `doRegister` and all other functions undefined
+- **Root cause:** `validateCode()` used `await fetch(...)` but was declared as a regular `function` not `async function` — JS parse error stops execution of entire script block
+- **Symptom:** Console showed `await is only valid in async functions` at line 370, then `doLogin is not defined`
+- **Fix:** Changed `function validateCode()` to `async function validateCode()`
+- **Prevention:** Always scan for non-async functions using await before pushing frontend JS
+
 ### classEndedAt Not Stamping
 - **Problem:** Attendance showed Opened Class but blank Closed Class
 - **Root cause:** In `end-class` handler, `lateMins` and `totalDisconnectMins` were used in `endType` calculation BEFORE they were declared → ReferenceError → handler crashed silently before `classEndedAt` stamp
