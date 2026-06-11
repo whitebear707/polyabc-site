@@ -109,21 +109,21 @@
   <!-- REGISTER STEP 2: PARENT INFO -->
   <div id="screen-register-parent" style="display:none;">
     <div class="card">
-      <div class="step-indicator"><div class="step done" id="s1b"></div><div class="step active" id="s2b"></div><div class="step" id="s3b"></div></div>
-      <h2>Parent Information</h2>
+      <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
+      <h2>Your Information / Tu Información</h2>
       <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
       <div class="field">
-        <label>Relationship / Relación</label>
+        <label>You are / Eres</label>
         <select id="reg-relationship">
-          <option value="mother">Mother / Mamá</option>
-          <option value="father">Father / Papá</option>
+          <option value="mother">Mom / Mamá</option>
+          <option value="father">Dad / Papá</option>
           <option value="guardian">Legal Guardian / Tutor Legal</option>
         </select>
       </div>
-      <div class="field"><label>Your Full Name / Tu Nombre Completo</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
-      <div class="field"><label>Phone Number / Teléfono</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Your Name / Tu Nombre</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
+      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="reg-password" placeholder="At least 6 characters"/></div>
+      <div class="field"><label>Password / Contraseña</label><input type="password" id="reg-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
       <div id="parent-error" class="error"></div>
       <button class="btn btn-primary" onclick="goToStudentInfo()">Continue / Continuar</button>
       <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
@@ -134,19 +134,38 @@
   <div id="screen-register-student" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
-      <h2>Student Information</h2>
+      <h2>Student Information / Info del Estudiante</h2>
       <p class="subtitle">Tell us about your child / Cuéntanos sobre tu hijo/a</p>
-      <div class="field"><label>Student First Name / Nombre del Estudiante</label><input type="text" id="reg-student-name" placeholder="Juan"/></div>
-      <div class="field"><label>Student Full Name / Nombre Completo</label><input type="text" id="reg-student-fullname" placeholder="Juan Carlos Garcia Lopez"/></div>
-      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Juanito"/></div>
+      <div class="field">
+        <label>First Name only / Solo Primer Nombre</label>
+        <input type="text" id="reg-student-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
+        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+      </div>
       <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="reg-student-dob"/></div>
+      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
       <div id="student-error" class="error"></div>
       <button class="btn btn-primary" onclick="doRegister()">Submit / Enviar</button>
       <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back / Atrás</button></div>
     </div>
   </div>
 
-  <!-- EMAIL SENT SCREEN -->
+  <!-- TRIAL CLASS READY SCREEN -->
+  <div id="screen-trial-ready" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+      <h2>Trial Class Ready! / ¡Clase de Prueba Lista!</h2>
+      <p class="subtitle">Share these credentials with your child / Comparte estas credenciales con tu hijo/a</p>
+      <div style="background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="font-size:0.85rem;color:#888;margin-bottom:4px;">Classroom / Salón</div>
+        <div style="font-size:2rem;font-weight:900;color:#1a73e8;">101</div>
+        <div style="font-size:0.85rem;color:#888;margin-top:12px;margin-bottom:4px;">Password / Contraseña</div>
+        <div style="font-size:1.5rem;font-weight:900;color:#1a73e8;" id="trial-password">try1</div>
+      </div>
+      <p style="font-size:0.82rem;color:#888;">Have your child go to the PolyABC main page and enter these to join their trial class.</p>
+      <p style="font-size:0.82rem;color:#888;margin-top:4px;">Pide a tu hijo/a que vaya a la página principal de PolyABC e ingrese estos datos.</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+    </div>
+  </div>
   <div id="screen-email-sent" style="display:none;">
     <div class="card" style="text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;">📧</div>
@@ -192,14 +211,18 @@
     <div id="add-student-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
         <h2 style="margin-bottom:16px;">Add Student / Agregar Estudiante</h2>
-        <div class="field"><label>Registration Code / Código</label><input type="text" id="add-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;"/></div>
-        <div class="field"><label>Student First Name / Nombre</label><input type="text" id="add-name" placeholder="Juan"/></div>
-        <div class="field"><label>Full Name / Nombre Completo</label><input type="text" id="add-fullname" placeholder="Juan Carlos Garcia"/></div>
+        <div class="field">
+          <label>First Name only / Solo Primer Nombre</label>
+          <input type="text" id="add-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
+          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+        </div>
         <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="add-dob"/></div>
+        <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
         <div id="add-error" class="error"></div>
+        <div id="add-success" class="success"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
           <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit / Enviar</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel / Cancelar</button>
         </div>
       </div>
     </div>
@@ -256,7 +279,7 @@ if (verifyToken) {
 }
 
 function showScreen(name) {
-  ['login','register-code','register-parent','register-student','email-sent','dashboard','verify','forgot','reset'].forEach(s => {
+  ['login','register-code','register-parent','register-student','email-sent','dashboard','verify','forgot','reset','trial-ready'].forEach(s => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.style.display = 'none';
   });
@@ -287,12 +310,31 @@ function goToStudentInfo() {
   showScreen('register-student');
 }
 
+function validateFirstNameOnly(input) {
+  const val = input.value;
+  const warningId = input.id === 'reg-student-name' ? 'name-warning' : 'add-name-warning';
+  const warning = document.getElementById(warningId);
+  if (val.includes(' ')) {
+    input.value = val.split(' ')[0]; // auto-trim to first word
+    if (warning) { warning.style.display = 'block'; setTimeout(() => warning.style.display = 'none', 3000); }
+  }
+  // Auto capitalize first letter
+  if (val.length === 1) input.value = val.toUpperCase();
+}
+
 async function doRegister() {
   const errEl = document.getElementById('student-error');
   errEl.style.display = 'none';
   const studentName = document.getElementById('reg-student-name').value.trim();
   const dob = document.getElementById('reg-student-dob').value;
-  if (!studentName || !dob) { errEl.textContent = 'Please fill required fields / Por favor llena los campos requeridos'; errEl.style.display = 'block'; return; }
+  const nickname = document.getElementById('reg-student-nickname').value.trim();
+  if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
+  if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
+  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha de nacimiento'; errEl.style.display = 'block'; return; }
+
+  // Capitalize first letter
+  const capName = studentName.charAt(0).toUpperCase() + studentName.slice(1).toLowerCase();
+  const displayName = nickname || capName; // prioritize nickname
 
   const body = {
     code: _validCode,
@@ -301,16 +343,22 @@ async function doRegister() {
     phone: document.getElementById('reg-phone').value.trim(),
     email: document.getElementById('reg-email').value.trim(),
     password: document.getElementById('reg-password').value,
-    studentName,
+    studentName: capName,
+    studentNickname: nickname,
     studentDOB: dob,
-    studentFullName: document.getElementById('reg-student-fullname').value.trim(),
-    studentNickname: document.getElementById('reg-student-nickname').value.trim()
+    studentFullName: ''
   };
 
   const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   const data = await res.json();
-  if (data.success) showScreen('email-sent');
-  else { errEl.textContent = data.error || 'Registration failed / Error en registro'; errEl.style.display = 'block'; }
+  if (data.success) {
+    // Show trial class screen
+    document.getElementById('trial-password').textContent = data.trialPassword || 'try1';
+    showScreen('trial-ready');
+  } else {
+    errEl.textContent = data.error || 'Registration failed / Error en registro';
+    errEl.style.display = 'block';
+  }
 }
 
 async function doLogin() {
@@ -395,19 +443,25 @@ function showAddStudent() {
 }
 
 async function submitAddStudent() {
-  const code = document.getElementById('add-code').value.trim().toUpperCase();
   const name = document.getElementById('add-name').value.trim();
   const dob = document.getElementById('add-dob').value;
+  const nickname = document.getElementById('add-nickname')?.value.trim() || '';
   const errEl = document.getElementById('add-error');
-  errEl.style.display = 'none';
-  if (!code || !name || !dob) { errEl.textContent = 'Please fill all fields'; errEl.style.display = 'block'; return; }
+  const sucEl = document.getElementById('add-success');
+  errEl.style.display = 'none'; if(sucEl) sucEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Please enter first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
+  if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre'; errEl.style.display = 'block'; return; }
+  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha'; errEl.style.display = 'block'; return; }
+  const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const res = await fetch(`${SERVER_URL}/parent/add-student`, {
     method: 'POST', headers: {'Content-Type':'application/json', Authorization: `Bearer ${_parentToken}`},
-    body: JSON.stringify({ code, studentName: name, studentDOB: dob, studentFullName: document.getElementById('add-fullname').value.trim() })
+    body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname })
   });
   const data = await res.json();
-  if (data.success) { document.getElementById('add-student-modal').style.display = 'none'; loadDashboard(); }
-  else { errEl.textContent = data.error || 'Failed'; errEl.style.display = 'block'; }
+  if (data.success) {
+    if(sucEl) { sucEl.textContent = `✅ ${capName} added! Trial: Room 101, Password: ${data.trialPassword || 'try1'}`; sucEl.style.display = 'block'; }
+    setTimeout(() => { document.getElementById('add-student-modal').style.display = 'none'; loadDashboard(); }, 3000);
+  } else { errEl.textContent = data.error || 'Failed'; errEl.style.display = 'block'; }
 }
 
 async function doForgotPassword() {
