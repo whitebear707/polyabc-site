@@ -779,7 +779,10 @@ function connectSocket() {
       </div>`;
     }
   });
-  socket.on('star-given', ({ name, emoji }) => showStarCelebration(name, emoji || '⭐'));
+  socket.on('star-given', ({ name, emoji }) => {
+    showStarCelebration(name, emoji || '⭐');
+    if (!IS_TEACHER) playTadaSound(); // play sound on student side too
+  });
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
@@ -1143,18 +1146,23 @@ function startAudioRelay(socket) {
   socket.on('audio-offer', async ({ from, offer }) => {
     try {
       let pc = audioPeers[from];
-      if (!pc) pc = createAudioPeer(from, socket);
-      // Polite peer: if collision, rollback and restart
-      if (pc.signalingState !== 'stable') {
-        if (pc.signalingState === 'have-local-offer') {
-          await Promise.all([
-            pc.setLocalDescription({ type: 'rollback' }),
-            pc.setRemoteDescription(new RTCSessionDescription(offer))
-          ]);
-        } else return;
-      } else {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      // If peer exists and is in stable state, close and recreate to avoid state collision
+      if (pc && pc.signalingState === 'stable' && pc.remoteDescription) {
+        pc.close(); delete audioPeers[from]; pc = null;
       }
+      if (!pc) pc = createAudioPeer(from, socket);
+      // Handle signaling state collisions
+      if (pc.signalingState === 'have-local-offer') {
+        try {
+          await pc.setLocalDescription({ type: 'rollback' });
+        } catch(e) {
+          // Rollback failed — close and recreate
+          pc.close(); delete audioPeers[from];
+          pc = createAudioPeer(from, socket);
+        }
+      }
+      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') return;
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('audio-answer', { to: from, answer: pc.localDescription });
@@ -2581,15 +2589,20 @@ function onLaserMove(e) {
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
   // Broadcast to students
-  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const rect = canvasContainer.getBoundingClientRect();
+  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
 }
 
 function showRemoteLaser(xRatio, yRatio) {
   const dot = document.getElementById('laser-dot');
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
-  dot.style.left = (xRatio * window.innerWidth) + 'px';
-  dot.style.top = (yRatio * window.innerHeight) + 'px';
+  // Use the canvas container bounds for accurate positioning
+  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const rect = canvasContainer.getBoundingClientRect();
+  dot.style.left = (rect.left + xRatio * rect.width) + 'px';
+  dot.style.top = (rect.top + yRatio * rect.height) + 'px';
 }
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
