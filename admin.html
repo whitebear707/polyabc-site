@@ -1623,6 +1623,12 @@ async function saveEditStudent() {
     body: JSON.stringify({ name, password: pass, room: room || null })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
+  // Sync updated password to parent panel record
+  await fetch(`${SERVER_URL}/admin/sync-student-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ studentName: name, password: pass })
+  });
   await loadAll();
   renderAllStudents();
 }
