@@ -662,6 +662,7 @@
     <input type="hidden" id="edit-student-original-name"/>
     <div class="field-group"><label>Student Name</label><input type="text" id="edit-student-name"/></div>
     <div class="field-group"><label>Password</label><input type="text" id="edit-student-pass"/></div>
+    <div class="field-group"><label>Date of Birth <span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="edit-student-dob"/></div>
     <div class="field-group">
       <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
       <select id="edit-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
@@ -1596,15 +1597,16 @@ function renderAllStudents() {
       <td>${levelCell}</td>
       <td>${trialDateCell}</td>
       <td>${paidCell}</td>
-      <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
+      <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}','${s.dob||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
     </tr>`;
   }).join('');
 }
 
-function openEditStudentModal(name, password, room) {
+function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-original-name').value = name;
   document.getElementById('edit-student-name').value = name;
   document.getElementById('edit-student-pass').value = password;
+  document.getElementById('edit-student-dob').value = dob || '';
   document.getElementById('edit-student-error').style.display = 'none';
   const sel = document.getElementById('edit-student-room');
   sel.innerHTML = '<option value="">-- No room --</option>' +
@@ -1617,17 +1619,16 @@ async function saveEditStudent() {
   const name  = document.getElementById('edit-student-name').value.trim();
   const pass  = document.getElementById('edit-student-pass').value.trim();
   const room  = document.getElementById('edit-student-room').value;
+  const dob   = document.getElementById('edit-student-dob').value;
   const err   = document.getElementById('edit-student-error');
   if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
-  // Check duplicate password (exclude current student)
   const dup = checkDuplicatePassword(pass, room);
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
-  // Delete old and create new
   await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
   await fetch(`${SERVER_URL}/students`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null })
+    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
   // Sync updated password to parent panel record
