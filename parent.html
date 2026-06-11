@@ -190,30 +190,14 @@
   </div>
 
   <!-- TRIAL CLASS READY SCREEN -->
-  <div id="screen-trial-ready" style="display:none;">
-    <div class="card" style="text-align:center;">
-      <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
-      <h2>Trial Class Ready! / ¡Clase de Prueba Lista!</h2>
-      <p class="subtitle">Share these credentials with your child / Comparte estas credenciales con tu hijo/a</p>
-      <div style="background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;padding:20px;margin:16px 0;">
-        <div style="font-size:0.85rem;color:#888;margin-bottom:4px;">Classroom / Salón</div>
-        <div style="font-size:2rem;font-weight:900;color:#1a73e8;">101</div>
-        <div style="font-size:0.85rem;color:#888;margin-top:12px;margin-bottom:4px;">Password / Contraseña</div>
-        <div style="font-size:1.5rem;font-weight:900;color:#1a73e8;" id="trial-password">try1</div>
-      </div>
-      <p style="font-size:0.82rem;color:#888;">Have your child go to the PolyABC main page and enter these to join their trial class.</p>
-      <p style="font-size:0.82rem;color:#888;margin-top:4px;">Pide a tu hijo/a que vaya a la página principal de PolyABC e ingrese estos datos.</p>
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
-    </div>
-  </div>
   <div id="screen-email-sent" style="display:none;">
     <div class="card" style="text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;">📧</div>
-      <h2>Check Your Email!</h2>
+      <h2>Check Your Email! / ¡Revisa tu Correo!</h2>
       <p class="subtitle">We sent a verification link to your email address.<br>Enviamos un enlace de verificación a tu correo.</p>
-      <p style="color:#888;font-size:0.85rem;margin-top:8px;">Once verified, you can log in and your child's enrollment request will be reviewed by the school.</p>
-      <p style="color:#888;font-size:0.85rem;margin-top:4px;">Una vez verificado, puedes iniciar sesión y la solicitud de inscripción será revisada por la escuela.</p>
-      <button class="btn btn-secondary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+      <p style="color:#888;font-size:0.85rem;margin-top:8px;">Once verified, log in to see your enrollment status. The school will review your request shortly.</p>
+      <p style="color:#888;font-size:0.85rem;margin-top:4px;">Una vez verificado, inicia sesión para ver el estado de tu inscripción. La escuela revisará tu solicitud pronto.</p>
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
     </div>
   </div>
 
@@ -357,8 +341,7 @@ async function doSelfRegister() {
   const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   const data = await res.json();
   if (data.success) {
-    document.getElementById('trial-password').textContent = data.trialPassword || 'try1';
-    showScreen('trial-ready');
+    showScreen('email-sent');
   } else { errEl.textContent = data.error || 'Registration failed'; errEl.style.display = 'block'; }
 }
 
@@ -428,8 +411,7 @@ async function doRegister() {
   const data = await res.json();
   if (data.success) {
     // Show trial class screen
-    document.getElementById('trial-password').textContent = data.trialPassword || 'try1';
-    showScreen('trial-ready');
+    showScreen('email-sent');
   } else {
     errEl.textContent = data.error || 'Registration failed / Error en registro';
     errEl.style.display = 'block';
