@@ -362,7 +362,7 @@ async function doSelfRegister() {
   } else { errEl.textContent = data.error || 'Registration failed'; errEl.style.display = 'block'; }
 }
 
-function validateCode() {
+async function validateCode() {
   const code = document.getElementById('reg-code').value.trim().toUpperCase();
   const errEl = document.getElementById('code-error');
   errEl.style.display = 'none';
