@@ -1040,7 +1040,6 @@ function connectSocket() {
   });
 
   // Audio relay started in enterClass() after localStream is confirmed ready
-  window._audioRelayStarted = false;
   startAudioRelay(socket);
 }
 
@@ -1140,8 +1139,10 @@ function removeVideoPeer(socketId) {
 
 function startAudioRelay(socket) {
   if (!localStream) return;
-  if (window._audioRelayStarted) return;
-  window._audioRelayStarted = true;
+  // Remove any existing listeners first to prevent duplicates on reconnect
+  socket.off('audio-offer');
+  socket.off('audio-answer');
+  socket.off('audio-ice');
   window._audioSocket = socket;
   socket.on('audio-offer', async ({ from, offer }) => {
     try {
@@ -1699,7 +1700,6 @@ function enterClass() {
   document.getElementById('room-label').style.background = '#2e7d32';
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
-  window._audioRelayStarted = false;
   startAudioRelay(_joinedSocket);
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) {
@@ -2314,8 +2314,14 @@ function showReaction(emoji) {
 }
 
 function playReactionSound(emoji) {
-  playReactionSoundOnce(emoji);
-  setTimeout(() => playReactionSoundOnce(emoji), 600);
+  if (emoji === '👏') {
+    // Triple clap pattern: clap clap clap ... clap clap clap
+    const clapTimes = [0, 150, 300, 700, 850, 1000];
+    clapTimes.forEach(delay => setTimeout(() => playReactionSoundOnce('👏'), delay));
+  } else {
+    playReactionSoundOnce(emoji);
+    setTimeout(() => playReactionSoundOnce(emoji), 600);
+  }
 }
 
 function playReactionSoundOnce(emoji) {
