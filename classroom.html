@@ -67,6 +67,33 @@
     .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; width: 100%; }
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
+
+    /* 🎂 Birthday theme */
+    @keyframes birthday-border {
+      0% { border-color: #ff6b6b; }
+      25% { border-color: #ffd93d; }
+      50% { border-color: #6bcb77; }
+      75% { border-color: #4d96ff; }
+      100% { border-color: #ff6b6b; }
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(120px) rotate(720deg); opacity: 0; }
+    }
+    .birthday-box {
+      border: 3px solid #ff6b6b;
+      animation: birthday-border 2s infinite;
+      border-radius: 10px;
+    }
+    .birthday-emoji {
+      position: absolute; top: 4px; right: 4px; font-size: 1.4rem; z-index: 10;
+      animation: birthday-border 2s infinite;
+      filter: drop-shadow(0 0 4px rgba(255,255,255,0.8));
+    }
+    .confetti-piece {
+      position: absolute; width: 8px; height: 8px; border-radius: 2px; z-index: 20;
+      animation: confetti-fall 1.5s ease-in forwards;
+    }
     .student-label { font-size: 0.75rem; font-weight: 700; color: #a0c4ff; text-align: center; padding: 2px 0; }
     .student-controls { display: none; justify-content: center; gap: 4px; }
     .student-wrap { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-bottom: 4px; }
@@ -628,16 +655,18 @@ function connectSocket() {
   });
 
   socket.on('existing-users', (users) => {
-    users.forEach(({ socketId, role, name }) => {
+    users.forEach(({ socketId, role, name, isBirthday }) => {
       remoteRoles[socketId] = role; remoteNames[socketId] = name;
       createVideoSlot(socketId, role, name);
+      if (role === 'student') showStudentSlot(socketId, name, isBirthday);
       if (IS_TEACHER) setTimeout(() => callAudioPeer(socketId, socket), 1000);
     });
   });
 
-  socket.on('user-joined', ({ socketId, role, name }) => {
+  socket.on('user-joined', ({ socketId, role, name, isBirthday }) => {
     remoteRoles[socketId] = role; remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
+    if (role === 'student') showStudentSlot(socketId, name, isBirthday);
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
@@ -1156,7 +1185,51 @@ function createVideoSlot(socketId, role, name) {
   }
 }
 
-function showStudentSlot(socketId, name) {
+function applyBirthdayTheme(identity, name) {
+  const slot = document.getElementById(`slot-${identity}`);
+  const lbl = document.getElementById(`lbl-${identity}`);
+  if (!slot) return;
+
+  // Add animated border
+  slot.classList.add('birthday-box');
+
+  // Add 🎂 emoji overlay
+  const emoji = document.createElement('div');
+  emoji.className = 'birthday-emoji';
+  emoji.textContent = '🎂';
+  slot.appendChild(emoji);
+
+  // Update label
+  if (lbl) lbl.textContent = `🎂 ${name || identity}`;
+
+  // Confetti burst
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8'];
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.top = '0';
+      piece.style.animationDelay = Math.random() * 0.5 + 's';
+      slot.appendChild(piece);
+      setTimeout(() => piece.remove(), 2000);
+    }, i * 100);
+  }
+
+  // Birthday announcement to room (teacher only)
+  if (IS_TEACHER) {
+    setTimeout(() => {
+      const announce = document.createElement('div');
+      announce.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff6b6b,#ffd93d);color:white;padding:12px 24px;border-radius:20px;font-weight:900;font-size:1.1rem;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+      announce.textContent = `🎂 Happy Birthday ${name || identity}! 🎉`;
+      document.body.appendChild(announce);
+      setTimeout(() => announce.remove(), 4000);
+    }, 500);
+  }
+}
+
+function showStudentSlot(socketId, name, isBirthday) {
   const identity = name || socketId; // stable key — survives reconnects
 
   // If slot already exists for this identity, just update socketId mapping and return
@@ -1202,6 +1275,9 @@ function showStudentSlot(socketId, name) {
   }
   document.getElementById('right-panel').appendChild(wrap);
   studentSlots[socketId] = identity;
+
+  // Apply birthday theme if it's their birthday!
+  if (isBirthday) setTimeout(() => applyBirthdayTheme(identity, name), 300);
 }
 
 function addDrawControlBtn(socketId, name) {
