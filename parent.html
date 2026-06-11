@@ -96,13 +96,53 @@
   <!-- REGISTER STEP 1: CODE -->
   <div id="screen-register-code" style="display:none;">
     <div class="card">
-      <div class="step-indicator"><div class="step active" id="s1"></div><div class="step" id="s2"></div><div class="step" id="s3"></div></div>
+      <div class="step-indicator"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
       <h2>Enter School Code</h2>
       <p class="subtitle">Enter the registration code provided by the school.<br>Ingresa el código de registro dado por la escuela.</p>
       <div class="field"><label>Registration Code / Código de Registro</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
       <div id="code-error" class="error"></div>
       <button class="btn btn-primary" onclick="validateCode()">Continue / Continuar</button>
       <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back / Atrás</button></div>
+    </div>
+  </div>
+
+  <!-- REGISTER STEP 1b: WHO ARE YOU REGISTERING? -->
+  <div id="screen-register-type" style="display:none;">
+    <div class="card">
+      <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
+      <h2>Who is registering? / ¿Quién se registra?</h2>
+      <p class="subtitle">Please select one / Por favor selecciona una opción</p>
+      <button onclick="setRegType('self')" style="width:100%;padding:16px;margin-bottom:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#1a73e8;text-align:left;">
+        🎓 I am registering myself / Me estoy registrando yo
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am an adult student / Soy un estudiante adulto</div>
+      </button>
+      <button onclick="setRegType('parent')" style="width:100%;padding:16px;background:#f0fff4;border:2px solid #2e7d32;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#2e7d32;text-align:left;">
+        👨‍👩‍👧 I am registering my child / Registro a mi hijo/a
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am a parent or guardian / Soy padre, madre o tutor</div>
+      </button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+    </div>
+  </div>
+
+  <!-- REGISTER: SELF (ADULT STUDENT) -->
+  <div id="screen-register-self" style="display:none;">
+    <div class="card">
+      <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
+      <h2>Your Information / Tu Información</h2>
+      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <div class="field">
+        <label>First Name only / Solo Primer Nombre</label>
+        <input type="text" id="self-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
+        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! / ¡Solo primer nombre!</div>
+      </div>
+      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="self-dob"/></div>
+      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Email</label><input type="email" id="self-email" placeholder="your@email.com"/></div>
+      <div class="field"><label>Password / Contraseña</label><input type="password" id="self-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
+      <div id="self-error" class="error"></div>
+      <button class="btn btn-primary" onclick="doSelfRegister()">Submit / Enviar</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-type')">← Back / Atrás</button></div>
     </div>
   </div>
 
@@ -279,7 +319,7 @@ if (verifyToken) {
 }
 
 function showScreen(name) {
-  ['login','register-code','register-parent','register-student','email-sent','dashboard','verify','forgot','reset','trial-ready'].forEach(s => {
+  ['login','register-code','register-type','register-self','register-parent','register-student','email-sent','dashboard','verify','forgot','reset','trial-ready'].forEach(s => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.style.display = 'none';
   });
@@ -287,14 +327,49 @@ function showScreen(name) {
   if (target) target.style.display = 'block';
 }
 
-async function validateCode() {
+async function setRegType(type) {
+  localStorage.setItem('regType', type);
+  if (type === 'self') showScreen('register-self');
+  else showScreen('register-parent');
+}
+
+async function doSelfRegister() {
+  const errEl = document.getElementById('self-error');
+  errEl.style.display = 'none';
+  const name = document.getElementById('self-name').value.trim();
+  const nickname = document.getElementById('self-nickname').value.trim();
+  const dob = document.getElementById('self-dob').value;
+  const phone = document.getElementById('self-phone').value.trim();
+  const email = document.getElementById('self-email').value.trim();
+  const password = document.getElementById('self-password').value;
+  if (!name) { errEl.textContent = 'Please enter your first name / Ingresa tu primer nombre'; errEl.style.display = 'block'; return; }
+  if (name.includes(' ')) { errEl.textContent = 'First name only / Solo primer nombre'; errEl.style.display = 'block'; return; }
+  if (!dob || !phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  const displayName = nickname || capName;
+  const body = {
+    code: _validCode, registrationType: 'self',
+    parentName: displayName, phone, email, password,
+    relationship: 'self',
+    studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: ''
+  };
+  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('trial-password').textContent = data.trialPassword || 'try1';
+    showScreen('trial-ready');
+  } else { errEl.textContent = data.error || 'Registration failed'; errEl.style.display = 'block'; }
+}
+
+function validateCode() {
   const code = document.getElementById('reg-code').value.trim().toUpperCase();
   const errEl = document.getElementById('code-error');
   errEl.style.display = 'none';
   if (!code) { errEl.textContent = 'Please enter a code / Por favor ingresa un código'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
   const data = await res.json();
-  if (data.valid) { _validCode = code; showScreen('register-parent'); }
+  if (data.valid) { _validCode = code; showScreen('register-type'); }
   else { errEl.textContent = 'Invalid or already used code / Código inválido o ya usado'; errEl.style.display = 'block'; }
 }
 
@@ -395,17 +470,24 @@ async function loadDashboard() {
   } else {
     list.innerHTML = data.students.map(s => `
       <div class="student-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
-            <span class="student-name">${s.name}</span>
+            <span class="student-name">${s.displayName || s.name}</span>
             <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Paid / Pagado' : '❌ Unpaid / Sin pagar'}</span>
           </div>
           <span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;background:${s.status==='approved'?'#e8f5e9':s.status==='pending'?'#fff3e0':'#ffebee'};color:${s.status==='approved'?'#2e7d32':s.status==='pending'?'#e65100':'#c62828'};">
             ${s.status==='approved'?'✅ Active':s.status==='pending'?'⏳ Pending Review':'❌ Denied'}
           </span>
         </div>
-        ${s.fullName ? `<div style="font-size:0.8rem;color:#888;margin-top:4px;">${s.fullName}</div>` : ''}
-        ${!s.paid ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing to activate / Por favor contacte a facturación para activar</div>' : ''}
+        ${s.trialPassword ? `
+          <div style="background:#f0f7ff;border-radius:8px;padding:10px;margin-top:10px;font-size:0.85rem;">
+            <div style="color:#888;margin-bottom:4px;">Trial Class / Clase de Prueba:</div>
+            <div><b>Room / Salón:</b> 101 &nbsp;|&nbsp; <b>Password:</b> ${s.trialPassword}</div>
+          </div>
+          <a href="index.html" style="display:block;margin-top:8px;padding:10px;background:#2e7d32;color:white;border-radius:10px;text-align:center;font-weight:900;font-size:0.9rem;text-decoration:none;">
+            📝 Exam / Examen
+          </a>` : ''}
+        ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing / Por favor contacte a facturación</div>' : ''}
       </div>
     `).join('');
 
