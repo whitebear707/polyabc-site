@@ -1582,7 +1582,14 @@ function renderAllStudents() {
       <span style="font-size:0.75rem;color:${s.paid ? '#2e7d32' : '#c62828'};font-weight:700;">${s.paid ? '✅' : '❌'}</span>
     </label>`;
     return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
-      <td style="font-weight:700;">${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}</td>
+      <td style="font-weight:700;">
+        ${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
+        ${s.parentName ? `<div style="font-size:0.75rem;color:#888;font-weight:400;margin-top:2px;">
+          ${s.relationship === 'mother' ? '👩' : s.relationship === 'father' ? '👨' : s.relationship === 'self' ? '🎓' : '👤'} 
+          ${s.relationship === 'self' ? 'Adult student' : s.parentName}
+          ${s.parentPhone ? `· 📱 ${s.parentPhone}` : ''}
+        </div>` : ''}
+      </td>
       <td style="color:#888;">${s.password}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
