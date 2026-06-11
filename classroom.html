@@ -1250,6 +1250,7 @@ function applyBirthdayTheme(identity, name) {
 }
 
 function showStudentSlot(socketId, name, isBirthday) {
+  console.log(`[birthday] showStudentSlot: ${name}, isBirthday=${isBirthday}`);
   const identity = name || socketId; // stable key — survives reconnects
 
   // If slot already exists for this identity, just update socketId mapping and return
