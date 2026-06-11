@@ -679,6 +679,10 @@ function connectSocket() {
     if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
       setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON(['data']) }), 1500);
     }
+    if (!IS_TEACHER && canvas && canvas.getObjects().length > 0) {
+      // Student rejoining — request canvas state from teacher
+      setTimeout(() => socket.emit('request-canvas', { room: ROOM }), 1000);
+    }
     if (IS_TEACHER && isSharing) {
       callSsPeer(socketId);
     }
@@ -949,6 +953,13 @@ function connectSocket() {
     suppressSync = false;
   });
   socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
+
+  // Teacher: student requested canvas on rejoin
+  socket.on('canvas-requested', ({ studentId }) => {
+    if (IS_TEACHER && canvas) {
+      socket.emit('send-canvas-to', { room: ROOM, targetId: studentId, json: canvas.toJSON(['data']) });
+    }
+  });
   socket.on('whiteboard-image', ({ dataUrl, scale, left, top }) => {
     if (!canvas) return;
     suppressSync = true;
@@ -1098,11 +1109,11 @@ function createVideoPeer(targetId, socket) {
   if (localStream) localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
   pc.onicecandidate = (e) => { if (e.candidate) socket.emit('video-ice', { to: targetId, candidate: e.candidate }); };
   pc.ontrack = (e) => {
-    // Replace the img element with a live video element
-    const existing = document.getElementById(`vimg-${targetId}`);
+    const identity = getIdentity(targetId);
+    const existing = document.getElementById(`vimg-${identity}`);
     if (existing) {
       const vid = document.createElement('video');
-      vid.id = `vimg-${targetId}`;
+      vid.id = `vimg-${identity}`;
       vid.autoplay = true; vid.playsInline = true; vid.muted = true;
       vid.style.cssText = existing.style.cssText || 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
       vid.srcObject = e.streams[0];
@@ -1275,6 +1286,9 @@ function showStudentSlot(socketId, name, isBirthday) {
   }
   document.getElementById('right-panel').appendChild(wrap);
   studentSlots[socketId] = identity;
+
+  // Add draw control button for teacher
+  if (IS_TEACHER) addDrawControlBtn(socketId, name);
 
   // Apply birthday theme if it's their birthday!
   if (isBirthday) setTimeout(() => applyBirthdayTheme(identity, name), 300);
