@@ -2399,22 +2399,44 @@ async function showStudentRequests() {
   } else {
     list.innerHTML = requests.map(r => `
       <div style="background:#f8f9ff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px;">
-        <div style="font-weight:900;font-size:1rem;">${r.student.name}</div>
+        <div style="font-weight:900;font-size:1rem;">${r.student.displayName || r.student.name}</div>
         <div style="font-size:0.82rem;color:#555;margin-top:4px;">
-          👤 ${r.relationship === 'mother' ? 'Mother' : r.relationship === 'father' ? 'Father' : 'Guardian'}: ${r.parentName}<br>
+          👤 ${r.relationship === 'self' ? 'Adult Student / Estudiante Adulto' : r.relationship === 'mother' ? 'Mother / Mamá' : r.relationship === 'father' ? 'Father / Papá' : 'Guardian'}: ${r.parentName}<br>
           📱 ${r.phone}<br>
           📧 ${r.email}<br>
-          🎂 DOB: ${r.student.dob}<br>
-          ${r.student.fullName ? `📝 Full name: ${r.student.fullName}` : ''}
+          🎂 DOB: ${r.student.dob}
         </div>
+        ${r.student.status === 'pending' ? `
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button onclick="handleRequest('${r.parentId}','${r.student.name}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
           <button onclick="handleRequest('${r.parentId}','${r.student.name}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
+        </div>` : ''}
+        ${r.student.status === 'approved' ? `
+        <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-top:8px;font-size:0.85rem;">
+          <div style="color:#2e7d32;font-weight:700;margin-bottom:4px;">✅ Approved — Trial Credentials:</div>
+          <div>Room: <b>101</b> &nbsp;|&nbsp; Password: <b>${r.student.trialPassword || 'try1'}</b></div>
         </div>
+        <a href="exam.html" target="_blank" style="display:block;margin-top:8px;padding:10px;background:#2e7d32;color:white;border-radius:10px;text-align:center;font-weight:900;font-size:0.9rem;text-decoration:none;">
+          📝 Exam / Examen
+        </a>` : ''}
+        ${r.student.status === 'denied' ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+          <span style="color:#c62828;font-size:0.85rem;font-weight:700;">❌ Denied</span>
+          <button onclick="deleteStudentRequest('${r.parentId}','${r.student.name}')" style="padding:6px 14px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">🗑 Delete</button>
+        </div>` : ''}
       </div>
     `).join('');
   }
   modal.style.display = 'flex';
+}
+
+async function deleteStudentRequest(parentId, studentName) {
+  if (!confirm(`Delete denied request for ${studentName}?`)) return;
+  await fetch(`${SERVER_URL}/admin/student-request/delete`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ parentId, studentName })
+  });
+  showStudentRequests();
 }
 
 async function handleRequest(parentId, studentName, action) {
