@@ -765,7 +765,10 @@ function connectSocket() {
     }
   });
 
-  socket.on('your-draw-toggled', ({ canDraw }) => {
+  socket.on('kicked', ({ reason }) => {
+    alert(`⚠️ ${reason || 'You were disconnected.'}`);
+    window.location.href = 'index.html';
+  });
     window._canDraw = canDraw;
     if (canvas && !IS_TEACHER) {
       canvas.isDrawingMode = canDraw; canvas.selection = canDraw;
