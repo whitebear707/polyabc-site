@@ -801,45 +801,49 @@ function connectSocket() {
   socket.on('laser-move', ({ x, y }) => { if (!IS_TEACHER) showRemoteLaser(x, y); });
   socket.on('waiting-count', ({ count }) => {
     if (!IS_TEACHER) return;
-    const badge = document.getElementById('waiting-badge');
+    // Get or create badge on open class button
+    let badge = document.getElementById('waiting-badge');
+    const openBtn = document.getElementById('open-class-btn');
+    if (!badge && openBtn) {
+      badge = document.createElement('span');
+      badge.id = 'waiting-badge';
+      badge.style.cssText = 'display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;';
+      openBtn.style.position = 'relative';
+      openBtn.appendChild(badge);
+    }
     const connectMsg = document.getElementById('connect-msg');
-    if (badge) {
-      if (count > 0) {
-        const prevCount = parseInt(badge.textContent) || 0;
-        badge.textContent = count;
-        badge.style.display = 'flex';
-        const openBtn = document.getElementById('open-class-btn');
-        if (openBtn) openBtn.style.animation = 'pulse-glow 1s infinite';
-        // Only play choo choo when a NEW student joins (count increases)
-        if (count > prevCount) {
-          if (!window._lastChooChoo || Date.now() - window._lastChooChoo > 5000) {
-            window._lastChooChoo = Date.now();
-            try {
-              const ctx = new (window.AudioContext || window.webkitAudioContext)();
-              const playTone = (freq, start, dur, vol) => {
-                const o = ctx.createOscillator(); const g = ctx.createGain();
-                o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = freq; o.type = 'sawtooth';
-                g.gain.setValueAtTime(vol, ctx.currentTime + start);
-                g.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.05);
-                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
-                o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur);
-              };
-              playTone(220, 0.0, 0.5, 0.3); playTone(196, 0.0, 0.5, 0.15);
-              playTone(220, 0.7, 0.5, 0.3); playTone(196, 0.7, 0.5, 0.15);
-            } catch(e) {}
-          }
+    if (count > 0) {
+      const prevCount = parseInt(badge?.textContent) || 0;
+      if (badge) { badge.textContent = count; badge.style.display = 'flex'; }
+      if (openBtn) openBtn.style.animation = 'pulse-glow 1s infinite';
+      // Play choo choo only when new student joins
+      if (count > prevCount) {
+        if (!window._lastChooChoo || Date.now() - window._lastChooChoo > 5000) {
+          window._lastChooChoo = Date.now();
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const playTone = (freq, start, dur, vol) => {
+              const o = ctx.createOscillator(); const g = ctx.createGain();
+              o.connect(g); g.connect(ctx.destination);
+              o.frequency.value = freq; o.type = 'sawtooth';
+              g.gain.setValueAtTime(vol, ctx.currentTime + start);
+              g.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.05);
+              g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+              o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur);
+            };
+            playTone(220, 0.0, 0.5, 0.3); playTone(196, 0.0, 0.5, 0.15);
+            playTone(220, 0.7, 0.5, 0.3); playTone(196, 0.7, 0.5, 0.15);
+          } catch(e) {}
         }
-        if (connectMsg && !classIsOpen) {
-          const txt = connectMsg.textContent.replace(/ \| 👥.*/,'');
-          connectMsg.textContent = txt + ` | 👥 ${count} student${count>1?'s':''} waiting`;
-        }
-      } else {
-        badge.style.display = 'none';
-        const openBtn = document.getElementById('open-class-btn');
-        if (openBtn) openBtn.style.animation = '';
-        if (connectMsg) connectMsg.textContent = connectMsg.textContent.replace(/ \| 👥.*/,'');
       }
+      if (connectMsg && !classIsOpen) {
+        const txt = connectMsg.textContent.replace(/ \| 👥.*/,'');
+        connectMsg.textContent = txt + ` | 👥 ${count} student${count>1?'s':''} waiting`;
+      }
+    } else {
+      if (badge) badge.style.display = 'none';
+      if (openBtn) openBtn.style.animation = '';
+      if (connectMsg) connectMsg.textContent = connectMsg.textContent.replace(/ \| 👥.*/,'');
     }
   });
 
