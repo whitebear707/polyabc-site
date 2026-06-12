@@ -1634,9 +1634,10 @@ async function saveEditStudent() {
   const dup = checkDuplicatePassword(pass, room);
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
-  await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
-  await fetch(`${SERVER_URL}/students`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+  // PATCH — only update changed fields, preserve all parent/contact info
+  await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
