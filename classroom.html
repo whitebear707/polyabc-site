@@ -1257,12 +1257,16 @@ function showStudentSlot(socketId, name, isBirthday) {
 
   // If slot already exists for this identity, just update socketId mapping and return
   if (document.getElementById(`wrap-${identity}`)) {
-    // Update socketId -> identity mapping for existing slot
-    // Remove old socketId key if different
     Object.keys(studentSlots).forEach(k => {
       if (studentSlots[k] === identity && k !== identity) delete studentSlots[k];
     });
     studentSlots[socketId] = identity;
+    // Still apply birthday theme if flagged
+    if (isBirthday) {
+      window._birthdayStudents = window._birthdayStudents || new Set();
+      window._birthdayStudents.add(identity);
+      setTimeout(() => applyBirthdayTheme(identity, name), 500);
+    }
     return;
   }
 
@@ -2612,8 +2616,8 @@ function onLaserMove(e) {
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
   // Broadcast to students
-  const canvasContainer = document.getElementById('whiteboard-wrap') || document.getElementById('center-panel') || document.body;
-  const rect = canvasContainer.getBoundingClientRect();
+  const upperCanvas = document.querySelector('.upper-canvas') || document.getElementById('whiteboard-wrap') || document.body;
+  const rect = upperCanvas.getBoundingClientRect();
   if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
 }
 
@@ -2622,8 +2626,8 @@ function showRemoteLaser(xRatio, yRatio) {
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
   // Use the canvas container bounds for accurate positioning
-  const canvasContainer = document.getElementById('whiteboard-wrap') || document.getElementById('center-panel') || document.body;
-  const rect = canvasContainer.getBoundingClientRect();
+  const upperCanvas = document.querySelector('.upper-canvas') || document.getElementById('whiteboard-wrap') || document.body;
+  const rect = upperCanvas.getBoundingClientRect();
   dot.style.left = (rect.left + xRatio * rect.width) + 'px';
   dot.style.top = (rect.top + yRatio * rect.height) + 'px';
 }
