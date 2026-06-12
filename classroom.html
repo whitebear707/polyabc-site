@@ -649,8 +649,20 @@ function connectSocket() {
       document.getElementById('connecting-screen').style.display = 'none';
       document.getElementById('waiting-screen').style.display = 'flex';
       document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
-      // Check student schedule access
       if (!IS_TEACHER) loadTodayAssignment();
+    } else if (msg === 'ALREADY_IN_CLASS') {
+      document.getElementById('connecting-screen').style.display = 'none';
+      // Show clear message
+      const screen = document.createElement('div');
+      screen.style.cssText = 'position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:white;font-family:Nunito,sans-serif;text-align:center;padding:20px;';
+      screen.innerHTML = `
+        <div style="font-size:3rem;margin-bottom:16px;">⚠️</div>
+        <div style="font-size:1.3rem;font-weight:900;margin-bottom:8px;">Already in Class</div>
+        <div style="font-size:1rem;color:#a0c4ff;margin-bottom:4px;">This student is already logged in from another device.</div>
+        <div style="font-size:0.9rem;color:#a0c4ff;margin-bottom:24px;">Este estudiante ya está conectado desde otro dispositivo.</div>
+        <button onclick="window.location.href='index.html'" style="background:#1a73e8;color:white;border:none;padding:12px 28px;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">← Back / Volver</button>
+      `;
+      document.body.appendChild(screen);
     } else { alert(msg || 'Could not join room.'); window.location.href = 'index.html'; }
   });
 
