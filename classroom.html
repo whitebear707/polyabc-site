@@ -2594,21 +2594,26 @@ function onLaserMove(e) {
   const dot = document.getElementById('laser-dot');
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
-  // Broadcast to students
-  const canvasContainer = document.getElementById('center-panel') || document.body;
-  const rect = canvasContainer.getBoundingClientRect();
-  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
+  // Use Fabric's getPointer — exact same coordinate system as drawing
+  if (canvas && window._socket) {
+    const pointer = canvas.getPointer(e);
+    const w = canvas.getWidth();
+    const h = canvas.getHeight();
+    window._socket.emit('laser-move', { room: ROOM, x: pointer.x / w, y: pointer.y / h });
+  }
 }
 
 function showRemoteLaser(xRatio, yRatio) {
   const dot = document.getElementById('laser-dot');
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
-  // Use the canvas container bounds for accurate positioning
-  const canvasContainer = document.getElementById('center-panel') || document.body;
-  const rect = canvasContainer.getBoundingClientRect();
-  dot.style.left = (rect.left + xRatio * rect.width) + 'px';
-  dot.style.top = (rect.top + yRatio * rect.height) + 'px';
+  // Convert back using upper-canvas element bounds
+  const upperCanvas = document.querySelector('.upper-canvas');
+  if (upperCanvas) {
+    const rect = upperCanvas.getBoundingClientRect();
+    dot.style.left = (rect.left + xRatio * rect.width) + 'px';
+    dot.style.top = (rect.top + yRatio * rect.height) + 'px';
+  }
 }
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
