@@ -931,8 +931,8 @@ function connectSocket() {
     }
   });
 
-  socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Class Full'; btn.style.background = '#e65100'; } } });
-  socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; } } });
+  socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Class Full', '#e65100'); } });
+  socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Close Class', '#e53935'); } });
 
   socket.on('disconnect', () => { document.getElementById('room-label').style.background = '#e65100'; });
   socket.on('reconnect', () => {
@@ -1559,7 +1559,7 @@ function startTimer(assignment) {
     if (IS_TEACHER && !autoOpened && !classIsOpen && elapsed >= 0) {
       autoOpened = true; classIsOpen = true;
       const btn = document.getElementById('open-class-btn');
-      if (btn) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; }
+      setOpenClassBtn('🔒 Close Class', '#e53935');
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
     }
 
@@ -1734,11 +1734,26 @@ function updateMonkey(socketId) {
   else { monkey.style.display = 'none'; }
 }
 
+function setOpenClassBtn(text, color) {
+  const btn = document.getElementById('open-class-btn');
+  if (!btn) return;
+  btn.style.background = color;
+  // Preserve the waiting-badge span
+  let badge = document.getElementById('waiting-badge');
+  btn.textContent = text;
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.id = 'waiting-badge';
+    badge.style.cssText = 'display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;';
+  }
+  btn.appendChild(badge);
+}
+
 function toggleClassOpen() {
   classIsOpen = !classIsOpen;
   const btn = document.getElementById('open-class-btn');
-  if (classIsOpen) { btn.textContent = '🔒 Close Class'; btn.style.background = '#e53935'; if (window._socket) window._socket.emit('class-opened', { room: ROOM }); }
-  else { btn.textContent = '🔓 Open Class'; btn.style.background = '#2e7d32'; if (window._socket) { window._socket.emit('class-closed', { room: ROOM }); window._socket.emit('record-class-end', { room: ROOM }); } }
+  if (classIsOpen) { setOpenClassBtn('🔒 Close Class', '#e53935'); if (window._socket) window._socket.emit('class-opened', { room: ROOM }); }
+  else { setOpenClassBtn('🔓 Open Class', '#2e7d32'); if (window._socket) { window._socket.emit('class-closed', { room: ROOM }); window._socket.emit('record-class-end', { room: ROOM }); } }
 }
 
 function toggleMic() {
