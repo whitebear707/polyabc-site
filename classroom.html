@@ -1251,7 +1251,9 @@ function applyBirthdayTheme(identity, name) {
 
 function showStudentSlot(socketId, name, isBirthday) {
   console.log(`[birthday] showStudentSlot: ${name}, isBirthday=${isBirthday}`);
-  const identity = name || socketId; // stable key — survives reconnects
+  const identity = name || socketId;
+  // Store birthday flag on identity for later application
+  if (isBirthday) window._birthdayStudents = window._birthdayStudents || new Set(), window._birthdayStudents.add(identity); // stable key — survives reconnects
 
   // If slot already exists for this identity, just update socketId mapping and return
   if (document.getElementById(`wrap-${identity}`)) {
@@ -1301,7 +1303,8 @@ function showStudentSlot(socketId, name, isBirthday) {
   if (IS_TEACHER) addDrawControlBtn(socketId, name);
 
   // Apply birthday theme if it's their birthday!
-  if (isBirthday) setTimeout(() => applyBirthdayTheme(identity, name), 300);
+  const shouldBirthday = isBirthday || (window._birthdayStudents && window._birthdayStudents.has(identity));
+  if (shouldBirthday) setTimeout(() => applyBirthdayTheme(identity, name), 500);
 }
 
 function addDrawControlBtn(socketId, name) {
@@ -1702,6 +1705,17 @@ function enterClass() {
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
   startAudioRelay(_joinedSocket);
+  // Fetch current waiting count when entering classroom
+  if (IS_TEACHER) {
+    fetch(`${SERVER_URL}/waiting-count/${ROOM}`)
+      .then(r => r.json())
+      .then(({ count }) => {
+        if (count > 0) {
+          const badge = document.getElementById('waiting-badge');
+          if (badge) { badge.textContent = count; badge.style.display = 'flex'; }
+        }
+      }).catch(() => {});
+  }
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
@@ -2596,7 +2610,7 @@ function onLaserMove(e) {
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
   // Broadcast to students
-  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const canvasContainer = document.getElementById('whiteboard-wrap') || document.getElementById('center-panel') || document.body;
   const rect = canvasContainer.getBoundingClientRect();
   if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
 }
@@ -2606,7 +2620,7 @@ function showRemoteLaser(xRatio, yRatio) {
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
   // Use the canvas container bounds for accurate positioning
-  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const canvasContainer = document.getElementById('whiteboard-wrap') || document.getElementById('center-panel') || document.body;
   const rect = canvasContainer.getBoundingClientRect();
   dot.style.left = (rect.left + xRatio * rect.width) + 'px';
   dot.style.top = (rect.top + yRatio * rect.height) + 'px';
