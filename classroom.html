@@ -1205,10 +1205,14 @@ function createVideoSlot(socketId, role, name) {
   }
 }
 
-function applyBirthdayTheme(identity, name) {
+function applyBirthdayTheme(identity, name, retries = 0) {
   const slot = document.getElementById(`slot-${identity}`);
   const lbl = document.getElementById(`lbl-${identity}`);
-  if (!slot) return;
+  if (!slot) {
+    // Slot not ready yet — retry up to 5 times
+    if (retries < 5) setTimeout(() => applyBirthdayTheme(identity, name, retries + 1), 300);
+    return;
+  }
 
   // Add animated border
   slot.classList.add('birthday-box');
@@ -2615,21 +2619,32 @@ function onLaserMove(e) {
   const dot = document.getElementById('laser-dot');
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
-  // Broadcast to students
-  const upperCanvas = document.querySelector('.upper-canvas') || document.getElementById('whiteboard-wrap') || document.body;
-  const rect = upperCanvas.getBoundingClientRect();
-  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
+  // Use Fabric canvas pointer — same coordinate system as drawing
+  if (canvas) {
+    const pointer = canvas.getPointer(e);
+    const w = canvas.getWidth();
+    const h = canvas.getHeight();
+    if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: pointer.x / w, y: pointer.y / h });
+  }
 }
 
 function showRemoteLaser(xRatio, yRatio) {
   const dot = document.getElementById('laser-dot');
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
-  // Use the canvas container bounds for accurate positioning
-  const upperCanvas = document.querySelector('.upper-canvas') || document.getElementById('whiteboard-wrap') || document.body;
-  const rect = upperCanvas.getBoundingClientRect();
-  dot.style.left = (rect.left + xRatio * rect.width) + 'px';
-  dot.style.top = (rect.top + yRatio * rect.height) + 'px';
+  // Convert Fabric canvas ratio back to screen position
+  if (canvas) {
+    const upperCanvas = document.querySelector('.upper-canvas');
+    if (upperCanvas) {
+      const rect = upperCanvas.getBoundingClientRect();
+      dot.style.left = (rect.left + xRatio * rect.width) + 'px';
+      dot.style.top = (rect.top + yRatio * rect.height) + 'px';
+      return;
+    }
+  }
+  // Fallback
+  dot.style.left = (xRatio * window.innerWidth) + 'px';
+  dot.style.top = (yRatio * window.innerHeight) + 'px';
 }
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
