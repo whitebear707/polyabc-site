@@ -47,6 +47,12 @@
     .nav-btn.active { background: #1a73e8; color: white; }
 
     #new-trial-btn { animation: pulse-glow-purple 1s infinite; }
+    @keyframes pulse-glow-requests {
+      0%   { box-shadow: 0 0 0 0 rgba(26,115,232,0.7); }
+      70%  { box-shadow: 0 0 0 10px rgba(26,115,232,0); }
+      100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); }
+    }
+    .requests-glow { animation: pulse-glow-requests 1s infinite !important; }
     #logout-btn { background: #e53935; color: white; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #logout-btn:hover { background: #c62828; }
     @keyframes pulse-glow-purple {
@@ -404,7 +410,7 @@
       <div class="panel-title">🎓 All Students</div>
       <button class="btn btn-green" onclick="openAddStudentModal()">+ Add Student</button>
       <button class="btn" onclick="generateRegCode()" style="background:#7b1fa2;color:white;margin-left:8px;">🔑 Generate Code</button>
-      <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;" id="requests-btn">📥 Requests</button>
+      <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;position:relative;" id="requests-btn">📥 Requests<span id="requests-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:20px;text-align:center;"></span></button>
     </div>
     <div class="card">
       <table class="data-table">
@@ -798,7 +804,9 @@ async function doLogin() {
     await loadAll();
     showPanel('calendar');
     checkNewTrials();
-    setInterval(checkNewTrials, 30000); // check every 30 seconds
+    setInterval(checkNewTrials, 30000);
+    pollPendingRequests();
+    setInterval(pollPendingRequests, 30000);
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     showAlert('😬','Connection Error','Could not reach the server.',[{label:'OK',fn:'closeAlert()',primary:true}]);
@@ -2372,6 +2380,26 @@ function printAttDetail() {
 }
 
 // Initialize
+// Poll for pending student requests — glow button if any pending
+async function pollPendingRequests() {
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/student-requests`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const requests = await res.json();
+    const pendingCount = requests.filter(r => r.student.status === 'pending').length;
+    const btn = document.getElementById('requests-btn');
+    const badge = document.getElementById('requests-badge');
+    if (pendingCount > 0) {
+      if (btn) btn.classList.add('requests-glow');
+      if (badge) { badge.textContent = pendingCount; badge.style.display = 'flex'; }
+    } else {
+      if (btn) btn.classList.remove('requests-glow');
+      if (badge) badge.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
 // ─── PARENT PANEL ADMIN FUNCTIONS ───
 async function generateRegCode() {
   const res = await fetch(`${SERVER_URL}/admin/reg-code`, {
@@ -2405,6 +2433,11 @@ async function generateRegCode() {
 }
 
 async function showStudentRequests() {
+  // Clear glow when admin opens requests
+  const btn = document.getElementById('requests-btn');
+  const badge = document.getElementById('requests-badge');
+  if (btn) btn.classList.remove('requests-glow');
+  if (badge) badge.style.display = 'none';
   const res = await fetch(`${SERVER_URL}/admin/student-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
   const requests = await res.json();
   const modal = document.getElementById('student-requests-modal');
