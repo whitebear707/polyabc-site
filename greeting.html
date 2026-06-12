@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC - Welcome</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 24px; isolation: auto; }
@@ -92,6 +93,28 @@
   const room  = localStorage.getItem('teacherRoom');
   const name  = localStorage.getItem('teacherName');
   if (!token || !room) window.location.href = 'index.html';
+
+  // Connect socket to receive real-time waiting notifications
+  const greetingSocket = io(SERVER_URL, { auth: { token }, transports: ['websocket'] });
+  greetingSocket.emit('join', { room, password: token, role: 'teacher', name: localStorage.getItem('teacherName') || 'Teacher' });
+  greetingSocket.on('waiting-count', ({ count }) => {
+    let badge = document.getElementById('waiting-notif');
+    if (count > 0) {
+      const prevCount = badge ? parseInt(badge.dataset.count || '0') : 0;
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.id = 'waiting-notif';
+        badge.style.cssText = 'background:#e53935;color:white;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:900;text-align:center;margin-top:8px;animation:pulse-red 1s infinite;';
+        document.querySelector('.card').appendChild(badge);
+      }
+      badge.dataset.count = count;
+      badge.textContent = `🔔 ${count} student${count > 1 ? 's' : ''} waiting for class to open!`;
+      // Play choo choo only when new student joins
+      if (count > prevCount) playChooChoo();
+    } else if (badge) {
+      badge.remove();
+    }
+  });
   document.getElementById('teacher-name').textContent = name || 'Teacher';
 
   // Show class ended banner if returning from classroom
