@@ -744,6 +744,27 @@ function connectSocket() {
     updateSelfMonkey();
   });
 
+  // Another student's cam was toggled — show/hide monkey on their slot
+  socket.on('student-cam-update', ({ targetId, camOn }) => {
+    const identity = getIdentity(targetId);
+    const slot = document.getElementById(`slot-${identity}`);
+    if (!slot) return;
+    let monkey = slot.querySelector('.monkey-overlay');
+    if (!camOn) {
+      if (!monkey) {
+        monkey = document.createElement('img');
+        monkey.className = 'monkey-overlay';
+        monkey.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;';
+        monkey.src = 'nosee.png';
+        slot.appendChild(monkey);
+      } else {
+        monkey.style.display = 'block';
+      }
+    } else if (monkey) {
+      monkey.style.display = 'none';
+    }
+  });
+
   socket.on('your-draw-toggled', ({ canDraw }) => {
     window._canDraw = canDraw;
     if (canvas && !IS_TEACHER) {
