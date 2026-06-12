@@ -170,6 +170,25 @@
       unlockEnterBtn(_netResult);
     }
   }
+function playChooChoo() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const playTone = (freq, start, dur, vol) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq; o.type = 'sawtooth';
+      g.gain.setValueAtTime(vol, ctx.currentTime + start);
+      g.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur);
+    };
+    playTone(220, 0.0, 0.5, 0.3);
+    playTone(196, 0.0, 0.5, 0.15);
+    playTone(220, 0.7, 0.5, 0.3);
+    playTone(196, 0.7, 0.5, 0.15);
+  } catch(e) {}
+}
+
   // Poll for waiting students every 8 seconds — notify teacher if students are waiting
   async function pollWaitingStudents() {
     try {
@@ -184,6 +203,8 @@
           badge.id = 'waiting-notif';
           badge.style.cssText = 'background:#e53935;color:white;border-radius:12px;padding:10px 14px;font-size:0.85rem;font-weight:900;text-align:center;margin-top:8px;animation:pulse-red 1s infinite;';
           document.querySelector('.card').appendChild(badge);
+          // Play choo choo when badge first appears
+          playChooChoo();
         }
         badge.textContent = `🔔 ${count} student${count > 1 ? 's' : ''} waiting for class to open!`;
       } else if (badge) {
