@@ -1707,7 +1707,9 @@ function enterClass() {
   startAudioRelay(_joinedSocket);
   // Fetch current waiting count when entering classroom
   if (IS_TEACHER) {
-    fetch(`${SERVER_URL}/waiting-count/${ROOM}`)
+    fetch(`${SERVER_URL}/waiting-count/${ROOM}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    })
       .then(r => r.json())
       .then(({ count }) => {
         if (count > 0) {
