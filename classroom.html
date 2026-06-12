@@ -68,7 +68,32 @@
     .student-box video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .student-box img { width: 100%; height: 100%; object-fit: cover; display: block; position: absolute; top: 0; left: 0; }
 
-
+    /* 🎂 Birthday theme */
+    @keyframes birthday-border {
+      0% { border-color: #ff6b6b; }
+      25% { border-color: #ffd93d; }
+      50% { border-color: #6bcb77; }
+      75% { border-color: #4d96ff; }
+      100% { border-color: #ff6b6b; }
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(120px) rotate(720deg); opacity: 0; }
+    }
+    .birthday-box {
+      border: 3px solid #ff6b6b;
+      animation: birthday-border 2s infinite;
+      border-radius: 10px;
+    }
+    .birthday-emoji {
+      position: absolute; top: 4px; right: 4px; font-size: 1.4rem; z-index: 10;
+      animation: birthday-border 2s infinite;
+      filter: drop-shadow(0 0 4px rgba(255,255,255,0.8));
+    }
+    .confetti-piece {
+      position: absolute; width: 8px; height: 8px; border-radius: 2px; z-index: 20;
+      animation: confetti-fall 1.5s ease-in forwards;
+    }
     .student-label { font-size: 0.75rem; font-weight: 700; color: #a0c4ff; text-align: center; padding: 2px 0; }
     .student-controls { display: none; justify-content: center; gap: 4px; }
     .student-wrap { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-bottom: 4px; }
@@ -630,18 +655,18 @@ function connectSocket() {
   });
 
   socket.on('existing-users', (users) => {
-    users.forEach(({ socketId, role, name }) => {
+    users.forEach(({ socketId, role, name, isBirthday }) => {
       remoteRoles[socketId] = role; remoteNames[socketId] = name;
       createVideoSlot(socketId, role, name);
-      if (role === 'student') showStudentSlot(socketId, name);
+      if (role === 'student') showStudentSlot(socketId, name, isBirthday);
       if (IS_TEACHER) setTimeout(() => callAudioPeer(socketId, socket), 1000);
     });
   });
 
-  socket.on('user-joined', ({ socketId, role, name }) => {
+  socket.on('user-joined', ({ socketId, role, name, isBirthday }) => {
     remoteRoles[socketId] = role; remoteNames[socketId] = name;
     createVideoSlot(socketId, role, name);
-    if (role === 'student') showStudentSlot(socketId, name);
+    if (role === 'student') showStudentSlot(socketId, name, isBirthday);
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
@@ -1180,12 +1205,57 @@ function createVideoSlot(socketId, role, name) {
   }
 }
 
+function applyBirthdayTheme(identity, name) {
+  const slot = document.getElementById(`slot-${identity}`);
+  const lbl = document.getElementById(`lbl-${identity}`);
+  if (!slot) return;
 
-function showStudentSlot(socketId, name) {
-  const identity = name || socketId;
+  // Add animated border
+  slot.classList.add('birthday-box');
+
+  // Add 🎂 emoji overlay
+  const emoji = document.createElement('div');
+  emoji.className = 'birthday-emoji';
+  emoji.textContent = '🎂';
+  slot.appendChild(emoji);
+
+  // Update label
+  if (lbl) lbl.textContent = `🎂 ${name || identity}`;
+
+  // Confetti burst
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8'];
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.top = '0';
+      piece.style.animationDelay = Math.random() * 0.5 + 's';
+      slot.appendChild(piece);
+      setTimeout(() => piece.remove(), 2000);
+    }, i * 100);
+  }
+
+  // Birthday announcement to room (teacher only)
+  if (IS_TEACHER) {
+    setTimeout(() => {
+      const announce = document.createElement('div');
+      announce.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#ff6b6b,#ffd93d);color:white;padding:12px 24px;border-radius:20px;font-weight:900;font-size:1.1rem;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+      announce.textContent = `🎂 Happy Birthday ${name || identity}! 🎉`;
+      document.body.appendChild(announce);
+      setTimeout(() => announce.remove(), 4000);
+    }, 500);
+  }
+}
+
+function showStudentSlot(socketId, name, isBirthday) {
+  const identity = name || socketId; // stable key — survives reconnects
 
   // If slot already exists for this identity, just update socketId mapping and return
   if (document.getElementById(`wrap-${identity}`)) {
+    // Update socketId -> identity mapping for existing slot
+    // Remove old socketId key if different
     Object.keys(studentSlots).forEach(k => {
       if (studentSlots[k] === identity && k !== identity) delete studentSlots[k];
     });
@@ -1229,7 +1299,8 @@ function showStudentSlot(socketId, name) {
   // Add draw control button for teacher
   if (IS_TEACHER) addDrawControlBtn(socketId, name);
 
-
+  // Apply birthday theme if it's their birthday!
+  if (isBirthday) setTimeout(() => applyBirthdayTheme(identity, name), 300);
 }
 
 function addDrawControlBtn(socketId, name) {
@@ -1630,19 +1701,6 @@ function enterClass() {
   initWhiteboard(_joinedSocket);
   startVideoCapture(_joinedSocket);
   startAudioRelay(_joinedSocket);
-  // Fetch current waiting count when entering classroom
-  if (IS_TEACHER) {
-    fetch(`${SERVER_URL}/waiting-count/${ROOM}`, {
-      headers: { Authorization: `Bearer ${TOKEN}` }
-    })
-      .then(r => r.json())
-      .then(({ count }) => {
-        if (count > 0) {
-          const badge = document.getElementById('waiting-badge');
-          if (badge) { badge.textContent = count; badge.style.display = 'flex'; }
-        }
-      }).catch(() => {});
-  }
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
@@ -2536,32 +2594,21 @@ function onLaserMove(e) {
   const dot = document.getElementById('laser-dot');
   dot.style.left = e.clientX + 'px';
   dot.style.top = e.clientY + 'px';
-  // Use Fabric canvas pointer — same coordinate system as drawing
-  if (canvas) {
-    const pointer = canvas.getPointer(e);
-    const w = canvas.getWidth();
-    const h = canvas.getHeight();
-    if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: pointer.x / w, y: pointer.y / h });
-  }
+  // Broadcast to students
+  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const rect = canvasContainer.getBoundingClientRect();
+  if (window._socket) window._socket.emit('laser-move', { room: ROOM, x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height });
 }
 
 function showRemoteLaser(xRatio, yRatio) {
   const dot = document.getElementById('laser-dot');
   if (xRatio === null) { dot.style.display = 'none'; return; }
   dot.style.display = 'block';
-  // Convert Fabric canvas ratio back to screen position
-  if (canvas) {
-    const upperCanvas = document.querySelector('.upper-canvas');
-    if (upperCanvas) {
-      const rect = upperCanvas.getBoundingClientRect();
-      dot.style.left = (rect.left + xRatio * rect.width) + 'px';
-      dot.style.top = (rect.top + yRatio * rect.height) + 'px';
-      return;
-    }
-  }
-  // Fallback
-  dot.style.left = (xRatio * window.innerWidth) + 'px';
-  dot.style.top = (yRatio * window.innerHeight) + 'px';
+  // Use the canvas container bounds for accurate positioning
+  const canvasContainer = document.getElementById('center-panel') || document.body;
+  const rect = canvasContainer.getBoundingClientRect();
+  dot.style.left = (rect.left + xRatio * rect.width) + 'px';
+  dot.style.top = (rect.top + yRatio * rect.height) + 'px';
 }
 
 function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
