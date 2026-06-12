@@ -810,20 +810,25 @@ function connectSocket() {
         // Glow the open class button
         const openBtn = document.getElementById('open-class-btn');
         if (openBtn) openBtn.style.animation = 'pulse-glow 1s infinite';
-        // Play doorbell
-        if (!window._lastDoorbell || Date.now() - window._lastDoorbell > 3000) {
+        // Play choo choo train sound 🚂
+        if (!window._lastDoorbell || Date.now() - window._lastDoorbell > 5000) {
           window._lastDoorbell = Date.now();
           try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const playNote = (freq, start, dur) => {
+            const playTone = (freq, start, dur, vol) => {
               const o = ctx.createOscillator(); const g = ctx.createGain();
               o.connect(g); g.connect(ctx.destination);
-              o.frequency.value = freq; o.type = 'sine';
-              g.gain.setValueAtTime(0.3, ctx.currentTime + start);
+              o.frequency.value = freq; o.type = 'sawtooth';
+              g.gain.setValueAtTime(vol, ctx.currentTime + start);
+              g.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.05);
               g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
               o.start(ctx.currentTime + start); o.stop(ctx.currentTime + start + dur);
             };
-            playNote(523, 0, 0.15); playNote(659, 0.15, 0.15); playNote(784, 0.3, 0.3);
+            // Choo choo: long tone, pause, long tone
+            playTone(220, 0.0, 0.5, 0.3);   // choooo
+            playTone(196, 0.0, 0.5, 0.15);  // harmony
+            playTone(220, 0.7, 0.5, 0.3);   // choooo
+            playTone(196, 0.7, 0.5, 0.15);  // harmony
           } catch(e) {}
         }
         // Update waiting count on connect screen
