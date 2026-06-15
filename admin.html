@@ -328,6 +328,7 @@
       <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
       <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
       <button class="nav-btn" id="nav-billing" onclick="showPanel('billing')">💳 Billing</button>
+      <button class="nav-btn" id="nav-parents" onclick="showPanel('parents')">👪 Parents</button>
     </div>
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
@@ -374,6 +375,18 @@
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: PARENTS -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-parents" class="panel">
+    <div class="panel-title">👪 Parents</div>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <input id="parents-search" placeholder="Search parent or student..." oninput="filterParents()"
+        style="padding:8px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;flex:1;min-width:200px;">
+    </div>
+    <div id="parents-list"></div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
@@ -454,7 +467,7 @@
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Paid</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Password</th><th>Parent / Contact</th><th>Room</th><th>Group</th><th>Level</th><th>Joined</th><th>Last Payment</th><th>Paid</th><th>Actions</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -950,7 +963,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','billing'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','billing','parents'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -958,7 +971,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','billing'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','billing','parents'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -974,6 +987,7 @@ function showPanel(name) {
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
   if (name === 'billing')    renderBilling();
+  if (name === 'parents')    renderParentsPanel();
 }
 
 // ── MASTER CALENDAR ──
@@ -1632,20 +1646,31 @@ function renderAllStudents() {
       <input type="checkbox" ${s.paid ? 'checked' : ''} onchange="toggleStudentPaid('${s.name}', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#2e7d32;"/>
       <span style="font-size:0.75rem;color:${s.paid ? '#2e7d32' : '#c62828'};font-weight:700;">${s.paid ? '✅' : '❌'}</span>
     </label>`;
+    const joinedCell = s.createdAt
+      ? `<span style="font-size:0.78rem;color:#555;">${new Date(s.createdAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short',year:'numeric'})}</span>`
+      : '<span style="color:#aaa;">—</span>';
+    const lastPayCell = s.lastPaidAt
+      ? `<span style="font-size:0.78rem;color:#2e7d32;font-weight:700;">${new Date(s.lastPaidAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short',year:'numeric'})}</span>`
+      : '<span style="color:#aaa;">—</span>';
+    const parentCell = s.parentName
+      ? `<div style="font-size:0.82rem;">
+          <div style="font-weight:700;">${s.relationship==='mother'?'👩':s.relationship==='father'?'👨':s.relationship==='self'?'🎓':'👤'} ${s.relationship==='self'?'Adult student':s.parentName}</div>
+          ${s.parentPhone?`<div style="color:#1a73e8;font-size:0.75rem;">📱 ${s.parentPhone}</div>`:''}
+          ${s.parentEmail?`<div style="color:#888;font-size:0.72rem;">${s.parentEmail}</div>`:''}
+        </div>`
+      : '<span style="color:#aaa;font-size:0.78rem;">No parent linked</span>';
     return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
       <td style="font-weight:700;">
         ${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
-        ${s.parentName ? `<div style="font-size:0.75rem;color:#888;font-weight:400;margin-top:2px;">
-          ${s.relationship === 'mother' ? '👩' : s.relationship === 'father' ? '👨' : s.relationship === 'self' ? '🎓' : '👤'} 
-          ${s.relationship === 'self' ? 'Adult student' : s.parentName}
-          ${s.parentPhone ? `· 📱 ${s.parentPhone}` : ''}
-        </div>` : ''}
+        ${s.dob ? `<div style="font-size:0.72rem;color:#aaa;">DOB: ${s.dob}</div>` : ''}
       </td>
       <td style="color:#888;">${s.password}</td>
+      <td>${parentCell}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
       <td>${levelCell}</td>
-      <td>${trialDateCell}</td>
+      <td>${joinedCell}</td>
+      <td>${lastPayCell}</td>
       <td>${paidCell}</td>
       <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}','${s.dob||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
     </tr>`;
@@ -2416,6 +2441,9 @@ function printAttDetail() {
   win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report</title>
     <style>body{font-family:Nunito,sans-serif;padding:24px;color:#1a1a2e;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}th{background:#f0f4f8;font-size:0.8rem;color:#888;font-weight:900;}@media print{body{padding:16px;}}</style>
     </head><body>${content}
+<!-- Parent Edit Modal -->
+<div id="parent-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+
 <!-- Billing Edit Modal -->
 <div id="billing-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
 </body></html>`);
@@ -2970,6 +2998,156 @@ function showToast(msg) {
   setTimeout(() => t.style.opacity = '0', 2500);
 }
 
+
+// ── PARENTS PANEL ──
+let _allParents = [];
+
+async function renderParentsPanel() {
+  const res = await fetch(`${SERVER_URL}/admin/parents`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  _allParents = await res.json();
+  filterParents();
+}
+
+function filterParents() {
+  const q = (document.getElementById('parents-search')?.value || '').toLowerCase();
+  const filtered = q
+    ? _allParents.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
+        p.phone?.includes(q) ||
+        (p.students||[]).some(s => s.name?.toLowerCase().includes(q))
+      )
+    : _allParents;
+  renderParentsList(filtered);
+}
+
+function renderParentsList(parents) {
+  const wrap = document.getElementById('parents-list');
+  if (!parents.length) {
+    wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No parents found</div>';
+    return;
+  }
+  wrap.innerHTML = parents.map(par => {
+    const relIcon = par.relationship === 'mother' ? '👩' : par.relationship === 'father' ? '👨' : par.relationship === 'self' ? '🎓' : '👤';
+    const verifiedBadge = par.verified
+      ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ Verified</span>'
+      : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:900;">⏳ Unverified</span>';
+    const students = par.students || [];
+    return `
+    <div style="background:white;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${relIcon} ${par.name || '—'}</div>
+          <div style="font-size:0.82rem;color:#1a73e8;margin-top:2px;">📧 ${par.email || '—'}</div>
+          ${par.phone ? `<div style="font-size:0.82rem;color:#555;margin-top:1px;">📱 ${par.phone}</div>` : ''}
+          ${par.createdAt ? `<div style="font-size:0.72rem;color:#aaa;margin-top:2px;">Joined: ${new Date(par.createdAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short',year:'numeric'})}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          ${verifiedBadge}
+          <button onclick="openEditParentModal('${par._id}','${(par.name||'').replace(/'/g,"\'")}','${par.phone||''}','${par.email||''}')"
+            style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Edit</button>
+        </div>
+      </div>
+
+      <!-- Students -->
+      <div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Students</div>
+      ${students.length ? students.map(s => {
+        const stu = getAllStudents().find(x => x.name === s.name);
+        const group = allGroups.find(g => (g.students||[]).includes(s.name));
+        return `<div style="display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border-radius:10px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+          <div>
+            <span style="font-weight:900;color:#1a1a2e;">${s.name}</span>
+            ${group ? `<span style="background:#e3f2fd;color:#1a73e8;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:6px;">${group.name}</span>` : ''}
+            ${stu?.trialLevel ? `<span style="background:#f3e5f5;color:#6a1b9a;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:4px;">${stu.trialLevel}</span>` : ''}
+            ${stu?.lastPaidAt ? `<div style="font-size:0.72rem;color:#2e7d32;margin-top:2px;">Last paid: ${new Date(stu.lastPaidAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short'})}</div>` : ''}
+          </div>
+          <button onclick="unassignStudent('${par._id}','${s.name}')"
+            style="padding:3px 8px;background:#ffebee;color:#c62828;border:none;border-radius:6px;font-size:0.72rem;font-weight:700;cursor:pointer;">✕ Unassign</button>
+        </div>`;
+      }).join('') : '<div style="color:#aaa;font-size:0.85rem;padding:6px 0;">No students linked</div>'}
+
+      <!-- Assign student -->
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <select id="assign-sel-${par._id}" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.85rem;">
+          <option value="">+ Assign a student...</option>
+          ${getAllStudents().filter(s => !students.find(ps => ps.name === s.name)).map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+        </select>
+        <button onclick="assignStudent('${par._id}')"
+          style="padding:7px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Assign</button>
+      </div>
+    </div>`;
+  }).join('') : ''}
+}
+
+async function assignStudent(parentId) {
+  const sel = document.getElementById(`assign-sel-${parentId}`);
+  const studentName = sel?.value;
+  if (!studentName) return;
+  const res = await fetch(`${SERVER_URL}/admin/parents/assign-student`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ parentId, studentName })
+  });
+  const data = await res.json();
+  if (data.success) { showToast('✅ Student assigned!'); await renderParentsPanel(); await loadAll(); renderAllStudents(); }
+  else showToast('❌ ' + (data.error || 'Failed'));
+}
+
+async function unassignStudent(parentId, studentName) {
+  const res = await fetch(`${SERVER_URL}/admin/parents/unassign-student`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ parentId, studentName })
+  });
+  const data = await res.json();
+  if (data.success) { showToast('✅ Student unassigned'); await renderParentsPanel(); await loadAll(); renderAllStudents(); }
+  else showToast('❌ Failed');
+}
+
+function openEditParentModal(id, name, phone, email) {
+  document.getElementById('parent-edit-modal').style.display = 'flex';
+  document.getElementById('parent-edit-modal').innerHTML = `
+    <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:1.1rem;font-weight:900;">✏️ Edit Parent</div>
+        <button onclick="document.getElementById('parent-edit-modal').style.display='none'"
+          style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">NAME</label>
+          <input id="pe-name" value="${name}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">PHONE</label>
+          <input id="pe-phone" value="${phone}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">EMAIL</label>
+          <input id="pe-email" value="${email}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <button onclick="saveParentEdit('${id}')"
+          style="padding:12px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">💾 Save</button>
+      </div>
+    </div>`;
+}
+
+async function saveParentEdit(id) {
+  const body = {
+    parentName: document.getElementById('pe-name')?.value,
+    phone: document.getElementById('pe-phone')?.value,
+    email: document.getElementById('pe-email')?.value,
+  };
+  await fetch(`${SERVER_URL}/admin/parents/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify(body)
+  });
+  document.getElementById('parent-edit-modal').style.display = 'none';
+  showToast('✅ Parent updated');
+  renderParentsPanel();
+}
+
 </script>
 <!-- Student Requests Modal -->
 <div id="student-requests-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;">
@@ -2982,6 +3160,9 @@ function showToast(msg) {
   </div>
 </div>
 
+
+<!-- Parent Edit Modal -->
+<div id="parent-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
 
 <!-- Billing Edit Modal -->
 <div id="billing-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
