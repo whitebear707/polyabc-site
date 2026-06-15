@@ -172,7 +172,7 @@
     }
 
     const avgPing    = times.length ? Math.round(times.reduce((a,b)=>a+b,0)/times.length) : 9999;
-    const jitter     = times.length ? Math.round(Math.max(...times) - Math.min(...times)) : 0;
+    const mean = avgPing; const jitter = times.length > 1 ? Math.round(Math.sqrt(times.reduce((s,t)=>s+(t-mean)**2,0)/times.length)) : 0;
     const packetLoss = Math.round((failed / total) * 100);
 
     document.getElementById('m-ping').textContent   = avgPing >= 9999 ? '∞' : avgPing;
@@ -180,9 +180,9 @@
     document.getElementById('m-loss').textContent   = packetLoss;
 
     let quality, emoji, label, color;
-    if (avgPing < 50 && jitter < 50 && packetLoss === 0) {
+    if (avgPing < 150 && jitter < 80 && packetLoss === 0) {
       quality = 'good'; emoji = '🟢'; label = 'Great Connection'; color = '#00c853';
-    } else if (avgPing < 120 && jitter < 100 && packetLoss <= 3) {
+    } else if (avgPing < 300 && jitter < 200 && packetLoss <= 10) {
       quality = 'fair'; emoji = '🟡'; label = 'Fair Connection — You may experience minor audio or video issues during class.'; color = '#ffd740';
     } else {
       quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — You may experience significant issues during class. Please check your internet.'; color = '#e53935';
