@@ -50,6 +50,16 @@
     .att-completed { background: #e8f5e9; color: #2e7d32; }
     .att-incomplete { background: #fff3e0; color: #e65100; }
     .att-invalid { background: #ffebee; color: #c62828; }
+
+    /* Calendar */
+    .p-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-top: 8px; }
+    .p-cal-day-label { text-align:center; font-size:0.7rem; font-weight:900; color:#888; padding: 4px 0; }
+    .p-cal-cell { min-height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; position: relative; }
+    .p-cal-cell.empty { background: transparent; }
+    .p-cal-cell.today { background: #e8f0fe; color: #1a73e8; }
+    .p-cal-cell.has-class { background: #1a1a2e; color: white; }
+    .p-cal-cell.has-class .star { font-size: 0.7rem; position: absolute; top: 3px; right: 4px; }
+    .p-cal-cell.past { opacity: 0.45; }
   </style>
 </head>
 <body>
@@ -218,6 +228,8 @@
         <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
         <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
         <button class="nav-tab" onclick="showTab('schedule')" id="tab-schedule" style="display:none;">📅 Schedule</button>
+        <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
+        <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Payment</button>
       </div>
 
       <!-- Students tab -->
@@ -229,6 +241,18 @@
       <!-- Attendance tab -->
       <div id="panel-attendance" style="display:none;">
         <div id="attendance-list"></div>
+      </div>
+
+
+      <!-- Calendar tab -->
+      <div id="panel-calendar" style="display:none;">
+        <div id="calendar-student-select" style="margin-bottom:16px;"></div>
+        <div id="parent-calendar-wrap"></div>
+      </div>
+
+      <!-- Payment tab -->
+      <div id="panel-payment" style="display:none;">
+        <div id="payment-content"></div>
       </div>
 
       <!-- Schedule tab -->
@@ -454,6 +478,7 @@ async function loadDashboard() {
   const res = await fetch(`${SERVER_URL}/parent/dashboard`, { headers: { Authorization: `Bearer ${_parentToken}` } });
   if (!res.ok) { doLogout(); return; }
   const data = await res.json();
+  loadBillingData();
 
   // Render students
   const list = document.getElementById('students-list');
@@ -525,11 +550,15 @@ async function loadDashboard() {
 }
 
 function showTab(tab) {
-  document.getElementById('panel-students').style.display = tab === 'students' ? 'block' : 'none';
-  document.getElementById('panel-attendance').style.display = tab === 'attendance' ? 'block' : 'none';
-  document.getElementById('panel-schedule').style.display = tab === 'schedule' ? 'block' : 'none';
+  ['students','attendance','schedule','calendar','payment'].forEach(p => {
+    const el = document.getElementById(`panel-${p}`);
+    if (el) el.style.display = p === tab ? 'block' : 'none';
+  });
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`tab-${tab}`).classList.add('active');
+  const activeTab = document.getElementById(`tab-${tab}`);
+  if (activeTab) activeTab.classList.add('active');
+  if (tab === 'calendar') renderParentCalendar();
+  if (tab === 'payment')  renderPaymentTab();
 }
 
 function showAddStudent() {
@@ -598,6 +627,229 @@ function doLogout() {
   _parentToken = null;
   showScreen('login');
 }
+
+// ── BILLING & CALENDAR ──
+let _billingData = null;
+let _calStudentName = null;
+let _calDate = new Date();
+
+async function loadBillingData() {
+  try {
+    const res = await fetch(`${SERVER_URL}/parent/billing`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    _billingData = await res.json();
+    // Show calendar and payment tabs if any student has trial completed
+    const anyReady = (_billingData.students || []).some(s => s.trialCompleted || s.enrolledType);
+    if (anyReady) {
+      document.getElementById('tab-calendar').style.display = 'block';
+      document.getElementById('tab-payment').style.display = 'block';
+    }
+  } catch(e) {}
+}
+
+// ── CALENDAR ──
+async function renderParentCalendar() {
+  if (!_billingData) await loadBillingData();
+  const students = _billingData?.students || [];
+  const wrap = document.getElementById('parent-calendar-wrap');
+  const selWrap = document.getElementById('calendar-student-select');
+  if (!students.length) { wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students found</div>'; return; }
+
+  // Student selector (if multiple)
+  if (students.length > 1) {
+    selWrap.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      ${students.map(s => `<button onclick="selectCalStudent('${s.name}')" id="calbtn-${s.name}"
+        style="padding:6px 14px;border-radius:20px;border:2px solid ${_calStudentName===s.name?'#1a73e8':'#ddd'};
+        background:${_calStudentName===s.name?'#1a73e8':'white'};color:${_calStudentName===s.name?'white':'#444'};
+        font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.85rem;">${s.name}</button>`).join('')}
+    </div>`;
+  } else {
+    selWrap.innerHTML = '';
+    _calStudentName = students[0].name;
+  }
+
+  if (!_calStudentName) _calStudentName = students[0].name;
+  await renderCalendarMonth();
+}
+
+function selectCalStudent(name) {
+  _calStudentName = name;
+  renderParentCalendar();
+}
+
+async function renderCalendarMonth() {
+  const wrap = document.getElementById('parent-calendar-wrap');
+  if (!wrap) return;
+  const student = (_billingData?.students || []).find(s => s.name === _calStudentName);
+
+  // Fetch schedule for this student this month
+  let classDates = [];
+  try {
+    const res = await fetch(`${SERVER_URL}/parent/schedule/${encodeURIComponent(_calStudentName)}`, {
+      headers: { Authorization: `Bearer ${_parentToken}` }
+    });
+    const data = await res.json();
+    classDates = data.map(a => a.date);
+  } catch(e) {}
+
+  const year = _calDate.getFullYear();
+  const month = _calDate.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
+  // Payment badge
+  const payBadge = student?.lastPaidAt ? `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <div style="background:#e8f5e9;border-radius:10px;padding:8px 14px;font-size:0.82rem;">
+        <span style="color:#888;font-weight:700;">Last paid:</span>
+        <span style="color:#2e7d32;font-weight:900;margin-left:4px;">${fmtDateP(student.lastPaidAt)}</span>
+      </div>
+      ${student.nextPaymentDue ? `<div style="background:${new Date(student.nextPaymentDue)<new Date()?'#ffebee':'#fff3e0'};border-radius:10px;padding:8px 14px;font-size:0.82rem;">
+        <span style="color:#888;font-weight:700;">Next due:</span>
+        <span style="color:${new Date(student.nextPaymentDue)<new Date()?'#c62828':'#e65100'};font-weight:900;margin-left:4px;">${fmtDateP(student.nextPaymentDue)}</span>
+      </div>` : ''}
+    </div>` : '';
+
+  // Build calendar grid
+  const dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d =>
+    `<div class="p-cal-day-label">${d}</div>`).join('');
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push('<div class="p-cal-cell empty"></div>');
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr;
+    const hasClass = classDates.includes(dateStr);
+    const isPast = dateStr < todayStr;
+    const cls = ['p-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
+    cells.push(`<div class="${cls}">${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
+  }
+
+  wrap.innerHTML = `
+    <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <button onclick="calPrev()" style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">‹</button>
+        <div style="font-weight:900;font-size:1rem;color:#1a1a2e;">${monthNames[month]} ${year}</div>
+        <button onclick="calNext()" style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">›</button>
+      </div>
+      ${payBadge}
+      <div class="p-cal-grid">${dayLabels}${cells.join('')}</div>
+      <div style="display:flex;gap:12px;margin-top:12px;font-size:0.78rem;color:#888;">
+        <span>⭐ = Class day</span>
+        <span style="background:#1a1a2e;color:white;padding:1px 6px;border-radius:4px;">■</span><span>= Scheduled</span>
+      </div>
+    </div>`;
+}
+
+function calPrev() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth()-1, 1); renderCalendarMonth(); }
+function calNext() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth()+1, 1); renderCalendarMonth(); }
+
+function fmtDateP(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ── PAYMENT TAB ──
+async function renderPaymentTab() {
+  if (!_billingData) await loadBillingData();
+  const wrap = document.getElementById('payment-content');
+  if (!wrap) return;
+  const students = _billingData?.students || [];
+  const prices = _billingData?.prices || {};
+
+  if (!students.length) { wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students found</div>'; return; }
+
+  wrap.innerHTML = students.map(s => {
+    if (!s.trialCompleted) return `
+      <div style="background:#fff3e0;border-radius:12px;padding:16px;margin-bottom:12px;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">${s.name}</div>
+        <div style="font-size:0.85rem;color:#888;">⏳ Trial class pending — payment options will appear once the trial is complete.<br>
+        Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
+      </div>`;
+
+    const typeLabel = s.enrolledType === '1v1' ? '1v1 Private' : s.enrolledType === 'group' ? 'Group Class' : '—';
+    const cycleLabel = s.billingCycle ? s.billingCycle.charAt(0).toUpperCase()+s.billingCycle.slice(1) : '—';
+    const priceKey = s.enrolledType && s.billingCycle ? `${s.enrolledType}_${s.billingCycle}` : null;
+    const price = priceKey && prices[priceKey] ? prices[priceKey].price : s.amountDue;
+    const isOverdue = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date();
+
+    return `
+      <div style="background:white;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">${s.name}</div>
+          <span style="background:${s.paid?'#e8f5e9':'#ffebee'};color:${s.paid?'#2e7d32':'#c62828'};padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:900;">
+            ${s.paid ? '✅ Paid' : isOverdue ? '⚠️ Overdue' : '💳 Due'}
+          </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <div style="background:#f8f9fa;border-radius:10px;padding:10px;">
+            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">CLASS TYPE</div>
+            <div style="font-weight:900;color:#1a73e8;">${typeLabel}</div>
+          </div>
+          <div style="background:#f8f9fa;border-radius:10px;padding:10px;">
+            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">BILLING</div>
+            <div style="font-weight:900;color:#1a1a2e;">${cycleLabel}</div>
+          </div>
+          ${s.scheduledTime ? `<div style="background:#f8f9fa;border-radius:10px;padding:10px;">
+            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">TIME (GDL)</div>
+            <div style="font-weight:900;color:#1a1a2e;">${s.scheduledTime}</div>
+          </div>` : ''}
+          ${s.classesPerWeek ? `<div style="background:#f8f9fa;border-radius:10px;padding:10px;">
+            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">FREQUENCY</div>
+            <div style="font-weight:900;color:#1a1a2e;">${s.classesPerWeek}x / week</div>
+          </div>` : ''}
+        </div>
+
+        ${price ? `<div style="text-align:center;margin-bottom:14px;">
+          <div style="font-size:0.78rem;color:#888;font-weight:700;">Amount Due / Monto a Pagar</div>
+          <div style="font-size:2rem;font-weight:900;color:#1a1a2e;">$${parseFloat(price).toLocaleString('es-MX')} <span style="font-size:1rem;color:#888;">MXN</span></div>
+        </div>` : ''}
+
+        ${s.lastPaidAt ? `<div style="font-size:0.8rem;color:#888;text-align:center;margin-bottom:10px;">
+          Last paid: ${fmtDateP(s.lastPaidAt)} ${s.nextPaymentDue ? '· Next due: '+fmtDateP(s.nextPaymentDue) : ''}
+        </div>` : ''}
+
+        <!-- Pay button — Mercado Pago stub -->
+        <button onclick="initPayment('${s.name}')"
+          style="width:100%;padding:13px;background:${s.paid?'#e0e0e0':'#009ee3'};color:${s.paid?'#888':'white'};border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:${s.paid?'default':'pointer'};"
+          ${s.paid ? 'disabled' : ''}>
+          ${s.paid ? '✅ Paid — Thank you!' : '💳 Pay with Mercado Pago'}
+        </button>
+        <div style="text-align:center;font-size:0.75rem;color:#aaa;margin-top:6px;">🔒 Secure payment / Pago seguro</div>
+      </div>`;
+  }).join('');
+}
+
+async function initPayment(studentName) {
+  // TODO: Replace with real Mercado Pago checkout when credentials are available
+  // For now: send payment request to server which flags it for admin review
+  const s = _billingData?.students?.find(x => x.name === studentName);
+  if (!s) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Processing...';
+  try {
+    const res = await fetch(`${SERVER_URL}/parent/payment-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+      body: JSON.stringify({ studentName, enrolledType: s.enrolledType, billingCycle: s.billingCycle, classesPerWeek: s.classesPerWeek })
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.textContent = '✅ Request sent — School will confirm shortly';
+      btn.style.background = '#2e7d32';
+    } else {
+      btn.textContent = '❌ Failed — Please contact school';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = '❌ Error — Please try again';
+    btn.disabled = false;
+  }
+}
+
 </script>
 </body>
 </html>
