@@ -322,58 +322,101 @@
   <div id="header">
     <div id="header-left">
       <button class="nav-btn active" id="nav-calendar" onclick="showPanel('calendar')">🗓 Schedule</button>
-      <button class="nav-btn" id="nav-teachers" onclick="showPanel('teachers')">👩‍🏫 Teachers</button>
       <button class="nav-btn" id="nav-students" onclick="showPanel('students')">🎓 Students</button>
       <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
-      <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
-      <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
-      <button class="nav-btn" id="nav-billing" onclick="showPanel('billing')">💳 Billing</button>
       <button class="nav-btn" id="nav-parents" onclick="showPanel('parents')">👪 Parents</button>
     </div>
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
+      <button class="nav-btn" id="nav-teachers" onclick="showPanel('teachers')">👩‍🏫 Teachers</button>
+      <button class="nav-btn" id="nav-staff" onclick="showPanel('staff')">👔 Staff</button>
+      <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
+      <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
+      <button class="nav-btn" id="nav-accounting" onclick="showPanel('accounting')">🧾 Accounting</button>
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
       <button onclick="openResetModal()" title="Reset All Data" style="background:none;border:none;color:#555;font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:8px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#555'">🪐</button>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════ -->
-  <!-- PANEL: BILLING -->
-  <!-- ══════════════════════════════════════════════════════ -->
-  <div id="panel-billing" class="panel">
-    <div class="panel-title">💳 Billing</div>
 
-    <!-- Price Editor -->
-    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
-      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">📊 Price Table</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;" id="price-grid"></div>
-      <button onclick="savePrices()" style="margin-top:16px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Save Prices</button>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: STAFF -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-staff" class="panel">
+    <div class="panel-title">👔 Staff</div>
+    <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Add Staff Member</button>
+    <div id="staff-list"></div>
+  </div>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: ACCOUNTING -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-accounting" class="panel">
+    <div class="panel-title">🧾 Accounting</div>
+
+    <!-- Month selector + summary -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <select id="acc-month" onchange="renderAccounting()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+        <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+        <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+      <select id="acc-year" onchange="renderAccounting()" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;"></select>
+      <button onclick="printAccounting()" style="padding:8px 16px;background:#1a1a2e;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">🖨 Print / Export</button>
     </div>
 
-    <!-- Students Billing Table -->
-    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">🎓 Student Billing</div>
-        <input id="billing-search" placeholder="Search student..." oninput="filterBillingTable()" style="padding:7px 12px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;font-size:0.85rem;">
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px;">
+      <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:4px solid #00c853;">
+        <div style="font-size:0.75rem;font-weight:900;color:#888;text-transform:uppercase;">Ingresos</div>
+        <div id="acc-total-income" style="font-size:1.6rem;font-weight:900;color:#00c853;">$0</div>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="data-table" id="billing-table">
-          <thead><tr>
-            <th>Student</th>
-            <th>Type</th>
-            <th>Cycle</th>
-            <th>Days/Week</th>
-            <th>Schedule</th>
-            <th>Trial</th>
-            <th>Paid</th>
-            <th>Last Paid</th>
-            <th>Next Due</th>
-            <th>Actions</th>
-          </tr></thead>
-          <tbody id="billing-tbody"></tbody>
-        </table>
+      <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:4px solid #e53935;">
+        <div style="font-size:0.75rem;font-weight:900;color:#888;text-transform:uppercase;">Egresos</div>
+        <div id="acc-total-egreso" style="font-size:1.6rem;font-weight:900;color:#e53935;">$0</div>
       </div>
+      <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);border-left:4px solid #1a73e8;">
+        <div style="font-size:0.75rem;font-weight:900;color:#888;text-transform:uppercase;">Saldo Neto</div>
+        <div id="acc-total-net" style="font-size:1.6rem;font-weight:900;color:#1a73e8;">$0</div>
+      </div>
+    </div>
+
+    <!-- Price Editor (collapsible) -->
+    <details style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
+      <summary style="font-size:0.95rem;font-weight:900;color:#1a1a2e;cursor:pointer;">📊 Tabla de Precios (Colegiaturas)</summary>
+      <div style="margin-top:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;" id="price-grid"></div>
+        <button onclick="savePrices()" style="margin-top:16px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Guardar Precios</button>
+      </div>
+    </details>
+
+    <!-- Student billing table (collapsible) -->
+    <details style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);margin-bottom:16px;">
+      <summary style="font-size:0.95rem;font-weight:900;color:#1a1a2e;cursor:pointer;">🎓 Colegiaturas por Alumno</summary>
+      <div style="margin-top:14px;">
+        <input id="billing-search" placeholder="Buscar alumno..." oninput="filterBillingTable()" style="padding:7px 12px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;font-size:0.85rem;margin-bottom:12px;width:100%;">
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="billing-table">
+            <thead><tr>
+              <th>Alumno</th><th>Tipo</th><th>Ciclo</th><th>Días/Sem</th><th>Horario</th>
+              <th>Prueba</th><th>Pagado</th><th>Último Pago</th><th>Próximo Venc.</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="billing-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <!-- Ledger -->
+    <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+      <div style="font-size:0.95rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">📒 Libro de Movimientos</div>
+      <table class="data-table" id="ledger-table">
+        <thead><tr>
+          <th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Monto</th>
+        </tr></thead>
+        <tbody id="ledger-tbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -963,7 +1006,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','billing','parents'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -971,7 +1014,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','billing','parents'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -986,8 +1029,9 @@ function showPanel(name) {
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
-  if (name === 'billing')    renderBilling();
+  if (name === 'accounting') renderAccounting();
   if (name === 'parents')    renderParentsPanel();
+  if (name === 'staff')      renderStaff();
 }
 
 // ── MASTER CALENDAR ──
@@ -2441,6 +2485,9 @@ function printAttDetail() {
   win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report</title>
     <style>body{font-family:Nunito,sans-serif;padding:24px;color:#1a1a2e;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}th{background:#f0f4f8;font-size:0.8rem;color:#888;font-weight:900;}@media print{body{padding:16px;}}</style>
     </head><body>${content}
+<!-- Staff Modal -->
+<div id="staff-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+
 <!-- Parent Edit Modal -->
 <div id="parent-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
 
@@ -3148,6 +3195,255 @@ async function saveParentEdit(id) {
   renderParentsPanel();
 }
 
+
+// ── STAFF ──
+let _allStaff = [];
+
+async function renderStaff() {
+  const res = await fetch(`${SERVER_URL}/staff`, { headers: { Authorization: `Bearer ${currentToken}` } });
+  _allStaff = await res.json();
+  renderStaffList();
+}
+
+const ROLE_LABELS = { teacher: '👩‍🏫 Teacher', accountant: '📊 Accountant', techsupport: '💻 Tech Support', admin: '🔐 Admin' };
+const ROLE_COLORS = { teacher: '#1a73e8', accountant: '#00897b', techsupport: '#7b1fa2', admin: '#e53935' };
+
+function renderStaffList() {
+  const wrap = document.getElementById('staff-list');
+  if (!_allStaff.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No staff members yet.</div>'; return; }
+  const roles = ['teacher','accountant','techsupport','admin'];
+  wrap.innerHTML = roles.map(role => {
+    const members = _allStaff.filter(s => s.role === role && s.active !== false);
+    if (!members.length) return '';
+    return `<div style="margin-bottom:20px;">
+      <div style="font-size:0.82rem;font-weight:900;color:${ROLE_COLORS[role]};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">${ROLE_LABELS[role]}</div>
+      ${members.map(s => `
+        <div style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:900;color:#1a1a2e;">${s.name}</div>
+            ${s.email ? `<div style="font-size:0.78rem;color:#888;">📧 ${s.email}</div>` : ''}
+            ${s.phone ? `<div style="font-size:0.78rem;color:#888;">📱 ${s.phone}</div>` : ''}
+            ${s.room ? `<div style="font-size:0.78rem;color:#1a73e8;">🏫 Room ${s.room}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="text-align:right;">
+              <div style="font-size:0.72rem;color:#888;font-weight:700;">${s.salaryType === 'hourly' ? 'HOURLY RATE' : 'MONTHLY SALARY'}</div>
+              <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">$${parseFloat(s.salary||0).toLocaleString('es-MX')} <span style="font-size:0.75rem;color:#888;">MXN</span></div>
+            </div>
+            <button onclick="openEditStaffModal('${s._id}')" style="padding:5px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">✏️</button>
+            <button onclick="deleteStaff('${s._id}','${s.name}')" style="padding:5px 10px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function openAddStaffModal() {
+  openStaffModal(null);
+}
+
+function openEditStaffModal(id) {
+  const s = _allStaff.find(x => String(x._id) === id);
+  openStaffModal(s);
+}
+
+function openStaffModal(s) {
+  document.getElementById('staff-modal').style.display = 'flex';
+  document.getElementById('staff-modal').innerHTML = `
+    <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:460px;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:1.1rem;font-weight:900;">${s ? '✏️ Edit Staff' : '+ Add Staff Member'}</div>
+        <button onclick="document.getElementById('staff-modal').style.display='none'" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">NAME</label>
+          <input id="sm-name" value="${s?.name||''}" placeholder="Full name" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">ROLE</label>
+          <select id="sm-role" onchange="toggleRoomField()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="teacher" ${s?.role==='teacher'?'selected':''}>👩‍🏫 Teacher</option>
+            <option value="accountant" ${s?.role==='accountant'?'selected':''}>📊 Accountant</option>
+            <option value="techsupport" ${s?.role==='techsupport'?'selected':''}>💻 Tech Support</option>
+            <option value="admin" ${s?.role==='admin'?'selected':''}>🔐 Admin</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SALARY TYPE</label>
+          <select id="sm-saltype" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="hourly" ${s?.salaryType==='hourly'?'selected':''}>Hourly / Por Hora</option>
+            <option value="monthly" ${s?.salaryType==='monthly'||!s?.salaryType?'selected':''}>Monthly / Mensual</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SALARY (MXN)</label>
+          <input type="number" id="sm-salary" value="${s?.salary||''}" placeholder="e.g. 150 (hourly) or 8000 (monthly)" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div id="sm-room-field" style="${s?.role==='teacher'||!s?'':'display:none'}">
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">LINKED ROOM (Teachers only)</label>
+          <select id="sm-room" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="">— No room —</option>
+            ${rooms.map(r => `<option value="${r.room}" ${s?.room===r.room?'selected':''}>${r.room} · ${r.teacherName||'—'}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">EMAIL</label>
+          <input id="sm-email" value="${s?.email||''}" placeholder="email@example.com" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">PHONE</label>
+          <input id="sm-phone" value="${s?.phone||''}" placeholder="+52 333 000 0000" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <button onclick="saveStaff('${s?._id||''}')" style="padding:12px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">💾 Save</button>
+      </div>
+    </div>`;
+}
+
+function toggleRoomField() {
+  const role = document.getElementById('sm-role')?.value;
+  const field = document.getElementById('sm-room-field');
+  if (field) field.style.display = role === 'teacher' ? 'block' : 'none';
+}
+
+async function saveStaff(id) {
+  const body = {
+    name: document.getElementById('sm-name')?.value,
+    role: document.getElementById('sm-role')?.value,
+    salaryType: document.getElementById('sm-saltype')?.value,
+    salary: document.getElementById('sm-salary')?.value,
+    room: document.getElementById('sm-room')?.value || null,
+    email: document.getElementById('sm-email')?.value || null,
+    phone: document.getElementById('sm-phone')?.value || null,
+  };
+  if (!body.name || !body.role) { showToast('❌ Name and role required'); return; }
+  if (id) {
+    await fetch(`${SERVER_URL}/staff/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+  } else {
+    await fetch(`${SERVER_URL}/staff`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+  }
+  document.getElementById('staff-modal').style.display = 'none';
+  showToast('✅ Staff saved');
+  renderStaff();
+}
+
+async function deleteStaff(id, name) {
+  if (!confirm(`Remove ${name} from staff?`)) return;
+  await fetch(`${SERVER_URL}/staff/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  showToast(`✅ ${name} removed`);
+  renderStaff();
+}
+
+// ── ACCOUNTING LEDGER ──
+async function renderAccounting() {
+  // Set month/year selectors to current if empty
+  const monthSel = document.getElementById('acc-month');
+  const yearSel  = document.getElementById('acc-year');
+  if (!yearSel.options.length) {
+    const curYear = new Date().getFullYear();
+    for (let y = curYear; y >= curYear - 3; y--) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y;
+      yearSel.appendChild(opt);
+    }
+  }
+  if (!monthSel.value) monthSel.value = new Date().getMonth() + 1;
+  if (!yearSel.value)  yearSel.value  = new Date().getFullYear();
+
+  const month = monthSel.value;
+  const year  = yearSel.value;
+
+  // Load billing (price table + student billing) and ledger in parallel
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadLedger(month, year)]);
+}
+
+async function loadLedger(month, year) {
+  try {
+    const res = await fetch(`${SERVER_URL}/accounting/ledger?month=${month}&year=${year}`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const entries = await res.json();
+    renderLedger(entries);
+  } catch(e) {}
+}
+
+function renderLedger(entries) {
+  const tbody = document.getElementById('ledger-tbody');
+  if (!tbody) return;
+
+  let totalIncome = 0, totalEgreso = 0;
+  entries.forEach(e => {
+    if (e.type === 'ingreso') totalIncome += e.amount || 0;
+    else totalEgreso += e.amount || 0;
+  });
+  const net = totalIncome - totalEgreso;
+
+  document.getElementById('acc-total-income').textContent = '$' + totalIncome.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  document.getElementById('acc-total-egreso').textContent = '$' + totalEgreso.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  const netEl = document.getElementById('acc-total-net');
+  netEl.textContent = '$' + Math.abs(net).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+  netEl.style.color = net >= 0 ? '#1a73e8' : '#e53935';
+  if (net < 0) netEl.textContent = '-' + netEl.textContent;
+
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">Sin movimientos este mes</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries.map(e => {
+    const isIngreso = e.type === 'ingreso';
+    const catLabels = { colegiatura: '📚 Colegiatura', nomina: '👔 Nómina', otro: '📌 Otro' };
+    return `<tr>
+      <td style="font-size:0.82rem;color:#555;">${e.date}</td>
+      <td><span style="padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:900;background:${isIngreso?'#e8f5e9':'#ffebee'};color:${isIngreso?'#2e7d32':'#c62828'};">
+        ${isIngreso ? '⬆ Ingreso' : '⬇ Egreso'}
+      </span></td>
+      <td style="font-size:0.82rem;">${catLabels[e.category] || e.category}</td>
+      <td style="font-size:0.82rem;color:#555;">${e.description}</td>
+      <td style="text-align:right;font-weight:900;color:${isIngreso?'#2e7d32':'#c62828'};">
+        ${isIngreso?'+':'-'}$${parseFloat(e.amount||0).toLocaleString('es-MX',{minimumFractionDigits:2})}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function printAccounting() {
+  const month = document.getElementById('acc-month');
+  const year  = document.getElementById('acc-year');
+  const monthName = month.options[month.selectedIndex]?.text || '';
+  const win = window.open('', '_blank');
+  const rows = document.getElementById('ledger-tbody')?.innerHTML || '';
+  const income = document.getElementById('acc-total-income')?.textContent || '';
+  const egreso = document.getElementById('acc-total-egreso')?.textContent || '';
+  const net    = document.getElementById('acc-total-net')?.textContent || '';
+  win.document.write(`<!DOCTYPE html><html><head><title>PolyABC — Contabilidad ${monthName} ${year.value}</title>
+    <style>body{font-family:Arial,sans-serif;padding:32px;color:#1a1a2e;}
+    h1{font-size:1.4rem;margin-bottom:4px;}h2{font-size:1rem;color:#888;font-weight:400;margin-bottom:24px;}
+    .summary{display:flex;gap:24px;margin-bottom:24px;}
+    .summary-card{border-left:4px solid #1a73e8;padding:8px 16px;}
+    .summary-card.ing{border-color:#00c853;}.summary-card.eg{border-color:#e53935;}
+    .label{font-size:0.75rem;font-weight:700;color:#888;text-transform:uppercase;}
+    .val{font-size:1.4rem;font-weight:900;}
+    table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}
+    th{background:#f8f9fa;font-size:0.78rem;color:#888;font-weight:900;text-transform:uppercase;}
+    @media print{body{padding:16px;}}</style></head><body>
+    <h1>PolyABC — Reporte Contable</h1>
+    <h2>${monthName} ${year.value}</h2>
+    <div class="summary">
+      <div class="summary-card ing"><div class="label">Ingresos</div><div class="val" style="color:#00c853;">${income}</div></div>
+      <div class="summary-card eg"><div class="label">Egresos</div><div class="val" style="color:#e53935;">${egreso}</div></div>
+      <div class="summary-card"><div class="label">Saldo Neto</div><div class="val">${net}</div></div>
+    </div>
+    <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Monto</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div style="margin-top:32px;font-size:0.75rem;color:#aaa;">Generado por PolyABC · ${new Date().toLocaleDateString('es-MX')}</div>
+    </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 300);
+}
+
+
+function renderAccounting() { renderBilling(); loadLedger(document.getElementById("acc-month")?.value || new Date().getMonth()+1, document.getElementById("acc-year")?.value || new Date().getFullYear()); }
 </script>
 <!-- Student Requests Modal -->
 <div id="student-requests-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;">
@@ -3160,6 +3456,9 @@ async function saveParentEdit(id) {
   </div>
 </div>
 
+
+<!-- Staff Modal -->
+<div id="staff-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
 
 <!-- Parent Edit Modal -->
 <div id="parent-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
