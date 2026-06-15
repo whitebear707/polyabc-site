@@ -781,6 +781,8 @@ function connectSocket() {
     alert(`⚠️ ${reason || 'You were disconnected.'}`);
     window.location.href = 'index.html';
   });
+
+  socket.on('draw-control', ({ canDraw }) => {
     window._canDraw = canDraw;
     if (canvas && !IS_TEACHER) {
       canvas.isDrawingMode = canDraw; canvas.selection = canDraw;
