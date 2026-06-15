@@ -327,12 +327,52 @@
       <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
       <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
       <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
+      <button class="nav-btn" id="nav-billing" onclick="showPanel('billing')">💳 Billing</button>
     </div>
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
       <button onclick="openResetModal()" title="Reset All Data" style="background:none;border:none;color:#555;font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:8px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#555'">🪐</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: BILLING -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-billing" class="panel">
+    <div class="panel-title">💳 Billing</div>
+
+    <!-- Price Editor -->
+    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">📊 Price Table</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;" id="price-grid"></div>
+      <button onclick="savePrices()" style="margin-top:16px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Save Prices</button>
+    </div>
+
+    <!-- Students Billing Table -->
+    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">🎓 Student Billing</div>
+        <input id="billing-search" placeholder="Search student..." oninput="filterBillingTable()" style="padding:7px 12px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;font-size:0.85rem;">
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="billing-table">
+          <thead><tr>
+            <th>Student</th>
+            <th>Type</th>
+            <th>Cycle</th>
+            <th>Days/Week</th>
+            <th>Schedule</th>
+            <th>Trial</th>
+            <th>Paid</th>
+            <th>Last Paid</th>
+            <th>Next Due</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="billing-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -910,7 +950,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','billing'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -918,7 +958,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','billing'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -933,6 +973,7 @@ function showPanel(name) {
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
+  if (name === 'billing')    renderBilling();
 }
 
 // ── MASTER CALENDAR ──
@@ -2374,7 +2415,10 @@ function printAttDetail() {
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report</title>
     <style>body{font-family:Nunito,sans-serif;padding:24px;color:#1a1a2e;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}th{background:#f0f4f8;font-size:0.8rem;color:#888;font-weight:900;}@media print{body{padding:16px;}}</style>
-    </head><body>${content}</body></html>`);
+    </head><body>${content}
+<!-- Billing Edit Modal -->
+<div id="billing-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(() => win.print(), 500);
@@ -2704,6 +2748,228 @@ async function submitDevRecord() {
     }
   } catch(e) { errEl.textContent = '❌ ' + e.message; errEl.style.display = 'block'; }
 }
+
+// ── BILLING ──
+let _billingPrices = {};
+let _billingStudents = [];
+
+async function renderBilling() {
+  await Promise.all([loadBillingPrices(), loadBillingStudents()]);
+}
+
+async function loadBillingPrices() {
+  try {
+    const res = await fetch(`${SERVER}/billing/prices`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    _billingPrices = await res.json();
+    renderPriceGrid();
+  } catch(e) {}
+}
+
+function renderPriceGrid() {
+  const grid = document.getElementById('price-grid');
+  if (!grid) return;
+  const keys = [
+    { key: '1v1_weekly',     label: '1v1 — Weekly' },
+    { key: '1v1_biweekly',   label: '1v1 — Biweekly' },
+    { key: '1v1_monthly',    label: '1v1 — Monthly' },
+    { key: 'group_weekly',   label: 'Group — Weekly' },
+    { key: 'group_biweekly', label: 'Group — Biweekly' },
+    { key: 'group_monthly',  label: 'Group — Monthly' },
+  ];
+  grid.innerHTML = keys.map(k => `
+    <div style="background:#f8f9fa;border-radius:12px;padding:14px;">
+      <div style="font-size:0.78rem;font-weight:900;color:#888;margin-bottom:6px;">${k.label}</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-weight:700;color:#1a1a2e;">$</span>
+        <input type="number" id="price_${k.key}" value="${_billingPrices[k.key]?.price || 0}"
+          style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:1rem;font-weight:900;">
+        <span style="font-size:0.75rem;color:#888;">MXN</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function savePrices() {
+  const keys = ['1v1_weekly','1v1_biweekly','1v1_monthly','group_weekly','group_biweekly','group_monthly'];
+  const labels = {
+    '1v1_weekly':'1v1 — Weekly','1v1_biweekly':'1v1 — Biweekly','1v1_monthly':'1v1 — Monthly',
+    'group_weekly':'Group — Weekly','group_biweekly':'Group — Biweekly','group_monthly':'Group — Monthly'
+  };
+  const prices = {};
+  keys.forEach(k => { prices[k] = { label: labels[k], price: parseFloat(document.getElementById(`price_${k}`)?.value || 0) }; });
+  try {
+    await fetch(`${SERVER}/billing/prices`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+      body: JSON.stringify({ prices })
+    });
+    _billingPrices = prices;
+    showToast('✅ Prices saved!');
+  } catch(e) { showToast('❌ Failed to save prices'); }
+}
+
+async function loadBillingStudents() {
+  try {
+    const res = await fetch(`${SERVER}/billing/students`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    _billingStudents = await res.json();
+    renderBillingTable(_billingStudents);
+  } catch(e) {}
+}
+
+function filterBillingTable() {
+  const q = document.getElementById('billing-search')?.value.toLowerCase() || '';
+  renderBillingTable(_billingStudents.filter(s => s.name.toLowerCase().includes(q)));
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function renderBillingTable(students) {
+  const tbody = document.getElementById('billing-tbody');
+  if (!tbody) return;
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#aaa;padding:20px;">No students found</td></tr>'; return; }
+  tbody.innerHTML = students.map(s => {
+    const typeColor = s.enrolledType === '1v1' ? '#1a73e8' : s.enrolledType === 'group' ? '#00897b' : '#aaa';
+    const paidColor = s.paid ? '#00c853' : '#e53935';
+    const trialTag = s.trialCompleted
+      ? `<span style="background:rgba(0,200,83,0.1);color:#00c853;padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:700;">✅ Done</span>`
+      : `<span style="background:rgba(255,152,0,0.1);color:#ff9800;padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:700;">🕐 Pending</span>`;
+    const daysLabel = s.scheduledDays?.length ? s.scheduledDays.map(d => d.slice(0,3)).join(', ') : '—';
+    const timeLabel = s.scheduledTime || '—';
+    const overdueFlag = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date() && !s.paid
+      ? ' <span style="color:#e53935;font-size:0.7rem;font-weight:900;">⚠️ OVERDUE</span>' : '';
+    return `<tr>
+      <td style="font-weight:700;">${s.name}</td>
+      <td><span style="color:${typeColor};font-weight:900;">${s.enrolledType || '—'}</span></td>
+      <td>${s.billingCycle || '—'}</td>
+      <td style="text-align:center;">${s.classesPerWeek || '—'}</td>
+      <td style="font-size:0.82rem;">${daysLabel}<br><span style="color:#888;">${timeLabel}</span></td>
+      <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${s.name}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Mark Done</button>`}</td>
+      <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Paid' : '❌ Unpaid'}</span>${overdueFlag}</td>
+      <td style="font-size:0.82rem;">${fmtDate(s.lastPaidAt)}</td>
+      <td style="font-size:0.82rem;">${fmtDate(s.nextPaymentDue)}</td>
+      <td style="white-space:nowrap;">
+        <button onclick="openBillingEdit('${s.name}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Edit</button>
+        <button onclick="confirmPayment('${s.name}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">💰 Paid</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function completeTrial(name) {
+  await fetch(`${SERVER}/billing/complete-trial/${encodeURIComponent(name)}`, {
+    method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }
+  });
+  showToast(`✅ Trial marked complete for ${name}`);
+  loadBillingStudents();
+}
+
+async function confirmPayment(name) {
+  const s = _billingStudents.find(x => x.name === name);
+  const cycle = s?.billingCycle || prompt('Billing cycle? (weekly / biweekly / monthly)', 'monthly');
+  if (!cycle) return;
+  const amount = prompt(`Amount paid (MXN)?`, s?.amountDue || '');
+  await fetch(`${SERVER}/billing/confirm-payment/${encodeURIComponent(name)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
+  });
+  showToast(`✅ Payment confirmed for ${name}`);
+  loadBillingStudents();
+}
+
+// Edit billing modal
+function openBillingEdit(name) {
+  const s = _billingStudents.find(x => x.name === name);
+  if (!s) return;
+  const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  const daysChecked = d => (s.scheduledDays || []).includes(d) ? 'checked' : '';
+  document.getElementById('billing-edit-modal').style.display = 'flex';
+  document.getElementById('billing-edit-modal').innerHTML = `
+    <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:1.1rem;font-weight:900;">✏️ Edit Billing — ${name}</div>
+        <button onclick="document.getElementById('billing-edit-modal').style.display='none'" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">CLASS TYPE</label>
+          <select id="be-type" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="">— Select —</option>
+            <option value="1v1" ${s.enrolledType==='1v1'?'selected':''}>1v1</option>
+            <option value="group" ${s.enrolledType==='group'?'selected':''}>Group</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">BILLING CYCLE</label>
+          <select id="be-cycle" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="">— Select —</option>
+            <option value="weekly" ${s.billingCycle==='weekly'?'selected':''}>Weekly</option>
+            <option value="biweekly" ${s.billingCycle==='biweekly'?'selected':''}>Biweekly</option>
+            <option value="monthly" ${s.billingCycle==='monthly'?'selected':''}>Monthly</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">CLASSES PER WEEK</label>
+          <select id="be-cpw" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            <option value="1" ${s.classesPerWeek==1?'selected':''}>1x per week</option>
+            <option value="2" ${s.classesPerWeek==2?'selected':''}>2x per week</option>
+            <option value="3" ${s.classesPerWeek==3?'selected':''}>3x per week</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:6px;">SCHEDULED DAYS</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${DAYS.map(d => `<label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
+              <input type="checkbox" value="${d}" ${daysChecked(d)} style="cursor:pointer;"> ${d.slice(0,3).charAt(0).toUpperCase()+d.slice(1,3)}
+            </label>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SCHEDULED TIME (GDL)</label>
+          <input type="time" id="be-time" value="${s.scheduledTime||''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">AMOUNT DUE (MXN)</label>
+          <input type="number" id="be-amount" value="${s.amountDue||''}" placeholder="e.g. 600" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <button onclick="saveBillingEdit('${name}')" style="padding:12px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">💾 Save Changes</button>
+      </div>
+    </div>`;
+}
+
+async function saveBillingEdit(name) {
+  const scheduledDays = [...document.querySelectorAll('#billing-edit-modal input[type=checkbox]:checked')].map(c => c.value);
+  const body = {
+    enrolledType:   document.getElementById('be-type')?.value || null,
+    billingCycle:   document.getElementById('be-cycle')?.value || null,
+    classesPerWeek: parseInt(document.getElementById('be-cpw')?.value) || 1,
+    scheduledDays,
+    scheduledTime:  document.getElementById('be-time')?.value || null,
+    amountDue:      document.getElementById('be-amount')?.value || null,
+  };
+  await fetch(`${SERVER}/billing/student/${encodeURIComponent(name)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify(body)
+  });
+  document.getElementById('billing-edit-modal').style.display = 'none';
+  showToast('✅ Billing info saved');
+  loadBillingStudents();
+}
+
+function showToast(msg) {
+  let t = document.getElementById('billing-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'billing-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:white;padding:10px 24px;border-radius:20px;font-weight:700;font-size:0.9rem;z-index:99999;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 2500);
+}
+
 </script>
 <!-- Student Requests Modal -->
 <div id="student-requests-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;">
@@ -2716,6 +2982,9 @@ async function submitDevRecord() {
   </div>
 </div>
 
+
+<!-- Billing Edit Modal -->
+<div id="billing-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
 </body>
 </html>
 
