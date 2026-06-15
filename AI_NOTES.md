@@ -307,3 +307,65 @@
 - `getTokenFromReq(req)` — extracts and verifies JWT from Authorization header
 - Teacher token role: `teacher`, Admin token role: `admin`, Parent token role: `parent`
 
+
+---
+
+## SESSION 6 CHANGES
+
+### PWA Fix
+- `manifest.json` start_url fixed from `/polyabc-site/index.html` to `/index.html` (custom domain polyabc.academy)
+- `sw.js` cache paths fixed, cache bumped to `polyabc-v3`
+
+### Network Test Fix
+- Jitter metric changed from max-min to standard deviation (more accurate)
+- Thresholds relaxed: 🟢 ping<150ms jitter<80ms 0% loss | 🟡 ping<300ms jitter<200ms ≤10% loss
+- Network test now passes via `join-room` socket event (includes `networkTest` field)
+- Server stamps networkTest on attendance when teacher/student joins — fixes silent save failure
+- Root cause was timing: test ran on greeting page before attendance record existed in DB
+
+### Classroom Draw Permission Bug (NOTED, NOT YET FIXED)
+- Even when teacher disables draw permission, student can still draw and move
+- Needs investigation in draw-control socket handler and canvas permission logic
+
+### Billing System (Session 6)
+**New MongoDB collection: `billing`**
+- Stores price table keyed by `{type}_{cycle}` e.g. `1v1_monthly`
+
+**New fields on `students` collection:**
+- `enrolledType` — '1v1' or 'group' (synced to classType automatically)
+- `billingCycle` — 'weekly', 'biweekly', 'monthly'
+- `classesPerWeek` — 1, 2, or 3
+- `scheduledDays` — ['monday','wednesday','friday']
+- `scheduledTime` — '16:30' (GDL time)
+- `trialCompleted` — bool, auto-flagged on trial end-class, admin can also set manually
+- `lastPaidAt`, `nextPaymentDue`, `amountDue`, `paymentPending`, `paymentRequestedAt`
+
+**New server endpoints:**
+- `GET/PUT /billing/prices` — read/set price table
+- `GET /billing/students` — admin billing overview (excludes Trial students)
+- `PATCH /billing/student/:name` — admin edits billing info
+- `POST /billing/complete-trial/:name` — admin manually marks trial done
+- `POST /billing/confirm-payment/:name` — admin confirms payment, auto-calculates next due date
+- `GET /parent/billing` — parent reads billing info + prices for their students
+- `POST /parent/payment-request` — parent submits plan (Mercado Pago stub — TODO)
+- `GET /parent/schedule/:studentName` — parent calendar data (class dates this month)
+
+**Admin panel — new 💳 Billing tab:**
+- Price editor: 6 fields (1v1/group × weekly/biweekly/monthly)
+- Student billing table: type, cycle, days/week, schedule, trial status, paid status, dates
+- "Mark Done" button to complete trial manually
+- "💰 Paid" button to confirm payment (calculates next due date)
+- "✏️ Edit" button opens modal to set all billing info for a student
+
+**Parent panel — new tabs (appear after trial completed):**
+- 📅 Calendar tab: month calendar with ⭐ on class days, last paid / next due badges
+- 💳 Payment tab: shows enrolled type, billing cycle, amount due, pay button (Mercado Pago stub)
+- Pay button currently sends payment request to server for admin review
+- TODO: Replace `initPayment()` stub with real Mercado Pago SDK checkout when Zeltzin gets credentials
+
+### Mercado Pago TODO
+- Zeltzin must create/log into Mercado Pago business account and get: Public Key + Access Token
+- Alfred adds them as env vars on Render
+- Replace `POST /parent/payment-request` handler with real Mercado Pago preference creation
+- Replace `initPayment()` in parent.html with Mercado Pago JS SDK checkout
+- No autopay — parent must manually pay each cycle
