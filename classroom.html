@@ -610,7 +610,14 @@ function connectSocket() {
   socket.on('reconnect', () => {
     document.getElementById('room-label').style.background = '#e65100';
     // Only rejoin if we were actually in the class (not on waiting screen)
-    const waitingScreen = document.getElementById('waiting-screen');
+    // Add own star counter for student
+  if (!IS_TEACHER) {
+    const ownBar = document.createElement('div');
+    ownBar.id = 'own-star-counter';
+    ownBar.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#ffd740;font-size:0.9rem;font-weight:900;padding:4px 14px;border-radius:20px;z-index:999;display:none;font-family:Nunito,sans-serif;';
+    document.body.appendChild(ownBar);
+  }
+  const waitingScreen = document.getElementById('waiting-screen');
     const isWaiting = waitingScreen && waitingScreen.style.display !== 'none';
     if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
   });
@@ -792,24 +799,7 @@ function connectSocket() {
   socket.on('draw-control', ({ canDraw }) => {
     window._canDraw = canDraw;
     if (!IS_TEACHER) {
-      if (canvas) {
-        canvas.isDrawingMode = canDraw;
-        canvas.selection = canDraw;
-        canvas.forEachObject(obj => { obj.selectable = canDraw; obj.evented = canDraw; });
-        canvas.discardActiveObject();
-        canvas.renderAll();
-        // Also override the canvas mouse handlers to fully block input when disabled
-        if (!canDraw) {
-          canvas.off('mouse:down');
-          canvas.on('mouse:down', (e) => { if (window._canDraw === false) { canvas.isDrawingMode = false; } });
-        } else {
-          canvas.off('mouse:down');
-        }
-      }
-      const toolbar = document.getElementById('toolbar');
-      if (toolbar) { toolbar.style.opacity = canDraw ? '1' : '0.4'; toolbar.style.pointerEvents = canDraw ? 'auto' : 'none'; }
-      // If permission removed and student was in draw tool, force them off it
-      if (!canDraw && currentTool === 'draw') currentTool = null;
+      applyDrawPermission(canDraw);
     }
   });
 
@@ -837,9 +827,23 @@ function connectSocket() {
       </div>`;
     }
   });
-  socket.on('star-given', ({ name, emoji }) => {
+  socket.on('star-given', ({ name, emoji, type, counts }) => {
     showStarCelebration(name, emoji || '⭐');
-    if (!IS_TEACHER) playTadaSound(); // play sound on student side too
+    if (!IS_TEACHER) {
+      playTadaSound();
+      // Update student's own star display if it's their reward
+      if (name === NAME && counts) {
+        const ownCounter = document.getElementById('own-star-counter');
+        if (ownCounter) {
+          const parts = [];
+          if (counts.star  > 0) parts.push(counts.star  + 'x⭐');
+          if (counts.trophy> 0) parts.push(counts.trophy+ 'x🏆');
+          if (counts.medal > 0) parts.push(counts.medal + 'x🥇');
+          ownCounter.textContent = parts.join(' ') || '';
+          ownCounter.style.display = parts.length ? 'block' : 'none';
+        }
+      }
+    }
   });
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
@@ -879,7 +883,7 @@ function connectSocket() {
         if (!window._lastChooChoo || Date.now() - window._lastChooChoo > 5000) {
           window._lastChooChoo = Date.now();
           try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = getAudioCtx();
             const playTone = (freq, start, dur, vol) => {
               const o = ctx.createOscillator(); const g = ctx.createGain();
               o.connect(g); g.connect(ctx.destination);
@@ -1122,6 +1126,22 @@ function toggleChat() {
   }
 }
 
+function playMessagePing() {
+  try {
+    const ctx = getAudioCtx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
 function receiveStudentMessage(name, message, time) {
   const messages = document.getElementById('chat-messages');
   const t = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1138,6 +1158,8 @@ function receiveStudentMessage(name, message, time) {
     badge.style.display = 'flex';
     badge.style.animation = 'pulse-glow-red 1s infinite';
   }
+  // Ping sound for teacher when message arrives
+  if (IS_TEACHER) playMessagePing();
 }
 
 function sendStudentMessage() {
@@ -1976,7 +1998,10 @@ function giveStar(socketId, name) {
   if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; setTimeout(() => { btn.disabled = false; btn.style.opacity = '1'; }, 5000); }
   const type = currentRewardType;
   const emoji = REWARD_EMOJI[type];
-  if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji });
+  if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
+  // Emit with updated counts so student can display their own tally
+  const updatedCounts = { ...rewardCounts[socketId] };
+  if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji, counts: updatedCounts });
 
   if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
   rewardCounts[socketId][type]++;
@@ -2005,7 +2030,7 @@ function updateRewardCounter(socketId) {
 
 function playTadaSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const notes = [523, 659, 784, 1047, 784, 1047];
     notes.forEach((freq, i) => {
       const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -2187,6 +2212,12 @@ function doFlipCoin() {
 function closeCoinOnBg(e) {
   if (e.target === document.getElementById('coin-overlay')) {
     document.getElementById('coin-overlay').style.display = 'none';
+    _coinFlipping = false;
+    // Reset coin animation so it works again next time
+    const coin = document.getElementById('coin-flip');
+    const result = document.getElementById('coin-result');
+    if (coin) { coin.style.animation = 'none'; coin.className = ''; }
+    if (result) { result.style.opacity = '0'; result.textContent = ''; }
   }
 }
 
@@ -2404,9 +2435,19 @@ function playReactionSound(emoji) {
   }
 }
 
+// Shared AudioContext — mobile browsers limit how many can be created
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
 function playReactionSoundOnce(emoji) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const notes = REACTION_SOUNDS[emoji];
     if (!notes) {
       const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
@@ -2554,25 +2595,46 @@ function showScreenBehindCanvas(stream, isTeacher) {
 const CANVAS_W = 1440, CANVAS_H = 810;
 let canvas, currentTool = 'draw', suppressSync = false;
 
+function applyDrawPermission(canDraw) {
+  if (!canvas) return;
+  canvas.isDrawingMode = canDraw;
+  canvas.selection = canDraw;
+  canvas.forEachObject(obj => { obj.selectable = canDraw; obj.evented = canDraw; });
+  canvas.discardActiveObject();
+  canvas.renderAll();
+  // Block pointer events at the DOM level — completely prevents drawing
+  let blocker = document.getElementById('canvas-draw-blocker');
+  if (!canDraw) {
+    if (!blocker) {
+      blocker = document.createElement('div');
+      blocker.id = 'canvas-draw-blocker';
+      blocker.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:not-allowed;';
+      const wrap = document.getElementById('whiteboard-wrap');
+      if (wrap) { wrap.style.position = 'relative'; wrap.appendChild(blocker); }
+    }
+    blocker.style.display = 'block';
+  } else {
+    if (blocker) blocker.style.display = 'none';
+  }
+  const toolbar = document.getElementById('toolbar');
+  if (toolbar) { toolbar.style.opacity = canDraw ? '1' : '0.4'; toolbar.style.pointerEvents = canDraw ? 'auto' : 'none'; }
+  if (!canDraw && currentTool === 'draw') currentTool = null;
+}
+
 function initWhiteboard(socket) {
   if (window._whiteboardInit) return; window._whiteboardInit = true;
   canvas = new fabric.Canvas('whiteboard-canvas', { width: CANVAS_W, height: CANVAS_H, isDrawingMode: true, backgroundColor: '#ffffff' });
 
-  // Apply draw permission immediately on init (teacher may have already sent draw-control before canvas was ready)
-  if (!IS_TEACHER && window._canDraw === false) {
-    canvas.isDrawingMode = false;
-    canvas.selection = false;
-  }
+  // Apply draw permission immediately on init
+  if (!IS_TEACHER) applyDrawPermission(window._canDraw !== false);
 
   canvas.on('object:added', (e) => {
     if (!IS_TEACHER && window._canDraw === false) {
-      // Remove the object immediately — student drew without permission
       setTimeout(() => { canvas.remove(e.target); canvas.renderAll(); }, 0);
     }
   });
   scaleCanvas(); window.addEventListener('resize', scaleCanvas); setupOwnSlot();
   canvas.on('path:created', (e) => {
-    // Block draw sync if student doesn't have permission
     if (!IS_TEACHER && window._canDraw === false) {
       canvas.remove(e.path); canvas.renderAll(); return;
     }
