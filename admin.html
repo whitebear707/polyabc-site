@@ -515,7 +515,7 @@
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Password</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Paid</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Password</th><th>Parent / Contact</th><th>Type</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Paid</th><th>Actions</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -777,6 +777,28 @@
         <option value="">-- No room --</option>
       </select>
     </div>
+    <div style="border-top:1px solid #eee;margin:14px 0 10px;"></div>
+    <div class="field-group">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Class Type</label>
+      <select id="edit-student-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">— Not set —</option>
+        <option value="1v1">1v1 Private</option>
+        <option value="group">Group</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Relationship to Student</label>
+      <select id="edit-student-relationship" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">— Select —</option>
+        <option value="mother">👩 Mother</option>
+        <option value="father">👨 Father</option>
+        <option value="self">🎓 Adult student (no parent)</option>
+        <option value="other">👤 Other guardian</option>
+      </select>
+    </div>
+    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Parent / Guardian Name</label><input type="text" id="edit-student-parent-name" placeholder="Full name"/></div>
+    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Contact Phone</label><input type="tel" id="edit-student-phone" placeholder="+52 333 000 0000"/></div>
+    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Contact Email</label><input type="email" id="edit-student-email" placeholder="email@example.com"/></div>
     <div id="edit-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancel</button>
@@ -1695,16 +1717,23 @@ function renderAllStudents() {
       <input type="checkbox" ${s.paid ? 'checked' : ''} onchange="toggleStudentPaid('${s.name}', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#2e7d32;"/>
       <span style="font-size:0.75rem;color:${s.paid ? '#2e7d32' : '#c62828'};font-weight:700;">${s.paid ? '✅' : '❌'}</span>
     </label>`;
+    const typeCell = s.enrolledType
+      ? `<span style="background:${s.enrolledType==='1v1'?'#e8f0fe':'#e0f2f1'};color:${s.enrolledType==='1v1'?'#1a73e8':'#00897b'};padding:3px 8px;border-radius:10px;font-size:0.78rem;font-weight:900;">${s.enrolledType}</span>`
+      : '<span style="color:#aaa;">—</span>';
+    const parentCell = s.parentName
+      ? `<div style="font-size:0.82rem;">
+          <div style="font-weight:700;">${s.relationship==='mother'?'👩':s.relationship==='father'?'👨':s.relationship==='self'?'🎓':'👤'} ${s.relationship==='self'?'Adult':s.parentName}</div>
+          ${s.parentPhone?`<div style="color:#1a73e8;font-size:0.75rem;">📱 ${s.parentPhone}</div>`:''}
+        </div>`
+      : '<span style="color:#aaa;font-size:0.78rem;">—</span>';
     return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
       <td style="font-weight:700;">
         ${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
-        ${s.parentName ? `<div style="font-size:0.75rem;color:#888;font-weight:400;margin-top:2px;">
-          ${s.relationship === 'mother' ? '👩' : s.relationship === 'father' ? '👨' : s.relationship === 'self' ? '🎓' : '👤'} 
-          ${s.relationship === 'self' ? 'Adult student' : s.parentName}
-          ${s.parentPhone ? `· 📱 ${s.parentPhone}` : ''}
-        </div>` : ''}
+        ${s.dob ? `<div style="font-size:0.72rem;color:#aaa;">DOB: ${s.dob}</div>` : ''}
       </td>
       <td style="color:#888;">${s.password}</td>
+      <td>${parentCell}</td>
+      <td>${typeCell}</td>
       <td>${roomCell}</td>
       <td>${groupCell}</td>
       <td>${levelCell}</td>
@@ -1716,10 +1745,17 @@ function renderAllStudents() {
 }
 
 function openEditStudentModal(name, password, room, dob) {
+  // Find full student record for extra fields
+  const s = getAllStudents().find(x => x.name === name) || {};
   document.getElementById('edit-student-original-name').value = name;
   document.getElementById('edit-student-name').value = name;
   document.getElementById('edit-student-pass').value = password;
   document.getElementById('edit-student-dob').value = dob || '';
+  document.getElementById('edit-student-type').value = s.enrolledType || '';
+  document.getElementById('edit-student-relationship').value = s.relationship || '';
+  document.getElementById('edit-student-parent-name').value = s.parentName || '';
+  document.getElementById('edit-student-phone').value = s.parentPhone || '';
+  document.getElementById('edit-student-email').value = s.parentEmail || '';
   document.getElementById('edit-student-error').style.display = 'none';
   const sel = document.getElementById('edit-student-room');
   sel.innerHTML = '<option value="">-- No room --</option>' +
@@ -1739,10 +1775,16 @@ async function saveEditStudent() {
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
   // PATCH — only update changed fields, preserve all parent/contact info
+  const enrolledType  = document.getElementById('edit-student-type')?.value || null;
+  const relationship  = document.getElementById('edit-student-relationship')?.value || null;
+  const parentName    = document.getElementById('edit-student-parent-name')?.value.trim() || null;
+  const parentPhone   = document.getElementById('edit-student-phone')?.value.trim() || null;
+  const parentEmail   = document.getElementById('edit-student-email')?.value.trim() || null;
   await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null })
+    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null,
+      enrolledType, relationship, parentName, parentPhone, parentEmail })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
   // Sync updated password to parent panel record
