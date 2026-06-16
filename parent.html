@@ -257,10 +257,8 @@
 
       <!-- Schedule tab -->
       <div id="panel-schedule" style="display:none;">
-        <div style="text-align:center;padding:20px;color:#888;">
-          <div style="font-size:2rem;margin-bottom:8px;">📅</div>
-          <div style="font-weight:700;color:#1a1a2e;margin-bottom:4px;">Class Schedule</div>
-          <div style="font-size:0.85rem;">Your class schedule will appear here once assigned by the school.<br>Tu horario de clases aparecerá aquí una vez que la escuela lo asigne.</div>
+        <div id="schedule-content">
+          <div style="text-align:center;color:#aaa;padding:32px;">⏳ Loading schedule...</div>
         </div>
       </div>
     </div>
@@ -485,10 +483,9 @@ async function loadDashboard() {
   if (!data.students?.length) {
     list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet / Sin estudiantes aún</div>';
   } else {
-    // Show schedule tab if any student has booked trial class
-    const anyTrialBooked = data.students.some(s => s.trialBooked);
+    // Show schedule tab whenever parent has students
     const scheduleTab = document.getElementById('tab-schedule');
-    if (scheduleTab) scheduleTab.style.display = anyTrialBooked ? 'block' : 'none';
+    if (scheduleTab) scheduleTab.style.display = data.students.length > 0 ? 'block' : 'none';
 
     list.innerHTML = data.students.map(s => `
       <div class="student-card">
@@ -559,6 +556,7 @@ function showTab(tab) {
   if (activeTab) activeTab.classList.add('active');
   if (tab === 'calendar') renderParentCalendar();
   if (tab === 'payment')  renderPaymentTab();
+  if (tab === 'schedule') renderScheduleTab();
 }
 
 function showAddStudent() {
@@ -848,6 +846,94 @@ async function initPayment(studentName) {
     btn.textContent = '❌ Error — Please try again';
     btn.disabled = false;
   }
+}
+
+
+// ── SCHEDULE TAB ──
+async function renderScheduleTab() {
+  const wrap = document.getElementById('schedule-content');
+  if (!wrap) return;
+  if (!_billingData) await loadBillingData();
+  const students = _billingData?.students || [];
+
+  if (!students.length) {
+    wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No students found</div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">⏳ Loading...</div>';
+
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const allResults = await Promise.all(students.map(async s => {
+    try {
+      const res = await fetch(`${SERVER_URL}/parent/schedule/${encodeURIComponent(s.name)}`, {
+        headers: { Authorization: `Bearer ${_parentToken}` }
+      });
+      const classes = await res.json();
+      return { student: s, classes: Array.isArray(classes) ? classes : [] };
+    } catch(e) {
+      return { student: s, classes: [] };
+    }
+  }));
+
+  if (allResults.every(r => r.classes.length === 0)) {
+    wrap.innerHTML = `<div style="background:white;border-radius:14px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size:2rem;margin-bottom:8px;">📅</div>
+      <div style="font-weight:700;color:#1a1a2e;margin-bottom:4px;">No classes scheduled yet</div>
+      <div style="font-size:0.85rem;color:#888;">Your class schedule will appear here once the school assigns classes.<br>Tu horario aparecerá aquí cuando la escuela asigne clases.</div>
+    </div>`;
+    return;
+  }
+
+  wrap.innerHTML = allResults.map(({ student: s, classes }) => {
+    if (!classes.length) return '';
+    // Group by month
+    const byMonth = {};
+    classes.forEach(c => {
+      const d = new Date(c.date + 'T12:00:00');
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!byMonth[key]) byMonth[key] = { year: d.getFullYear(), month: d.getMonth(), days: [] };
+      byMonth[key].days.push(c);
+    });
+
+    const monthBlocks = Object.values(byMonth).sort((a,b) => a.year - b.year || a.month - b.month).map(mb => {
+      const rows = mb.days.sort((a,b) => a.date.localeCompare(b.date)).map(c => {
+        const d = new Date(c.date + 'T12:00:00');
+        const dayName = DAY_NAMES[d.getDay()];
+        const dayNum = d.getDate();
+        // Format time from 24h to 12h
+        let timeStr = c.time || '—';
+        if (c.time && c.time.includes(':')) {
+          const [h, m] = c.time.split(':').map(Number);
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          timeStr = `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`;
+        }
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+          <div style="width:52px;text-align:center;background:#1a1a2e;color:white;border-radius:10px;padding:6px 4px;">
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;">${dayName}</div>
+            <div style="font-size:1.3rem;font-weight:900;line-height:1;">${dayNum}</div>
+          </div>
+          <div>
+            <div style="font-weight:700;color:#1a1a2e;">${timeStr}</div>
+            <div style="font-size:0.78rem;color:#888;">${c.classType || '—'}${c.groupName ? ' · ' + c.groupName : ''}</div>
+          </div>
+          <div style="margin-left:auto;">⭐</div>
+        </div>`;
+      }).join('');
+
+      return `<div style="margin-bottom:8px;">
+        <div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">${MONTH_NAMES[mb.month]} ${mb.year}</div>
+        ${rows}
+      </div>`;
+    }).join('');
+
+    return `<div style="background:white;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">📅 ${s.name}</div>
+      ${monthBlocks}
+    </div>`;
+  }).join('');
 }
 
 </script>
