@@ -787,18 +787,12 @@
       </select>
     </div>
     <div class="field-group">
-      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Relationship to Student</label>
-      <select id="edit-student-relationship" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-        <option value="">— Select —</option>
-        <option value="mother">👩 Mother</option>
-        <option value="father">👨 Father</option>
-        <option value="self">🎓 Adult student (no parent)</option>
-        <option value="other">👤 Other guardian</option>
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Linked Parent</label>
+      <select id="edit-student-parent-id" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
+        <option value="">— No parent linked —</option>
       </select>
+      <div id="edit-student-parent-info" style="margin-top:6px;font-size:0.78rem;color:#888;display:none;"></div>
     </div>
-    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Parent / Guardian Name</label><input type="text" id="edit-student-parent-name" placeholder="Full name"/></div>
-    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Contact Phone</label><input type="tel" id="edit-student-phone" placeholder="+52 333 000 0000"/></div>
-    <div class="field-group"><label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Contact Email</label><input type="email" id="edit-student-email" placeholder="email@example.com"/></div>
     <div id="edit-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancel</button>
@@ -948,6 +942,11 @@ let allStudents = [];
 let allTrialBookings = [];
 
 async function loadAll() {
+  // Keep _allParents fresh so student edit modal has parent list
+  try {
+    const pr = await fetch(`${SERVER_URL}/admin/parents`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    if (pr.ok) _allParents = await pr.json();
+  } catch(e) {}
   await loadRooms();
   await Promise.all([loadAllAvailabilityData(), loadAllAssignmentsData(), loadGroups()]);
   try { await loadStudents(); } catch(e) { allStudents = []; }
@@ -1752,10 +1751,29 @@ function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-pass').value = password;
   document.getElementById('edit-student-dob').value = dob || '';
   document.getElementById('edit-student-type').value = s.enrolledType || '';
-  document.getElementById('edit-student-relationship').value = s.relationship || '';
-  document.getElementById('edit-student-parent-name').value = s.parentName || '';
-  document.getElementById('edit-student-phone').value = s.parentPhone || '';
-  document.getElementById('edit-student-email').value = s.parentEmail || '';
+  // Load parents dropdown
+  const parentSel = document.getElementById('edit-student-parent-id');
+  if (parentSel) {
+    parentSel.innerHTML = '<option value="">— No parent linked —</option>';
+    (_allParents || []).forEach(par => {
+      const opt = document.createElement('option');
+      opt.value = par._id;
+      opt.textContent = par.name + (par.phone ? ' · 📱 ' + par.phone : '') + (par.email ? ' · ' + par.email : '');
+      // Select if this parent already has this student
+      if ((par.students || []).some(ps => ps.name === name)) opt.selected = true;
+      parentSel.appendChild(opt);
+    });
+    // Show parent info on change
+    parentSel.onchange = function() {
+      const par = (_allParents || []).find(p => String(p._id) === this.value);
+      const info = document.getElementById('edit-student-parent-info');
+      if (par && info) {
+        info.style.display = 'block';
+        info.innerHTML = (par.phone ? '📱 ' + par.phone + '&nbsp;&nbsp;' : '') + (par.email ? '📧 ' + par.email : '');
+      } else if (info) { info.style.display = 'none'; }
+    };
+    parentSel.dispatchEvent(new Event('change'));
+  }
   document.getElementById('edit-student-error').style.display = 'none';
   const sel = document.getElementById('edit-student-room');
   sel.innerHTML = '<option value="">-- No room --</option>' +
@@ -1775,16 +1793,38 @@ async function saveEditStudent() {
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
   // PATCH — only update changed fields, preserve all parent/contact info
-  const enrolledType  = document.getElementById('edit-student-type')?.value || null;
-  const relationship  = document.getElementById('edit-student-relationship')?.value || null;
-  const parentName    = document.getElementById('edit-student-parent-name')?.value.trim() || null;
-  const parentPhone   = document.getElementById('edit-student-phone')?.value.trim() || null;
-  const parentEmail   = document.getElementById('edit-student-email')?.value.trim() || null;
+  const enrolledType = document.getElementById('edit-student-type')?.value || null;
+  const parentId     = document.getElementById('edit-student-parent-id')?.value || null;
+  // If parent selected, assign student to that parent via server
+  if (parentId) {
+    // Unassign from any previous parent first
+    for (const par of (_allParents || [])) {
+      if ((par.students || []).some(ps => ps.name === originalName) && String(par._id) !== parentId) {
+        await fetch(`${SERVER_URL}/admin/parents/unassign-student`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+          body: JSON.stringify({ parentId: par._id, studentName: name || originalName })
+        });
+      }
+    }
+    await fetch(`${SERVER_URL}/admin/parents/assign-student`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ parentId, studentName: name || originalName })
+    });
+  } else {
+    // No parent selected — unassign from all parents
+    for (const par of (_allParents || [])) {
+      if ((par.students || []).some(ps => ps.name === originalName)) {
+        await fetch(`${SERVER_URL}/admin/parents/unassign-student`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+          body: JSON.stringify({ parentId: par._id, studentName: name || originalName })
+        });
+      }
+    }
+  }
   await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null,
-      enrolledType, relationship, parentName, parentPhone, parentEmail })
+    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null, enrolledType })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
   // Sync updated password to parent panel record
