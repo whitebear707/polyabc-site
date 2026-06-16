@@ -588,6 +588,12 @@ function connectSocket() {
   const socket = io(SERVER_URL, { timeout: 10000, reconnectionAttempts: 10, reconnectionDelay: 2000 });
   window._socket = socket;
 
+  // Keepalive heartbeat — prevents idle disconnect from browser/proxy/network
+  // Fires every 25 seconds so the connection never goes idle
+  setInterval(() => {
+    if (socket.connected) socket.emit('heartbeat', { room: ROOM });
+  }, 25000);
+
   socket.on('connect_error', (e) => {
     document.getElementById('connect-msg').textContent = '⚠️ Connection failed. Retrying...';
     document.getElementById('connect-msg').style.color = '#ffd740';
