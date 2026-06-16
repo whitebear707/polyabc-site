@@ -227,7 +227,6 @@
       <div class="dashboard-nav">
         <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
         <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
-        <button class="nav-tab" onclick="showTab('schedule')" id="tab-schedule" style="display:none;">📅 Schedule</button>
         <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
         <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Payment</button>
       </div>
@@ -255,12 +254,7 @@
         <div id="payment-content"></div>
       </div>
 
-      <!-- Schedule tab -->
-      <div id="panel-schedule" style="display:none;">
-        <div id="schedule-content">
-          <div style="text-align:center;color:#aaa;padding:32px;">⏳ Loading schedule...</div>
-        </div>
-      </div>
+
     </div>
 
     <!-- Add student modal -->
@@ -484,8 +478,8 @@ async function loadDashboard() {
     list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet / Sin estudiantes aún</div>';
   } else {
     // Show schedule tab whenever parent has students
-    const scheduleTab = document.getElementById('tab-schedule');
-    if (scheduleTab) scheduleTab.style.display = data.students.length > 0 ? 'block' : 'none';
+    const calTab = document.getElementById('tab-calendar');
+    if (calTab) calTab.style.display = data.students.length > 0 ? 'block' : 'none';
 
     list.innerHTML = data.students.map(s => `
       <div class="student-card">
@@ -547,7 +541,7 @@ async function loadDashboard() {
 }
 
 function showTab(tab) {
-  ['students','attendance','schedule','calendar','payment'].forEach(p => {
+  ['students','attendance','calendar','payment'].forEach(p => {
     const el = document.getElementById(`panel-${p}`);
     if (el) el.style.display = p === tab ? 'block' : 'none';
   });
@@ -556,7 +550,6 @@ function showTab(tab) {
   if (activeTab) activeTab.classList.add('active');
   if (tab === 'calendar') renderParentCalendar();
   if (tab === 'payment')  renderPaymentTab();
-  if (tab === 'schedule') renderScheduleTab();
 }
 
 function showAddStudent() {
