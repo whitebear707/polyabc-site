@@ -413,6 +413,20 @@
         </table>
       </div>
     </div>
+
+    <!-- Flush -->
+    <div style="background:#fff8f0;border:2px solid #ff9800;border-radius:14px;padding:20px;margin-top:20px;">
+      <div style="font-size:0.95rem;font-weight:900;color:#e65100;margin-bottom:6px;">🗑 Database Flush</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
+        Downloads all attendance, accounting, and class records as an Excel file, then permanently deletes them from the database.
+        Students, parents, teachers, staff, groups and prices are <strong>not</strong> affected.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="flushDownload()" style="padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">⬇️ Download Records</button>
+        <button onclick="flushDelete()" style="padding:10px 20px;background:#e53935;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🗑 Delete from DB</button>
+      </div>
+      <div id="flush-status" style="margin-top:10px;font-size:0.82rem;font-weight:700;"></div>
+    </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
@@ -3845,6 +3859,62 @@ function printAccounting() {
 }
 
 function renderAccounting() { renderBilling(); loadLedger(document.getElementById("acc-month")?.value || new Date().getMonth()+1, document.getElementById("acc-year")?.value || new Date().getFullYear()); }
+
+
+// ── FLUSH ──
+async function flushDownload() {
+  const status = document.getElementById('flush-status');
+  status.style.color = '#1a73e8';
+  status.textContent = '⏳ Preparing download...';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/flush/export`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `polyabc-flush-${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    status.style.color = '#00897b';
+    status.textContent = '✅ Download started! Save the zip file before deleting.';
+  } catch(e) {
+    status.style.color = '#e53935';
+    status.textContent = '❌ Download failed: ' + e.message;
+  }
+}
+
+async function flushDelete() {
+  const status = document.getElementById('flush-status');
+  const confirmed = confirm(
+    '⚠️ PERMANENT DELETE\n\nThis will delete ALL attendance records, accounting entries, and class assignments from the database.\n\nMake sure you have downloaded the records first!\n\nType OK to confirm.'
+  );
+  if (!confirmed) return;
+  const double = confirm('Are you absolutely sure? This cannot be undone.');
+  if (!double) return;
+  status.style.color = '#e65100';
+  status.textContent = '⏳ Deleting records...';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/flush`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ confirmed: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      status.style.color = '#00897b';
+      status.textContent = `✅ Deleted: ${data.deleted.attendance} attendance · ${data.deleted.ledger} ledger · ${data.deleted.assignments} assignments`;
+    } else {
+      status.style.color = '#e53935';
+      status.textContent = '❌ ' + (data.error || 'Delete failed');
+    }
+  } catch(e) {
+    status.style.color = '#e53935';
+    status.textContent = '❌ Error: ' + e.message;
+  }
+}
 
 </script>
 <!-- Student Requests Modal -->
