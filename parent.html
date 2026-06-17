@@ -66,8 +66,8 @@
 
 <div class="header">
   <a href="index.html"><img src="LOGO.png" alt="PolyABC"/></a>
-  <div class="header-title">Parent Panel / Panel de Padres</div>
-  <div id="header-user" style="color:#a0c4ff;font-size:0.85rem;font-weight:700;"></div>
+  <div class="header-title"></div>
+  <button id="header-signout-btn" onclick="doLogout()" style="display:none;background:#e53935;color:white;border:none;border-radius:20px;padding:7px 16px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Sign Out</button>
 </div>
 
 <div class="container">
@@ -213,14 +213,9 @@
 
   <!-- DASHBOARD -->
   <div id="screen-dashboard" style="display:none;">
-    <div class="card" style="padding:16px 20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="dash-welcome">Welcome!</div>
-          <div style="font-size:0.8rem;color:#888;">PolyABC Parent Panel</div>
-        </div>
-        <button onclick="doLogout()" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 14px;font-family:Nunito;font-weight:700;cursor:pointer;">Sign Out</button>
-      </div>
+    <div class="card" style="padding:16px 20px;text-align:center;">
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="dash-welcome">Welcome!</div>
+      <div style="font-size:0.8rem;color:#888;">PolyABC Parent Panel</div>
     </div>
 
     <div class="card">
@@ -465,7 +460,7 @@ async function doLogin() {
 async function loadDashboard() {
   showScreen('dashboard');
   document.getElementById('dash-welcome').textContent = `Welcome, ${localStorage.getItem('parentName') || 'Parent'}! 👋`;
-  document.getElementById('header-user').textContent = localStorage.getItem('parentName') || '';
+  document.getElementById('header-signout-btn').style.display = 'block';
 
   const res = await fetch(`${SERVER_URL}/parent/dashboard`, { headers: { Authorization: `Bearer ${_parentToken}` } });
   if (!res.ok) { doLogout(); return; }
