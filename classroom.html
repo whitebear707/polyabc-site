@@ -610,17 +610,18 @@ function connectSocket() {
   socket.on('reconnect', () => {
     document.getElementById('room-label').style.background = '#e65100';
     // Only rejoin if we were actually in the class (not on waiting screen)
-    // Add own star counter for student
-  if (!IS_TEACHER) {
+    const waitingScreen = document.getElementById('waiting-screen');
+    const isWaiting = waitingScreen && waitingScreen.style.display !== 'none';
+    if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
+  });
+
+  // Create student's own star counter once, on initial load (not tied to reconnect)
+  if (!IS_TEACHER && !document.getElementById('own-star-counter')) {
     const ownBar = document.createElement('div');
     ownBar.id = 'own-star-counter';
     ownBar.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#ffd740;font-size:0.9rem;font-weight:900;padding:4px 14px;border-radius:20px;z-index:999;display:none;font-family:Nunito,sans-serif;';
     document.body.appendChild(ownBar);
   }
-  const waitingScreen = document.getElementById('waiting-screen');
-    const isWaiting = waitingScreen && waitingScreen.style.display !== 'none';
-    if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
-  });
 
   socket.on('connect', () => {
     document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
@@ -832,7 +833,7 @@ function connectSocket() {
     if (!IS_TEACHER) {
       playTadaSound();
       // Update student's own star display if it's their reward
-      if (name === NAME && counts) {
+      if (name === MY_NAME && counts) {
         const ownCounter = document.getElementById('own-star-counter');
         if (ownCounter) {
           const parts = [];
@@ -1162,12 +1163,58 @@ function receiveStudentMessage(name, message, time) {
   if (IS_TEACHER) playMessagePing();
 }
 
+let _lastMessageSentAt = 0;
+const MESSAGE_COOLDOWN_MS = 60000; // 1 minute
+
 function sendStudentMessage() {
   const input = document.getElementById('student-chat-input');
   const message = input.value.trim();
   if (!message) return;
+
+  const now = Date.now();
+  const elapsed = now - _lastMessageSentAt;
+  if (elapsed < MESSAGE_COOLDOWN_MS) {
+    const secsLeft = Math.ceil((MESSAGE_COOLDOWN_MS - elapsed) / 1000);
+    showChatCooldownNotice(secsLeft);
+    return;
+  }
+
+  _lastMessageSentAt = now;
   if (window._socket) window._socket.emit('private-message', { room: ROOM, message });
   input.value = '';
+  disableChatInputTemporarily();
+}
+
+function showChatCooldownNotice(secsLeft) {
+  const input = document.getElementById('student-chat-input');
+  if (!input) return;
+  const placeholder = input.placeholder;
+  input.placeholder = `Wait ${secsLeft}s before sending another message`;
+  input.style.borderColor = '#e53935';
+  setTimeout(() => { input.placeholder = placeholder; input.style.borderColor = ''; }, 1500);
+}
+
+function disableChatInputTemporarily() {
+  const input = document.getElementById('student-chat-input');
+  const btn = document.querySelector('button[onclick="sendStudentMessage()"]');
+  if (!input) return;
+  input.disabled = true;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  let remaining = MESSAGE_COOLDOWN_MS / 1000;
+  const original = input.placeholder;
+  const tick = () => {
+    remaining--;
+    if (remaining > 0) {
+      input.placeholder = `You can send another message in ${remaining}s`;
+    } else {
+      input.disabled = false;
+      input.placeholder = original;
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      clearInterval(timer);
+    }
+  };
+  input.placeholder = `You can send another message in ${remaining}s`;
+  const timer = setInterval(tick, 1000);
 }
 
 function createAudioPeer(targetId, socket) {
@@ -2602,13 +2649,25 @@ function applyDrawPermission(canDraw) {
   canvas.forEachObject(obj => { obj.selectable = canDraw; obj.evented = canDraw; });
   canvas.discardActiveObject();
   canvas.renderAll();
-  // Block pointer events at the DOM level — completely prevents drawing
+
+  // Directly disable pointer events on Fabric's own canvas elements —
+  // Fabric manages its own stacking context (.canvas-container, upper-canvas)
+  // so a generic overlay div can end up underneath it. Disabling pointer-events
+  // on Fabric's actual DOM elements is the reliable way to block all interaction.
+  const upperCanvas = canvas.upperCanvasEl;
+  const lowerCanvas = canvas.lowerCanvasEl;
+  const containerEl = upperCanvas ? upperCanvas.closest('.canvas-container') : null;
+  [upperCanvas, lowerCanvas, containerEl].forEach(el => {
+    if (el) el.style.pointerEvents = canDraw ? 'auto' : 'none';
+  });
+
+  // Belt-and-suspenders: also keep the DOM overlay blocker as a backup
   let blocker = document.getElementById('canvas-draw-blocker');
   if (!canDraw) {
     if (!blocker) {
       blocker = document.createElement('div');
       blocker.id = 'canvas-draw-blocker';
-      blocker.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:not-allowed;';
+      blocker.style.cssText = 'position:absolute;inset:0;z-index:999;cursor:not-allowed;pointer-events:auto;';
       const wrap = document.getElementById('whiteboard-wrap');
       if (wrap) { wrap.style.position = 'relative'; wrap.appendChild(blocker); }
     }
@@ -2616,6 +2675,7 @@ function applyDrawPermission(canDraw) {
   } else {
     if (blocker) blocker.style.display = 'none';
   }
+
   const toolbar = document.getElementById('toolbar');
   if (toolbar) { toolbar.style.opacity = canDraw ? '1' : '0.4'; toolbar.style.pointerEvents = canDraw ? 'auto' : 'none'; }
   if (!canDraw && currentTool === 'draw') currentTool = null;
