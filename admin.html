@@ -318,7 +318,7 @@
 
     <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Staff & Pay</div>
     <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Teachers</div>
-    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Staff</div>
+    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Admin Staff</div>
     <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Payroll</div>
 
     <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Finance</div>
@@ -435,7 +435,7 @@
   <!-- PANEL: STAFF -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-staff" class="panel">
-    <div class="panel-title">👔 Staff</div>
+    <div class="panel-title">👔 Admin Staff</div>
     <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Add Staff Member</button>
     <div id="staff-list"></div>
   </div>
@@ -3628,7 +3628,7 @@ async function renderStaff() {
 function renderStaffList() {
   const wrap = document.getElementById('staff-list');
   if (!_allStaff.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No staff members yet.</div>'; return; }
-  const roles = ['teacher','accountant','techsupport','admin'];
+  const roles = ['accountant','techsupport','admin'];
   wrap.innerHTML = roles.map(role => {
     const members = _allStaff.filter(s => s.role === role && s.active !== false);
     if (!members.length) return '';
@@ -3680,7 +3680,6 @@ function openStaffModal(s) {
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">ROLE</label>
           <select id="sm-role" onchange="toggleRoomField()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-            <option value="teacher" ${s?.role==='teacher'?'selected':''}>👩‍🏫 Teacher</option>
             <option value="accountant" ${s?.role==='accountant'?'selected':''}>📊 Accountant</option>
             <option value="techsupport" ${s?.role==='techsupport'?'selected':''}>💻 Tech Support</option>
             <option value="admin" ${s?.role==='admin'?'selected':''}>🔐 Admin</option>
@@ -3696,13 +3695,6 @@ function openStaffModal(s) {
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SALARY (MXN)</label>
           <input type="number" id="sm-salary" value="${s?.salary||''}" placeholder="e.g. 150 (hourly) or 8000 (monthly)" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-        </div>
-        <div id="sm-room-field" style="${s?.role==='teacher'||!s?'':'display:none'}">
-          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">LINKED ROOM (Teachers only)</label>
-          <select id="sm-room" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-            <option value="">— No room —</option>
-            ${rooms.map(r => `<option value="${r.room}" ${s?.room===r.room?'selected':''}>${r.room} · ${r.teacherName||'—'}</option>`).join('')}
-          </select>
         </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">EMAIL</label>
