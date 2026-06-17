@@ -1507,7 +1507,7 @@ async function saveAssignGroup(dateStr, room) {
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, date: dateStr, time, level: group?.level || 'A0', classType, students, groupId: groupId || null, groupName })
+    body: JSON.stringify({ room, date: dateStr, time, level: group?.level || 'A0', classType, students, groupId: groupId || null, groupName, studentName: studentName || null })
   });
 
   document.getElementById('assign-day-overlay').style.display = 'none';
