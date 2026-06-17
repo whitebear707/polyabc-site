@@ -615,13 +615,7 @@ function connectSocket() {
     if (!isWaiting) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
   });
 
-  // Create student's own star counter once, on initial load (not tied to reconnect)
-  if (!IS_TEACHER && !document.getElementById('own-star-counter')) {
-    const ownBar = document.createElement('div');
-    ownBar.id = 'own-star-counter';
-    ownBar.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#ffd740;font-size:0.9rem;font-weight:900;padding:4px 14px;border-radius:20px;z-index:999;display:none;font-family:Nunito,sans-serif;';
-    document.body.appendChild(ownBar);
-  }
+
 
   socket.on('connect', () => {
     document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
@@ -798,6 +792,7 @@ function connectSocket() {
   });
 
   socket.on('draw-control', ({ canDraw }) => {
+    console.log('[DRAW-PERM] draw-control event received, canDraw =', canDraw, '| IS_TEACHER =', IS_TEACHER);
     window._canDraw = canDraw;
     if (!IS_TEACHER) {
       applyDrawPermission(canDraw);
@@ -832,17 +827,9 @@ function connectSocket() {
     showStarCelebration(name, emoji || '⭐');
     if (!IS_TEACHER) {
       playTadaSound();
-      // Update student's own star display if it's their reward
+      // Update student's own star counter under their own video tile (slot-self)
       if (name === MY_NAME && counts) {
-        const ownCounter = document.getElementById('own-star-counter');
-        if (ownCounter) {
-          const parts = [];
-          if (counts.star  > 0) parts.push(counts.star  + 'x⭐');
-          if (counts.trophy> 0) parts.push(counts.trophy+ 'x🏆');
-          if (counts.medal > 0) parts.push(counts.medal + 'x🥇');
-          ownCounter.textContent = parts.join(' ') || '';
-          ownCounter.style.display = parts.length ? 'block' : 'none';
-        }
+        updateOwnStarCounter(counts);
       }
     }
   });
@@ -1465,7 +1452,28 @@ function setupOwnSlot() {
     document.getElementById('right-panel').appendChild(wrap);
     document.getElementById('self-slot-video').srcObject = localStream;
     studentSlots['__self__'] = '__self__';
+    // Apply any star counts already received before this slot existed
+    if (window._myStarCounts) updateOwnStarCounter(window._myStarCounts);
   }
+}
+
+// Updates the star/trophy/medal tally shown under the student's own video tile
+function updateOwnStarCounter(counts) {
+  window._myStarCounts = counts; // cache in case slot-self isn't built yet
+  const wrap = document.getElementById('slot-self');
+  if (!wrap) return;
+  let counter = wrap.querySelector('.star-counter');
+  if (!counter) {
+    counter = document.createElement('div');
+    counter.className = 'star-counter';
+    counter.style.cssText = 'text-align:center;font-size:0.72rem;font-weight:700;margin-top:2px;color:#ffd740;';
+    wrap.appendChild(counter);
+  }
+  const parts = [];
+  if (counts.star   > 0) parts.push(counts.star   + 'x⭐');
+  if (counts.trophy > 0) parts.push(counts.trophy + 'x🏆');
+  if (counts.medal  > 0) parts.push(counts.medal  + 'x🥇');
+  counter.textContent = parts.join(' ');
 }
 
 function removeRemote(socketId) {
@@ -2046,12 +2054,12 @@ function giveStar(socketId, name) {
   const type = currentRewardType;
   const emoji = REWARD_EMOJI[type];
   if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
-  // Emit with updated counts so student can display their own tally
+
+  // Increment FIRST, then emit the up-to-date counts
+  rewardCounts[socketId][type]++;
   const updatedCounts = { ...rewardCounts[socketId] };
   if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji, counts: updatedCounts });
 
-  if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
-  rewardCounts[socketId][type]++;
   updateRewardCounter(socketId);
   playTadaSound();
   showStarCelebration(name, emoji);
@@ -2643,7 +2651,8 @@ const CANVAS_W = 1440, CANVAS_H = 810;
 let canvas, currentTool = 'draw', suppressSync = false;
 
 function applyDrawPermission(canDraw) {
-  if (!canvas) return;
+  console.log('[DRAW-PERM]', 'applyDrawPermission called with canDraw =', canDraw, '| canvas exists:', !!canvas);
+  if (!canvas) { console.warn('[DRAW-PERM] canvas not ready yet, permission will apply on init'); return; }
   canvas.isDrawingMode = canDraw;
   canvas.selection = canDraw;
   canvas.forEachObject(obj => { obj.selectable = canDraw; obj.evented = canDraw; });
