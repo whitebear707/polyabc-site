@@ -325,6 +325,7 @@
     <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Accounting</div>
 
     <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">System</div>
+    <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generate Student Code</div>
     <div class="menu-item" style="color:#e57373;" onclick="openResetModal();closeMenu();">🪐 Reset All Data</div>
   </div>
 
@@ -525,7 +526,6 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="panel-title">🎓 All Students</div>
       <button class="btn btn-green" onclick="openAddStudentModal()">+ Add Student</button>
-      <button class="btn" onclick="generateRegCode()" style="background:#7b1fa2;color:white;margin-left:8px;">🔑 Generate Code</button>
       <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;position:relative;" id="requests-btn">📥 Requests<span id="requests-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:20px;text-align:center;"></span></button>
     </div>
     <div class="card">
