@@ -38,13 +38,11 @@
     #header-center img { height: 38px; }
     #header-right { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
 
-    .nav-btn {
-      padding: 7px 16px; border-radius: 20px; border: none; font-family: Nunito;
-      font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
-      color: #a0c4ff; background: transparent;
+    #desktop-hamburger {
+      background: none; border: none; color: #a0c4ff; font-size: 1.5rem; cursor: pointer;
+      padding: 6px 10px; border-radius: 10px; transition: all 0.2s; line-height: 1;
     }
-    .nav-btn:hover { background: #0f3460; color: white; }
-    .nav-btn.active { background: #1a73e8; color: white; }
+    #desktop-hamburger:hover { background: #0f3460; color: white; }
 
     #new-trial-btn { animation: pulse-glow-purple 1s infinite; }
     @keyframes pulse-glow-requests {
@@ -61,16 +59,16 @@
       100% { box-shadow: 0 0 0 0 rgba(156,39,176,0); }
     }
 
-    /* ── MOBILE LAYOUT ── */
+    /* ── SIDE MENU (works on both desktop and mobile) ── */
     #mobile-header { display: none; }
     #hamburger-menu {
-      display: none; position: fixed; top: 0; left: 0; bottom: 0;
+      display: flex; position: fixed; top: 0; left: 0; bottom: 0;
       width: 260px; background: #16213e; z-index: 999;
       flex-direction: column; padding: 0;
       transform: translateX(-100%); transition: transform 0.25s ease;
       box-shadow: 4px 0 20px rgba(0,0,0,0.4);
     }
-    #hamburger-menu.open { display: flex; transform: translateX(0); }
+    #hamburger-menu.open { transform: translateX(0); }
     #menu-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
       z-index: 998;
@@ -309,33 +307,36 @@
       <img src="icon.png" style="height:28px;"/>
       <span style="color:white;font-weight:900;font-size:1rem;">PolyABC Admin</span>
     </div>
+    <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 New Trial!</div>
+
+    <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operations</div>
     <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Schedule</div>
-    <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Teachers</div>
     <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Students</div>
     <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Groups</div>
-    <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Payroll</div>
+    <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Parents</div>
     <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Attendance</div>
-    <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 New Trial!</div>
+
+    <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Staff & Pay</div>
+    <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Teachers</div>
+    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Staff</div>
+    <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Payroll</div>
+
+    <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Finance</div>
+    <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Accounting</div>
+
+    <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">System</div>
+    <div class="menu-item" style="color:#e57373;" onclick="openResetModal();closeMenu();">🪐 Reset All Data</div>
   </div>
 
   <!-- HEADER -->
   <div id="header">
     <div id="header-left">
-      <button class="nav-btn active" id="nav-calendar" onclick="showPanel('calendar')">🗓 Schedule</button>
-      <button class="nav-btn" id="nav-students" onclick="showPanel('students')">🎓 Students</button>
-      <button class="nav-btn" id="nav-groups" onclick="showPanel('groups')">👥 Groups</button>
-      <button class="nav-btn" id="nav-parents" onclick="showPanel('parents')">👪 Parents</button>
+      <button id="desktop-hamburger" onclick="toggleMenu()" title="Menu">☰</button>
     </div>
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
-      <button class="nav-btn" id="nav-teachers" onclick="showPanel('teachers')">👩‍🏫 Teachers</button>
-      <button class="nav-btn" id="nav-staff" onclick="showPanel('staff')">👔 Staff</button>
-      <button class="nav-btn" id="nav-payroll" onclick="showPanel('payroll')">💰 Payroll</button>
-      <button class="nav-btn" id="nav-attendance" onclick="showPanel('attendance')">📋 Attendance</button>
-      <button class="nav-btn" id="nav-accounting" onclick="showPanel('accounting')">🧾 Accounting</button>
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
-      <button onclick="openResetModal()" title="Reset All Data" style="background:none;border:none;color:#555;font-size:1.3rem;cursor:pointer;padding:4px 8px;border-radius:8px;" onmouseover="this.style.color='#e53935'" onmouseout="this.style.color='#555'">🪐</button>
     </div>
   </div>
 
