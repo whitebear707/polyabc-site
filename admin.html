@@ -1284,7 +1284,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
     </div>
     <div class="field-group">
       <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">New Student Password</label>
-      <input type="text" id="trial-assign-password" placeholder="Set a unique password" oninput="checkTrialPasswordAvailable('${studentName.replace(/'/g,"\\'")}')"
+      <input type="text" id="trial-assign-password" placeholder="Set a unique password" oninput="checkTrialPasswordAvailable(document.getElementById('assign-day-panel')._trialStudentName)"
         style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
       <div id="trial-password-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
     </div>
