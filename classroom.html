@@ -1593,11 +1593,12 @@ function checkTeacherRoomLock() {
           .then(r => r.json())
           .then(d => { window._minutesOwed = d.debtMins || 0; })
           .catch(() => { window._minutesOwed = 0; });
-      } else if (current.classType && current.classType.includes('1v1') && current.students > 0) {
-        // 1v1 class — fetch student debt (first student in the attendance record)
-        // We fetch via the timer-info broadcast which includes groupDebtMins for groups
-        // For 1v1, server sends it via room-joined now
-        window._minutesOwed = 0; // will be updated via timer-info
+      } else if (current.classType && current.classType.includes('1v1') && current.studentName) {
+        // 1v1 class — fetch this specific student's debt directly
+        fetch(`${SERVER_URL}/student-debt?room=${encodeURIComponent(ROOM)}&name=${encodeURIComponent(current.studentName)}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } })
+          .then(r => r.json())
+          .then(d => { window._minutesOwed = d.debtMins || 0; })
+          .catch(() => { window._minutesOwed = 0; });
       } else {
         window._minutesOwed = 0;
       }
