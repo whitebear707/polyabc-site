@@ -1282,21 +1282,84 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
         ${roomOptions}
       </select>
     </div>
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">New Student Password</label>
+      <input type="text" id="trial-assign-password" placeholder="Set a unique password" oninput="checkTrialPasswordAvailable('${studentName.replace(/'/g,"\\'")}')"
+        style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
+      <div id="trial-password-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
+    </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
-      <button onclick="saveTrialAssignment('${bookingId}','${dateStr}','${time}')" ${!canAssign?'disabled':''} style="flex:1;padding:10px;background:${canAssign?'#6a1b9a':'#ccc'};color:${canAssign?'white':'#888'};border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:${canAssign?'pointer':'not-allowed'};">✅ Assign</button>
+      <button id="trial-assign-confirm-btn" onclick="saveTrialAssignment('${bookingId}','${dateStr}','${time}')" ${!canAssign?'disabled':''} style="flex:1;padding:10px;background:${canAssign?'#6a1b9a':'#ccc'};color:${canAssign?'white':'#888'};border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:${canAssign?'pointer':'not-allowed'};">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
 }
 
+let _trialPasswordCheckTimer = null;
+async function checkTrialPasswordAvailable(studentName) {
+  const input = document.getElementById('trial-assign-password');
+  const status = document.getElementById('trial-password-status');
+  const confirmBtn = document.getElementById('trial-assign-confirm-btn');
+  const pwd = input.value.trim();
+
+  if (!pwd) {
+    status.textContent = '';
+    status.style.color = '';
+    return;
+  }
+
+  clearTimeout(_trialPasswordCheckTimer);
+  status.textContent = 'Checking...';
+  status.style.color = '#888';
+
+  _trialPasswordCheckTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/students/check-password?password=${encodeURIComponent(pwd)}&excludeName=${encodeURIComponent(studentName)}`, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      const data = await res.json();
+      if (data.available) {
+        status.textContent = '✅ Available';
+        status.style.color = '#00897b';
+        input.style.borderColor = '#00897b';
+      } else {
+        status.textContent = '❌ Already used by another student — choose a different password';
+        status.style.color = '#e53935';
+        input.style.borderColor = '#e53935';
+      }
+    } catch(e) {
+      status.textContent = '';
+    }
+  }, 400);
+}
+
 async function saveTrialAssignment(bookingId, dateStr, time) {
   const room = document.getElementById('trial-assign-room').value;
+  const passwordInput = document.getElementById('trial-assign-password');
+  const password = passwordInput ? passwordInput.value.trim() : '';
+  const status = document.getElementById('trial-password-status');
+
+  if (!password) {
+    status.textContent = '⚠️ Please set a password for this student';
+    status.style.color = '#e53935';
+    passwordInput.style.borderColor = '#e53935';
+    return;
+  }
+
   // time already comes from server-driven dropdown — no conversion needed
-  // Mark booking as assigned
-  await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
+  // Mark booking as assigned (server validates password uniqueness)
+  const assignRes = await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room })
+    body: JSON.stringify({ room, password })
   });
+  const assignData = await assignRes.json();
+  if (!assignData.success) {
+    status.textContent = '❌ ' + (assignData.error || 'Could not assign — try a different password');
+    status.style.color = '#e53935';
+    passwordInput.style.borderColor = '#e53935';
+    return;
+  }
+
   // Create the assignment on calendar
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
