@@ -505,9 +505,23 @@ async function loadDashboard() {
             📝 Exam / Examen
           </a>` : ''}
         ${s.trialBooked && !s.trialCompleted ? `
-          <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-top:10px;font-size:0.85rem;">
+          <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-top:10px;font-size:0.85rem;">
             <div style="color:#2e7d32;font-weight:700;">✅ Trial class booked! / ¡Clase de prueba reservada!</div>
             ${s.trialDate ? `<div style="color:#555;margin-top:2px;">📅 ${s.trialDate} ${s.trialLevel ? '· Level: ' + s.trialLevel : ''}</div>` : ''}
+            ${s.studentRoom && s.studentPassword ? `
+              <div style="margin-top:10px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
+                <div style="color:rgba(255,255,255,0.8);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎓 How to join / Cómo entrar</div>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                  <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Room / Salón</div>
+                    <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;">${s.studentRoom}</div>
+                  </div>
+                  <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Password / Contraseña</div>
+                    <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${s.studentPassword}</div>
+                  </div>
+                </div>
+              </div>` : ''}
           </div>` : ''}
         ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing / Por favor contacte a facturación</div>' : ''}
       </div>
