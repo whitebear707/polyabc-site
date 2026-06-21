@@ -1789,10 +1789,17 @@ function renderAllStudents() {
     const trialDateCell = s.trialDate
       ? `<span style="font-size:0.8rem;color:#e65100;">${s.trialDate} ${s.trialTime ? fmt12(s.trialTime) : ''}</span>`
       : '<span style="color:#aaa;">—</span>';
-    const paidCell = `<label style="cursor:pointer;display:flex;align-items:center;gap:4px;">
-      <input type="checkbox" ${s.paid ? 'checked' : ''} onchange="toggleStudentPaid('${s.name}', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#2e7d32;"/>
-      <span style="font-size:0.75rem;color:${s.paid ? '#2e7d32' : '#c62828'};font-weight:700;">${s.paid ? '✅' : '❌'}</span>
-    </label>`;
+    const paidCell = `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+      <label style="cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" ${s.paid ? 'checked' : ''} onchange="toggleStudentPaid('${s.name}', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#2e7d32;"/>
+        <span style="font-size:0.75rem;color:${s.paid ? '#2e7d32' : '#c62828'};font-weight:700;">${s.paid ? '✅' : '❌'}</span>
+      </label>
+      <button onclick="togglePaymentExempt('${s.name}',${!s.paymentExempt})"
+        title="${s.paymentExempt ? 'Remove exempt — student WILL be suspended for non-payment' : 'Mark exempt — student will NOT be suspended for non-payment'}"
+        style="background:${s.paymentExempt?'#e3f2fd':'#f5f5f5'};border:1px solid ${s.paymentExempt?'#1a73e8':'#ddd'};border-radius:6px;padding:2px 6px;cursor:pointer;font-size:0.75rem;font-weight:700;color:${s.paymentExempt?'#1a73e8':'#aaa'};">
+        ${s.paymentExempt ? '🛡 Exempt' : '🔓'}
+      </button>
+    </div>`;
     const typeCell = s.enrolledType
       ? `<span style="background:${s.enrolledType==='1v1'?'#e8f0fe':'#e0f2f1'};color:${s.enrolledType==='1v1'?'#1a73e8':'#00897b'};padding:3px 8px;border-radius:10px;font-size:0.78rem;font-weight:900;">${s.enrolledType}</span>`
       : '<span style="color:#aaa;">—</span>';
@@ -2766,6 +2773,16 @@ async function handleRequest(parentId, studentName, action) {
   });
   showStudentRequests(); // refresh
   if (action === 'approve') loadStudents(); // refresh student list
+}
+
+
+async function togglePaymentExempt(studentName, exempt) {
+  await fetch(`${SERVER_URL}/students/${encodeURIComponent(studentName)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ paymentExempt: exempt })
+  });
+  loadStudents();
 }
 
 async function toggleStudentPaid(studentName, paid) {
