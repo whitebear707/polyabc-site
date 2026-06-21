@@ -683,12 +683,17 @@ async function renderCalendarMonth() {
 
   // Fetch schedule for this student this month
   let classDates = [];
+  let classInfo = {}; // date -> {time, room, password, classType}
   try {
     const res = await fetch(`${SERVER_URL}/parent/schedule/${encodeURIComponent(_calStudentName)}`, {
       headers: { Authorization: `Bearer ${_parentToken}` }
     });
     const data = await res.json();
     classDates = data.map(a => a.date);
+    data.forEach(a => {
+      if (!classInfo[a.date]) classInfo[a.date] = [];
+      classInfo[a.date].push(a);
+    });
   } catch(e) {}
 
   const year = _calDate.getFullYear();
@@ -723,8 +728,11 @@ async function renderCalendarMonth() {
     const hasClass = classDates.includes(dateStr);
     const isPast = dateStr < todayStr;
     const cls = ['p-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
-    cells.push(`<div class="${cls}">${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
+    const starClick = hasClass ? `onclick="showClassPopup('${dateStr}')"` : '';
+    cells.push(`<div class="${cls}">${d}${hasClass ? `<span class="star" ${starClick} style="cursor:pointer;">⭐</span>` : ''}</div>`);
   }
+
+  window._calClassInfo = classInfo; // store for popup use
 
   wrap.innerHTML = `
     <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
@@ -936,6 +944,78 @@ async function renderScheduleTab() {
       ${monthBlocks}
     </div>`;
   }).join('');
+}
+
+
+// ── CLASS INFO POPUP ──
+function showClassPopup(dateStr) {
+  const classes = (window._calClassInfo || {})[dateStr] || [];
+  if (!classes.length) return;
+
+  // Format time 24h -> 12h
+  function fmt12(t) {
+    if (!t) return '—';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+
+  // Format date nicely
+  const d = new Date(dateStr + 'T12:00:00');
+  const dateLabel = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+
+  const student = (_billingData?.students || []).find(s => s.name === _calStudentName);
+  const studentPassword = student?.studentPassword || '—';
+
+  const classRows = classes.map(c => {
+    const classRoom = c.room || student?.studentRoom || '—';
+    return `
+    <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:1.1rem;">📚</span>
+        <div>
+          <div style="font-weight:900;color:#1a1a2e;font-size:0.95rem;">${c.classType || 'Class'}${c.groupName ? ' · ' + c.groupName : ''}</div>
+          <div style="color:#888;font-size:0.8rem;">🕐 ${fmt12(c.time || c.scheduledTime)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Room / Salón</div>
+          <div style="color:white;font-size:2rem;font-weight:900;line-height:1.2;">${classRoom}</div>
+        </div>
+        <div style="background:linear-gradient(135deg,#6a1b9a,#4a148c);border-radius:10px;padding:12px;text-align:center;">
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Password / Contraseña</div>
+          <div style="color:white;font-size:1.5rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${studentPassword}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Create/reuse popup
+  let popup = document.getElementById('class-popup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'class-popup';
+    popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    popup.onclick = e => { if (e.target === popup) popup.style.display = 'none'; };
+    document.body.appendChild(popup);
+  }
+
+  popup.innerHTML = `
+    <div style="background:white;border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-weight:900;color:#1a1a2e;font-size:1rem;">📅 ${dateLabel}</div>
+          <div style="color:#888;font-size:0.8rem;margin-top:2px;">${_calStudentName}</div>
+        </div>
+        <button onclick="document.getElementById('class-popup').style.display='none'"
+          style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">✕</button>
+      </div>
+      ${classRows}
+      <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:8px;">Go to <strong>polyabc.academy</strong> to join your class</div>
+    </div>`;
+
+  popup.style.display = 'flex';
 }
 
 </script>
