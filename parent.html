@@ -728,8 +728,8 @@ async function renderCalendarMonth() {
     const hasClass = classDates.includes(dateStr);
     const isPast = dateStr < todayStr;
     const cls = ['p-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
-    const starClick = hasClass ? `onclick="showClassPopup('${dateStr}')"` : '';
-    cells.push(`<div class="${cls}">${d}${hasClass ? `<span class="star" ${starClick} style="cursor:pointer;">⭐</span>` : ''}</div>`);
+    const starClick = hasClass ? `onclick="showClassPopup('${dateStr}')" style="cursor:pointer;"` : '';
+    cells.push(`<div class="${cls}" ${starClick}>${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
   }
 
   window._calClassInfo = classInfo; // store for popup use
