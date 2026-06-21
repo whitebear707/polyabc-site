@@ -764,9 +764,31 @@ async function renderPaymentTab() {
   const wrap = document.getElementById('payment-content');
   if (!wrap) return;
   const students = _billingData?.students || [];
-  const prices = _billingData?.prices || {};
 
   if (!students.length) { wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students found</div>'; return; }
+
+  // Pricing constants
+  const CLABE = '722969010749531074';
+  const BANK_NAME = 'STP';
+
+  // Calculate weekly price based on type/length/days
+  function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
+    if (type === 'group') return 445;
+    const totalMinsPerWeek = minutesPerSession * daysPerWeek;
+    const totalHrsPerWeek = totalMinsPerWeek / 60;
+    const ratePerHr = totalMinsPerWeek > 60 ? 300 : 350;
+    return Math.round(ratePerHr * totalHrsPerWeek);
+  }
+
+  function calcAdvertised(base) { return Math.round(base * 1.05); }
+
+  function cycleMultiplier(cycle) {
+    return { biweekly: 2, monthly: 4, quarterly: 13, semiannual: 26 }[cycle] || 1;
+  }
+
+  function cycleLabel(cycle) {
+    return { biweekly: 'Quincenal', monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral' }[cycle] || cycle;
+  }
 
   wrap.innerHTML = students.map(s => {
     if (!s.trialCompleted) return `
@@ -776,94 +798,184 @@ async function renderPaymentTab() {
         Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
       </div>`;
 
-    const typeLabel = s.enrolledType === '1v1' ? '1v1 Private' : s.enrolledType === 'group' ? 'Group Class' : '—';
-    const cycleLabel = s.billingCycle ? s.billingCycle.charAt(0).toUpperCase()+s.billingCycle.slice(1) : '—';
-    const priceKey = s.enrolledType && s.billingCycle ? `${s.enrolledType}_${s.billingCycle}` : null;
-    const price = priceKey && prices[priceKey] ? prices[priceKey].price : s.amountDue;
-    const isOverdue = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date();
-
     return `
-      <div style="background:white;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">${s.name}</div>
-          <span style="background:${s.paid?'#e8f5e9':'#ffebee'};color:${s.paid?'#2e7d32':'#c62828'};padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:900;">
-            ${s.paid ? '✅ Paid' : isOverdue ? '⚠️ Overdue' : '💳 Due'}
-          </span>
-        </div>
+      <div style="background:white;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);" id="pay-card-${s.name.replace(/\s/g,'_')}">
+        <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">👤 ${s.name}</div>
 
+        <!-- Class Type -->
+        <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Tipo de clase</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-          <div style="background:#f8f9fa;border-radius:10px;padding:10px;">
-            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">CLASS TYPE</div>
-            <div style="font-weight:900;color:#1a73e8;">${typeLabel}</div>
-          </div>
-          <div style="background:#f8f9fa;border-radius:10px;padding:10px;">
-            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">BILLING</div>
-            <div style="font-weight:900;color:#1a1a2e;">${cycleLabel}</div>
-          </div>
-          ${s.scheduledTime ? `<div style="background:#f8f9fa;border-radius:10px;padding:10px;">
-            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">TIME (GDL)</div>
-            <div style="font-weight:900;color:#1a1a2e;">${s.scheduledTime}</div>
-          </div>` : ''}
-          ${s.classesPerWeek ? `<div style="background:#f8f9fa;border-radius:10px;padding:10px;">
-            <div style="font-size:0.72rem;font-weight:900;color:#888;margin-bottom:2px;">FREQUENCY</div>
-            <div style="font-weight:900;color:#1a1a2e;">${s.classesPerWeek}x / week</div>
-          </div>` : ''}
+          <button onclick="selectPayOption('${s.name}','type','group')" id="opt-${s.name.replace(/\s/g,'_')}-type-group"
+            class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
+            👥 Grupal<br><span style="font-size:0.72rem;color:#888;">Lun–Jue 40 min</span>
+          </button>
+          <button onclick="selectPayOption('${s.name}','type','1v1')" id="opt-${s.name.replace(/\s/g,'_')}-type-1v1"
+            class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
+            🎓 1v1 Privada<br><span style="font-size:0.72rem;color:#888;">Horario a elegir</span>
+          </button>
         </div>
 
-        ${price ? `<div style="text-align:center;margin-bottom:14px;">
-          <div style="font-size:0.78rem;color:#888;font-weight:700;">Amount Due / Monto a Pagar</div>
-          <div style="font-size:2rem;font-weight:900;color:#1a1a2e;">$${parseFloat(price).toLocaleString('es-MX')} <span style="font-size:1rem;color:#888;">MXN</span></div>
-        </div>` : ''}
+        <!-- 1v1 options (hidden by default) -->
+        <div id="1v1-opts-${s.name.replace(/\s/g,'_')}" style="display:none;">
+          <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Duración por sesión</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
+            ${[30,40,50,60].map(m => `
+              <button onclick="selectPayOption('${s.name}','mins',${m})" id="opt-${s.name.replace(/\s/g,'_')}-mins-${m}"
+                class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
+                ${m} min
+              </button>`).join('')}
+          </div>
+          <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Días por semana</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
+            ${[1,2,3,4].map(d => `
+              <button onclick="selectPayOption('${s.name}','days',${d})" id="opt-${s.name.replace(/\s/g,'_')}-days-${d}"
+                class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
+                ${d}x/sem
+              </button>`).join('')}
+          </div>
+        </div>
 
-        ${s.lastPaidAt ? `<div style="font-size:0.8rem;color:#888;text-align:center;margin-bottom:10px;">
-          Last paid: ${fmtDateP(s.lastPaidAt)} ${s.nextPaymentDue ? '· Next due: '+fmtDateP(s.nextPaymentDue) : ''}
-        </div>` : ''}
+        <!-- Billing cycle -->
+        <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Frecuencia de pago</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          ${['biweekly','monthly','quarterly','semiannual'].map(c => `
+            <button onclick="selectPayOption('${s.name}','cycle','${c}')" id="opt-${s.name.replace(/\s/g,'_')}-cycle-${c}"
+              class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
+              ${cycleLabel(c)}
+            </button>`).join('')}
+        </div>
 
-        <!-- Pay button — Mercado Pago stub -->
-        <button onclick="initPayment('${s.name}')"
-          style="width:100%;padding:13px;background:${s.paid?'#e0e0e0':'#009ee3'};color:${s.paid?'#888':'white'};border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:${s.paid?'default':'pointer'};"
-          ${s.paid ? 'disabled' : ''}>
-          ${s.paid ? '✅ Paid — Thank you!' : '💳 Pay with Mercado Pago'}
-        </button>
-        <div style="text-align:center;font-size:0.75rem;color:#aaa;margin-top:6px;">🔒 Secure payment / Pago seguro</div>
+        <!-- Price summary -->
+        <div id="price-summary-${s.name.replace(/\s/g,'_')}" style="display:none;margin-bottom:14px;">
+          <div style="background:#f8f9fa;border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:4px;">Total a pagar</div>
+            <div id="price-mp-${s.name.replace(/\s/g,'_')}" style="font-size:1.8rem;font-weight:900;color:#009ee3;"></div>
+            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con Mercado Pago</div>
+            <div style="border-top:1px solid #eee;margin:10px 0;"></div>
+            <div id="price-transfer-${s.name.replace(/\s/g,'_')}" style="font-size:1.5rem;font-weight:900;color:#00897b;"></div>
+            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con transferencia bancaria (5% desc.)</div>
+          </div>
+        </div>
+
+        <!-- Payment buttons -->
+        <div id="pay-btns-${s.name.replace(/\s/g,'_')}" style="display:none;">
+          <button onclick="initPayment('${s.name}')"
+            style="width:100%;padding:13px;background:#009ee3;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;margin-bottom:10px;">
+            💳 Pagar con Mercado Pago
+          </button>
+          <button onclick="showTransferInfo('${s.name}')"
+            style="width:100%;padding:13px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
+            🏦 Pagar por Transferencia (5% desc.)
+          </button>
+        </div>
+
+        <!-- Transfer info (hidden until clicked) -->
+        <div id="transfer-info-${s.name.replace(/\s/g,'_')}" style="display:none;margin-top:10px;background:#e0f2f1;border-radius:12px;padding:14px;">
+          <div style="font-weight:900;color:#00695c;margin-bottom:8px;">📋 Datos para transferencia</div>
+          <div style="font-size:0.85rem;color:#1a1a2e;line-height:1.8;">
+            <b>Banco:</b> ${BANK_NAME}<br>
+            <b>CLABE:</b> <span style="font-family:monospace;font-size:1rem;font-weight:900;letter-spacing:1px;">${CLABE}</span><br>
+            <b>Concepto:</b> ${s.name} — PolyABC
+          </div>
+          <div style="font-size:0.75rem;color:#888;margin-top:8px;">Una vez realizada la transferencia, envía tu comprobante a la escuela. El acceso se activará en 24 horas.</div>
+        </div>
+
+        <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro / Secure payment</div>
       </div>`;
   }).join('');
 }
 
+// State for payment options per student
+const _payState = {};
+
+function selectPayOption(studentName, field, value) {
+  const key = studentName.replace(/\s/g,'_');
+  if (!_payState[studentName]) _payState[studentName] = {};
+  _payState[studentName][field] = value;
+
+  // Update button styles
+  const allBtns = document.querySelectorAll(`#pay-card-${key} .pay-opt-btn`);
+  allBtns.forEach(b => {
+    if (b.id === `opt-${key}-${field}-${value}`) {
+      b.style.borderColor = '#1a73e8';
+      b.style.background = '#e8f0fe';
+      b.style.color = '#1a73e8';
+    } else if (b.id.startsWith(`opt-${key}-${field}-`)) {
+      b.style.borderColor = '#ddd';
+      b.style.background = 'white';
+      b.style.color = '#1a1a2e';
+    }
+  });
+
+  // Show/hide 1v1 options
+  const opts1v1 = document.getElementById(`1v1-opts-${key}`);
+  if (opts1v1) opts1v1.style.display = _payState[studentName].type === '1v1' ? 'block' : 'none';
+
+  // Calculate price if we have enough info
+  const st = _payState[studentName];
+  const hasEnoughInfo = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
+  if (!hasEnoughInfo) return;
+
+  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+  const advertised = calcAdvertised(weeklyBase);
+  const weeks = cycleMultiplier(st.cycle);
+  const totalMP = advertised * weeks;
+  const totalTransfer = weeklyBase * weeks;
+
+  document.getElementById(`price-mp-${key}`).textContent = `$${totalMP.toLocaleString('es-MX')} MXN`;
+  document.getElementById(`price-transfer-${key}`).textContent = `$${totalTransfer.toLocaleString('es-MX')} MXN`;
+  document.getElementById(`price-summary-${key}`).style.display = 'block';
+  document.getElementById(`pay-btns-${key}`).style.display = 'block';
+}
+
+function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
+  if (type === 'group') return 445;
+  const totalMins = minutesPerSession * daysPerWeek;
+  const ratePerHr = totalMins > 60 ? 300 : 350;
+  return Math.round(ratePerHr * (totalMins / 60));
+}
+
+function calcAdvertised(base) { return Math.round(base * 1.05); }
+
+function cycleMultiplier(cycle) {
+  return { biweekly: 2, monthly: 4, quarterly: 13, semiannual: 26 }[cycle] || 1;
+}
+
+function cycleLabel(cycle) {
+  return { biweekly: 'Quincenal', monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral' }[cycle] || cycle;
+}
+
+function showTransferInfo(studentName) {
+  const key = studentName.replace(/\s/g,'_');
+  const el = document.getElementById(`transfer-info-${key}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 async function initPayment(studentName) {
-  const s = _billingData?.students?.find(x => x.name === studentName);
-  if (!s) return;
+  const st = _payState[studentName];
+  if (!st) return;
+  const key = studentName.replace(/\s/g,'_');
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Preparando pago...';
 
+  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+  const advertised = calcAdvertised(weeklyBase);
+  const weeks = cycleMultiplier(st.cycle);
+  const amount = advertised * weeks;
+  const description = 'PolyABC — ' + studentName + ' (' + cycleLabel(st.cycle) + ')';
+
   try {
-    const prices = _billingData?.prices || {};
-    const priceKey = s.enrolledType && s.billingCycle ? s.enrolledType + '_' + s.billingCycle : null;
-    const amount = priceKey && prices[priceKey] ? prices[priceKey].price : s.amountDue;
-    if (!amount) {
-      btn.textContent = '❌ No hay monto configurado — Contacte a la escuela';
-      return;
-    }
-
-    const cycleLabel = s.billingCycle === 'weekly' ? 'Semana' : s.billingCycle === 'monthly' ? 'Mes' : 'Clase';
-    const description = 'PolyABC — ' + studentName + ' (' + cycleLabel + ')';
-
     const res = await fetch(SERVER_URL + '/parent/payment-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
       body: JSON.stringify({ studentName, amount, description })
     });
     const data = await res.json();
-
-    if (data.success && data.sandboxUrl) {
-      // Sandbox mode — open test checkout
-      btn.textContent = '💳 Pay with Mercado Pago';
+    if (data.success && (data.sandboxUrl || data.checkoutUrl)) {
+      btn.textContent = '💳 Pagar con Mercado Pago';
       btn.disabled = false;
-      window.open(data.sandboxUrl, '_blank');
-    } else if (data.success && data.checkoutUrl) {
-      // Production — redirect to real checkout
-      window.location.href = data.checkoutUrl;
+      window.open(data.sandboxUrl || data.checkoutUrl, '_blank');
     } else {
       btn.textContent = '❌ Error — Contacte a la escuela';
       btn.disabled = false;
@@ -879,16 +991,11 @@ async function initPayment(studentName) {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('payment');
   if (!status) return;
-  if (status === 'success') {
-    setTimeout(() => alert('✅ ¡Pago exitoso! / Payment successful!\nThank you — your payment has been received.'), 500);
-  } else if (status === 'failure') {
-    setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
-  } else if (status === 'pending') {
-    setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
-  }
-  // Clean URL
+  if (status === 'success') setTimeout(() => alert('✅ ¡Pago exitoso!\nThank you — your payment has been received.'), 500);
+  else if (status === 'failure') setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
+  else if (status === 'pending') setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
   window.history.replaceState({}, '', window.location.pathname);
-})();
+})();();
 
 
 // ── SCHEDULE TAB ──
