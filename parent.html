@@ -831,32 +831,64 @@ async function renderPaymentTab() {
 }
 
 async function initPayment(studentName) {
-  // TODO: Replace with real Mercado Pago checkout when credentials are available
-  // For now: send payment request to server which flags it for admin review
   const s = _billingData?.students?.find(x => x.name === studentName);
   if (!s) return;
   const btn = event.target;
   btn.disabled = true;
-  btn.textContent = '⏳ Processing...';
+  btn.textContent = '⏳ Preparando pago...';
+
   try {
-    const res = await fetch(`${SERVER_URL}/parent/payment-request`, {
+    const prices = _billingData?.prices || {};
+    const priceKey = s.enrolledType && s.billingCycle ? s.enrolledType + '_' + s.billingCycle : null;
+    const amount = priceKey && prices[priceKey] ? prices[priceKey].price : s.amountDue;
+    if (!amount) {
+      btn.textContent = '❌ No hay monto configurado — Contacte a la escuela';
+      return;
+    }
+
+    const cycleLabel = s.billingCycle === 'weekly' ? 'Semana' : s.billingCycle === 'monthly' ? 'Mes' : 'Clase';
+    const description = 'PolyABC — ' + studentName + ' (' + cycleLabel + ')';
+
+    const res = await fetch(SERVER_URL + '/parent/payment-request', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
-      body: JSON.stringify({ studentName, enrolledType: s.enrolledType, billingCycle: s.billingCycle, classesPerWeek: s.classesPerWeek })
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentName, amount, description })
     });
     const data = await res.json();
-    if (data.success) {
-      btn.textContent = '✅ Request sent — School will confirm shortly';
-      btn.style.background = '#2e7d32';
+
+    if (data.success && data.sandboxUrl) {
+      // Sandbox mode — open test checkout
+      btn.textContent = '💳 Pay with Mercado Pago';
+      btn.disabled = false;
+      window.open(data.sandboxUrl, '_blank');
+    } else if (data.success && data.checkoutUrl) {
+      // Production — redirect to real checkout
+      window.location.href = data.checkoutUrl;
     } else {
-      btn.textContent = '❌ Failed — Please contact school';
+      btn.textContent = '❌ Error — Contacte a la escuela';
       btn.disabled = false;
     }
   } catch(e) {
-    btn.textContent = '❌ Error — Please try again';
+    btn.textContent = '❌ Error — Intente de nuevo';
     btn.disabled = false;
   }
 }
+
+// Handle payment return from Mercado Pago
+(function checkPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('payment');
+  if (!status) return;
+  if (status === 'success') {
+    setTimeout(() => alert('✅ ¡Pago exitoso! / Payment successful!\nThank you — your payment has been received.'), 500);
+  } else if (status === 'failure') {
+    setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
+  } else if (status === 'pending') {
+    setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
+  }
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+})();
 
 
 // ── SCHEDULE TAB ──
