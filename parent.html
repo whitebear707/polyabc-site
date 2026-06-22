@@ -803,7 +803,7 @@ async function renderPaymentTab() {
         <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">👤 ${s.name}</div>
 
         <!-- Class Type -->
-        <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Tipo de clase</div>
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Tipo de clase</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
           <button onclick="selectPayOption('${s.name}','type','group')" id="opt-${s.name.replace(/\s/g,'_')}-type-group"
             class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
@@ -817,7 +817,7 @@ async function renderPaymentTab() {
 
         <!-- 1v1 options (hidden by default) -->
         <div id="1v1-opts-${s.name.replace(/\s/g,'_')}" style="display:none;">
-          <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Duración por sesión</div>
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Duración por sesión</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
             ${[30,40,50,60].map(m => `
               <button onclick="selectPayOption('${s.name}','mins',${m})" id="opt-${s.name.replace(/\s/g,'_')}-mins-${m}"
@@ -825,7 +825,7 @@ async function renderPaymentTab() {
                 ${m} min
               </button>`).join('')}
           </div>
-          <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Días por semana</div>
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Días por semana</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
             ${[1,2,3,4].map(d => `
               <button onclick="selectPayOption('${s.name}','days',${d})" id="opt-${s.name.replace(/\s/g,'_')}-days-${d}"
@@ -836,7 +836,7 @@ async function renderPaymentTab() {
         </div>
 
         <!-- Billing cycle -->
-        <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">Frecuencia de pago</div>
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Frecuencia de pago</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
           ${['biweekly','monthly','quarterly','semiannual'].map(c => `
             <button onclick="selectPayOption('${s.name}','cycle','${c}')" id="opt-${s.name.replace(/\s/g,'_')}-cycle-${c}"
