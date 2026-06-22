@@ -2804,7 +2804,7 @@ async function renderBilling() {
 
 async function loadBillingPrices() {
   try {
-    const res = await fetch(`${SERVER}/billing/prices`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const res = await fetch(`${SERVER_URL}/billing/prices`, { headers: { Authorization: `Bearer ${currentToken}` } });
     _billingPrices = await res.json();
     renderPriceGrid();
   } catch(e) {}
@@ -2843,8 +2843,8 @@ async function savePrices() {
   const prices = {};
   keys.forEach(k => { prices[k] = { label: labels[k], price: parseFloat(document.getElementById(`price_${k}`)?.value || 0) }; });
   try {
-    await fetch(`${SERVER}/billing/prices`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+    await fetch(`${SERVER_URL}/billing/prices`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ prices })
     });
     _billingPrices = prices;
@@ -2854,7 +2854,7 @@ async function savePrices() {
 
 async function loadBillingStudents() {
   try {
-    const res = await fetch(`${SERVER}/billing/students`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const res = await fetch(`${SERVER_URL}/billing/students`, { headers: { Authorization: `Bearer ${currentToken}` } });
     _billingStudents = await res.json();
     renderBillingTable(_billingStudents);
   } catch(e) {}
@@ -2903,8 +2903,8 @@ function renderBillingTable(students) {
 }
 
 async function completeTrial(name) {
-  await fetch(`${SERVER}/billing/complete-trial/${encodeURIComponent(name)}`, {
-    method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }
+  await fetch(`${SERVER_URL}/billing/complete-trial/${encodeURIComponent(name)}`, {
+    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
   showToast(`✅ Trial marked complete for ${name}`);
   loadBillingStudents();
@@ -2915,8 +2915,8 @@ async function confirmPayment(name) {
   const cycle = s?.billingCycle || prompt('Billing cycle? (weekly / biweekly / monthly)', 'monthly');
   if (!cycle) return;
   const amount = prompt(`Amount paid (MXN)?`, s?.amountDue || '');
-  await fetch(`${SERVER}/billing/confirm-payment/${encodeURIComponent(name)}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+  await fetch(`${SERVER_URL}/billing/confirm-payment/${encodeURIComponent(name)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
   });
   showToast(`✅ Payment confirmed for ${name}`);
@@ -2993,8 +2993,8 @@ async function saveBillingEdit(name) {
     scheduledTime:  document.getElementById('be-time')?.value || null,
     amountDue:      document.getElementById('be-amount')?.value || null,
   };
-  await fetch(`${SERVER}/billing/student/${encodeURIComponent(name)}`, {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
+  await fetch(`${SERVER_URL}/billing/student/${encodeURIComponent(name)}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify(body)
   });
   document.getElementById('billing-edit-modal').style.display = 'none';
