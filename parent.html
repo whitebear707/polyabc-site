@@ -995,7 +995,7 @@ async function initPayment(studentName) {
   else if (status === 'failure') setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
   else if (status === 'pending') setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
   window.history.replaceState({}, '', window.location.pathname);
-})();();
+})();
 
 
 // ── SCHEDULE TAB ──
