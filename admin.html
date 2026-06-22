@@ -527,9 +527,13 @@
       <button class="btn btn-green" onclick="openAddStudentModal()">+ Add Student</button>
       <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;position:relative;" id="requests-btn">📥 Requests<span id="requests-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:20px;text-align:center;"></span></button>
     </div>
+    <div style="margin-bottom:12px;">
+      <input id="student-search" placeholder="🔍 Search by name or ID (e.g. AA150)..." oninput="renderAllStudents()"
+        style="width:100%;max-width:340px;padding:9px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+    </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>Name</th><th>Password</th><th>Parent / Contact</th><th>Type</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Paid</th><th>Actions</th></tr></thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Password</th><th>Parent / Contact</th><th>Type</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Paid</th><th>Actions</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -1764,8 +1768,16 @@ function checkDuplicatePassword(pass, excludeRoom) {
 
 function renderAllStudents() {
   const tbody = document.getElementById('students-tbody');
-  const all = getAllStudents();
-  if (!all.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:20px;">No students yet.</td></tr>'; return; }
+  let all = getAllStudents();
+  // Attach studentId from allStudents records (room sub-docs don't carry it)
+  all = all.map(s => {
+    const full = allStudents.find(x => x.name === s.name);
+    return { ...s, studentId: s.studentId || full?.studentId || null };
+  });
+  // Search filter (by name or ID)
+  const q = (document.getElementById('student-search')?.value || '').trim().toLowerCase();
+  if (q) all = all.filter(s => s.name.toLowerCase().includes(q) || (s.studentId||'').toLowerCase().includes(q));
+  if (!all.length) { tbody.innerHTML = '<tr><td colspan="11" style="color:#aaa;text-align:center;padding:20px;">No students found.</td></tr>'; return; }
   tbody.innerHTML = all.map(s => {
     // Find group — check all groups for this student's name
     const group = allGroups.find(g => (g.students||[]).includes(s.name));
@@ -1809,7 +1821,11 @@ function renderAllStudents() {
           ${s.parentPhone?`<div style="color:#1a73e8;font-size:0.75rem;">📱 ${s.parentPhone}</div>`:''}
         </div>`
       : '<span style="color:#aaa;font-size:0.78rem;">—</span>';
+    const idCell = s.studentId
+      ? `<span style="background:#1a73e8;color:white;padding:3px 8px;border-radius:8px;font-size:0.78rem;font-weight:900;font-family:monospace;letter-spacing:1px;">${s.studentId}</span>`
+      : '<span style="color:#ccc;">—</span>';
     return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
+      <td>${idCell}</td>
       <td style="font-weight:700;">
         ${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
         ${s.dob ? `<div style="font-size:0.72rem;color:#aaa;">DOB: ${s.dob}</div>` : ''}
