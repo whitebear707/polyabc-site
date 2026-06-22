@@ -800,7 +800,10 @@ async function renderPaymentTab() {
 
     return `
       <div style="background:white;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);" id="pay-card-${s.name.replace(/\s/g,'_')}">
-        <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">👤 ${s.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <span style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">👤 ${s.name}</span>
+          ${s.studentId ? `<span style="background:#1a73e8;color:white;padding:2px 8px;border-radius:8px;font-size:0.78rem;font-weight:900;font-family:monospace;letter-spacing:1px;">${s.studentId}</span>` : ''}
+        </div>
 
         <!-- Class Type -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Tipo de clase</div>
@@ -875,9 +878,14 @@ async function renderPaymentTab() {
           <div style="font-size:0.85rem;color:#1a1a2e;line-height:1.8;">
             <b>Banco:</b> ${BANK_NAME}<br>
             <b>CLABE:</b> <span style="font-family:monospace;font-size:1rem;font-weight:900;letter-spacing:1px;">${CLABE}</span><br>
-            <b>Concepto:</b> ${s.name} — PolyABC
+            <b>Concepto / Referencia:</b>
           </div>
-          <div style="font-size:0.75rem;color:#888;margin-top:8px;">Una vez realizada la transferencia, envía tu comprobante a la escuela. El acceso se activará en 24 horas.</div>
+          <div style="background:#1a73e8;color:white;border-radius:8px;padding:10px;text-align:center;margin-top:6px;">
+            <div style="font-size:0.65rem;text-transform:uppercase;opacity:0.8;font-weight:700;">⚠️ Usa este ID del alumno como concepto</div>
+            <div style="font-size:1.8rem;font-weight:900;font-family:monospace;letter-spacing:3px;">${s.studentId || s.name}</div>
+          </div>
+          <div style="font-size:0.75rem;color:#e65100;margin-top:8px;font-weight:700;">⚠️ Importante: pon el ID del alumno (${s.studentId || s.name}) como concepto de la transferencia para identificar tu pago.</div>
+          <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, envía tu comprobante a la escuela. El acceso se activará en 24 horas.</div>
         </div>
 
         <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro / Secure payment</div>
