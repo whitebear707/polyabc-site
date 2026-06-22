@@ -37,7 +37,9 @@
     .step.done { background: #00c853; }
 
     /* Dashboard styles */
-    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; }
+    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dashboard-nav::-webkit-scrollbar { display: none; }
+    .nav-tab { white-space: nowrap; }
     .nav-tab { padding: 10px 20px; font-family: Nunito; font-size: 0.9rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
     .student-card { background: #f8f9ff; border: 2px solid #e8eeff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
@@ -791,6 +793,16 @@ async function renderPaymentTab() {
   }
 
   wrap.innerHTML = students.map(s => {
+    // Already submitted a transfer awaiting verification
+    if (s.transferPending) return `
+      <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
+        <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${s.name}</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse / Your payment is being verified</div>
+        <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;margin-top:12px;">
+          Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
+        </div>
+      </div>`;
     if (!s.trialCompleted) return `
       <div style="background:#fff3e0;border-radius:12px;padding:16px;margin-bottom:12px;text-align:center;">
         <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">${s.name}</div>
@@ -885,12 +897,94 @@ async function renderPaymentTab() {
             <div style="font-size:1.8rem;font-weight:900;font-family:monospace;letter-spacing:3px;">${s.studentId || s.name}</div>
           </div>
           <div style="font-size:0.75rem;color:#e65100;margin-top:8px;font-weight:700;">⚠️ Importante: pon el ID del alumno (${s.studentId || s.name}) como concepto de la transferencia para identificar tu pago.</div>
-          <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, envía tu comprobante a la escuela. El acceso se activará en 24 horas.</div>
+          <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, presiona el botón de abajo. El pago será verificado en 24-48 horas hábiles.</div>
+          <button onclick="confirmTransfer('${s.name}')"
+            style="width:100%;margin-top:12px;padding:12px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.95rem;font-weight:900;cursor:pointer;">
+            ✅ Ya realicé la transferencia / I made the transfer
+          </button>
         </div>
 
         <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro / Secure payment</div>
       </div>`;
   }).join('');
+
+  // Combined payment section — only if 2+ payable students
+  const payableStudents = students.filter(s => s.trialCompleted && !s.transferPending);
+  if (payableStudents.length >= 2) {
+    wrap.innerHTML += `
+      <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:14px;padding:18px;margin-top:8px;">
+        <div style="color:white;font-size:1rem;font-weight:900;margin-bottom:6px;text-align:center;">👨‍👩‍👧‍👦 Pagar Todos Juntos / Pay All Together</div>
+        <div style="color:rgba(255,255,255,0.85);font-size:0.8rem;text-align:center;margin-bottom:14px;">
+          Configura el plan de cada alumno arriba, luego paga todo en una sola transacción.<br>
+          Set each student's plan above, then pay everything in one transaction.
+        </div>
+        <div id="combined-summary" style="background:rgba(255,255,255,0.12);border-radius:10px;padding:12px;margin-bottom:14px;display:none;"></div>
+        <button onclick="payCombined()" style="width:100%;padding:13px;background:white;color:#1a73e8;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;margin-bottom:8px;">
+          💳 Pagar Todos con Mercado Pago
+        </button>
+        <button onclick="transferCombined()" style="width:100%;padding:13px;background:rgba(255,255,255,0.2);color:white;border:2px solid white;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
+          🏦 Transferencia (Todos)
+        </button>
+      </div>`;
+  }
+}
+
+// Build combined line items from all students that have a complete plan selected
+function getCombinedItems() {
+  const items = [];
+  Object.keys(_payState).forEach(name => {
+    const st = _payState[name];
+    const complete = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
+    if (!complete) return;
+    const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+    const weeks = cycleMultiplier(st.cycle);
+    items.push({
+      name,
+      mpAmount: calcAdvertised(weeklyBase) * weeks,
+      transferAmount: weeklyBase * weeks,
+      cycle: st.cycle
+    });
+  });
+  return items;
+}
+
+async function payCombined() {
+  const items = getCombinedItems();
+  if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.\nPlease set up the plan for at least 2 students above.'); return; }
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Preparando...';
+  const total = items.reduce((sum, it) => sum + it.mpAmount, 0);
+  const description = 'PolyABC — ' + items.map(i => i.name).join(', ');
+  try {
+    const res = await fetch(SERVER_URL + '/parent/payment-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentName: items.map(i => i.name).join(','), amount: total, description })
+    });
+    const data = await res.json();
+    if (data.success && (data.sandboxUrl || data.checkoutUrl)) {
+      btn.textContent = '💳 Pagar Todos con Mercado Pago'; btn.disabled = false;
+      window.open(data.sandboxUrl || data.checkoutUrl, '_blank');
+    } else { btn.textContent = '❌ Error'; btn.disabled = false; }
+  } catch(e) { btn.textContent = '❌ Error'; btn.disabled = false; }
+}
+
+async function transferCombined() {
+  const items = getCombinedItems();
+  if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.'); return; }
+  const total = items.reduce((sum, it) => sum + it.transferAmount, 0);
+  const names = items.map(i => i.name);
+  if (!confirm('Transferir $' + total.toLocaleString('es-MX') + ' MXN por ' + names.join(', ') + '?\n\nUsa los IDs de los alumnos como concepto.')) return;
+  try {
+    const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada' })
+    });
+    const data = await res.json();
+    if (data.success) { renderPaymentTab(); }
+    else alert('Error — intente de nuevo');
+  } catch(e) { alert('Error — intente de nuevo'); }
 }
 
 // State for payment options per student
@@ -934,6 +1028,28 @@ function selectPayOption(studentName, field, value) {
   document.getElementById(`price-transfer-${key}`).textContent = `$${totalTransfer.toLocaleString('es-MX')} MXN`;
   document.getElementById(`price-summary-${key}`).style.display = 'block';
   document.getElementById(`pay-btns-${key}`).style.display = 'block';
+  updateCombinedSummary();
+}
+
+function updateCombinedSummary() {
+  const box = document.getElementById('combined-summary');
+  if (!box) return;
+  const items = getCombinedItems();
+  if (items.length < 2) { box.style.display = 'none'; return; }
+  const totalMP = items.reduce((s, it) => s + it.mpAmount, 0);
+  const totalTransfer = items.reduce((s, it) => s + it.transferAmount, 0);
+  box.style.display = 'block';
+  box.innerHTML = items.map(it =>
+    `<div style="display:flex;justify-content:space-between;color:white;font-size:0.85rem;margin-bottom:4px;">
+      <span>${it.name}</span><span>$${it.mpAmount.toLocaleString('es-MX')}</span>
+    </div>`
+  ).join('') +
+  `<div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:white;font-weight:900;">
+    <span>Total (MP)</span><span>$${totalMP.toLocaleString('es-MX')} MXN</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
+    <span>Con transferencia (5% desc.)</span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
+  </div>`;
 }
 
 function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
@@ -957,6 +1073,49 @@ function showTransferInfo(studentName) {
   const key = studentName.replace(/\s/g,'_');
   const el = document.getElementById(`transfer-info-${key}`);
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function confirmTransfer(studentName) {
+  const st = _payState[studentName];
+  if (!st) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Procesando...';
+
+  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+  const weeks = cycleMultiplier(st.cycle);
+  const amount = weeklyBase * weeks; // transfer price (no 5% markup)
+
+  try {
+    const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentNames: [studentName], amount, description: 'Transferencia — ' + studentName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const key = studentName.replace(/\s/g,'_');
+      const card = document.getElementById('pay-card-' + key);
+      if (card) {
+        card.innerHTML = `
+          <div style="text-align:center;padding:24px;">
+            <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
+            <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${studentName}</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:4px;">Tu pago está por verificarse</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:12px;">Your payment is being verified</div>
+            <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;">
+              Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
+            </div>
+          </div>`;
+      }
+    } else {
+      btn.textContent = '❌ Error — Intente de nuevo';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = '❌ Error — Intente de nuevo';
+    btn.disabled = false;
+  }
 }
 
 async function initPayment(studentName) {
