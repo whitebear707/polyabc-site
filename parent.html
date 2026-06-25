@@ -859,6 +859,23 @@ async function renderPaymentTab() {
             </button>`).join('')}
         </div>
 
+        <!-- Time Preference -->
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ Preferencia de horario</div>
+        <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="flexible" onchange="selectTimePreference('${s.name}','flexible')" style="margin-right:8px;"> I'm flexible / Flexible</label>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="range" onchange="selectTimePreference('${s.name}','range')" style="margin-right:8px;"> Time range / Rango horario</label>
+          <div id="range-inputs-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-bottom:10px;gap:8px;"><input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" placeholder="From / De" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;"><input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" placeholder="To / Hasta" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:8px;"></div>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="specific" onchange="selectTimePreference('${s.name}','specific')" style="margin-right:8px;"> Specific times / Horarios específicos</label>
+          <input type="text" id="specific-times-${s.name.replace(/\s/g,'_')}" placeholder="e.g., Mon 3pm, Wed 8pm / p.ej., Lun 3pm, Mié 8pm" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:24px;margin-bottom:10px;">
+          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="contact-me" onchange="selectTimePreference('${s.name}','contact-me')" style="margin-right:8px;"> Please contact me / Contactarme</label>
+          <div id="contact-fields-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-top:10px;">
+            <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">Contact method / Método de contacto:</div>
+            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" style="margin-right:8px;"> Call / Llamada</label>
+            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" style="margin-right:8px;"> WhatsApp</label>
+            <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:8px;">
+          </div>
+        </div>
+
         <!-- Price summary -->
         <div id="price-summary-${s.name.replace(/\s/g,'_')}" style="display:none;margin-bottom:14px;">
           <div style="background:#f8f9fa;border-radius:12px;padding:14px;text-align:center;">
@@ -952,6 +969,34 @@ async function payCombined() {
   if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.\nPlease set up the plan for at least 2 students above.'); return; }
   const btn = event.target;
   btn.disabled = true; btn.textContent = '⏳ Preparando...';
+  
+  // Save time preferences for all students before payment
+  for (const item of items) {
+    const timePrefs = getTimePreferencesForStudent(item.name);
+    if (timePrefs) {
+      try {
+        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          body: JSON.stringify({ studentName: item.name, ...timePrefs })
+        });
+      } catch(e) { console.error('Could not save preferences for', item.name); }
+    }
+  }
+  
+  // Save time preferences for all students before payment
+  for (const item of items) {
+    const timePrefs = getTimePreferencesForStudent(item.name);
+    if (timePrefs) {
+      try {
+        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          body: JSON.stringify({ studentName: item.name, ...timePrefs })
+        });
+      } catch(e) { console.error('Could not save preferences for', item.name); }
+    }
+  }
   const total = items.reduce((sum, it) => sum + it.mpAmount, 0);
   const description = 'PolyABC — ' + items.map(i => i.name).join(', ');
   try {
@@ -973,6 +1018,21 @@ async function transferCombined() {
   if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.'); return; }
   const total = items.reduce((sum, it) => sum + it.transferAmount, 0);
   const names = items.map(i => i.name);
+  
+  // Save time preferences for all students before marking transfer pending
+  for (const item of items) {
+    const timePrefs = getTimePreferencesForStudent(item.name);
+    if (timePrefs) {
+      try {
+        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          body: JSON.stringify({ studentName: item.name, ...timePrefs })
+        });
+      } catch(e) { console.error('Could not save preferences for', item.name); }
+    }
+  }
+  
   if (!confirm('Transferir $' + total.toLocaleString('es-MX') + ' MXN por ' + names.join(', ') + '?\n\nUsa los IDs de los alumnos como concepto.')) return;
   try {
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
@@ -1030,6 +1090,51 @@ function selectPayOption(studentName, field, value) {
   updateCombinedSummary();
 }
 
+function selectTimePreference(studentName, type) {
+  const key = studentName.replace(/\s/g,'_');
+  const rangeInputs = document.getElementById(`range-inputs-${key}`);
+  const specificInput = document.getElementById(`specific-times-${key}`);
+  const contactFields = document.getElementById(`contact-fields-${key}`);
+  
+  // Hide all conditional fields
+  if (rangeInputs) rangeInputs.style.display = 'none';
+  if (specificInput) specificInput.style.display = 'none';
+  if (contactFields) contactFields.style.display = 'none';
+  
+  // Show relevant fields
+  if (type === 'range' && rangeInputs) rangeInputs.style.display = 'flex';
+  if (type === 'specific' && specificInput) specificInput.style.display = 'block';
+  if (type === 'contact-me' && contactFields) contactFields.style.display = 'block';
+}
+
+function getTimePreferencesForStudent(studentName) {
+  const key = studentName.replace(/\s/g,'_');
+  const selectedType = document.querySelector(`input[name="time-pref-${key}"]:checked`)?.value;
+  if (!selectedType) return null;
+  
+  const prefs = { timePreference: selectedType };
+  
+  if (selectedType === 'range') {
+    const from = document.getElementById(`range-from-${key}`)?.value;
+    const to = document.getElementById(`range-to-${key}`)?.value;
+    if (from && to) prefs.preferredTimeRange = { start: from, end: to };
+  }
+  else if (selectedType === 'specific') {
+    const times = document.getElementById(`specific-times-${key}`)?.value;
+    if (times) prefs.specificTimes = times;
+  }
+  else if (selectedType === 'contact-me') {
+    const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
+    const phone = document.getElementById(`contact-phone-${key}`)?.value;
+    if (method && phone) {
+      prefs.contactMethod = method;
+      prefs.contactPhone = phone;
+    }
+  }
+  
+  return prefs;
+}
+
 function updateCombinedSummary() {
   const box = document.getElementById('combined-summary');
   if (!box) return;
@@ -1080,6 +1185,18 @@ async function confirmTransfer(studentName) {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Procesando...';
+  
+  // Save time preferences before marking transfer pending
+  const timePrefs = getTimePreferencesForStudent(studentName);
+  if (timePrefs) {
+    try {
+      await fetch(SERVER_URL + '/parent/schedule-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+        body: JSON.stringify({ studentName, ...timePrefs })
+      });
+    } catch(e) { console.error('Could not save preferences:', e); }
+  }
 
   const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
   const weeks = cycleMultiplier(st.cycle);
@@ -1124,6 +1241,18 @@ async function initPayment(studentName) {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Preparando pago...';
+  
+  // Save time preferences before payment
+  const timePrefs = getTimePreferencesForStudent(studentName);
+  if (timePrefs) {
+    try {
+      await fetch(SERVER_URL + '/parent/schedule-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+        body: JSON.stringify({ studentName, ...timePrefs })
+      });
+    } catch(e) { console.error('Could not save preferences:', e); }
+  }
 
   const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
   const advertised = calcAdvertised(weeklyBase);
