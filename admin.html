@@ -811,6 +811,15 @@
       </select>
       <div id="edit-student-parent-info" style="margin-top:6px;font-size:0.78rem;color:#888;display:none;"></div>
     </div>
+    <div style="border-top:1px solid #eee;margin:14px 0 10px;"></div>
+    <div class="field-group">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏰ Time Preference (Parent selected)</label>
+      <div id="edit-student-time-pref" style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:0.85rem;color:#555;font-family:monospace;min-height:40px;word-break:break-word;">—</div>
+    </div>
+    <div class="field-group">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">📝 Admin Notes</label>
+      <textarea id="edit-student-notes" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;resize:vertical;min-height:80px;" placeholder="Leave notes about student or scheduling preferences..."></textarea>
+    </div>
     <div id="edit-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancel</button>
@@ -1851,6 +1860,20 @@ function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-pass').value = password;
   document.getElementById('edit-student-dob').value = dob || '';
   document.getElementById('edit-student-type').value = s.enrolledType || '';
+  document.getElementById('edit-student-notes').value = s.adminNotes || '';
+  
+  // Format time preferences for display
+  let timePrefText = '—';
+  if (s.timePreference) {
+    if (s.timePreference === 'flexible') timePrefText = '✅ Flexible — admin will decide';
+    else if (s.timePreference === 'range' && s.preferredTimeRange) 
+      timePrefText = `📅 Range: ${s.preferredTimeRange.start} to ${s.preferredTimeRange.end}`;
+    else if (s.timePreference === 'specific' && s.specificTimes)
+      timePrefText = `📅 Specific: ${s.specificTimes}`;
+    else if (s.timePreference === 'contact-me')
+      timePrefText = `📞 Contact: ${s.contactMethod || '?'} · ${s.contactPhone || '?'}`;
+  }
+  document.getElementById('edit-student-time-pref').textContent = timePrefText;
   // Load parents dropdown
   const parentSel = document.getElementById('edit-student-parent-id');
   if (parentSel) {
@@ -1921,10 +1944,11 @@ async function saveEditStudent() {
       }
     }
   }
+  const adminNotes = document.getElementById('edit-student-notes')?.value || null;
   await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null, enrolledType })
+    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null, enrolledType, adminNotes })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
   // Sync updated password to parent panel record
