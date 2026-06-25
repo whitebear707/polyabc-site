@@ -37,7 +37,8 @@
     .step.done { background: #00c853; }
 
     /* Dashboard styles */
-    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .dashboard-nav::-webkit-scrollbar { display: none; }
     .dashboard-nav::-webkit-scrollbar { display: none; }
     .nav-tab { white-space: nowrap; flex: 0 0 auto; padding: 14px 32px; font-family: Nunito; font-size: 0.9rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
