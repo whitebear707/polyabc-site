@@ -1945,10 +1945,11 @@ async function saveEditStudent() {
     }
   }
   const adminNotes = document.getElementById('edit-student-notes')?.value || null;
+  // ONLY update adminNotes - don't touch other fields to avoid accidentally erasing them
   await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null, dob: dob || null, enrolledType, adminNotes })
+    body: JSON.stringify({ adminNotes })
   });
   document.getElementById('edit-student-modal').classList.remove('open');
   // Sync updated password to parent panel record
