@@ -1915,49 +1915,77 @@ async function saveEditStudent() {
   const dup = checkDuplicatePassword(pass, room);
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
-  // PATCH — only update changed fields, preserve all parent/contact info
+
+  // Load the current student record so we know what actually changed
+  const current = getAllStudents().find(x => x.name === originalName) || {};
   const enrolledType = document.getElementById('edit-student-type')?.value || null;
-  const parentId     = document.getElementById('edit-student-parent-id')?.value || null;
-  // If parent selected, assign student to that parent via server
-  if (parentId) {
-    // Unassign from any previous parent first
-    for (const par of (_allParents || [])) {
-      if ((par.students || []).some(ps => ps.name === originalName) && String(par._id) !== parentId) {
+  const adminNotes   = document.getElementById('edit-student-notes')?.value ?? '';
+
+  // Build the PATCH body with ONLY the fields the modal manages.
+  // The server preserves any field not included in the body.
+  const body = {
+    name,
+    password: pass,
+    room: room || null,
+    dob: dob || null,
+    enrolledType,
+    adminNotes
+  };
+
+  try {
+    const res = await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      err.textContent = '⚠️ Save failed: ' + (data.message || 'unknown error');
+      err.style.display = 'block';
+      return;
+    }
+  } catch(e) {
+    err.textContent = '⚠️ Network error — could not save.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Handle parent linking ONLY if the dropdown selection differs from current
+  const parentSel = document.getElementById('edit-student-parent-id');
+  if (parentSel) {
+    const selectedParentId = parentSel.value || '';
+    // Which parent (if any) currently has this student?
+    const currentParent = (_allParents || []).find(par => (par.students || []).some(ps => ps.name === originalName));
+    const currentParentId = currentParent ? String(currentParent._id) : '';
+
+    if (selectedParentId !== currentParentId) {
+      // Unassign from the old parent (if there was one)
+      if (currentParentId) {
         await fetch(`${SERVER_URL}/admin/parents/unassign-student`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-          body: JSON.stringify({ parentId: par._id, studentName: name || originalName })
+          body: JSON.stringify({ parentId: currentParentId, studentName: name })
         });
       }
-    }
-    await fetch(`${SERVER_URL}/admin/parents/assign-student`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ parentId, studentName: name || originalName })
-    });
-  } else {
-    // No parent selected — unassign from all parents
-    for (const par of (_allParents || [])) {
-      if ((par.students || []).some(ps => ps.name === originalName)) {
-        await fetch(`${SERVER_URL}/admin/parents/unassign-student`, {
+      // Assign to the new parent (if one was chosen)
+      if (selectedParentId) {
+        await fetch(`${SERVER_URL}/admin/parents/assign-student`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-          body: JSON.stringify({ parentId: par._id, studentName: name || originalName })
+          body: JSON.stringify({ parentId: selectedParentId, studentName: name })
         });
       }
     }
   }
-  const adminNotes = document.getElementById('edit-student-notes')?.value || null;
-  // ONLY update adminNotes - don't touch other fields to avoid accidentally erasing them
-  await fetch(`${SERVER_URL}/students/${encodeURIComponent(originalName)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ adminNotes })
-  });
+
+  // Sync password to parent panel record only if password changed
+  if (pass !== current.password) {
+    await fetch(`${SERVER_URL}/admin/sync-student-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ studentName: name, password: pass })
+    });
+  }
+
   document.getElementById('edit-student-modal').classList.remove('open');
-  // Sync updated password to parent panel record
-  await fetch(`${SERVER_URL}/admin/sync-student-password`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ studentName: name, password: pass })
-  });
   await loadAll();
   renderAllStudents();
 }
