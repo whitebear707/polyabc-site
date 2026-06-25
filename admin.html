@@ -1853,12 +1853,14 @@ function renderAllStudents() {
 }
 
 function openEditStudentModal(name, password, room, dob) {
-  // Find full student record for extra fields
-  const s = getAllStudents().find(x => x.name === name) || {};
+  // Use the FULL student record from allStudents (has parent info, notes, type, etc).
+  // getAllStudents() merges room data which STRIPS those fields, so never use it here.
+  const s = (allStudents || []).find(x => x.name === name) || {};
   document.getElementById('edit-student-original-name').value = name;
   document.getElementById('edit-student-name').value = name;
-  document.getElementById('edit-student-pass').value = password;
-  document.getElementById('edit-student-dob').value = dob || '';
+  // Prefer the full record's values; fall back to params passed in
+  document.getElementById('edit-student-pass').value = s.password || password || '';
+  document.getElementById('edit-student-dob').value = s.dob || dob || '';
   document.getElementById('edit-student-type').value = s.enrolledType || '';
   document.getElementById('edit-student-notes').value = s.adminNotes || '';
   
@@ -1899,8 +1901,9 @@ function openEditStudentModal(name, password, room, dob) {
   }
   document.getElementById('edit-student-error').style.display = 'none';
   const sel = document.getElementById('edit-student-room');
+  const studentRoom = s.room || room || '';
   sel.innerHTML = '<option value="">-- No room --</option>' +
-    rooms.map(r => `<option value="${r.room}"${r.room === room ? ' selected' : ''}>Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
+    rooms.map(r => `<option value="${r.room}"${r.room === studentRoom ? ' selected' : ''}>Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
   document.getElementById('edit-student-modal').classList.add('open');
 }
 
@@ -1917,7 +1920,8 @@ async function saveEditStudent() {
   err.style.display = 'none';
 
   // Load the current student record so we know what actually changed
-  const current = getAllStudents().find(x => x.name === originalName) || {};
+  // Use allStudents (full record), NOT getAllStudents() which strips fields for room students
+  const current = (allStudents || []).find(x => x.name === originalName) || {};
   const enrolledType = document.getElementById('edit-student-type')?.value || null;
   const adminNotes   = document.getElementById('edit-student-notes')?.value ?? '';
 
