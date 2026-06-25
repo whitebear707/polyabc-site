@@ -697,12 +697,18 @@ function connectSocket() {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
     }
-    if (IS_TEACHER && canvas && canvas.getObjects().length > 0) {
-      setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON(['data']) }), 1500);
+    if (IS_TEACHER && canvas) {
+      // Always push current canvas to any newly-joined peer (even if empty, harmless)
+      if (canvas.getObjects().length > 0) {
+        setTimeout(() => socket.emit('send-canvas-to', { room: ROOM, targetId: socketId, json: canvas.toJSON(['data']) }), 1500);
+      }
     }
-    if (!IS_TEACHER && canvas && canvas.getObjects().length > 0) {
-      // Student rejoining — request canvas state from teacher
-      setTimeout(() => socket.emit('request-canvas', { room: ROOM }), 1000);
+    if (!IS_TEACHER) {
+      // Student joining (late or rejoining) — ALWAYS request current canvas state,
+      // regardless of local canvas contents (a late joiner starts empty)
+      setTimeout(() => socket.emit('request-canvas', { room: ROOM }), 1200);
+      // Retry once in case the first request races the teacher's readiness
+      setTimeout(() => { if (canvas && canvas.getObjects().length === 0) socket.emit('request-canvas', { room: ROOM }); }, 3000);
     }
     if (IS_TEACHER && isSharing) {
       callSsPeer(socketId);
@@ -1572,7 +1578,7 @@ function checkTeacherRoomLock() {
       enterBtn.style.cursor = 'not-allowed';
     }
     openBtn.disabled = true; openBtn.style.opacity = '0.5';
-    openBtn.textContent = '🔒 No class today';
+    setBtnLabel(openBtn, '🔒 No class today');
     document.getElementById('connect-msg').textContent = '📅 No classes scheduled for today';
     return;
   }
@@ -1581,7 +1587,7 @@ function checkTeacherRoomLock() {
   const current = sorted.find(a => nowMins >= a.sm-20 && nowMins < a.em);
   if (current) {
     openBtn.disabled=false; openBtn.style.opacity='1';
-    openBtn.textContent = classIsOpen ? '🔒 Close Class' : '🔓 Open Class';
+    setBtnLabel(openBtn, classIsOpen ? '🔒 Close Class' : '🔓 Open Class');
     openBtn.title='';
     if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
@@ -1607,7 +1613,7 @@ function checkTeacherRoomLock() {
     const nowMins = nowGDL().getHours()*60 + nowGDL().getMinutes();
     if (nowMins >= current.sm && !classIsOpen) {
       classIsOpen = true;
-      openBtn.textContent = '🔒 Close Class'; openBtn.style.background = '#e53935';
+      setBtnLabel(openBtn, '🔒 Close Class'); openBtn.style.background = '#e53935';
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
     }
   } else {
@@ -1616,7 +1622,7 @@ function checkTeacherRoomLock() {
       const uh = Math.floor((next.sm-20)/60), um = (next.sm-20)%60;
       const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
       openBtn.disabled=true; openBtn.style.opacity='0.5';
-      openBtn.textContent=`🔒 Opens at ${uStr}`; openBtn.title=`Room opens at ${uStr}`;
+      setBtnLabel(openBtn, `🔒 Opens at ${uStr}`); openBtn.title=`Room opens at ${uStr}`;
       // Show enter button but disable it — room is locked
       if (enterBtn) {
         enterBtn.style.display='block';
@@ -1878,15 +1884,31 @@ function setOpenClassBtn(text, color) {
   const btn = document.getElementById('open-class-btn');
   if (!btn) return;
   btn.style.background = color;
-  // Preserve the waiting-badge span
+  // Preserve the waiting-badge span (count + visibility) across text changes
   let badge = document.getElementById('waiting-badge');
-  btn.textContent = text;
+  const savedCount = badge ? badge.textContent : '';
+  const savedDisplay = badge ? badge.style.display : 'none';
+  // Set only the text node, not the whole content, to avoid destroying the badge
+  setBtnLabel(btn, text);
+  badge = document.getElementById('waiting-badge');
   if (!badge) {
     badge = document.createElement('span');
     badge.id = 'waiting-badge';
     badge.style.cssText = 'display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;';
+    btn.appendChild(badge);
   }
-  btn.appendChild(badge);
+  // Restore count + visibility
+  badge.textContent = savedCount;
+  badge.style.display = savedDisplay;
+}
+
+// Set a button's text label while preserving any child badge span
+function setBtnLabel(btn, text) {
+  const badge = btn.querySelector('#waiting-badge, #chat-badge');
+  // Remove all text/element nodes except the badge
+  [...btn.childNodes].forEach(n => { if (n !== badge) btn.removeChild(n); });
+  // Insert the new label as the first child (before the badge)
+  btn.insertBefore(document.createTextNode(text), badge || null);
 }
 
 function toggleClassOpen() {
