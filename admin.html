@@ -1363,7 +1363,7 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   // Mark booking as assigned (server validates password uniqueness)
   const assignRes = await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, password })
+    body: JSON.stringify({ room, password, dateStr, time })
   });
   const assignData = await assignRes.json();
   if (!assignData.success) {
