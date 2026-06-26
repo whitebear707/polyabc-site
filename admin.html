@@ -3418,28 +3418,27 @@ async function loadPendingTransfers() {
 }
 
 function renderPendingTransfers(students) {
+  console.log('[RENDER DEBUG] renderPendingTransfers called with:', students.length, 'students');
   const tbody = document.getElementById('pending-transfers-tbody');
   const empty = document.getElementById('pending-transfers-empty');
-  if (!tbody) return;
+  console.log('[RENDER DEBUG] tbody found:', !!tbody, 'empty found:', !!empty);
+  if (!tbody) { console.log('[RENDER DEBUG] No tbody, returning'); return; }
   
-  if (!students.length) {
+  if (!students || !students.length) {
+    console.log('[RENDER DEBUG] No students, showing empty message');
     tbody.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
+  console.log('[RENDER DEBUG] Rendering', students.length, 'students');
   empty.style.display = 'none';
   
-  tbody.innerHTML = students.map(s => {
+  const html = students.map(s => {
     const enrolledType = s.enrolledType === '1v1' ? '1v1 Privada' : 'Grupal';
-    return `<tr>
-      <td>${s.name}</td>
-      <td>${s.parentEmail || '—'}</td>
-      <td>${enrolledType}</td>
-      <td>—</td>
-      <td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td>
-      <td><button onclick="confirmBankTransfer('${s.name}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td>
-    </tr>`;
+    return `<tr><td>${s.name}</td><td>${s.parentEmail || '—'}</td><td>${enrolledType}</td><td>—</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td><td><button onclick="confirmBankTransfer('${s.name}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
   }).join('');
+  tbody.innerHTML = html;
+  console.log('[RENDER DEBUG] HTML written, tbody innerHTML length:', tbody.innerHTML.length);
 }
 
 async function confirmBankTransfer(studentName) {
