@@ -1035,10 +1035,19 @@ async function transferCombined() {
   
   if (!confirm('Transferir $' + total.toLocaleString('es-MX') + ' MXN por ' + names.join(', ') + '?\n\nUsa los IDs de los alumnos como concepto.')) return;
   try {
+    // Build enrollment details for each student
+    const studentDetails = items.map(item => ({
+      name: item.name,
+      enrolledType: _payState[item.name].type === '1v1' ? '1v1 Privada' : 'Grupal',
+      enrolledCycle: _payState[item.name].cycle,
+      enrolledDaysPerWeek: _payState[item.name].days || 4,
+      enrolledMinutesPerClass: _payState[item.name].mins || 40
+    }));
+    
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada' })
+      body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada', studentDetails })
     });
     const data = await res.json();
     if (data.success) { renderPaymentTab(); }
@@ -1206,7 +1215,15 @@ async function confirmTransfer(studentName) {
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentNames: [studentName], amount, description: 'Transferencia — ' + studentName })
+      body: JSON.stringify({ 
+        studentNames: [studentName], 
+        amount, 
+        description: 'Transferencia — ' + studentName,
+        enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
+        enrolledCycle: st.cycle,
+        enrolledDaysPerWeek: st.days || 4,
+        enrolledMinutesPerClass: st.mins || 40
+      })
     });
     const data = await res.json();
     if (data.success) {
