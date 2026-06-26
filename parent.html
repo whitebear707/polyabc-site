@@ -212,6 +212,19 @@
     </div>
   </div>
 
+  <!-- SELECT GROUP OPENING -->
+  <div id="screen-select-group-opening" style="display:none;">
+    <div class="card">
+      <h2>Choose Your Class / Elige tu Clase</h2>
+      <p class="subtitle">Select an available opening / Selecciona una disponibilidad</p>
+      <div id="group-openings-list" style="margin:20px 0;"></div>
+      <div id="group-opening-error" class="error"></div>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-secondary" onclick="goBackToStudents()">← Back / Atrás</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DASHBOARD -->
   <div id="screen-dashboard" style="display:none;">
     <div class="card" style="padding:16px 20px;text-align:center;">
@@ -1522,7 +1535,69 @@ async function loadGroupOpenings(studentName) {
 }
 
 async function selectGroupOpening(studentName) {
-  alert('Coming soon: Group class selection flow');
+  const student = _billingData.students.find(s => s.name === studentName);
+  if (!student || !student.trialLevel) return;
+  
+  try {
+    const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
+    const data = await res.json();
+    
+    if (!data.openings || data.openings.length === 0) {
+      alert('No openings available');
+      return;
+    }
+    
+    // Store current student for selection
+    window._selectingStudent = studentName;
+    
+    // Render openings list
+    const listEl = document.getElementById('group-openings-list');
+    listEl.innerHTML = data.openings.map((opening, idx) => `
+      <button onclick="confirmGroupOpening('${studentName}', '${opening.id}', ${opening.slotsAvailable})" 
+        style="display:block;width:100%;padding:16px;background:#f5f5f5;border:2px solid #ddd;border-radius:10px;text-align:left;cursor:pointer;margin-bottom:12px;font-family:Nunito;transition:all 0.2s;"
+        onmouseover="this.style.borderColor='#1a73e8'; this.style.background='#f0f7ff';"
+        onmouseout="this.style.borderColor='#ddd'; this.style.background='#f5f5f5';">
+        <div style="font-weight:900;color:#1a73e8;font-size:1rem;">Option ${idx + 1}</div>
+        <div style="font-size:0.85rem;color:#666;margin-top:6px;">
+          📍 ${opening.slotsAvailable} opening${opening.slotsAvailable > 1 ? 's' : ''} available
+        </div>
+      </button>
+    `).join('');
+    
+    showScreen('select-group-opening');
+  } catch(e) {
+    console.error('Error selecting group opening:', e);
+    document.getElementById('group-opening-error').textContent = 'Error loading openings';
+    document.getElementById('group-opening-error').style.display = 'block';
+  }
+}
+
+async function confirmGroupOpening(studentName, groupId, slotsAvailable) {
+  try {
+    // Save the selection to the student record
+    const res = await fetch(SERVER_URL + '/parent/select-group-opening', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentName, groupId })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      showScreen('dashboard');
+      await loadBilling(); // Reload student data
+      showAlert('✅', 'Success!', 'You selected a group class. The school will confirm your enrollment shortly.');
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    console.error('Error confirming selection:', e);
+    alert('Failed to save selection');
+  }
+}
+
+function goBackToStudents() {
+  showScreen('dashboard');
+  showTab('students');
 }
 
 async function requestTrialContact(studentName) {
