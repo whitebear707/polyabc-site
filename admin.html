@@ -3382,6 +3382,7 @@ async function deleteStaff(id, name) {
 
 // ── ACCOUNTING LEDGER ──
 async function renderAccounting() {
+  console.log('[ACCOUNTING] renderAccounting() called');
   // Set month/year selectors to current if empty
   const monthSel = document.getElementById('acc-month');
   const yearSel  = document.getElementById('acc-year');
@@ -3406,6 +3407,7 @@ async function renderAccounting() {
 }
 
 async function loadPendingTransfers() {
+  console.log('[PENDING] loadPendingTransfers() called, currentToken:', !!currentToken);
   try {
     const res = await fetch(`${SERVER_URL}/students`, {
       headers: { Authorization: `Bearer ${currentToken}` }
@@ -3416,7 +3418,8 @@ async function loadPendingTransfers() {
     const pending = students.filter(s => s.transferPending && !s.paid);
     console.log('[DEBUG] Filtered to', pending.length, 'pending transfers:', pending.map(s => s.name));
     renderPendingTransfers(pending);
-  } catch(e) { console.error('Error loading pending transfers:', e); }
+  } catch(e) { console.error('[PENDING] Error loading pending transfers:', e); }
+  console.log('[PENDING] loadPendingTransfers() done');
 }
 
 function renderPendingTransfers(students) {
