@@ -379,6 +379,25 @@
       <button onclick="savePrices()" style="margin-top:16px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Save Prices</button>
     </div>
 
+    <!-- Pending Bank Transfers -->
+    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;border-left:4px solid #ff9800;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">💳 Pending Bank Transfers</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="pending-transfers-table" style="width:100%;">
+          <thead><tr>
+            <th>Student</th>
+            <th>Parent Email</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="pending-transfers-tbody"></tbody>
+        </table>
+      </div>
+      <div id="pending-transfers-empty" style="text-align:center;color:#888;padding:20px;font-size:0.9rem;">No pending transfers</div>
+    </div>
+
     <!-- Students Billing Table -->
     <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -3380,8 +3399,63 @@ async function renderAccounting() {
   const month = monthSel.value;
   const year  = yearSel.value;
 
-  // Load billing (price table + student billing) and ledger in parallel
-  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadLedger(month, year)]);
+  // Load billing (price table + student billing), pending transfers, and ledger in parallel
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPendingTransfers(), loadLedger(month, year)]);
+}
+
+async function loadPendingTransfers() {
+  try {
+    const res = await fetch(`${SERVER_URL}/students`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const students = await res.json();
+    // Filter for students with transferPending: true and paid: false
+    const pending = students.filter(s => s.transferPending && !s.paid);
+    renderPendingTransfers(pending);
+  } catch(e) { console.error('Error loading pending transfers:', e); }
+}
+
+function renderPendingTransfers(students) {
+  const tbody = document.getElementById('pending-transfers-tbody');
+  const empty = document.getElementById('pending-transfers-empty');
+  if (!tbody) return;
+  
+  if (!students.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  
+  tbody.innerHTML = students.map(s => {
+    const enrolledType = s.enrolledType === '1v1' ? '1v1 Privada' : 'Grupal';
+    return `<tr>
+      <td>${s.name}</td>
+      <td>${s.parentEmail || '—'}</td>
+      <td>${enrolledType}</td>
+      <td>—</td>
+      <td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td>
+      <td><button onclick="confirmBankTransfer('${s.name}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function confirmBankTransfer(studentName) {
+  if (!confirm(`Confirm bank transfer for ${studentName}?`)) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/billing/confirm-payment/${encodeURIComponent(studentName)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({})
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert('Transfer confirmed!');
+      await renderAccounting();
+    } else {
+      alert('Error: ' + (result.error || 'Unknown error'));
+    }
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 async function loadLedger(month, year) {
