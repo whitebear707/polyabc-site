@@ -528,7 +528,10 @@ async function loadDashboard() {
         ` : ''}
         ${s.trialBooked && !s.trialCompleted ? `
           <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-top:10px;font-size:0.85rem;">
-            <div style="color:#2e7d32;font-weight:700;">✅ Trial class booked! / ¡Clase de prueba reservada!</div>
+            <div style="color:#2e7d32;font-weight:700;">✅ Trial class scheduled! / ¡Clase de prueba programada!</div>
+            <button onclick="rescheduleTrialClass('${s.name}')" style="display:block;width:100%;margin-top:10px;padding:8px;background:#ff9800;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85rem;">
+              📅 Reschedule / Reagendar
+            </button>
             ${s.trialDate ? `<div style="color:#555;margin-top:2px;">📅 ${s.trialDate} ${s.trialLevel ? '· Level: ' + s.trialLevel : ''}</div>` : ''}
             ${s.studentRoom && s.studentPassword ? `
               <div style="margin-top:10px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
@@ -1599,6 +1602,31 @@ function goBackToStudents() {
 
 async function requestTrialContact(studentName) {
   alert('Thank you! The school will contact you soon to arrange a custom schedule.');
+}
+
+
+async function rescheduleTrialClass(studentName) {
+  const confirm_reschedule = confirm('Are you sure you want to reschedule this trial class? / ¿Estás seguro de que quieres reagendar esta clase de prueba?');
+  if (!confirm_reschedule) return;
+  
+  try {
+    const res = await fetch(SERVER_URL + '/parent/reschedule-trial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentName })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      await loadBilling();
+      showAlert('✅', 'Trial Rescheduled', 'You can now select a different time for the trial class.');
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch(e) {
+    console.error('Error rescheduling trial:', e);
+    alert('Failed to reschedule');
+  }
 }
 
 </script>
