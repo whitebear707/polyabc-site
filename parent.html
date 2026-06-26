@@ -1217,10 +1217,13 @@ async function confirmTransfer(studentName) {
       studentNames: [studentName],
       amount,
       description: 'Transferencia — ' + studentName,
-      enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
-      enrolledCycle: st.cycle,
-      enrolledDaysPerWeek: st.days || 4,
-      enrolledMinutesPerClass: st.mins || 40
+      studentDetails: [{
+        name: studentName,
+        enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
+        enrolledCycle: st.cycle,
+        enrolledDaysPerWeek: st.days || 4,
+        enrolledMinutesPerClass: st.mins || 40
+      }]
     };
     console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
