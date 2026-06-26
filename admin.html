@@ -3443,14 +3443,25 @@ function renderPendingTransfers(students) {
 async function confirmBankTransfer(studentName) {
   if (!confirm(`Confirm bank transfer for ${studentName}?`)) return;
   try {
+    // Fetch student to get billingCycle and amount
+    const studentsRes = await fetch(`${SERVER_URL}/students`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const students = await studentsRes.json();
+    const student = students.find(s => s.name === studentName);
+    if (!student) { alert('Student not found'); return; }
+    
+    const billingCycle = student.enrolledCycle || 'monthly';
+    const amountPaid = student.transferPendingAmount || student.amountDue || 0;
+    
     const res = await fetch(`${SERVER_URL}/billing/confirm-payment/${encodeURIComponent(studentName)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({})
+      body: JSON.stringify({ billingCycle, amountPaid })
     });
     const result = await res.json();
     if (result.success) {
-      alert('Transfer confirmed!');
+      alert('Transfer confirmed! Student is now Paid.');
       await renderAccounting();
     } else {
       alert('Error: ' + (result.error || 'Unknown error'));
