@@ -1542,43 +1542,40 @@ async function selectGroupOpening(studentName) {
     const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
     const data = await res.json();
     
-    if (!data.openings || data.openings.length === 0) {
-      alert('No openings available');
+    if (!data.hours || data.hours.length === 0) {
+      alert('No available times at the moment. Please contact the school.');
       return;
     }
     
     // Store current student for selection
     window._selectingStudent = studentName;
     
-    // Render openings list
+    // Render available hours
     const listEl = document.getElementById('group-openings-list');
-    listEl.innerHTML = data.openings.map((opening, idx) => `
-      <button onclick="confirmGroupOpening('${studentName}', '${opening.id}', ${opening.slotsAvailable})" 
-        style="display:block;width:100%;padding:16px;background:#f5f5f5;border:2px solid #ddd;border-radius:10px;text-align:left;cursor:pointer;margin-bottom:12px;font-family:Nunito;transition:all 0.2s;"
+    listEl.innerHTML = data.hours.map((hour, idx) => `
+      <button onclick="confirmGroupOpening('${studentName}', '${hour.time}')" 
+        style="display:block;width:100%;padding:16px;background:#f5f5f5;border:2px solid #ddd;border-radius:10px;text-align:center;cursor:pointer;margin-bottom:12px;font-family:Nunito;transition:all 0.2s;"
         onmouseover="this.style.borderColor='#1a73e8'; this.style.background='#f0f7ff';"
         onmouseout="this.style.borderColor='#ddd'; this.style.background='#f5f5f5';">
-        <div style="font-weight:900;color:#1a73e8;font-size:1rem;">Option ${idx + 1}</div>
-        <div style="font-size:0.85rem;color:#666;margin-top:6px;">
-          📍 ${opening.slotsAvailable} opening${opening.slotsAvailable > 1 ? 's' : ''} available
-        </div>
+        <div style="font-weight:900;color:#1a73e8;font-size:1.3rem;">🕐 ${hour.display}</div>
       </button>
     `).join('');
     
     showScreen('select-group-opening');
   } catch(e) {
-    console.error('Error selecting group opening:', e);
-    document.getElementById('group-opening-error').textContent = 'Error loading openings';
+    console.error('Error loading available times:', e);
+    document.getElementById('group-opening-error').textContent = 'Error loading times';
     document.getElementById('group-opening-error').style.display = 'block';
   }
 }
 
-async function confirmGroupOpening(studentName, groupId, slotsAvailable) {
+async function confirmGroupOpening(studentName, time) {
   try {
-    // Save the selection to the student record
+    // Save the hour preference to the student record
     const res = await fetch(SERVER_URL + '/parent/select-group-opening', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentName, groupId })
+      body: JSON.stringify({ studentName, time })
     });
     
     const data = await res.json();
