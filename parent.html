@@ -1190,7 +1190,8 @@ function showTransferInfo(studentName) {
 
 async function confirmTransfer(studentName) {
   const st = _payState[studentName];
-  if (!st) return;
+  console.log('[TRANSFER] confirmTransfer called for:', studentName, 'payState:', st);
+  if (!st) { console.log('[TRANSFER] No payState found'); return; }
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Procesando...';
@@ -1212,18 +1213,20 @@ async function confirmTransfer(studentName) {
   const amount = weeklyBase * weeks; // transfer price (no 5% markup)
 
   try {
+    const payload = {
+      studentNames: [studentName],
+      amount,
+      description: 'Transferencia — ' + studentName,
+      enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
+      enrolledCycle: st.cycle,
+      enrolledDaysPerWeek: st.days || 4,
+      enrolledMinutesPerClass: st.mins || 40
+    };
+    console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ 
-        studentNames: [studentName], 
-        amount, 
-        description: 'Transferencia — ' + studentName,
-        enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
-        enrolledCycle: st.cycle,
-        enrolledDaysPerWeek: st.days || 4,
-        enrolledMinutesPerClass: st.mins || 40
-      })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (data.success) {
