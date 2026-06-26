@@ -3399,8 +3399,10 @@ async function renderAccounting() {
   const month = monthSel.value;
   const year  = yearSel.value;
 
-  // Load billing (price table + student billing), pending transfers, and ledger in parallel
-  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPendingTransfers(), loadLedger(month, year)]);
+  // Load billing (price table + student billing) and ledger in parallel
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadLedger(month, year)]);
+  // Load pending transfers after main data loads (depends on currentToken)
+  await loadPendingTransfers();
 }
 
 async function loadPendingTransfers() {
