@@ -1192,7 +1192,6 @@ function updateCombinedSummary() {
   const items = getCombinedItems();
   if (items.length < 2) { box.style.display = 'none'; return; }
   const totalTransfer = items.reduce((s, it) => s + it.transferAmount, 0);
-  const totalTransfer = items.reduce((s, it) => s + it.transferAmount, 0);
   box.style.display = 'block';
   box.innerHTML = items.map(it =>
     `<div style="display:flex;justify-content:space-between;color:white;font-size:0.85rem;margin-bottom:4px;">
