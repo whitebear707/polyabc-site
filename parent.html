@@ -940,9 +940,9 @@ async function renderPaymentTab() {
           </div>
           <div style="background:#1a73e8;color:white;border-radius:8px;padding:10px;text-align:center;margin-top:6px;">
             <div style="font-size:0.65rem;text-transform:uppercase;opacity:0.8;font-weight:700;">⚠️ Usa este ID del alumno como concepto</div>
-            <div style="font-size:1.8rem;font-weight:900;font-family:monospace;letter-spacing:3px;">${s.studentId || s.name}</div>
+            <div style="font-size:1.8rem;font-weight:900;font-family:monospace;letter-spacing:3px;">${s.studentId ? s.studentId + ' ' + s.name : s.name}</div>
           </div>
-          <div style="font-size:0.75rem;color:#e65100;margin-top:8px;font-weight:700;">⚠️ Importante: pon el ID del alumno (${s.studentId || s.name}) como concepto de la transferencia para identificar tu pago.</div>
+          <div style="font-size:0.75rem;color:#e65100;margin-top:8px;font-weight:700;">⚠️ Importante: pon el ID del alumno (${s.studentId ? s.studentId + ' ' + s.name : s.name}) como concepto de la transferencia para identificar tu pago.</div>
           <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, presiona el botón de abajo. El pago será verificado en 24-48 horas hábiles.</div>
           <button onclick="confirmTransfer('${s.name}')"
             style="width:100%;margin-top:12px;padding:12px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.95rem;font-weight:900;cursor:pointer;">
