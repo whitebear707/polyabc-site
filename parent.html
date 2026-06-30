@@ -1630,11 +1630,26 @@ async function rescheduleTrialClass(studentName) {
 
 </script>
 
-  <!-- Google Translate -->
-  <div id="google_translate_element" style="position:fixed;top:10px;right:10px;z-index:9999;background:white;padding:5px;border-radius:4px;box-shadow:0 2px 4px rgba(0,0,0,0.1);"></div>
+
+
+  <!-- Google Translate - Auto-detect language -->
+  <div id="google_translate_element" style="position:fixed;top:15px;right:15px;z-index:9999;"></div>
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+      
+      // Auto-detect browser language and suggest Spanish if needed
+      const browserLang = navigator.language || navigator.userLanguage;
+      if (browserLang.startsWith('es')) {
+        // Auto-translate to Spanish after a brief delay
+        setTimeout(() => {
+          const selectField = document.querySelector('.goog-te-combo');
+          if (selectField) {
+            selectField.value = 'es';
+            selectField.dispatchEvent(new Event('change'));
+          }
+        }, 1000);
+      }
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
