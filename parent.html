@@ -923,7 +923,7 @@ async function renderPaymentTab() {
 
             <div style="border-top:1px solid #eee;margin:10px 0;"></div>
             <div id="price-transfer-${s.name.replace(/\s/g,'_')}" style="font-size:1.5rem;font-weight:900;color:#00897b;"></div>
-            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con transferencia bancaria (5% desc.)</div>
+            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con transferencia bancaria </div>
           </div>
         </div>
 
@@ -934,7 +934,7 @@ async function renderPaymentTab() {
           </button>
           <button onclick="showTransferInfo('${s.name}')"
             style="width:100%;padding:13px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
-            🏦 Pagar por Transferencia (5% desc.)
+            🏦 Pagar por Transferencia 
           </button>
         </div>
 
@@ -1004,11 +1004,11 @@ function getCombinedItems() {
     if (st.type === 'group') groupItems.push(items[items.length - 1]);
   });
   
-  // Apply 15% sibling discount if 2+ group classes
+  // Apply 15% sibling  if 2+ group classes
   if (groupItems.length >= 2) {
     groupItems.forEach(item => {
       item.transferAmount = Math.round(item.transferAmount * 0.85);
-      item.discount = true;
+      item. = true;
     });
   }
   
@@ -1203,14 +1203,14 @@ function updateCombinedSummary() {
   box.style.display = 'block';
   box.innerHTML = items.map(it =>
     `<div style="display:flex;justify-content:space-between;color:white;font-size:0.85rem;margin-bottom:4px;">
-      <span>${it.name}</span><span>$${it.transferAmount.toLocaleString('es-MX')} ${it.discount ? '<span style="color:green;font-weight:bold;">-15%</span>' : ''}</span>
+      <span>${it.name}</span><span>$${it.transferAmount.toLocaleString('es-MX')} ${it. ? '<span style="color:green;font-weight:bold;"></span>' : ''}</span>
     </div>`
   ).join('') +
   `<div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:white;font-weight:900;">
     <span>Total (MP)</span><span>$${totalMP.toLocaleString('es-MX')} MXN</span>
   </div>
   <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
-    <span>Con transferencia (5% desc.)</span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
+    <span>Con transferencia </span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
   </div>`;
 }
 
