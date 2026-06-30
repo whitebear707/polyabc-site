@@ -11,10 +11,7 @@
   <link rel="apple-touch-icon" href="icon.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style>
-    @media screen and (orientation: portrait) and (max-width: 768px) {
-      #rotate-msg {
-        display: flex !important;
-      }
+    
     }
 
     @media screen and (max-width: 480px) {
@@ -165,7 +162,7 @@
   <p class="tagline">Learn English from anywhere</p>
 
   <div class="card">
-    <a href="classroom.html" style="display:block;text-align:center;margin-bottom:16px;color:#666;font-family:Nunito;font-size:0.9rem;text-decoration:none;">
+    <a href="classroom.html" style="display:block;text-align:center;margin-bottom:16px;padding:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:10px;color:#1a73e8;font-family:Nunito;font-size:0.95rem;font-weight:900;text-decoration:none;">
       🎓 Classroom Login
     </a>
     <div class="error-msg" id="join-error">Wrong room or password. Please try again.</div>
@@ -340,7 +337,7 @@
 <div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
   <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
   <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
-  <p style="font-size:1rem;color:#666;">This app works best in landscape mode</p>
+  
   <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
 </div>
 
