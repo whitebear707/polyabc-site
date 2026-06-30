@@ -36,8 +36,7 @@
     .step.active { background: #1a73e8; }
     .step.done { background: #00c853; }
 
-    /* Dashboard styles */
-    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Dashboard styles *
     .dashboard-nav::-webkit-scrollbar { display: none; }
     .nav-tab { white-space: nowrap; flex: 0 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 6px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
@@ -52,8 +51,7 @@
     .att-incomplete { background: #fff3e0; color: #e65100; }
     .att-invalid { background: #ffebee; color: #c62828; }
 
-    /* Calendar */
-    .p-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-top: 8px; }
+    /* Calendar *
     .p-cal-day-label { text-align:center; font-size:0.7rem; font-weight:900; color:#888; padding: 4px 0; }
     .p-cal-cell { min-height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; position: relative; }
     .p-cal-cell.empty { background: transparent; }
@@ -80,26 +78,26 @@
       <h2>Email Verified!</h2>
       <p class="subtitle">Your account has been verified. You can now log in.</p>
       <p style="color:#888;font-size:0.85rem;">Tu correo ha sido verificado. Ahora puedes iniciar sesión.</p>
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login</button>
     </div>
   </div>
 
   <!-- LOGIN SCREEN -->
   <div id="screen-login">
     <div class="card">
-      <h2>Welcome Back / Bienvenido</h2>
-      <p class="subtitle">Parent Panel / Panel de Padres</p>
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Parent Panel</p>
       <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="login-password" placeholder="••••••••"/></div>
+      <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"/></div>
       <div id="login-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doLogin()">Sign In / Iniciar Sesión</button>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
       <div style="text-align:center;margin-top:10px;">
-        <button class="btn-link" onclick="showScreen('forgot')">Forgot password? / ¿Olvidaste tu contraseña?</button>
+        <button class="btn-link" onclick="showScreen('forgot')">Forgot password?</button>
       </div>
-      <div class="divider">or / o</div>
-      <button class="btn btn-secondary" onclick="showScreen('register-code')">Register / Registrarse</button>
+      <div class="divider">or</div>
+      <button class="btn btn-secondary" onclick="showScreen('register-code')">Register</button>
       <div style="text-align:center;margin-top:12px;">
-        <a href="index.html" style="color:#888;font-size:0.85rem;">← Back to main / Volver al inicio</a>
+        <a href="index.html" style="color:#888;font-size:0.85rem;">← Back to main</a>
       </div>
     </div>
   </div>
@@ -110,10 +108,10 @@
       <div class="step-indicator"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
       <h2>Enter School Code</h2>
       <p class="subtitle">Enter the registration code provided by the school.<br>Ingresa el código de registro dado por la escuela.</p>
-      <div class="field"><label>Registration Code / Código de Registro</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
+      <div class="field"><label>Registration Code</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
       <div id="code-error" class="error"></div>
-      <button class="btn btn-primary" onclick="validateCode()">Continue / Continuar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="validateCode()">Continue</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back</button></div>
     </div>
   </div>
 
@@ -121,17 +119,17 @@
   <div id="screen-register-type" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
-      <h2>Who is registering? / ¿Quién se registra?</h2>
-      <p class="subtitle">Please select one / Por favor selecciona una opción</p>
+      <h2>Who is registering?</h2>
+      <p class="subtitle">Please select one</p>
       <button onclick="setRegType('self')" style="width:100%;padding:16px;margin-bottom:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#1a73e8;text-align:left;">
-        🎓 I am registering myself / Me estoy registrando yo
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am an adult student / Soy un estudiante adulto</div>
+        🎓 I am registering myself
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am an adult student</div>
       </button>
       <button onclick="setRegType('parent')" style="width:100%;padding:16px;background:#f0fff4;border:2px solid #2e7d32;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#2e7d32;text-align:left;">
-        👨‍👩‍👧 I am registering my child / Registro a mi hijo/a
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am a parent or guardian / Soy padre, madre o tutor</div>
+        👨‍👩‍👧 I am registering my child / Registro a mi hijo
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am a parent or guardian</div>
       </button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back</button></div>
     </div>
   </div>
 
@@ -139,21 +137,21 @@
   <div id="screen-register-self" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
-      <h2>Your Information / Tu Información</h2>
-      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <h2>Your Information</h2>
+      <p class="subtitle">Tell us about yourself</p>
       <div class="field">
-        <label>First Name only / Solo Primer Nombre</label>
-        <input type="text" id="self-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! / ¡Solo primer nombre!</div>
+        <label>First Name only</label>
+        <input type="text" id="self-name" placeholder="John" oninput="validateFirstNameOnly(this)"/>
+        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only!</div>
       </div>
-      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
-      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="self-dob"/></div>
-      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Nickname (optional)</label><input type="text" id="self-nickname" placeholder="Nickname (optional)"/></div>
+      <div class="field"><label>Date of Birth</label><input type="date" id="self-dob"/></div>
+      <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="self-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="self-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Password</label><input type="password" id="self-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
       <div id="self-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doSelfRegister()">Submit / Enviar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-type')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="doSelfRegister()">Submit</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-type')">← Back</button></div>
     </div>
   </div>
 
@@ -161,23 +159,23 @@
   <div id="screen-register-parent" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
-      <h2>Your Information / Tu Información</h2>
-      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <h2>Your Information</h2>
+      <p class="subtitle">Tell us about yourself</p>
       <div class="field">
-        <label>You are / Eres</label>
+        <label>You are</label>
         <select id="reg-relationship">
-          <option value="mother">Mom / Mamá</option>
-          <option value="father">Dad / Papá</option>
-          <option value="guardian">Legal Guardian / Tutor Legal</option>
+          <option value="mother">Mom</option>
+          <option value="father">Dad</option>
+          <option value="guardian">Legal Guardian</option>
         </select>
       </div>
-      <div class="field"><label>Your Name / Tu Nombre</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
-      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Your Name</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
+      <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="reg-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
       <div id="parent-error" class="error"></div>
-      <button class="btn btn-primary" onclick="goToStudentInfo()">Continue / Continuar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="goToStudentInfo()">Continue</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back</button></div>
     </div>
   </div>
 
@@ -185,18 +183,18 @@
   <div id="screen-register-student" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
-      <h2>Student Information / Info del Estudiante</h2>
-      <p class="subtitle">Tell us about your child / Cuéntanos sobre tu hijo/a</p>
+      <h2>Student Information</h2>
+      <p class="subtitle">Tell us about your child / Cuéntanos sobre tu hijo</p>
       <div class="field">
-        <label>First Name only / Solo Primer Nombre</label>
-        <input type="text" id="reg-student-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+        <label>First Name only</label>
+        <input type="text" id="reg-student-name" placeholder="John" oninput="validateFirstNameOnly(this)"/>
+        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces.</div>
       </div>
-      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="reg-student-dob"/></div>
-      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Date of Birth</label><input type="date" id="reg-student-dob"/></div>
+      <div class="field"><label>Nickname (optional)</label><input type="text" id="reg-student-nickname" placeholder="Nickname (optional)"/></div>
       <div id="student-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doRegister()">Submit / Enviar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="doRegister()">Submit</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back</button></div>
     </div>
   </div>
 
@@ -204,23 +202,23 @@
   <div id="screen-email-sent" style="display:none;">
     <div class="card" style="text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;">📧</div>
-      <h2>Check Your Email! / ¡Revisa tu Correo!</h2>
+      <h2>Check Your Email!</h2>
       <p class="subtitle">We sent a verification link to your email address.<br>Enviamos un enlace de verificación a tu correo.</p>
       <p style="color:#888;font-size:0.85rem;margin-top:8px;">Once verified, log in to see your enrollment status. The school will review your request shortly.</p>
       <p style="color:#888;font-size:0.85rem;margin-top:4px;">Una vez verificado, inicia sesión para ver el estado de tu inscripción. La escuela revisará tu solicitud pronto.</p>
-      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login</button>
     </div>
   </div>
 
   <!-- SELECT GROUP OPENING -->
   <div id="screen-select-group-opening" style="display:none;">
     <div class="card">
-      <h2>Choose Your Class / Elige tu Clase</h2>
-      <p class="subtitle">Select an available opening / Selecciona una disponibilidad</p>
+      <h2>Choose Your Class</h2>
+      <p class="subtitle">Select an available opening</p>
       <div id="group-openings-list" style="margin:20px 0;"></div>
       <div id="group-opening-error" class="error"></div>
       <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-secondary" onclick="goBackToStudents()">← Back / Atrás</button>
+        <button class="btn btn-secondary" onclick="goBackToStudents()">← Back</button>
       </div>
     </div>
   </div>
@@ -243,7 +241,7 @@
       <!-- Students tab -->
       <div id="panel-students">
         <div id="students-list"></div>
-        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student / Agregar Estudiante</button>
+        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student</button>
       </div>
 
       <!-- Attendance tab -->
@@ -269,19 +267,19 @@
     <!-- Add student modal -->
     <div id="add-student-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
-        <h2 style="margin-bottom:16px;">Add Student / Agregar Estudiante</h2>
+        <h2 style="margin-bottom:16px;">Add Student</h2>
         <div class="field">
-          <label>First Name only / Solo Primer Nombre</label>
-          <input type="text" id="add-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+          <label>First Name only</label>
+          <input type="text" id="add-name" placeholder="John" oninput="validateFirstNameOnly(this)"/>
+          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces.</div>
         </div>
-        <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="add-dob"/></div>
-        <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
+        <div class="field"><label>Date of Birth</label><input type="date" id="add-dob"/></div>
+        <div class="field"><label>Nickname (optional)</label><input type="text" id="add-nickname" placeholder="Nickname (optional)"/></div>
         <div id="add-error" class="error"></div>
         <div id="add-success" class="success"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
-          <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit / Enviar</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel / Cancelar</button>
+          <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel</button>
         </div>
       </div>
     </div>
@@ -290,13 +288,13 @@
   <!-- FORGOT PASSWORD -->
   <div id="screen-forgot" style="display:none;">
     <div class="card">
-      <h2>Forgot Password / Olvidaste tu contraseña</h2>
+      <h2>Forgot Password</h2>
       <p class="subtitle">Enter your email and we'll send you a reset link.<br>Ingresa tu correo y te enviaremos un enlace.</p>
       <div class="field"><label>Email</label><input type="email" id="forgot-email" placeholder="your@email.com"/></div>
       <div id="forgot-success" class="success"></div>
       <div id="forgot-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Link / Enviar Enlace</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back to Login / Volver</button></div>
+      <button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Link</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back to Login</button></div>
     </div>
   </div>
 
@@ -304,13 +302,13 @@
   <div id="screen-reset" style="display:none;">
     <div class="card">
       <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔑</div>
-      <h2>New Password / Nueva Contraseña</h2>
+      <h2>New Password</h2>
       <p class="subtitle">Enter your new password below.<br>Ingresa tu nueva contraseña.</p>
-      <div class="field"><label>New Password / Nueva Contraseña</label><input type="password" id="reset-password" placeholder="At least 6 characters"/></div>
-      <div class="field"><label>Confirm / Confirmar</label><input type="password" id="reset-confirm" placeholder="Repeat password"/></div>
+      <div class="field"><label>New Password</label><input type="password" id="reset-password" placeholder="At least 6 characters"/></div>
+      <div class="field"><label>Confirm</label><input type="password" id="reset-confirm" placeholder="Repeat password"/></div>
       <div id="reset-error" class="error"></div>
       <div id="reset-success" class="success"></div>
-      <button class="btn btn-primary" onclick="doResetPassword()">Save New Password / Guardar</button>
+      <button class="btn btn-primary" onclick="doResetPassword()">Save New Password</button>
     </div>
   </div>
 
@@ -326,7 +324,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const verifyToken = urlParams.get('verify');
 const resetToken = urlParams.get('reset');
 if (verifyToken) {
-  fetch(`${SERVER_URL}/parent/verify?token=${verifyToken}`)
+  fetch(`${SERVER_URL}/parent
     .then(r => r.json())
     .then(d => { if (d.success) showScreen('verify'); else showScreen('login'); });
 } else if (resetToken) {
@@ -361,10 +359,10 @@ async function doSelfRegister() {
   const phone = document.getElementById('self-phone').value.trim();
   const email = document.getElementById('self-email').value.trim();
   const password = document.getElementById('self-password').value;
-  if (!name) { errEl.textContent = 'Please enter your first name / Ingresa tu primer nombre'; errEl.style.display = 'block'; return; }
-  if (name.includes(' ')) { errEl.textContent = 'First name only / Solo primer nombre'; errEl.style.display = 'block'; return; }
-  if (!dob || !phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
-  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (!name) { errEl.textContent = 'Please enter your first name
+  if (name.includes(' ')) { errEl.textContent = 'First name only
+  if (!dob || !phone || !email || !password) { errEl.textContent = 'Please fill all fields
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const displayName = nickname || capName;
   const body = {
@@ -373,7 +371,7 @@ async function doSelfRegister() {
     relationship: 'self',
     studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: ''
   };
-  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application
   const data = await res.json();
   if (data.success) {
     showScreen('email-sent');
@@ -384,11 +382,11 @@ async function validateCode() {
   const code = document.getElementById('reg-code').value.trim().toUpperCase();
   const errEl = document.getElementById('code-error');
   errEl.style.display = 'none';
-  if (!code) { errEl.textContent = 'Please enter a code / Por favor ingresa un código'; errEl.style.display = 'block'; return; }
-  const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+  if (!code) { errEl.textContent = 'Please enter a code
+  const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application
   const data = await res.json();
   if (data.valid) { _validCode = code; showScreen('register-type'); }
-  else { errEl.textContent = 'Invalid or already used code / Código inválido o ya usado'; errEl.style.display = 'block'; }
+  else { errEl.textContent = 'Invalid or already used code
 }
 
 function goToStudentInfo() {
@@ -397,8 +395,8 @@ function goToStudentInfo() {
   const email = document.getElementById('reg-email').value.trim();
   const pwd = document.getElementById('reg-password').value;
   const phone = document.getElementById('reg-phone').value.trim();
-  if (!name || !email || !pwd || !phone) { errEl.textContent = 'Please fill all fields / Por favor llena todos los campos'; errEl.style.display = 'block'; return; }
-  if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (!name || !email || !pwd || !phone) { errEl.textContent = 'Please fill all fields
+  if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters
   errEl.style.display = 'none';
   showScreen('register-student');
 }
@@ -421,9 +419,9 @@ async function doRegister() {
   const studentName = document.getElementById('reg-student-name').value.trim();
   const dob = document.getElementById('reg-student-dob').value;
   const nickname = document.getElementById('reg-student-nickname').value.trim();
-  if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
-  if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
-  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha de nacimiento'; errEl.style.display = 'block'; return; }
+  if (!studentName) { errEl.textContent = 'Please enter student first name
+  if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces
+  if (!dob) { errEl.textContent = 'Please enter date of birth
 
   // Capitalize first letter
   const capName = studentName.charAt(0).toUpperCase() + studentName.slice(1).toLowerCase();
@@ -442,13 +440,13 @@ async function doRegister() {
     studentFullName: ''
   };
 
-  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application
   const data = await res.json();
   if (data.success) {
     // Show trial class screen
     showScreen('email-sent');
   } else {
-    errEl.textContent = data.error || 'Registration failed / Error en registro';
+    errEl.textContent = data.error || 'Registration failed
     errEl.style.display = 'block';
   }
 }
@@ -458,7 +456,7 @@ async function doLogin() {
   const pwd = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.style.display = 'none';
-  const res = await fetch(`${SERVER_URL}/parent/login`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pwd }) });
+  const res = await fetch(`${SERVER_URL}/parent/login`, { method: 'POST', headers: {'Content-Type':'application
   const data = await res.json();
   if (data.success) {
     localStorage.setItem('parentToken', data.token);
@@ -466,7 +464,7 @@ async function doLogin() {
     _parentToken = data.token;
     loadDashboard();
   } else {
-    errEl.textContent = data.error || 'Login failed / Error al iniciar sesión';
+    errEl.textContent = data.error || 'Login failed
     errEl.style.display = 'block';
   }
 }
@@ -476,7 +474,7 @@ async function loadDashboard() {
   document.getElementById('dash-welcome').textContent = `Welcome, ${localStorage.getItem('parentName') || 'Parent'}! 👋`;
   document.getElementById('header-signout-btn').style.display = 'block';
 
-  const res = await fetch(`${SERVER_URL}/parent/dashboard`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+  const res = await fetch(`${SERVER_URL}/parent
   if (!res.ok) { doLogout(); return; }
   const data = await res.json();
   loadBillingData();
@@ -484,7 +482,7 @@ async function loadDashboard() {
   // Render students
   const list = document.getElementById('students-list');
   if (!data.students?.length) {
-    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet / Sin estudiantes aún</div>';
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet</div>';
   } else {
     // Show schedule tab whenever parent has students
     const calTab = document.getElementById('tab-calendar');
@@ -495,7 +493,7 @@ async function loadDashboard() {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <span class="student-name">${s.displayName || s.name}</span>
-            <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Paid / Pagado' : '❌ Unpaid / Sin pagar'}</span>
+            <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Paid / Pagado' : '❌ Unpaid</span>
           </div>
           <span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;background:${s.status==='approved'?'#e8f5e9':s.status==='pending'?'#fff3e0':'#ffebee'};color:${s.status==='approved'?'#2e7d32':s.status==='pending'?'#e65100':'#c62828'};">
             ${s.status==='approved'?'✅ Active':s.status==='pending'?'⏳ Pending Review':'❌ Denied'}
@@ -528,27 +526,27 @@ async function loadDashboard() {
         ` : ''}
         ${s.trialBooked && !s.trialCompleted ? `
           <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-top:10px;font-size:0.85rem;">
-            <div style="color:#2e7d32;font-weight:700;">✅ Trial class scheduled! / ¡Clase de prueba programada!</div>
+            <div style="color:#2e7d32;font-weight:700;">✅ Trial class scheduled!</div>
             <button onclick="rescheduleTrialClass('${s.name}')" style="display:block;width:100%;margin-top:10px;padding:8px;background:#ff9800;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85rem;">
-              📅 Reschedule / Reagendar
+              📅 Reschedule
             </button>
             ${s.trialDate ? `<div style="color:#555;margin-top:2px;">📅 ${s.trialDate} ${s.trialLevel ? '· Level: ' + s.trialLevel : ''}</div>` : ''}
             ${s.studentRoom && s.studentPassword ? `
               <div style="margin-top:10px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
-                <div style="color:rgba(255,255,255,0.8);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎓 How to join / Cómo entrar</div>
+                <div style="color:rgba(255,255,255,0.8);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎓 How to join</div>
                 <div style="display:flex;gap:10px;justify-content:center;">
                   <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
-                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Room / Salón</div>
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Room</div>
                     <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;">${s.studentRoom}</div>
                   </div>
                   <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
-                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Password / Contraseña</div>
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Password</div>
                     <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${s.studentPassword}</div>
                   </div>
                 </div>
               </div>` : ''}
           </div>` : ''}
-        ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing / Por favor contacte a facturación</div>' : ''}
+        ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing</div>' : ''}
       </div>
     `).join('');
     
@@ -604,12 +602,12 @@ async function submitAddStudent() {
   const errEl = document.getElementById('add-error');
   const sucEl = document.getElementById('add-success');
   errEl.style.display = 'none'; if(sucEl) sucEl.style.display = 'none';
-  if (!name) { errEl.textContent = 'Please enter first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
-  if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre'; errEl.style.display = 'block'; return; }
-  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha'; errEl.style.display = 'block'; return; }
+  if (!name) { errEl.textContent = 'Please enter first name
+  if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces
+  if (!dob) { errEl.textContent = 'Please enter date of birth
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  const res = await fetch(`${SERVER_URL}/parent/add-student`, {
-    method: 'POST', headers: {'Content-Type':'application/json', Authorization: `Bearer ${_parentToken}`},
+  const res = await fetch(`${SERVER_URL}/parent
+    method: 'POST', headers: {'Content-Type':'application
     body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname })
   });
   const data = await res.json();
@@ -624,11 +622,11 @@ async function doForgotPassword() {
   const errEl = document.getElementById('forgot-error');
   const sucEl = document.getElementById('forgot-success');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Please enter your email / Por favor ingresa tu correo'; errEl.style.display = 'block'; return; }
-  const res = await fetch(`${SERVER_URL}/parent/forgot-password`, {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email })
+  if (!email) { errEl.textContent = 'Please enter your email
+  const res = await fetch(`${SERVER_URL}/parent
+    method: 'POST', headers: {'Content-Type':'application
   });
-  sucEl.textContent = '✅ If that email is registered, you will receive a reset link shortly. / Si ese correo está registrado, recibirás un enlace pronto.';
+  sucEl.textContent = '✅ If that email is registered, you will receive a reset link shortly.
   sucEl.style.display = 'block';
 }
 
@@ -638,14 +636,14 @@ async function doResetPassword() {
   const errEl = document.getElementById('reset-error');
   const sucEl = document.getElementById('reset-success');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!pwd || pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
-  if (pwd !== confirm) { errEl.textContent = 'Passwords do not match / Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
-  const res = await fetch(`${SERVER_URL}/parent/reset-password`, {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token: resetToken, password: pwd })
+  if (!pwd || pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters
+  if (pwd !== confirm) { errEl.textContent = 'Passwords do not match
+  const res = await fetch(`${SERVER_URL}/parent
+    method: 'POST', headers: {'Content-Type':'application
   });
   const data = await res.json();
   if (data.success) {
-    sucEl.textContent = '✅ Password updated! You can now log in. / Contraseña actualizada, ya puedes iniciar sesión.';
+    sucEl.textContent = '✅ Password updated! You can now log in.
     sucEl.style.display = 'block';
     setTimeout(() => showScreen('login'), 2500);
   } else {
@@ -667,7 +665,7 @@ let _calDate = new Date();
 
 async function loadBillingData() {
   try {
-    const res = await fetch(`${SERVER_URL}/parent/billing`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    const res = await fetch(`${SERVER_URL}/parent
     _billingData = await res.json();
     // Show calendar and payment tabs if any student has trial completed
     const anyReady = (_billingData.students || []).some(s => s.trialCompleted || s.enrolledType);
@@ -717,7 +715,7 @@ async function renderCalendarMonth() {
   let classDates = [];
   let classInfo = {}; // date -> {time, room, password, classType}
   try {
-    const res = await fetch(`${SERVER_URL}/parent/schedule/${encodeURIComponent(_calStudentName)}`, {
+    const res = await fetch(`${SERVER_URL}/parent/schedule
       headers: { Authorization: `Bearer ${_parentToken}` }
     });
     const data = await res.json();
@@ -733,7 +731,7 @@ async function renderCalendarMonth() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America
 
   // Payment badge
   const payBadge = student?.lastPaidAt ? `
@@ -787,7 +785,7 @@ function calNext() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMon
 
 function fmtDateP(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day:'2-digit', month:'short', year:'numeric' });
+  return new Date(iso).toLocaleDateString('es-MX', { timeZone: 'America
 }
 
 // ── PAYMENT TAB ──
@@ -803,11 +801,11 @@ async function renderPaymentTab() {
   const CLABE = '722969010749531074';
   const BANK_NAME = 'STP';
 
-  // Calculate weekly price based on type/length/days
+  // Calculate weekly price based on type/length
   function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
     if (type === 'group') return 445;
     const totalMinsPerWeek = minutesPerSession * daysPerWeek;
-    const totalHrsPerWeek = totalMinsPerWeek / 60;
+    const totalHrsPerWeek = totalMinsPerWeek
     const ratePerHr = totalMinsPerWeek > 60 ? 300 : 350;
     return Math.round(ratePerHr * totalHrsPerWeek);
   }
@@ -828,7 +826,7 @@ async function renderPaymentTab() {
       <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
         <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
         <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${s.name}</div>
-        <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse / Your payment is being verified</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse</div>
         <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;margin-top:12px;">
           Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
         </div>
@@ -850,13 +848,13 @@ async function renderPaymentTab() {
         <!-- Class Type -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Tipo de clase</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-          <button onclick="selectPayOption('${s.name}','type','group')" id="opt-${s.name.replace(/\s/g,'_')}-type-group"
+          <button onclick="selectPayOption('${s.name}','type','group')" id="opt-${s.name.replace(/\s
             class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
-            👥 Grupal<br><span style="font-size:0.72rem;color:#888;">Lun–Jue 40 min</span>
+            👥 Group<br><span style="font-size:0.72rem;color:#888;">Lun–Jue 40 min</span>
           </button>
-          <button onclick="selectPayOption('${s.name}','type','1v1')" id="opt-${s.name.replace(/\s/g,'_')}-type-1v1"
+          <button onclick="selectPayOption('${s.name}','type','1v1')" id="opt-${s.name.replace(/\s
             class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
-            🎓 1v1 Privada<br><span style="font-size:0.72rem;color:#888;">Horario a elegir</span>
+            🎓 1v1 Private<br><span style="font-size:0.72rem;color:#888;">Horario a elegir</span>
           </button>
         </div>
 
@@ -865,7 +863,7 @@ async function renderPaymentTab() {
           <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Duración por sesión</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
             ${[30,40,50,60].map(m => `
-              <button onclick="selectPayOption('${s.name}','mins',${m})" id="opt-${s.name.replace(/\s/g,'_')}-mins-${m}"
+              <button onclick="selectPayOption('${s.name}','mins',${m})" id="opt-${s.name.replace(/\s
                 class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
                 ${m} min
               </button>`).join('')}
@@ -873,9 +871,9 @@ async function renderPaymentTab() {
           <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Días por semana</div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">
             ${[1,2,3,4].map(d => `
-              <button onclick="selectPayOption('${s.name}','days',${d})" id="opt-${s.name.replace(/\s/g,'_')}-days-${d}"
+              <button onclick="selectPayOption('${s.name}','days',${d})" id="opt-${s.name.replace(/\s
                 class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
-                ${d}x/sem
+                ${d}x
               </button>`).join('')}
           </div>
         </div>
@@ -884,7 +882,7 @@ async function renderPaymentTab() {
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Frecuencia de pago</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
           ${['weekly','monthly'].map(c => `
-            <button onclick="selectPayOption('${s.name}','cycle','${c}')" id="opt-${s.name.replace(/\s/g,'_')}-cycle-${c}"
+            <button onclick="selectPayOption('${s.name}','cycle','${c}')" id="opt-${s.name.replace(/\s
               class="pay-opt-btn" style="padding:10px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">
               ${cycleLabel(c)}
             </button>`).join('')}
@@ -893,15 +891,15 @@ async function renderPaymentTab() {
         <!-- Time Preference -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ Preferencia de horario</div>
         <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="flexible" onchange="selectTimePreference('${s.name}','flexible')" style="margin-right:8px;"> I'm flexible / Flexible</label>
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="range" onchange="selectTimePreference('${s.name}','range')" style="margin-right:8px;"> Time range / Rango horario</label>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="flexible" onchange="selectTimePreference('${s.name}','flexible')" style="margin-right:8px;"> I'm flexible</label>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="range" onchange="selectTimePreference('${s.name}','range')" style="margin-right:8px;"> Time range</label>
           <div id="range-inputs-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-bottom:10px;gap:8px;"><input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" placeholder="From / De" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;"><input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" placeholder="To / Hasta" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:8px;"></div>
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="specific" onchange="selectTimePreference('${s.name}','specific')" style="margin-right:8px;"> Specific times / Horarios específicos</label>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="specific" onchange="selectTimePreference('${s.name}','specific')" style="margin-right:8px;"> Specific times</label>
           <input type="text" id="specific-times-${s.name.replace(/\s/g,'_')}" placeholder="e.g., Mon 3pm, Wed 8pm / p.ej., Lun 3pm, Mié 8pm" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:24px;margin-bottom:10px;">
-          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="contact-me" onchange="selectTimePreference('${s.name}','contact-me')" style="margin-right:8px;"> Please contact me / Contactarme</label>
+          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="contact-me" onchange="selectTimePreference('${s.name}','contact-me')" style="margin-right:8px;"> Please contact me</label>
           <div id="contact-fields-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-top:10px;">
-            <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">Contact method / Método de contacto:</div>
-            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" style="margin-right:8px;"> Call / Llamada</label>
+            <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">Contact method</div>
+            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" style="margin-right:8px;"> Call</label>
             <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" style="margin-right:8px;"> WhatsApp</label>
             <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:8px;">
           </div>
@@ -936,7 +934,7 @@ async function renderPaymentTab() {
           <div style="font-size:0.85rem;color:#1a1a2e;line-height:1.8;">
             <b>Banco:</b> ${BANK_NAME}<br>
             <b>CLABE:</b> <span style="font-family:monospace;font-size:1rem;font-weight:900;letter-spacing:1px;">${CLABE}</span><br>
-            <b>Concepto / Referencia:</b>
+            <b>Concepto</b>
           </div>
           <div style="background:#1a73e8;color:white;border-radius:8px;padding:10px;text-align:center;margin-top:6px;">
             <div style="font-size:0.65rem;text-transform:uppercase;opacity:0.8;font-weight:700;">⚠️ Usa este ID del alumno como concepto</div>
@@ -946,11 +944,11 @@ async function renderPaymentTab() {
           <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, presiona el botón de abajo. El pago será verificado en 24-48 horas hábiles.</div>
           <button onclick="confirmTransfer('${s.name}')"
             style="width:100%;margin-top:12px;padding:12px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.95rem;font-weight:900;cursor:pointer;">
-            ✅ Ya realicé la transferencia / I made the transfer
+            ✅ Ya realicé la transferencia
           </button>
         </div>
 
-        <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro / Secure payment</div>
+        <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro</div>
       </div>`;
   }).join('');
 
@@ -959,7 +957,7 @@ async function renderPaymentTab() {
   if (payableStudents.length >= 2) {
     wrap.innerHTML += `
       <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:14px;padding:18px;margin-top:8px;">
-        <div style="color:white;font-size:1rem;font-weight:900;margin-bottom:6px;text-align:center;">👨‍👩‍👧‍👦 Pagar Todos Juntos / Pay All Together</div>
+        <div style="color:white;font-size:1rem;font-weight:900;margin-bottom:6px;text-align:center;">👨‍👩‍👧‍👦 Pagar Todos Juntos</div>
         <div style="color:rgba(255,255,255,0.85);font-size:0.8rem;text-align:center;margin-bottom:14px;">
           Configura el plan de cada alumno arriba, luego paga todo en una sola transacción.<br>
           Set each student's plan above, then pay everything in one transaction.
@@ -1018,9 +1016,9 @@ async function payCombined() {
     const timePrefs = getTimePreferencesForStudent(item.name);
     if (timePrefs) {
       try {
-        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+        await fetch(SERVER_URL + '/parent
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          headers: { 'Content-Type': 'application
           body: JSON.stringify({ studentName: item.name, ...timePrefs })
         });
       } catch(e) { console.error('Could not save preferences for', item.name); }
@@ -1032,9 +1030,9 @@ async function payCombined() {
     const timePrefs = getTimePreferencesForStudent(item.name);
     if (timePrefs) {
       try {
-        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+        await fetch(SERVER_URL + '/parent
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          headers: { 'Content-Type': 'application
           body: JSON.stringify({ studentName: item.name, ...timePrefs })
         });
       } catch(e) { console.error('Could not save preferences for', item.name); }
@@ -1043,9 +1041,9 @@ async function payCombined() {
   const total = items.reduce((sum, it) => sum + it.transferAmount, 0);
   const description = 'PolyABC — ' + items.map(i => i.name).join(', ');
   try {
-    const res = await fetch(SERVER_URL + '/parent/payment-request', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify({ studentName: items.map(i => i.name).join(','), amount: total, description })
     });
     const data = await res.json();
@@ -1066,9 +1064,9 @@ async function transferCombined() {
     const timePrefs = getTimePreferencesForStudent(item.name);
     if (timePrefs) {
       try {
-        await fetch(SERVER_URL + '/parent/schedule-preferences', {
+        await fetch(SERVER_URL + '/parent
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+          headers: { 'Content-Type': 'application
           body: JSON.stringify({ studentName: item.name, ...timePrefs })
         });
       } catch(e) { console.error('Could not save preferences for', item.name); }
@@ -1080,15 +1078,15 @@ async function transferCombined() {
     // Build enrollment details for each student
     const studentDetails = items.map(item => ({
       name: item.name,
-      enrolledType: _payState[item.name].type === '1v1' ? '1v1 Privada' : 'Grupal',
+      enrolledType: _payState[item.name].type === '1v1' ? '1v1 Private' : 'Group',
       enrolledCycle: _payState[item.name].cycle,
       enrolledDaysPerWeek: _payState[item.name].days || 4,
       enrolledMinutesPerClass: _payState[item.name].mins || 40
     }));
     
-    const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada', studentDetails })
     });
     const data = await res.json();
@@ -1101,7 +1099,7 @@ async function transferCombined() {
 const _payState = {};
 
 function selectPayOption(studentName, field, value) {
-  const key = studentName.replace(/\s/g,'_');
+  const key = studentName.replace(/\s
   if (!_payState[studentName]) _payState[studentName] = {};
   _payState[studentName][field] = value;
 
@@ -1119,7 +1117,7 @@ function selectPayOption(studentName, field, value) {
     }
   });
 
-  // Show/hide 1v1 options
+  // Show
   const opts1v1 = document.getElementById(`1v1-opts-${key}`);
   if (opts1v1) opts1v1.style.display = _payState[studentName].type === '1v1' ? 'block' : 'none';
 
@@ -1142,7 +1140,7 @@ function selectPayOption(studentName, field, value) {
 }
 
 function selectTimePreference(studentName, type) {
-  const key = studentName.replace(/\s/g,'_');
+  const key = studentName.replace(/\s
   const rangeInputs = document.getElementById(`range-inputs-${key}`);
   const specificInput = document.getElementById(`specific-times-${key}`);
   const contactFields = document.getElementById(`contact-fields-${key}`);
@@ -1159,7 +1157,7 @@ function selectTimePreference(studentName, type) {
 }
 
 function getTimePreferencesForStudent(studentName) {
-  const key = studentName.replace(/\s/g,'_');
+  const key = studentName.replace(/\s
   const selectedType = document.querySelector(`input[name="time-pref-${key}"]:checked`)?.value;
   if (!selectedType) return null;
   
@@ -1210,7 +1208,7 @@ function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
   if (type === 'group') return 445;
   const totalMins = minutesPerSession * daysPerWeek;
   const ratePerHr = totalMins > 60 ? 300 : 350;
-  return Math.round(ratePerHr * (totalMins / 60));
+  return Math.round(ratePerHr * (totalMins
 }
 
 function calcAdvertised(base) { return Math.round(base * 1.05); }
@@ -1224,7 +1222,7 @@ function cycleLabel(cycle) {
 }
 
 function showTransferInfo(studentName) {
-  const key = studentName.replace(/\s/g,'_');
+  const key = studentName.replace(/\s
   const el = document.getElementById(`transfer-info-${key}`);
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
@@ -1241,9 +1239,9 @@ async function confirmTransfer(studentName) {
   const timePrefs = getTimePreferencesForStudent(studentName);
   if (timePrefs) {
     try {
-      await fetch(SERVER_URL + '/parent/schedule-preferences', {
+      await fetch(SERVER_URL + '/parent
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+        headers: { 'Content-Type': 'application
         body: JSON.stringify({ studentName, ...timePrefs })
       });
     } catch(e) { console.error('Could not save preferences:', e); }
@@ -1260,21 +1258,21 @@ async function confirmTransfer(studentName) {
       description: 'Transferencia — ' + studentName,
       studentDetails: [{
         name: studentName,
-        enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
+        enrolledType: st.type === '1v1' ? '1v1 Private' : 'Group',
         enrolledCycle: st.cycle,
         enrolledDaysPerWeek: st.days || 4,
         enrolledMinutesPerClass: st.mins || 40
       }]
     };
     console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));
-    const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (data.success) {
-      const key = studentName.replace(/\s/g,'_');
+      const key = studentName.replace(/\s
       const card = document.getElementById('pay-card-' + key);
       if (card) {
         card.innerHTML = `
@@ -1301,7 +1299,7 @@ async function confirmTransfer(studentName) {
 async function initPayment(studentName) {
   const st = _payState[studentName];
   if (!st) return;
-  const key = studentName.replace(/\s/g,'_');
+  const key = studentName.replace(/\s
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Preparando pago...';
@@ -1310,9 +1308,9 @@ async function initPayment(studentName) {
   const timePrefs = getTimePreferencesForStudent(studentName);
   if (timePrefs) {
     try {
-      await fetch(SERVER_URL + '/parent/schedule-preferences', {
+      await fetch(SERVER_URL + '/parent
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+        headers: { 'Content-Type': 'application
         body: JSON.stringify({ studentName, ...timePrefs })
       });
     } catch(e) { console.error('Could not save preferences:', e); }
@@ -1325,9 +1323,9 @@ async function initPayment(studentName) {
   const description = 'PolyABC — ' + studentName + ' (' + cycleLabel(st.cycle) + ')';
 
   try {
-    const res = await fetch(SERVER_URL + '/parent/payment-request', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify({ studentName, amount, description })
     });
     const data = await res.json();
@@ -1348,7 +1346,7 @@ async function initPayment(studentName) {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('payment');
   if (!status) return;
-  if (status === 'success') setTimeout(() => alert('✅ ¡Pago exitoso!\nThank you — your payment has been received.'), 500);
+  if (status === 'success') setTimeout(() => alert('✅ Pago exitoso!\nThank you — your payment has been received.'), 500);
   else if (status === 'failure') setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
   else if (status === 'pending') setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
   window.history.replaceState({}, '', window.location.pathname);
@@ -1374,7 +1372,7 @@ async function renderScheduleTab() {
 
   const allResults = await Promise.all(students.map(async s => {
     try {
-      const res = await fetch(`${SERVER_URL}/parent/schedule/${encodeURIComponent(s.name)}`, {
+      const res = await fetch(`${SERVER_URL}/parent/schedule
         headers: { Authorization: `Bearer ${_parentToken}` }
       });
       const classes = await res.json();
@@ -1476,18 +1474,18 @@ function showClassPopup(dateStr) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Room / Salón</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Room</div>
           <div style="color:white;font-size:2rem;font-weight:900;line-height:1.2;">${classRoom}</div>
         </div>
         <div style="background:linear-gradient(135deg,#6a1b9a,#4a148c);border-radius:10px;padding:12px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Password / Contraseña</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Password</div>
           <div style="color:white;font-size:1.5rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${studentPassword}</div>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  // Create/reuse popup
+  // Create
   let popup = document.getElementById('class-popup');
   if (!popup) {
     popup = document.createElement('div');
@@ -1520,7 +1518,7 @@ async function loadGroupOpenings(studentName) {
     const student = _billingData.students.find(s => s.name === studentName);
     if (!student || student.classType !== 'group' || !student.trialLevel) return;
     
-    const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
+    const res = await fetch(SERVER_URL + '
     const data = await res.json();
     
     const el = document.getElementById('openings-' + studentName);
@@ -1541,7 +1539,7 @@ async function selectGroupOpening(studentName) {
   if (!student || !student.trialLevel) return;
   
   try {
-    const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
+    const res = await fetch(SERVER_URL + '
     const data = await res.json();
     
     if (!data.hours || data.hours.length === 0) {
@@ -1574,9 +1572,9 @@ async function selectGroupOpening(studentName) {
 async function confirmGroupOpening(studentName, time) {
   try {
     // Save the hour preference to the student record
-    const res = await fetch(SERVER_URL + '/parent/select-group-opening', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify({ studentName, time })
     });
     
@@ -1605,13 +1603,13 @@ async function requestTrialContact(studentName) {
 
 
 async function rescheduleTrialClass(studentName) {
-  const confirm_reschedule = confirm('Are you sure you want to reschedule this trial class? / ¿Estás seguro de que quieres reagendar esta clase de prueba?');
+  const confirm_reschedule = confirm('Are you sure you want to reschedule this trial class?
   if (!confirm_reschedule) return;
   
   try {
-    const res = await fetch(SERVER_URL + '/parent/reschedule-trial', {
+    const res = await fetch(SERVER_URL + '/parent
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      headers: { 'Content-Type': 'application
       body: JSON.stringify({ studentName })
     });
     
