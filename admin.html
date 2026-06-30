@@ -2743,6 +2743,16 @@ function printAttDetail() {
 
 <!-- Staff Modal -->
 <div id="staff-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+
+  <!-- Google Translate Widget -->
+  <div id="google_translate_element" style="position:fixed;top:80px;right:20px;z-index:9999;"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body></html>`);
   win.document.close();
   win.focus();
@@ -3549,7 +3559,17 @@ function printAccounting() {
     <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Monto</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <div style="margin-top:32px;font-size:0.75rem;color:#aaa;">Generado por PolyABC · ${new Date().toLocaleDateString('es-MX')}</div>
-    </body></html>`);
+    
+  <!-- Google Translate Widget -->
+  <div id="google_translate_element" style="position:fixed;top:80px;right:20px;z-index:9999;"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+</body></html>`);
   win.document.close();
   setTimeout(() => win.print(), 300);
 }
@@ -3628,6 +3648,16 @@ async function flushDelete() {
 
 <!-- Staff Modal -->
 <div id="staff-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+
+  <!-- Google Translate Widget -->
+  <div id="google_translate_element" style="position:fixed;top:80px;right:20px;z-index:9999;"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body>
 </html>
 
