@@ -65,6 +65,14 @@
 </head>
 <body>
 
+  <!-- Language Selector Banner -->
+  <div id="language-banner" style="position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#1a73e8,#0d47a1);color:white;padding:12px;text-align:center;z-index:10000;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+    <span style="font-weight:700;margin-right:16px;">Select Language / Selecciona Idioma:</span>
+    <button onclick="setLanguage('en')" style="padding:6px 14px;background:rgba(255,255,255,0.2);color:white;border:1px solid white;border-radius:4px;cursor:pointer;font-weight:700;margin-right:8px;font-family:Nunito;">English</button>
+    <button onclick="setLanguage('es')" style="padding:6px 14px;background:rgba(255,255,255,0.2);color:white;border:1px solid white;border-radius:4px;cursor:pointer;font-weight:700;font-family:Nunito;">Español</button>
+  </div>
+
+
 <div class="header">
   <a href="index.html"><img src="LOGO.png" alt="PolyABC"/></a>
   <div class="header-title"></div>
@@ -1628,6 +1636,51 @@ async function rescheduleTrialClass(studentName) {
   }
 }
 
+
+// Language selector with localStorage
+function setLanguage(lang) {
+  localStorage.setItem('polyabc-language', lang);
+  document.getElementById('language-banner').style.display = 'none';
+  
+  if (lang === 'es') {
+    // Translate to Spanish
+    const selectField = document.querySelector('.goog-te-combo');
+    if (selectField) {
+      selectField.value = 'es';
+      selectField.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
+// Check if user has language preference on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('polyabc-language');
+  const banner = document.getElementById('language-banner');
+  
+  if (savedLang) {
+    // User already selected, hide banner and apply preference
+    banner.style.display = 'none';
+    if (savedLang === 'es') {
+      setTimeout(() => {
+        const selectField = document.querySelector('.goog-te-combo');
+        if (selectField) {
+          selectField.value = 'es';
+          selectField.dispatchEvent(new Event('change'));
+        }
+      }, 500);
+    }
+  } else {
+    // First time - show banner
+    banner.style.display = 'block';
+    // Auto-select based on browser language if available
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('es')) {
+      // Pre-select Spanish but still show banner
+      setTimeout(() => setLanguage('es'), 2000);
+    }
+  }
+});
+
 </script>
 
 
@@ -1651,8 +1704,98 @@ async function rescheduleTrialClass(studentName) {
         }, 1000);
       }
     }
-  </script>
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  
+// Language selector with localStorage
+function setLanguage(lang) {
+  localStorage.setItem('polyabc-language', lang);
+  document.getElementById('language-banner').style.display = 'none';
+  
+  if (lang === 'es') {
+    // Translate to Spanish
+    const selectField = document.querySelector('.goog-te-combo');
+    if (selectField) {
+      selectField.value = 'es';
+      selectField.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
+// Check if user has language preference on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('polyabc-language');
+  const banner = document.getElementById('language-banner');
+  
+  if (savedLang) {
+    // User already selected, hide banner and apply preference
+    banner.style.display = 'none';
+    if (savedLang === 'es') {
+      setTimeout(() => {
+        const selectField = document.querySelector('.goog-te-combo');
+        if (selectField) {
+          selectField.value = 'es';
+          selectField.dispatchEvent(new Event('change'));
+        }
+      }, 500);
+    }
+  } else {
+    // First time - show banner
+    banner.style.display = 'block';
+    // Auto-select based on browser language if available
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('es')) {
+      // Pre-select Spanish but still show banner
+      setTimeout(() => setLanguage('es'), 2000);
+    }
+  }
+});
+
+</script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit">
+// Language selector with localStorage
+function setLanguage(lang) {
+  localStorage.setItem('polyabc-language', lang);
+  document.getElementById('language-banner').style.display = 'none';
+  
+  if (lang === 'es') {
+    // Translate to Spanish
+    const selectField = document.querySelector('.goog-te-combo');
+    if (selectField) {
+      selectField.value = 'es';
+      selectField.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
+// Check if user has language preference on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const savedLang = localStorage.getItem('polyabc-language');
+  const banner = document.getElementById('language-banner');
+  
+  if (savedLang) {
+    // User already selected, hide banner and apply preference
+    banner.style.display = 'none';
+    if (savedLang === 'es') {
+      setTimeout(() => {
+        const selectField = document.querySelector('.goog-te-combo');
+        if (selectField) {
+          selectField.value = 'es';
+          selectField.dispatchEvent(new Event('change'));
+        }
+      }, 500);
+    }
+  } else {
+    // First time - show banner
+    banner.style.display = 'block';
+    // Auto-select based on browser language if available
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('es')) {
+      // Pre-select Spanish but still show banner
+      setTimeout(() => setLanguage('es'), 2000);
+    }
+  }
+});
+
+</script>
 
 </body>
 </html>
