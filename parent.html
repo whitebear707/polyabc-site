@@ -926,7 +926,7 @@ async function renderPaymentTab() {
           </button>
           <button onclick="showTransferInfo('${s.name}')"
             style="width:100%;padding:13px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
-            🏦 Pagar por Transferencia (5% desc.)
+            🏦 Pagar por Transferencia
           </button>
         </div>
 
@@ -965,8 +965,6 @@ async function renderPaymentTab() {
           Set each student's plan above, then pay everything in one transaction.
         </div>
         <div id="combined-summary" style="background:rgba(255,255,255,0.12);border-radius:10px;padding:12px;margin-bottom:14px;display:none;"></div>
-        <button onclick="payCombined()" style="width:100%;padding:13px;background:white;color:#1a73e8;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;margin-bottom:8px;">
-        </button>
         <button onclick="transferCombined()" style="width:100%;padding:13px;background:rgba(255,255,255,0.2);color:white;border:2px solid white;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
           🏦 Transferencia (Todos)
         </button>
@@ -1198,11 +1196,8 @@ function updateCombinedSummary() {
       <span>${it.name}</span><span>$${it.transferAmount.toLocaleString('es-MX')} ${it.discount ? '<span style="color:green;font-weight:bold;">-15%</span>' : ''}</span>
     </div>`
   ).join('') +
-  `<div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:white;font-weight:900;">
-    <span>Total (MP)</span><span>$${totalMP.toLocaleString('es-MX')} MXN</span>
-  </div>
-  <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
-    <span>Con transferencia (5% desc.)</span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
+  `<div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
+    <span>Con transferencia bancaria</span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
   </div>`;
 }
 
