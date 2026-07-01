@@ -79,27 +79,26 @@
       <div style="font-size:3rem;margin-bottom:12px;">✅</div>
       <h2>Email Verified!</h2>
       <p class="subtitle">Your account has been verified. You can now log in.</p>
-      <p style="color:#888;font-size:0.85rem;">Tu correo ha sido verificado. Ahora puedes iniciar sesión.</p>
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('login')">Go to Login</button>
     </div>
   </div>
 
   <!-- LOGIN SCREEN -->
   <div id="screen-login">
     <div class="card">
-      <h2>Welcome Back / Bienvenido</h2>
-      <p class="subtitle">Parent Panel / Panel de Padres</p>
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Parent Panel</p>
       <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="login-password" placeholder="••••••••"/></div>
+      <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"/></div>
       <div id="login-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doLogin()">Sign In / Iniciar Sesión</button>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
       <div style="text-align:center;margin-top:10px;">
-        <button class="btn-link" onclick="showScreen('forgot')">Forgot password? / ¿Olvidaste tu contraseña?</button>
+        <button class="btn-link" onclick="showScreen('forgot')">Forgot password?</button>
       </div>
-      <div class="divider">or / o</div>
-      <button class="btn btn-secondary" onclick="showScreen('register-code')">Register / Registrarse</button>
+      <div class="divider">or</div>
+      <button class="btn btn-secondary" onclick="showScreen('register-code')">Register</button>
       <div style="text-align:center;margin-top:12px;">
-        <a href="index.html" style="color:#888;font-size:0.85rem;">← Back to main / Volver al inicio</a>
+        <a href="index.html" style="color:#888;font-size:0.85rem;">← Back to main</a>
       </div>
     </div>
   </div>
@@ -109,11 +108,11 @@
     <div class="card">
       <div class="step-indicator"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
       <h2>Enter School Code</h2>
-      <p class="subtitle">Enter the registration code provided by the school.<br>Ingresa el código de registro dado por la escuela.</p>
-      <div class="field"><label>Registration Code / Código de Registro</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
+      <p class="subtitle">Enter the registration code provided by the school.</p>
+      <div class="field"><label>Registration Code</label><input type="text" id="reg-code" placeholder="REG-XXXXXX" style="text-transform:uppercase;letter-spacing:2px;font-size:1.1rem;text-align:center;"/></div>
       <div id="code-error" class="error"></div>
-      <button class="btn btn-primary" onclick="validateCode()">Continue / Continuar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="validateCode()">Continue</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back</button></div>
     </div>
   </div>
 
@@ -121,17 +120,17 @@
   <div id="screen-register-type" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
-      <h2>Who is registering? / ¿Quién se registra?</h2>
-      <p class="subtitle">Please select one / Por favor selecciona una opción</p>
+      <h2>Who is registering?</h2>
+      <p class="subtitle">Please select one</p>
       <button onclick="setRegType('self')" style="width:100%;padding:16px;margin-bottom:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#1a73e8;text-align:left;">
-        🎓 I am registering myself / Me estoy registrando yo
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am an adult student / Soy un estudiante adulto</div>
+        🎓 I am registering myself
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am an adult student</div>
       </button>
       <button onclick="setRegType('parent')" style="width:100%;padding:16px;background:#f0fff4;border:2px solid #2e7d32;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#2e7d32;text-align:left;">
-        👨‍👩‍👧 I am registering my child / Registro a mi hijo/a
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am a parent or guardian / Soy padre, madre o tutor</div>
+        👨‍👩‍👧 I am registering my child
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">I am a parent or guardian</div>
       </button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back</button></div>
     </div>
   </div>
 
@@ -139,21 +138,21 @@
   <div id="screen-register-self" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
-      <h2>Your Information / Tu Información</h2>
-      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <h2>Your Information</h2>
+      <p class="subtitle">Tell us about yourself</p>
       <div class="field">
-        <label>First Name only / Solo Primer Nombre</label>
+        <label>First Name only</label>
         <input type="text" id="self-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! / ¡Solo primer nombre!</div>
+        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only!</div>
       </div>
-      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
-      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="self-dob"/></div>
-      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Nickname (optional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Date of Birth</label><input type="date" id="self-dob"/></div>
+      <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="self-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="self-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Password</label><input type="password" id="self-password" placeholder="At least 6 characters"/></div>
       <div id="self-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doSelfRegister()">Submit / Enviar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-type')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="doSelfRegister()">Submit</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-type')">← Back</button></div>
     </div>
   </div>
 
@@ -161,23 +160,23 @@
   <div id="screen-register-parent" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
-      <h2>Your Information / Tu Información</h2>
-      <p class="subtitle">Tell us about yourself / Cuéntanos sobre ti</p>
+      <h2>Your Information</h2>
+      <p class="subtitle">Tell us about yourself</p>
       <div class="field">
-        <label>You are / Eres</label>
+        <label>You are</label>
         <select id="reg-relationship">
-          <option value="mother">Mom / Mamá</option>
-          <option value="father">Dad / Papá</option>
-          <option value="guardian">Legal Guardian / Tutor Legal</option>
+          <option value="mother">Mom</option>
+          <option value="father">Dad</option>
+          <option value="guardian">Legal Guardian</option>
         </select>
       </div>
-      <div class="field"><label>Your Name / Tu Nombre</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
-      <div class="field"><label>WhatsApp / Phone / Teléfono</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
+      <div class="field"><label>Your Name</label><input type="text" id="reg-parent-name" placeholder="Maria Garcia"/></div>
+      <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="reg-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="your@email.com"/></div>
-      <div class="field"><label>Password / Contraseña</label><input type="password" id="reg-password" placeholder="At least 6 characters / Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Password</label><input type="password" id="reg-password" placeholder="At least 6 characters"/></div>
       <div id="parent-error" class="error"></div>
-      <button class="btn btn-primary" onclick="goToStudentInfo()">Continue / Continuar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="goToStudentInfo()">Continue</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-code')">← Back</button></div>
     </div>
   </div>
 
@@ -185,36 +184,36 @@
   <div id="screen-register-student" style="display:none;">
     <div class="card">
       <div class="step-indicator"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
-      <h2>Student Information / Info del Estudiante</h2>
-      <p class="subtitle">Tell us about your child / Cuéntanos sobre tu hijo/a</p>
+      <h2>Student Information</h2>
+      <p class="subtitle">Tell us about your child</p>
       <div class="field">
-        <label>First Name only / Solo Primer Nombre</label>
+        <label>First Name only</label>
         <input type="text" id="reg-student-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces.</div>
       </div>
-      <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="reg-student-dob"/></div>
-      <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Date of Birth</label><input type="date" id="reg-student-dob"/></div>
+      <div class="field"><label>Nickname (optional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
       <div id="student-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doRegister()">Submit / Enviar</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back / Atrás</button></div>
+      <button class="btn btn-primary" onclick="doRegister()">Submit</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Back</button></div>
     </div>
   </div>
 
   <!-- REGISTER: CLASS TYPE (1v1 vs Group) -->
   <div id="screen-register-class-type" style="display:none;">
     <div class="card">
-      <h2>Class Type / Tipo de Clase</h2>
-      <p class="subtitle">Which type of class? / ¿Qué tipo de clase?</p>
+      <h2>Class Type</h2>
+      <p class="subtitle">Which type of class?</p>
       <button onclick="chooseClassType('1v1')" style="width:100%;padding:16px;margin-bottom:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#1a73e8;text-align:left;">
-        🎓 1-on-1 Private / 1v1 Privada
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Flexible schedule / Horario a elegir</div>
+        🎓 1-on-1 Private
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Flexible schedule</div>
       </button>
       <button onclick="chooseClassType('group')" style="width:100%;padding:16px;background:#f0fff4;border:2px solid #2e7d32;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#2e7d32;text-align:left;">
-        👥 Group Class / Clase Grupal
-        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Mon–Thu, small groups / Lun–Jue, grupos pequeños</div>
+        👥 Group Class
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Mon–Thu, small groups</div>
       </button>
       <div id="classtype-error" class="error"></div>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="backFromClassType()">← Back / Atrás</button></div>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="backFromClassType()">← Back</button></div>
     </div>
   </div>
 
@@ -222,23 +221,22 @@
   <div id="screen-email-sent" style="display:none;">
     <div class="card" style="text-align:center;">
       <div style="font-size:3rem;margin-bottom:12px;">📧</div>
-      <h2>Check Your Email! / ¡Revisa tu Correo!</h2>
-      <p class="subtitle">We sent a verification link to your email address.<br>Enviamos un enlace de verificación a tu correo.</p>
+      <h2>Check Your Email!</h2>
+      <p class="subtitle">We sent a verification link to your email address.</p>
       <p style="color:#888;font-size:0.85rem;margin-top:8px;">Once verified, log in to see your enrollment status. The school will review your request shortly.</p>
-      <p style="color:#888;font-size:0.85rem;margin-top:4px;">Una vez verificado, inicia sesión para ver el estado de tu inscripción. La escuela revisará tu solicitud pronto.</p>
-      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login / Ir al Login</button>
+      <button class="btn btn-primary" style="margin-top:20px;" onclick="showScreen('login')">Go to Login</button>
     </div>
   </div>
 
   <!-- SELECT GROUP OPENING -->
   <div id="screen-select-group-opening" style="display:none;">
     <div class="card">
-      <h2>Choose Your Class / Elige tu Clase</h2>
-      <p class="subtitle">Select an available opening / Selecciona una disponibilidad</p>
+      <h2>Choose Your Class</h2>
+      <p class="subtitle">Select an available opening</p>
       <div id="group-openings-list" style="margin:20px 0;"></div>
       <div id="group-opening-error" class="error"></div>
       <div style="text-align:center;margin-top:16px;">
-        <button class="btn btn-secondary" onclick="goBackToStudents()">← Back / Atrás</button>
+        <button class="btn btn-secondary" onclick="goBackToStudents()">← Back</button>
       </div>
     </div>
   </div>
@@ -261,7 +259,7 @@
       <!-- Students tab -->
       <div id="panel-students">
         <div id="students-list"></div>
-        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student / Agregar Estudiante</button>
+        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student</button>
       </div>
 
       <!-- Attendance tab -->
@@ -287,26 +285,26 @@
     <!-- Add student modal -->
     <div id="add-student-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
-        <h2 style="margin-bottom:16px;">Add Student / Agregar Estudiante</h2>
+        <h2 style="margin-bottom:16px;">Add Student</h2>
         <div class="field">
-          <label>First Name only / Solo Primer Nombre</label>
+          <label>First Name only</label>
           <input type="text" id="add-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces. / ¡Solo primer nombre! Sin espacios.</div>
+          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces.</div>
         </div>
-        <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="add-dob"/></div>
-        <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
+        <div class="field"><label>Date of Birth</label><input type="date" id="add-dob"/></div>
+        <div class="field"><label>Nickname (optional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
         <div class="field">
-          <label>Class Type / Tipo de Clase</label>
+          <label>Class Type</label>
           <select id="add-classtype" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
-            <option value="1v1">🎓 1-on-1 Private / 1v1 Privada</option>
-            <option value="group">👥 Group Class / Clase Grupal</option>
+            <option value="1v1">🎓 1-on-1 Private</option>
+            <option value="group">👥 Group Class</option>
           </select>
         </div>
         <div id="add-error" class="error"></div>
         <div id="add-success" class="success"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
-          <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit / Enviar</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel / Cancelar</button>
+          <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Submit</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel</button>
         </div>
       </div>
     </div>
@@ -315,13 +313,13 @@
   <!-- FORGOT PASSWORD -->
   <div id="screen-forgot" style="display:none;">
     <div class="card">
-      <h2>Forgot Password / Olvidaste tu contraseña</h2>
-      <p class="subtitle">Enter your email and we'll send you a reset link.<br>Ingresa tu correo y te enviaremos un enlace.</p>
+      <h2>Forgot Password</h2>
+      <p class="subtitle">Enter your email and we'll send you a reset link.</p>
       <div class="field"><label>Email</label><input type="email" id="forgot-email" placeholder="your@email.com"/></div>
       <div id="forgot-success" class="success"></div>
       <div id="forgot-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Link / Enviar Enlace</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back to Login / Volver</button></div>
+      <button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Link</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back to Login</button></div>
     </div>
   </div>
 
@@ -329,13 +327,13 @@
   <div id="screen-reset" style="display:none;">
     <div class="card">
       <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔑</div>
-      <h2>New Password / Nueva Contraseña</h2>
-      <p class="subtitle">Enter your new password below.<br>Ingresa tu nueva contraseña.</p>
-      <div class="field"><label>New Password / Nueva Contraseña</label><input type="password" id="reset-password" placeholder="At least 6 characters"/></div>
-      <div class="field"><label>Confirm / Confirmar</label><input type="password" id="reset-confirm" placeholder="Repeat password"/></div>
+      <h2>New Password</h2>
+      <p class="subtitle">Enter your new password below.</p>
+      <div class="field"><label>New Password</label><input type="password" id="reset-password" placeholder="At least 6 characters"/></div>
+      <div class="field"><label>Confirm</label><input type="password" id="reset-confirm" placeholder="Repeat password"/></div>
       <div id="reset-error" class="error"></div>
       <div id="reset-success" class="success"></div>
-      <button class="btn btn-primary" onclick="doResetPassword()">Save New Password / Guardar</button>
+      <button class="btn btn-primary" onclick="doResetPassword()">Save New Password</button>
     </div>
   </div>
 
