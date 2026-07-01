@@ -131,8 +131,10 @@
     #attendance-btn-top { background: #0f3460; color: #a0c4ff; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top:hover { background: #1a73e8; color: white; }
 
-    .mobile-only { display: none !important; }
-    #mobile-filter-btn { display: none !important; }
+    @media (min-width: 769px) {
+      .mobile-only { display: none !important; }
+      #mobile-filter-btn { display: none !important; }
+    }
     .panel { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
     .panel.active { display: block; }
 
