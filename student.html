@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/png" href="icon.png"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolyABC - Student Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: #f0f4f8; min-height: 100vh; }
+    .header { background: #1a1a2e; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header img { height: 44px; cursor: pointer; }
+    .header-title { color: white; font-size: 1.1rem; font-weight: 900; }
+    .container { max-width: 500px; margin: 40px auto; padding: 0 16px; }
+    .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 16px; }
+
+    /* Dashboard nav (same pattern as parent panel) */
+    .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .dashboard-nav::-webkit-scrollbar { display: none; }
+    .nav-tab { white-space: nowrap; flex: 0 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 6px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+
+    /* Calendar */
+    .p-cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .p-cal-nav button { background:#f0f4f8; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:900; font-size:1rem; }
+    .p-cal-month { font-weight:900; font-size:1rem; color:#1a1a2e; }
+    .p-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-top: 8px; }
+    .p-cal-day-label { text-align:center; font-size:0.7rem; font-weight:900; color:#888; padding: 4px 0; }
+    .p-cal-cell { min-height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; position: relative; }
+    .p-cal-cell.empty { background: transparent; }
+    .p-cal-cell.today { background: #e8f0fe; color: #1a73e8; }
+    .p-cal-cell.has-class { background: #1a1a2e; color: white; cursor: pointer; }
+    .p-cal-cell.has-class .star { font-size: 0.7rem; position: absolute; top: 3px; right: 4px; }
+    .p-cal-cell.past { opacity: 0.45; }
+    .p-cal-legend { display:flex; gap:12px; margin-top:12px; font-size:0.78rem; color:#888; }
+    .sched-item { background: #f8f9ff; border: 2px solid #e8eeff; border-radius: 12px; padding: 14px; margin-top: 10px; }
+    .sched-time { font-size: 1.05rem; font-weight: 900; color: #1a1a2e; }
+    .sched-gdl { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .sched-type { font-size: 0.82rem; color: #1a73e8; font-weight: 700; margin-top: 6px; }
+    .sched-soon { font-size: 0.78rem; font-weight: 900; margin-top: 6px; }
+
+    /* Coming soon placeholder */
+    .coming-soon { text-align: center; padding: 40px 20px; color: #888; }
+    .coming-soon .icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .coming-soon .title { font-weight: 900; color: #444; font-size: 1rem; margin-bottom: 6px; }
+    .coming-soon .desc { font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a href="student-greeting.html"><img src="LOGO.png" alt="PolyABC"/></a>
+  <div class="header-title"></div>
+  <button onclick="doSignOut()" style="background:#e53935;color:white;border:none;border-radius:20px;padding:7px 16px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Sign Out</button>
+</div>
+
+<div class="container">
+
+  <div class="card" style="padding:16px 20px;text-align:center;">
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="student-welcome">Welcome!</div>
+    <div style="font-size:0.8rem;color:#888;">PolyABC Student Panel</div>
+  </div>
+
+  <div class="card">
+    <div class="dashboard-nav">
+      <button class="nav-tab active" onclick="showTab('calendar')" id="tab-calendar">🗓 Calendar</button>
+      <button class="nav-tab" onclick="showTab('homework')" id="tab-homework">📚 Homework</button>
+      <button class="nav-tab" onclick="showTab('tests')" id="tab-tests">📝 Tests</button>
+    </div>
+
+    <!-- Calendar tab -->
+    <div id="panel-calendar">
+      <div class="p-cal-nav">
+        <button onclick="calPrev()">‹</button>
+        <div class="p-cal-month" id="cal-month-label"></div>
+        <button onclick="calNext()">›</button>
+      </div>
+      <div class="p-cal-grid" id="cal-grid"></div>
+      <div class="p-cal-legend"><span>⭐ = Class day</span></div>
+      <div id="day-detail"></div>
+    </div>
+
+    <!-- Homework tab — scaffolded for future use, not implemented yet -->
+    <div id="panel-homework" style="display:none;">
+      <div class="coming-soon">
+        <div class="icon">📚</div>
+        <div class="title">Homework — Coming Soon</div>
+        <div class="desc">Your teacher will be able to assign homework here in a future update.<br>Tu maestro podrá asignar tareas aquí próximamente.</div>
+      </div>
+    </div>
+
+    <!-- Tests tab — scaffolded for future use, not implemented yet -->
+    <div id="panel-tests" style="display:none;">
+      <div class="coming-soon">
+        <div class="icon">📝</div>
+        <div class="title">Tests — Coming Soon</div>
+        <div class="desc">Your teacher will be able to assign tests here in a future update.<br>Tu maestro podrá asignar exámenes aquí próximamente.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SERVER_URL = "https://polyabc-server.onrender.com";
+
+  const token = localStorage.getItem('studentToken');
+  const room  = localStorage.getItem('studentRoom');
+  const name  = localStorage.getItem('studentName');
+  if (!token || !room) window.location.href = 'index.html';
+  document.getElementById('student-welcome').textContent = `Welcome, ${name || 'Student'}! 👋`;
+
+  function doSignOut() {
+    ['studentToken','studentName','studentRoom'].forEach(k => localStorage.removeItem(k));
+    window.location.href = 'index.html';
+  }
+
+  function showTab(tab) {
+    ['calendar','homework','tests'].forEach(t => {
+      document.getElementById(`panel-${t}`).style.display = t === tab ? 'block' : 'none';
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    });
+  }
+
+  // ---- Calendar (reuses the same authenticated /assignments endpoint as the rest of the app) ----
+  let _assignments = null;
+  let _calDate = new Date();
+
+  async function loadCalendar() {
+    document.getElementById('cal-grid').innerHTML = '<div style="grid-column:1/-1;color:#888;text-align:center;padding:12px;">Loading...</div>';
+    try {
+      const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
+      _assignments = await res.json();
+    } catch(e) { _assignments = []; }
+    renderCalendarMonth();
+  }
+
+  function calPrev() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth()-1, 1); document.getElementById('day-detail').innerHTML=''; renderCalendarMonth(); }
+  function calNext() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth()+1, 1); document.getElementById('day-detail').innerHTML=''; renderCalendarMonth(); }
+
+  function renderCalendarMonth() {
+    const grid = document.getElementById('cal-grid');
+    const monthLabel = document.getElementById('cal-month-label');
+    const assignments = _assignments || [];
+
+    const year = _calDate.getFullYear();
+    const month = _calDate.getMonth();
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    monthLabel.textContent = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
+    const classInfo = {};
+    assignments.forEach(a => {
+      if (!classInfo[a.date]) classInfo[a.date] = [];
+      classInfo[a.date].push(a);
+    });
+    window._classInfo = classInfo;
+
+    const dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="p-cal-day-label">${d}</div>`).join('');
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push('<div class="p-cal-cell empty"></div>');
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = dateStr === todayStr;
+      const hasClass = !!classInfo[dateStr];
+      const isPast = dateStr < todayStr;
+      const cls = ['p-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
+      const clickAttr = hasClass ? `onclick="showDayDetail('${dateStr}')"` : '';
+      cells.push(`<div class="${cls}" ${clickAttr}>${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
+    }
+
+    grid.innerHTML = dayLabels + cells.join('');
+  }
+
+  function showDayDetail(dateStr) {
+    const classes = (window._classInfo || {})[dateStr] || [];
+    const detail = document.getElementById('day-detail');
+    if (!classes.length) { detail.innerHTML = ''; return; }
+
+    const now = new Date();
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    detail.innerHTML = `<div style="font-size:0.85rem;color:#1a73e8;font-weight:900;margin-top:14px;margin-bottom:4px;">📅 ${dayName}</div>` +
+      classes.map(a => {
+        const [hh, mm] = a.time.split(':').map(Number);
+        const gdlDate = new Date(`${a.date}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
+        const gdlOffset = new Date(gdlDate.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })) - gdlDate;
+        const localOffset = new Date(gdlDate.toLocaleString('en-US')) - gdlDate;
+        const localTime = new Date(gdlDate.getTime() - gdlOffset + localOffset);
+        const localStr = localTime.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const gdlStr = `${hh % 12 || 12}:${String(mm).padStart(2,'0')} ${hh >= 12 ? 'PM' : 'AM'} GDL`;
+        const diffMins = Math.round((localTime - now) / 60000);
+        let soonTag = '';
+        if (diffMins > 0 && diffMins <= 90) soonTag = `<div class="sched-soon" style="color:#00c853;">⚡ In ${diffMins < 60 ? diffMins + ' min' : Math.floor(diffMins/60)+'h '+(diffMins%60?diffMins%60+'min':'')}</div>`;
+        else if (diffMins <= 0 && diffMins > -90) soonTag = `<div class="sched-soon" style="color:#e65100;">🔴 Happening now!</div>`;
+        return `<div class="sched-item">
+          <div class="sched-time">${localStr} <span style="font-size:0.75rem;color:#888;">your time</span></div>
+          <div class="sched-gdl">${gdlStr}</div>
+          <div class="sched-type">⏱ ${a.classType || ''}${a.groupName ? ' · ' + a.groupName : ''}</div>
+          ${soonTag}
+        </div>`;
+      }).join('');
+  }
+
+  loadCalendar();
+</script>
+</body>
+</html>
