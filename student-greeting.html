@@ -48,6 +48,20 @@
     .sched-gdl { font-size: 0.75rem; color: #556; margin-top: 2px; }
     .sched-type { font-size: 0.78rem; color: #ffd740; font-weight: 700; margin-top: 4px; }
     .sched-soon { font-size: 0.72rem; font-weight: 900; margin-top: 4px; }
+
+    /* Student Panel calendar */
+    .sp-cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .sp-cal-nav button { background:#0f3460; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:900; font-size:1rem; color:#a0c4ff; }
+    .sp-cal-month { font-weight:900; font-size:1rem; color:white; }
+    .sp-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:8px; }
+    .sp-cal-day-label { text-align:center; font-size:0.65rem; font-weight:900; color:#667; padding:4px 0; }
+    .sp-cal-cell { min-height:38px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; position:relative; color:#a0c4ff; }
+    .sp-cal-cell.empty { background:transparent; }
+    .sp-cal-cell.today { background:#1a3a6e; color:white; }
+    .sp-cal-cell.has-class { background:#1a73e8; color:white; cursor:pointer; }
+    .sp-cal-cell.has-class .star { font-size:0.6rem; position:absolute; top:2px; right:3px; }
+    .sp-cal-cell.past { opacity:0.4; }
+    .sp-cal-legend { display:flex; gap:12px; margin-top:12px; font-size:0.72rem; color:#667; }
   </style>
 </head>
 <body>
@@ -58,7 +72,7 @@
 <div class="card">
   <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>🎓 Enter Class</button>
   <button class="greeting-btn btn-speed" id="speed-btn" onclick="openNetTest()">📶 Run Speed Test</button>
-  <button class="greeting-btn btn-schedule" onclick="openSchedule()">📅 My Schedule</button>
+  <button class="greeting-btn btn-schedule" onclick="openStudentPanel()">🎓 Student Panel</button>
   <button class="greeting-btn btn-exit" onclick="exitToLogin()">🚪 Exit</button>
 </div>
 
@@ -78,12 +92,20 @@
   </div>
 </div>
 
-<!-- Schedule Modal -->
+<!-- Student Panel Modal -->
 <div id="sched-modal">
   <div id="sched-box">
-    <div style="font-size:1.1rem;font-weight:900;color:white;margin-bottom:16px;">📅 My Schedule</div>
-    <div id="sched-list"><div style="color:#667;text-align:center;">Loading...</div></div>
-    <button class="net-close-btn" style="margin-top:12px;" onclick="document.getElementById('sched-modal').style.display='none'">Close</button>
+    <div style="font-size:1.1rem;font-weight:900;color:white;margin-bottom:4px;">🎓 Student Panel</div>
+    <div style="font-size:0.8rem;color:#667;margin-bottom:12px;">My Calendar / Mi Calendario</div>
+    <div class="sp-cal-nav">
+      <button onclick="scPrev()">‹</button>
+      <div class="sp-cal-month" id="sp-cal-month-label"></div>
+      <button onclick="scNext()">›</button>
+    </div>
+    <div class="sp-cal-grid" id="sp-cal-grid"></div>
+    <div class="sp-cal-legend"><span>⭐ = Class day</span></div>
+    <div id="sp-day-detail" style="margin-top:14px;"></div>
+    <button class="net-close-btn" style="margin-top:16px;" onclick="document.getElementById('sched-modal').style.display='none'">Close</button>
   </div>
 </div>
 
@@ -209,40 +231,90 @@
     unlockEnterBtn(result);
   }
 
-  async function openSchedule() {
+  let _spAssignments = null;
+  let _spCalDate = new Date();
+
+  async function openStudentPanel() {
     document.getElementById('sched-modal').style.display = 'flex';
-    const list = document.getElementById('sched-list');
+    _spCalDate = new Date();
+    document.getElementById('sp-day-detail').innerHTML = '';
+    document.getElementById('sp-cal-grid').innerHTML = '<div style="grid-column:1/-1;color:#667;text-align:center;padding:12px;">Loading...</div>';
     try {
       const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
-      const assignments = await res.json();
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-      const sorted = assignments.filter(a => a.date >= today).sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
-      if (!sorted.length) { list.innerHTML = '<div style="color:#667;text-align:center;">No upcoming classes.</div>'; return; }
+      _spAssignments = await res.json();
+    } catch(e) { _spAssignments = []; }
+    renderStudentCalendarMonth();
+  }
 
-      const now = new Date();
-      list.innerHTML = sorted.map(a => {
+  function scPrev() { _spCalDate = new Date(_spCalDate.getFullYear(), _spCalDate.getMonth()-1, 1); document.getElementById('sp-day-detail').innerHTML=''; renderStudentCalendarMonth(); }
+  function scNext() { _spCalDate = new Date(_spCalDate.getFullYear(), _spCalDate.getMonth()+1, 1); document.getElementById('sp-day-detail').innerHTML=''; renderStudentCalendarMonth(); }
+
+  function renderStudentCalendarMonth() {
+    const grid = document.getElementById('sp-cal-grid');
+    const monthLabel = document.getElementById('sp-cal-month-label');
+    const assignments = _spAssignments || [];
+
+    const year = _spCalDate.getFullYear();
+    const month = _spCalDate.getMonth();
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    monthLabel.textContent = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+
+    // Group assignments by date for this month
+    const classInfo = {};
+    assignments.forEach(a => {
+      if (!classInfo[a.date]) classInfo[a.date] = [];
+      classInfo[a.date].push(a);
+    });
+    window._spClassInfo = classInfo;
+
+    const dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => `<div class="sp-cal-day-label">${d}</div>`).join('');
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push('<div class="sp-cal-cell empty"></div>');
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = dateStr === todayStr;
+      const hasClass = !!classInfo[dateStr];
+      const isPast = dateStr < todayStr;
+      const cls = ['sp-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
+      const clickAttr = hasClass ? `onclick="showStudentDayDetail('${dateStr}')"` : '';
+      cells.push(`<div class="${cls}" ${clickAttr}>${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
+    }
+
+    grid.innerHTML = dayLabels + cells.join('');
+  }
+
+  function showStudentDayDetail(dateStr) {
+    const classes = (window._spClassInfo || {})[dateStr] || [];
+    const detail = document.getElementById('sp-day-detail');
+    if (!classes.length) { detail.innerHTML = ''; return; }
+
+    const now = new Date();
+    const dayName = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    detail.innerHTML = `<div style="font-size:0.85rem;color:#a0c4ff;font-weight:900;margin-bottom:8px;">📅 ${dayName}</div>` +
+      classes.map(a => {
         const [hh, mm] = a.time.split(':').map(Number);
-        // Convert GDL time to local browser time
         const gdlDate = new Date(`${a.date}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`);
         const gdlOffset = new Date(gdlDate.toLocaleString('en-US', { timeZone: 'America/Mexico_City' })) - gdlDate;
         const localOffset = new Date(gdlDate.toLocaleString('en-US')) - gdlDate;
         const localTime = new Date(gdlDate.getTime() - gdlOffset + localOffset);
         const localStr = localTime.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
         const gdlStr = `${hh % 12 || 12}:${String(mm).padStart(2,'0')} ${hh >= 12 ? 'PM' : 'AM'} GDL`;
-        const dayName = new Date(a.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
         const diffMins = Math.round((localTime - now) / 60000);
         let soonTag = '';
         if (diffMins > 0 && diffMins <= 90) soonTag = `<div class="sched-soon" style="color:#00e676;">⚡ In ${diffMins < 60 ? diffMins + ' min' : Math.floor(diffMins/60)+'h '+(diffMins%60?diffMins%60+'min':'')}</div>`;
         else if (diffMins <= 0 && diffMins > -90) soonTag = `<div class="sched-soon" style="color:#ffd740;">🔴 Happening now!</div>`;
         return `<div class="sched-item">
-          <div class="sched-day">📅 ${dayName}</div>
           <div class="sched-time">${localStr} <span style="font-size:0.75rem;color:#667;">your time</span></div>
           <div class="sched-gdl">${gdlStr}</div>
           <div class="sched-type">⏱ ${a.classType || ''}${a.groupName ? ' · ' + a.groupName : ''}</div>
           ${soonTag}
         </div>`;
       }).join('');
-    } catch(e) { list.innerHTML = '<div style="color:#e53935;">Could not load schedule.</div>'; }
   }
 
   function proceedToClass() {
