@@ -200,6 +200,24 @@
     </div>
   </div>
 
+  <!-- REGISTER: CLASS TYPE (1v1 vs Group) -->
+  <div id="screen-register-class-type" style="display:none;">
+    <div class="card">
+      <h2>Class Type / Tipo de Clase</h2>
+      <p class="subtitle">Which type of class? / ¿Qué tipo de clase?</p>
+      <button onclick="chooseClassType('1v1')" style="width:100%;padding:16px;margin-bottom:12px;background:#f0f7ff;border:2px solid #1a73e8;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#1a73e8;text-align:left;">
+        🎓 1-on-1 Private / 1v1 Privada
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Flexible schedule / Horario a elegir</div>
+      </button>
+      <button onclick="chooseClassType('group')" style="width:100%;padding:16px;background:#f0fff4;border:2px solid #2e7d32;border-radius:12px;cursor:pointer;font-family:Nunito;font-size:1rem;font-weight:900;color:#2e7d32;text-align:left;">
+        👥 Group Class / Clase Grupal
+        <div style="font-size:0.8rem;font-weight:400;color:#555;margin-top:4px;">Mon–Thu, small groups / Lun–Jue, grupos pequeños</div>
+      </button>
+      <div id="classtype-error" class="error"></div>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="backFromClassType()">← Back / Atrás</button></div>
+    </div>
+  </div>
+
   <!-- TRIAL CLASS READY SCREEN -->
   <div id="screen-email-sent" style="display:none;">
     <div class="card" style="text-align:center;">
@@ -277,6 +295,13 @@
         </div>
         <div class="field"><label>Date of Birth / Fecha de Nacimiento</label><input type="date" id="add-dob"/></div>
         <div class="field"><label>Nickname (optional) / Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
+        <div class="field">
+          <label>Class Type / Tipo de Clase</label>
+          <select id="add-classtype" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
+            <option value="1v1">🎓 1-on-1 Private / 1v1 Privada</option>
+            <option value="group">👥 Group Class / Clase Grupal</option>
+          </select>
+        </div>
         <div id="add-error" class="error"></div>
         <div id="add-success" class="success"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
@@ -319,6 +344,8 @@
 <script>
 const SERVER_URL = 'https://polyabc-server.onrender.com';
 let _validCode = '';
+let _regPath = 'parent';
+let _selectedClassType = null;
 let _parentToken = localStorage.getItem('parentToken');
 
 // Check for email verification token in URL
@@ -338,7 +365,7 @@ if (verifyToken) {
 }
 
 function showScreen(name) {
-  ['login','register-code','register-type','register-self','register-parent','register-student','email-sent','dashboard','verify','forgot','reset','trial-ready'].forEach(s => {
+  ['login','register-code','register-type','register-self','register-parent','register-student','register-class-type','email-sent','dashboard','verify','forgot','reset','trial-ready','select-group-opening'].forEach(s => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.style.display = 'none';
   });
@@ -353,6 +380,7 @@ async function setRegType(type) {
 }
 
 async function doSelfRegister() {
+  _regPath = 'self';
   const errEl = document.getElementById('self-error');
   errEl.style.display = 'none';
   const name = document.getElementById('self-name').value.trim();
@@ -365,13 +393,18 @@ async function doSelfRegister() {
   if (name.includes(' ')) { errEl.textContent = 'First name only / Solo primer nombre'; errEl.style.display = 'block'; return; }
   if (!dob || !phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+
+  // Ask for class type before submitting
+  if (!_selectedClassType) { showScreen('register-class-type'); return; }
+
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const displayName = nickname || capName;
   const body = {
     code: _validCode, registrationType: 'self',
     parentName: displayName, phone, email, password,
     relationship: 'self',
-    studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: ''
+    studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: '',
+    classType: _selectedClassType
   };
   const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   const data = await res.json();
@@ -387,7 +420,7 @@ async function validateCode() {
   if (!code) { errEl.textContent = 'Please enter a code / Por favor ingresa un código'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
   const data = await res.json();
-  if (data.valid) { _validCode = code; showScreen('register-type'); }
+  if (data.valid) { _validCode = code; _selectedClassType = null; showScreen('register-type'); }
   else { errEl.textContent = 'Invalid or already used code / Código inválido o ya usado'; errEl.style.display = 'block'; }
 }
 
@@ -416,6 +449,7 @@ function validateFirstNameOnly(input) {
 }
 
 async function doRegister() {
+  _regPath = 'parent';
   const errEl = document.getElementById('student-error');
   errEl.style.display = 'none';
   const studentName = document.getElementById('reg-student-name').value.trim();
@@ -424,6 +458,9 @@ async function doRegister() {
   if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
   if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
   if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha de nacimiento'; errEl.style.display = 'block'; return; }
+
+  // Ask for class type before submitting
+  if (!_selectedClassType) { showScreen('register-class-type'); return; }
 
   // Capitalize first letter
   const capName = studentName.charAt(0).toUpperCase() + studentName.slice(1).toLowerCase();
@@ -439,7 +476,8 @@ async function doRegister() {
     studentName: capName,
     studentNickname: nickname,
     studentDOB: dob,
-    studentFullName: ''
+    studentFullName: '',
+    classType: _selectedClassType
   };
 
   const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -451,6 +489,17 @@ async function doRegister() {
     errEl.textContent = data.error || 'Registration failed / Error en registro';
     errEl.style.display = 'block';
   }
+}
+
+function chooseClassType(type) {
+  _selectedClassType = type;
+  if (_regPath === 'self') doSelfRegister();
+  else doRegister();
+}
+
+function backFromClassType() {
+  _selectedClassType = null;
+  showScreen(_regPath === 'self' ? 'register-self' : 'register-student');
 }
 
 async function doLogin() {
@@ -608,9 +657,10 @@ async function submitAddStudent() {
   if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre'; errEl.style.display = 'block'; return; }
   if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha'; errEl.style.display = 'block'; return; }
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  const classType = document.getElementById('add-classtype')?.value || '1v1';
   const res = await fetch(`${SERVER_URL}/parent/add-student`, {
     method: 'POST', headers: {'Content-Type':'application/json', Authorization: `Bearer ${_parentToken}`},
-    body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname })
+    body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname, classType })
   });
   const data = await res.json();
   if (data.success) {
