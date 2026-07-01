@@ -1619,8 +1619,8 @@ async function confirmGroupOpening(studentName, time) {
     const data = await res.json();
     if (data.success) {
       showScreen('dashboard');
-      await loadBilling(); // Reload student data
-      showAlert('✅', 'Success!', 'You selected a group class. The school will confirm your enrollment shortly.');
+      await loadBillingData(); // Reload student data
+      alert('✅ Success! You selected a group class. The school will confirm your enrollment shortly.');
     } else {
       alert('Error: ' + data.error);
     }
@@ -1653,8 +1653,8 @@ async function rescheduleTrialClass(studentName) {
     
     const data = await res.json();
     if (data.success) {
-      await loadBilling();
-      showAlert('✅', 'Trial Rescheduled', 'You can now select a different time for the trial class.');
+      await loadBillingData();
+      alert('✅ Trial Rescheduled. You can now select a different time for the trial class.');
     } else {
       alert('Error: ' + data.error);
     }
