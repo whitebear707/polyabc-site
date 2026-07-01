@@ -911,19 +911,13 @@ async function renderPaymentTab() {
         <div id="price-summary-${s.name.replace(/\s/g,'_')}" style="display:none;margin-bottom:14px;">
           <div style="background:#f8f9fa;border-radius:12px;padding:14px;text-align:center;">
             <div style="font-size:0.72rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:4px;">Total a pagar</div>
-            <div id="price-mp-${s.name.replace(/\s/g,'_')}" style="font-size:1.8rem;font-weight:900;color:#009ee3;"></div>
-
-            <div style="border-top:1px solid #eee;margin:10px 0;"></div>
-            <div id="price-transfer-${s.name.replace(/\s/g,'_')}" style="font-size:1.5rem;font-weight:900;color:#00897b;"></div>
-            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con transferencia bancaria (5% desc.)</div>
+            <div id="price-transfer-${s.name.replace(/\s/g,'_')}" style="font-size:1.8rem;font-weight:900;color:#00897b;"></div>
+            <div style="font-size:0.72rem;color:#888;margin-top:2px;">con transferencia bancaria</div>
           </div>
         </div>
 
         <!-- Payment buttons -->
         <div id="pay-btns-${s.name.replace(/\s/g,'_')}" style="display:none;">
-          <button onclick="initPayment('${s.name}')"
-            style="width:100%;padding:13px;background:#009ee3;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;margin-bottom:10px;">
-          </button>
           <button onclick="showTransferInfo('${s.name}')"
             style="width:100%;padding:13px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
             🏦 Pagar por Transferencia
@@ -1132,7 +1126,6 @@ function selectPayOption(studentName, field, value) {
   const totalMP = advertised * weeks;
   const totalTransfer = weeklyBase * weeks;
 
-  document.getElementById(`price-mp-${key}`).textContent = `$${totalMP.toLocaleString('es-MX')} MXN`;
   document.getElementById(`price-transfer-${key}`).textContent = `$${totalTransfer.toLocaleString('es-MX')} MXN`;
   document.getElementById(`price-summary-${key}`).style.display = 'block';
   document.getElementById(`pay-btns-${key}`).style.display = 'block';
