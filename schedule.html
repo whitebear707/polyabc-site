@@ -226,6 +226,26 @@
     }
     .btn-save:hover { background: #1558b0; }
     .save-msg { color: #69f0ae; font-weight: 700; font-size: 0.95rem; align-self: center; display: none; position: absolute; left: 50%; transform: translateX(-50%); }
+
+    /* MOBILE ONLY */
+    @media (max-width: 768px) {
+      #topbar {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        row-gap: 4px;
+        padding: 10px 16px;
+      }
+      #topbar .teacher-name { display: none; }
+      #topbar img { height: 36px; }
+      #pay-period-header { justify-self: center; font-size: 0.72rem !important; white-space: normal; text-align: center; }
+
+      #main { padding: 16px; text-align: center; }
+      .section-title { text-align: center; }
+
+      .day-hours-grid { gap: 3px; }
+      .day-hour-label { font-size: 0.62rem; }
+      .time-display { font-size: 0.58rem; padding: 4px 1px; min-height: 24px; }
+    }
   </style>
 </head>
 <body>
