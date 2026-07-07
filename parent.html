@@ -526,7 +526,8 @@ async function loadDashboard() {
   const res = await fetch(`${SERVER_URL}/parent/dashboard`, { headers: { Authorization: `Bearer ${_parentToken}` } });
   if (!res.ok) { doLogout(); return; }
   const data = await res.json();
-  loadBillingData();
+  _dashboardStudents = data.students || [];
+  await loadBillingData();
 
   // Render students
   const list = document.getElementById('students-list');
@@ -710,6 +711,7 @@ function doLogout() {
 
 // ── BILLING & CALENDAR ──
 let _billingData = null;
+let _dashboardStudents = [];
 let _calStudentName = null;
 let _calDate = new Date();
 
@@ -1553,7 +1555,7 @@ function showClassPopup(dateStr) {
 
 async function loadGroupOpenings(studentName) {
   try {
-    const student = _billingData.students.find(s => s.name === studentName);
+    const student = _dashboardStudents.find(s => s.name === studentName);
     if (!student || student.classType !== 'group' || !student.trialLevel) return;
     
     const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
@@ -1573,7 +1575,7 @@ async function loadGroupOpenings(studentName) {
 }
 
 async function selectGroupOpening(studentName) {
-  const student = _billingData.students.find(s => s.name === studentName);
+  const student = _dashboardStudents.find(s => s.name === studentName);
   if (!student || !student.trialLevel) return;
   
   try {
