@@ -906,12 +906,25 @@ async function renderPaymentTab() {
         Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
       </div>`;
 
+    // Not due yet — hide the payment form to prevent double payments, show status instead
+    const isDue = !s.nextPaymentDue || new Date(s.nextPaymentDue) <= new Date();
+    if (!isDue) return `
+      <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:10px;">✅</div>
+        <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">${s.name}</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#2e7d32;">You're all paid up!</div>
+        <div style="background:#fff3e0;border-radius:10px;padding:12px;font-size:0.9rem;color:#e65100;margin-top:12px;font-weight:900;">
+          Next payment due: ${fmtDateP(s.nextPaymentDue)}
+        </div>
+      </div>`;
+
     return `
       <div style="background:white;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);" id="pay-card-${s.name.replace(/\s/g,'_')}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <span style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">👤 ${s.name}</span>
           ${s.studentId ? `<span style="background:#1a73e8;color:white;padding:2px 8px;border-radius:8px;font-size:0.78rem;font-weight:900;font-family:monospace;letter-spacing:1px;">${s.studentId}</span>` : ''}
         </div>
+        ${s.nextPaymentDue ? `<div style="text-align:center;margin-bottom:14px;"><span style="background:#ffebee;color:#c62828;padding:4px 12px;border-radius:8px;font-size:0.8rem;font-weight:900;">⏰ Payment due: ${fmtDateP(s.nextPaymentDue)}</span></div>` : ''}
 
         <!-- Class Type -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Tipo de clase</div>
@@ -1015,7 +1028,7 @@ async function renderPaymentTab() {
   }).join('');
 
   // Combined payment section — only if 2+ payable students
-  const payableStudents = students.filter(s => s.trialCompleted && !s.transferPending);
+  const payableStudents = students.filter(s => s.trialCompleted && !s.transferPending && (!s.nextPaymentDue || new Date(s.nextPaymentDue) <= new Date()));
   if (payableStudents.length >= 2) {
     wrap.innerHTML += `
       <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:14px;padding:18px;margin-top:8px;">
