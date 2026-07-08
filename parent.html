@@ -573,7 +573,7 @@ async function loadDashboard() {
               <button onclick="selectGroupOpening('${s.name}')" style="display:block;width:100%;margin-top:12px;padding:10px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">✓ Select Opening</button>
               <button onclick="requestTrialContact('${s.name}')" style="display:block;width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.15);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">📞 Contact School</button>
             </div>
-          ` : s.classType === '1v1' ? `
+          ` : (s.classType === '1v1' || (s.classType === 'group' && !s.trialLevel)) ? `
             <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
               <div style="color:rgba(255,255,255,0.8);font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">🎓 Trial Class</div>
               <div style="display:flex;gap:12px;justify-content:center;margin-bottom:4px;">
