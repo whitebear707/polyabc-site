@@ -1181,6 +1181,17 @@ function selectPayOption(studentName, field, value) {
   const opts1v1 = document.getElementById(`1v1-opts-${key}`);
   if (opts1v1) opts1v1.style.display = _payState[studentName].type === '1v1' ? 'block' : 'none';
 
+  // If no billing cycle has been picked yet, default to weekly so the price/button always shows
+  if (field !== 'cycle' && !_payState[studentName].cycle) {
+    _payState[studentName].cycle = 'weekly';
+    const cycleBtn = document.getElementById(`opt-${key}-cycle-weekly`);
+    if (cycleBtn) {
+      cycleBtn.style.borderColor = '#1a73e8';
+      cycleBtn.style.background = '#e8f0fe';
+      cycleBtn.style.color = '#1a73e8';
+    }
+  }
+
   // Calculate price if we have enough info
   const st = _payState[studentName];
   const hasEnoughInfo = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
