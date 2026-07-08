@@ -416,6 +416,7 @@
             <th>Type</th>
             <th>Cycle</th>
             <th>Days/Week</th>
+            <th>Min/Class</th>
             <th>Schedule</th>
             <th>Trial</th>
             <th>Paid</th>
@@ -2971,7 +2972,7 @@ function fmtDate(iso) {
 function renderBillingTable(students) {
   const tbody = document.getElementById('billing-tbody');
   if (!tbody) return;
-  if (!students.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#aaa;padding:20px;">No students found</td></tr>'; return; }
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#aaa;padding:20px;">No students found</td></tr>'; return; }
   tbody.innerHTML = students.map(s => {
     const typeColor = s.enrolledType === '1v1' ? '#1a73e8' : s.enrolledType === 'group' ? '#00897b' : '#aaa';
     const paidColor = s.paid ? '#00c853' : '#e53935';
@@ -2980,6 +2981,15 @@ function renderBillingTable(students) {
       : `<span style="background:rgba(255,152,0,0.1);color:#ff9800;padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:700;">🕐 Pending</span>`;
     const daysLabel = s.scheduledDays?.length ? s.scheduledDays.map(d => d.slice(0,3)).join(', ') : '—';
     const timeLabel = s.scheduledTime || '—';
+    // If admin hasn't assigned an actual day/time yet, fall back to what the parent asked for
+    let schedueDisplay = `${daysLabel}<br><span style="color:#888;">${timeLabel}</span>`;
+    if (!s.scheduledDays?.length && !s.scheduledTime) {
+      if (s.timePreference === 'flexible') schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Flexible</span>`;
+      else if (s.timePreference === 'range' && s.preferredTimeRange) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Range: ${s.preferredTimeRange.start}–${s.preferredTimeRange.end}</span>`;
+      else if (s.timePreference === 'specific' && s.specificTimes) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">${s.specificTimes}</span>`;
+      else if (s.timePreference === 'contact-me') schedueDisplay = `<span style="color:#e65100;font-weight:700;">📞 Contact via ${s.contactMethod === 'whatsapp' ? 'WhatsApp' : 'call'}${s.contactPhone ? ': ' + s.contactPhone : ''}</span>`;
+      else schedueDisplay = '—';
+    }
     const overdueFlag = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date() && !s.paid
       ? ' <span style="color:#e53935;font-size:0.7rem;font-weight:900;">⚠️ OVERDUE</span>' : '';
     return `<tr>
@@ -2987,7 +2997,8 @@ function renderBillingTable(students) {
       <td><span style="color:${typeColor};font-weight:900;">${s.enrolledType || '—'}</span></td>
       <td>${s.billingCycle || '—'}</td>
       <td style="text-align:center;">${s.classesPerWeek || '—'}</td>
-      <td style="font-size:0.82rem;">${daysLabel}<br><span style="color:#888;">${timeLabel}</span></td>
+      <td style="text-align:center;">${s.minutesPerClass || '—'}</td>
+      <td style="font-size:0.82rem;">${schedueDisplay}</td>
       <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${s.name}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Mark Done</button>`}</td>
       <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Paid' : '❌ Unpaid'}</span>${overdueFlag}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.lastPaidAt)}</td>
