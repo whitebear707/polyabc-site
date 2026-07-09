@@ -579,7 +579,7 @@ async function loadDashboard() {
               <div style="display:flex;gap:12px;justify-content:center;margin-bottom:4px;">
                 <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;">
                   <div style="color:rgba(255,255,255,0.7);font-size:0.7rem;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Room</div>
-                  <div style="color:white;font-size:2rem;font-weight:900;line-height:1;">101</div>
+                  <div style="color:white;font-size:2rem;font-weight:900;line-height:1;">${s.classType === 'group' ? '100' : '101'}</div>
                 </div>
                 <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 20px;">
                   <div style="color:rgba(255,255,255,0.7);font-size:0.7rem;font-weight:700;text-transform:uppercase;margin-bottom:2px;">Password</div>
@@ -679,7 +679,7 @@ async function submitAddStudent() {
   });
   const data = await res.json();
   if (data.success) {
-    if(sucEl) { sucEl.textContent = `✅ ${capName} added! Trial: Room 101, Password: ${data.trialPassword || 'try1'}`; sucEl.style.display = 'block'; }
+    if(sucEl) { sucEl.textContent = `✅ ${capName} added! Trial: Room ${classType === 'group' ? '100' : '101'}, Password: ${data.trialPassword || 'try1'}`; sucEl.style.display = 'block'; }
     setTimeout(() => { document.getElementById('add-student-modal').style.display = 'none'; loadDashboard(); }, 3000);
   } else { errEl.textContent = data.error || 'Failed'; errEl.style.display = 'block'; }
 }
