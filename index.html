@@ -167,7 +167,7 @@
 
     <label for="room-input">Classroom Number</label>
     <input type="text" id="room-input" placeholder="e.g. 10" maxlength="10"/>
-    <div style="font-size:0.72rem;color:#888;margin-top:-6px;margin-bottom:8px;">🎓 New student? Use room <strong style="color:#1a73e8;">101</strong></div>
+    <div style="font-size:0.72rem;color:#888;margin-top:-6px;margin-bottom:8px;">🎓 New student? Check your Parent Panel for your room number (100 or 101)</div>
 
     <label for="pass-input">Password</label>
     <input type="password" id="pass-input" placeholder="Enter your password"/>
@@ -269,7 +269,7 @@
 
         if (data.success) {
           if (data.role === 'trial') {
-          localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel }));
+          localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel, enrolledType: data.enrolledType || '1v1' }));
           window.location.href = 'exam.html'; return;
         }
         if (data.role === 'teacher') {
