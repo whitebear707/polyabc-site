@@ -296,11 +296,15 @@ window.onload = async () => {
 };
 
 function showWaitingScreen(date, time) {
-  const timeDisp = new Date(`2000-01-01T${time}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
   document.getElementById('intro-screen').style.display = 'none';
   document.getElementById('exam-screen').style.display = 'none';
   document.getElementById('waiting-screen').style.display = 'block';
-  document.getElementById('waiting-date').textContent = `${date} at ${timeDisp} (Guadalajara Time)`;
+  if (time) {
+    const timeDisp = new Date(`2000-01-01T${time}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('waiting-date').textContent = `${date} at ${timeDisp} (Guadalajara Time)`;
+  } else {
+    document.getElementById('waiting-date').textContent = 'Level / Nivel: ' + (trialData.level || detectedLevel || '');
+  }
 }
 
 function populateTimeSelect() {
@@ -380,8 +384,22 @@ function skipToBooking() {
 }
 
 // ── Booking ──
-function showBooking() {
+async function showBooking() {
   document.getElementById('result-screen').style.display = 'none';
+
+  if (trialData.enrolledType === 'group') {
+    // Group trials don't self-book a slot — send exam results to admin and wait for assignment
+    try {
+      await fetch(`${SERVER_URL}/trial/group-request`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: trialData.id, studentName: trialData.name, level: detectedLevel })
+      });
+    } catch(e) {}
+    document.getElementById('success-details').textContent = `Level / Nivel: ${detectedLevel}`;
+    document.getElementById('success-screen').style.display = 'block';
+    return;
+  }
+
   document.getElementById('booking-screen').style.display = 'block';
   const tag = document.getElementById('booking-level-tag');
   if (tag) tag.textContent = detectedLevel;
