@@ -1264,9 +1264,19 @@ function renderDayDetail(dateStr) {
         const debtBadge = g?.debtMins > 0
           ? `<span style="background:#b71c1c;color:white;font-size:0.68rem;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px;">-${g.debtMins} min</span>`
           : '';
-        return `<div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-          <span>${fmt12(a.time)} · ${g ? g.name : a.level+' '+a.classType}${debtBadge}</span>
-          <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
+        const subBadge = a.subTeacherRoom
+          ? `<div style="font-size:0.7rem;color:#6a1b9a;font-weight:900;margin-top:2px;">🔁 Sub: ${a.subTeacherName || '—'}</div>`
+          : '';
+        return `<div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;margin-top:4px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span>${fmt12(a.time)} · ${g ? g.name : a.level+' '+a.classType}${debtBadge}</span>
+            <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
+          </div>
+          ${subBadge}
+          <button onclick="${a.subTeacherRoom ? `removeSubFromClass('${a._id}','${dateStr}')` : `openAssignSubModal('${a._id}','${t.room}','${dateStr}','${a.time}')`}"
+            style="margin-top:4px;background:none;border:1px solid #6a1b9a;color:#6a1b9a;padding:2px 8px;border-radius:6px;font-family:Nunito;font-size:0.7rem;font-weight:700;cursor:pointer;">
+            ${a.subTeacherRoom ? '❌ Remove Sub' : '🔁 Assign Sub'}
+          </button>
         </div>`;
       }).join('');
       html += `<div class="day-teacher-card">
@@ -1449,6 +1459,57 @@ async function assignTrialToExisting(bookingId, studentName) {
   allTrialBookings = allTrialBookings.map(b => b._id === bookingId ? {...b, status:'assigned'} : b);
   renderMasterCalendar();
   renderDayDetail(assignment.date);
+}
+
+function openAssignSubModal(assignmentId, room, dateStr, time) {
+  const otherTeachers = rooms.filter(r => r.room !== room);
+  const options = otherTeachers.map(r => `<option value="${r.room}">Teacher ${r.teacherName || '—'} · Room ${r.room}</option>`).join('');
+
+  const panel = document.getElementById('assign-day-panel');
+  panel.innerHTML = `
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">🔁 Assign Substitute</div>
+    <div style="background:#f3e5f5;border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.85rem;">
+      📅 ${dateStr} · 🕐 ${fmt12(time)} · Room ${room}
+    </div>
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Substitute Teacher</label>
+      <select id="sub-teacher-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="">${options ? '-- Choose a teacher --' : 'No other teachers available'}</option>
+        ${options}
+      </select>
+    </div>
+    <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">The substitute logs in with their own password as usual — they'll be taken to this class automatically. The original teacher will not be paid for this class; the substitute is paid instead.</div>
+    <div id="assign-sub-status" style="font-size:0.8rem;margin-bottom:10px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="saveAssignSub('${assignmentId}','${dateStr}')" style="flex:1;padding:10px;background:#6a1b9a;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Assign</button>
+    </div>`;
+  document.getElementById('assign-day-overlay').style.display = 'flex';
+}
+
+async function saveAssignSub(assignmentId, dateStr) {
+  const subRoom = document.getElementById('sub-teacher-select').value;
+  const status = document.getElementById('assign-sub-status');
+  if (!subRoom) { status.textContent = '⚠️ Please choose a substitute teacher'; status.style.color = '#e53935'; return; }
+
+  const res = await fetch(`${SERVER_URL}/assignments/${assignmentId}/assign-sub`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ subRoom })
+  });
+  const data = await res.json();
+  if (!data.success) { status.textContent = '❌ ' + (data.error || 'Could not assign substitute'); status.style.color = '#e53935'; return; }
+
+  document.getElementById('assign-day-overlay').style.display = 'none';
+  await loadAllAssignmentsData();
+  renderDayDetail(dateStr);
+}
+
+async function removeSubFromClass(assignmentId, dateStr) {
+  await fetch(`${SERVER_URL}/assignments/${assignmentId}/remove-sub`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }
+  });
+  await loadAllAssignmentsData();
+  renderDayDetail(dateStr);
 }
 
 let _trialPasswordCheckTimer = null;
