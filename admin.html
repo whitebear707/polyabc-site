@@ -1284,6 +1284,9 @@ function renderDayDetail(dateStr) {
 }
 
 function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
+  // Group trial requests have no self-picked time — offer a different flow
+  if (!time) { _showGroupTrialAssignModal(bookingId, studentName, level); return; }
+
   const panel = document.getElementById('assign-day-panel');
 
   // Only show teachers available on this day AND free at the requested time
@@ -1332,6 +1335,120 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
       <button id="trial-assign-confirm-btn" onclick="saveTrialAssignment('${bookingId}','${dateStr}','${time}')" ${!canAssign?'disabled':''} style="flex:1;padding:10px;background:${canAssign?'#6a1b9a':'#ccc'};color:${canAssign?'white':'#888'};border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:${canAssign?'pointer':'not-allowed'};">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
+}
+
+// Group trial requests (no self-picked time) — offer adding to an existing class,
+// or creating a brand new slot with a free choice of date/time/teacher.
+function _showGroupTrialAssignModal(bookingId, studentName, level) {
+  const today = todayGDLForAdmin();
+  const upcoming = allAssignments
+    .filter(a => a.classType !== 'Trial' && a.date >= today)
+    .sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+
+  const existingOptions = upcoming.map(a => {
+    const teacher = allAvailability.find(t => t.room === a.room);
+    return `<option value="${a._id}">${a.date} · ${fmt12(a.time)} · Teacher ${teacher?.teacherName || '—'} · Room ${a.room} · ${a.groupName || a.level || 'Class'}</option>`;
+  }).join('');
+
+  const panel = document.getElementById('assign-day-panel');
+  panel.innerHTML = `
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">⭐ Assign Group Trial</div>
+    <div style="background:#f3e5f5;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-weight:900;">${studentName} <span style="background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:10px;font-size:0.8rem;">${level}</span></div>
+    </div>
+
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Add to an Existing Class</label>
+      <select id="trial-existing-assignment" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="">${upcoming.length ? '-- Choose a class --' : 'No upcoming group classes yet'}</option>
+        ${existingOptions}
+      </select>
+      <div class="field-group" style="margin-top:8px;">
+        <input type="text" id="trial-existing-password" placeholder="Set a unique password for this student"
+          style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
+      </div>
+      <div id="trial-existing-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
+      <button onclick="assignTrialToExisting('${bookingId}','${studentName}')" style="width:100%;margin-top:6px;padding:10px;background:#6a1b9a;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Add to This Class</button>
+    </div>
+
+    <div style="text-align:center;color:#888;font-size:0.8rem;margin:16px 0;">— or —</div>
+
+    <div class="field-group">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Create a New Trial Slot</label>
+      <input type="date" id="trial-new-date" min="${today}" onchange="refreshNewTrialTeachers()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:8px;"/>
+      <input type="time" id="trial-new-time" onchange="refreshNewTrialTeachers()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:8px;"/>
+      <select id="trial-assign-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+        <option value="">-- Pick date & time first --</option>
+      </select>
+      <input type="text" id="trial-assign-password" placeholder="Set a unique password" oninput="checkTrialPasswordAvailable('${studentName}')"
+        style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-top:8px;"/>
+      <div id="trial-password-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
+      <button onclick="saveNewTrialSlot('${bookingId}')" style="width:100%;margin-top:6px;padding:10px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Create New Slot</button>
+    </div>
+
+    <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="width:100%;margin-top:16px;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+  `;
+  document.getElementById('assign-day-overlay').style.display = 'flex';
+}
+
+function todayGDLForAdmin() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+}
+
+function refreshNewTrialTeachers() {
+  const dateStr = document.getElementById('trial-new-date').value;
+  const time = document.getElementById('trial-new-time').value;
+  const sel = document.getElementById('trial-assign-room');
+  if (!dateStr || !time) { sel.innerHTML = '<option value="">-- Pick date & time first --</option>'; return; }
+
+  const availableTeachers = getAvailableTeachersForDate(dateStr).filter(t => {
+    if (!t.hours) return false;
+    if (time < t.hours.start || time > t.hours.end) return false;
+    const busy = allAssignments.some(a => a.room === t.room && a.date === dateStr && a.time === time);
+    return !busy;
+  });
+
+  sel.innerHTML = availableTeachers.length > 0
+    ? availableTeachers.map(t => `<option value="${t.room}">Teacher ${t.teacherName||'—'} · Room ${t.room}</option>`).join('')
+    : `<option value="">No teachers available at this time</option>`;
+}
+
+async function saveNewTrialSlot(bookingId) {
+  const dateStr = document.getElementById('trial-new-date').value;
+  const time = document.getElementById('trial-new-time').value;
+  if (!dateStr || !time) { alert('Please pick a date and time'); return; }
+  await saveTrialAssignment(bookingId, dateStr, time);
+}
+
+async function assignTrialToExisting(bookingId, studentName) {
+  const sel = document.getElementById('trial-existing-assignment');
+  const assignmentId = sel.value;
+  const status = document.getElementById('trial-existing-status');
+  const passwordInput = document.getElementById('trial-existing-password');
+  const password = passwordInput.value.trim();
+
+  if (!assignmentId) { status.textContent = '⚠️ Please choose a class'; status.style.color = '#e53935'; return; }
+  if (!password) { status.textContent = '⚠️ Please set a password for this student'; status.style.color = '#e53935'; return; }
+
+  const assignment = allAssignments.find(a => a._id === assignmentId);
+  if (!assignment) { status.textContent = '⚠️ Class not found — try refreshing'; status.style.color = '#e53935'; return; }
+
+  const assignRes = await fetch(`${SERVER_URL}/trial/bookings/${bookingId}/assign`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room: assignment.room, password, dateStr: assignment.date, time: assignment.time })
+  });
+  const assignData = await assignRes.json();
+  if (!assignData.success) {
+    status.textContent = '❌ ' + (assignData.error || 'Could not assign — try a different password');
+    status.style.color = '#e53935';
+    return;
+  }
+
+  document.getElementById('assign-day-overlay').style.display = 'none';
+  await loadAllAssignmentsData();
+  allTrialBookings = allTrialBookings.map(b => b._id === bookingId ? {...b, status:'assigned'} : b);
+  renderMasterCalendar();
+  renderDayDetail(assignment.date);
 }
 
 let _trialPasswordCheckTimer = null;
