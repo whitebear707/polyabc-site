@@ -378,6 +378,14 @@
 
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
+
+    // Classes I'm covering as a substitute, in other rooms
+    try {
+      const subRes = await fetch(`${SERVER_URL}/assignments/my-sub-duties`, { headers: { Authorization: `Bearer ${token}` } });
+      const subDuties = await subRes.json();
+      subDuties.forEach(a => { a._isSubDuty = true; });
+      assignments = assignments.concat(subDuties);
+    } catch(e) {}
     // Fetch attendance records to show class completion status
     let attendanceRecords = [];
     try {
@@ -414,10 +422,14 @@
       const localDate = new Date(`${a.date}T${a.time}:00-06:00`).toLocaleDateString([], { weekday:'short', month:'short', day:'numeric', timeZone: GDL });
       const isToday = a.date === today;
       const isNew = a.createdAt && a.createdAt > lastViewed;
-      return `<div style="background:${isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isNew?'#e53935':isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+      const isSubDuty = !!a._isSubDuty;
+      const isCoveredByOther = !!a.subTeacherRoom && !isSubDuty;
+      return `<div style="background:${isCoveredByOther?'rgba(255,255,255,0.03)':isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isSubDuty?'#6a1b9a':isNew?'#e53935':isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;${isCoveredByOther?'opacity:0.55;':''}">
         <div>
-          <div style="font-weight:900;color:${isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
+          <div style="font-weight:900;color:${isSubDuty?'#ce93d8':isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
           <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${a.classType||''}${a.groupName?' · '+a.groupName:''}</div>
+          ${isSubDuty ? `<div style="font-size:0.78rem;color:#ce93d8;font-weight:700;margin-top:4px;">🔁 Substituting for ${a.originalTeacherName||'another teacher'} · Room ${a.room}</div>` : ''}
+          ${isCoveredByOther ? `<div style="font-size:0.78rem;color:#888;font-weight:700;margin-top:4px;">Covered by substitute: ${a.subTeacherName||'—'}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           ${isNew?'<span style="background:#e53935;color:white;padding:3px 8px;border-radius:20px;font-size:0.72rem;font-weight:900;">NEW</span>':''}
