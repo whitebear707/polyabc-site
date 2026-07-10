@@ -567,11 +567,10 @@ async function loadDashboard() {
         </div>
         ${s.trialPassword && !s.trialBooked ? `
           ${s.classType === 'group' && s.trialLevel ? `
-            <div style="background:linear-gradient(135deg,#00c853,#00701a);border-radius:12px;padding:16px;margin-top:12px;">
-              <div style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:12px;">📚 Group Classes Available</div>
-              <div id="openings-${s.name}" style="text-align:center;color:white;font-size:0.85rem;">Loading openings...</div>
-              <button onclick="selectGroupOpening('${s.name}')" style="display:block;width:100%;margin-top:12px;padding:10px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">✓ Select Opening</button>
-              <button onclick="requestTrialContact('${s.name}')" style="display:block;width:100%;margin-top:8px;padding:10px;background:rgba(255,255,255,0.15);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">📞 Contact School</button>
+            <div style="background:linear-gradient(135deg,#00c853,#00701a);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
+              <div style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:12px;">📚 Group Trial Class</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-bottom:12px;">The school will contact you to schedule your trial class.<br>La escuela te contactará para agendar tu clase de prueba.</div>
+              <button onclick="requestTrialContact('${s.name}')" style="display:block;width:100%;padding:10px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">📞 Contact School</button>
             </div>
           ` : (s.classType === '1v1' || (s.classType === 'group' && !s.trialLevel)) ? `
             <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
@@ -615,13 +614,6 @@ async function loadDashboard() {
         ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing / Por favor contacte a facturación</div>' : ''}
       </div>
     `).join('');
-    
-    // Load group openings for group class trials
-    data.students.forEach(s => {
-      if (s.classType === 'group' && s.trialPassword && !s.trialBooked && s.trialLevel) {
-        loadGroupOpenings(s.name);
-      }
-    });
 
     // Render attendance
     const attList = document.getElementById('attendance-list');
@@ -1593,91 +1585,28 @@ function showClassPopup(dateStr) {
 }
 
 
-async function loadGroupOpenings(studentName) {
-  try {
-    const student = _dashboardStudents.find(s => s.name === studentName);
-    if (!student || student.classType !== 'group' || !student.trialLevel) return;
-    
-    const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
-    const data = await res.json();
-    
-    const el = document.getElementById('openings-' + studentName);
-    if (!el) return;
-    
-    if (data.openings && data.openings.length > 0) {
-      el.innerHTML = data.openings.length + ' opening' + (data.openings.length > 1 ? 's' : '') + ' available';
-    } else {
-      el.innerHTML = 'No openings available at this moment';
-    }
-  } catch(e) {
-    console.error('Error loading openings:', e);
-  }
-}
-
-async function selectGroupOpening(studentName) {
-  const student = _dashboardStudents.find(s => s.name === studentName);
-  if (!student || !student.trialLevel) return;
-  
-  try {
-    const res = await fetch(SERVER_URL + '/available-group-classes?level=' + student.trialLevel);
-    const data = await res.json();
-    
-    if (!data.hours || data.hours.length === 0) {
-      alert('No available times at the moment. Please contact the school.');
-      return;
-    }
-    
-    // Store current student for selection
-    window._selectingStudent = studentName;
-    
-    // Render available hours
-    const listEl = document.getElementById('group-openings-list');
-    listEl.innerHTML = data.hours.map((hour, idx) => `
-      <button onclick="confirmGroupOpening('${studentName}', '${hour.time}')" 
-        style="display:block;width:100%;padding:16px;background:#f5f5f5;border:2px solid #ddd;border-radius:10px;text-align:center;cursor:pointer;margin-bottom:12px;font-family:Nunito;transition:all 0.2s;"
-        onmouseover="this.style.borderColor='#1a73e8'; this.style.background='#f0f7ff';"
-        onmouseout="this.style.borderColor='#ddd'; this.style.background='#f5f5f5';">
-        <div style="font-weight:900;color:#1a73e8;font-size:1.3rem;">🕐 ${hour.display}</div>
-      </button>
-    `).join('');
-    
-    showScreen('select-group-opening');
-  } catch(e) {
-    console.error('Error loading available times:', e);
-    document.getElementById('group-opening-error').textContent = 'Error loading times';
-    document.getElementById('group-opening-error').style.display = 'block';
-  }
-}
-
-async function confirmGroupOpening(studentName, time) {
-  try {
-    // Save the hour preference to the student record
-    const res = await fetch(SERVER_URL + '/parent/select-group-opening', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentName, time })
-    });
-    
-    const data = await res.json();
-    if (data.success) {
-      await loadDashboard(); // Reload student cards + billing data
-      alert('✅ Success! You selected a group class. The school will confirm your enrollment shortly.');
-    } else {
-      alert('Error: ' + data.error);
-    }
-  } catch(e) {
-    console.error('Error confirming selection:', e);
-    alert('Failed to save selection');
-  }
-}
-
 function goBackToStudents() {
   showScreen('dashboard');
   showTab('students');
 }
 
 async function requestTrialContact(studentName) {
-  alert('Thank you! The school will contact you soon to arrange a custom schedule.');
+  try {
+    const res = await fetch(SERVER_URL + '/parent/request-trial-contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
+      body: JSON.stringify({ studentName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('✅ ¡Gracias! La escuela te contactará pronto para agendar tu clase de prueba.');
+    } else {
+      alert('Error: ' + (data.error || 'Something went wrong'));
+    }
+  } catch(e) {
+    console.error('Error requesting trial contact:', e);
+    alert('Failed to send request');
+  }
 }
 
 
