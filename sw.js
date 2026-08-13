@@ -1,7 +1,8 @@
-const CACHE_NAME = 'polyabc-v3';
+const CACHE_NAME = 'polyabc-v4';
 const ASSETS = [
   '/',
   '/index.html',
+  '/login.html',
   '/LOGO.png',
   '/nosee.png',
   '/noseeandhear.png'
