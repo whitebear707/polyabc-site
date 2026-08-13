@@ -108,12 +108,12 @@
   const token = localStorage.getItem('studentToken');
   const room  = localStorage.getItem('studentRoom');
   const name  = localStorage.getItem('studentName');
-  if (!token || !room) window.location.href = 'index.html';
+  if (!token || !room) window.location.href = 'login.html';
   document.getElementById('student-welcome').textContent = `Welcome, ${name || 'Student'}! 👋`;
 
   function doSignOut() {
     ['studentToken','studentName','studentRoom'].forEach(k => localStorage.removeItem(k));
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
   }
 
   function showTab(tab) {
