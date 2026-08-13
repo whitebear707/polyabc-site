@@ -1,373 +1,411 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <link rel="manifest" href="manifest.json"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="PolyABC"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="icon" type="image/png" href="icon.png"/>
   <link rel="apple-touch-icon" href="icon.png"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <style>
-    
-    }
+  <title>PolyABC — Clases de inglés en línea</title>
+  <meta name="description" content="Escuela de inglés en línea. Clases privadas y en grupos pequeños, con maestros reales y horarios flexibles."/>
 
-    @media screen and (max-width: 480px) {
-      body { padding: 12px; justify-content: flex-start; padding-top: 20px; }
-      .logo img { height: 60px; margin-bottom: 4px; }
-      .tagline { font-size: 0.85rem; margin-bottom: 20px; }
-      .card { padding: 20px; border-radius: 16px; }
-      .view-title { font-size: 1.1rem; margin-bottom: 16px; }
-      label { font-size: 0.85rem; }
-      input { padding: 12px; font-size: 0.95rem; margin-bottom: 14px; }
-      .btn-join { padding: 14px; font-size: 1rem; }
-    }
-  </style>
-  <title>PolyABC - Learn English Online</title>
   <!-- Open Graph / Link Preview -->
-  <meta property="og:title" content="PolyABC - Online English School"/>
-  <meta property="og:description" content="All levels and ages"/>
-  <meta property="og:image" content="https://polyabc.academy/icon.png"/>
-  <meta property="og:url" content="https://polyabc.academy"/>
+  <meta property="og:title" content="PolyABC — Clases de inglés en línea"/>
+  <meta property="og:description" content="Clases privadas y en grupos pequeños, con maestros reales y horarios flexibles."/>
+  <meta property="og:image" content="LOGO.png"/>
   <meta property="og:type" content="website"/>
-  <meta name="twitter:card" content="summary"/>
-  <meta name="twitter:image" content="https://polyabc.academy/icon.png"/>
+
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
   <style>
+    :root {
+      --ink:      #14213d;
+      --ink-soft: #5a6b8a;
+      --sky:      #1a73e8;
+      --sky-pale: #eaf2fe;
+      --paper:    #f7fafd;
+      --sun:      #ffc93c;
+      --leaf:     #00a878;
+      --coral:    #ff6b5b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    html { scroll-behavior: smooth; }
     body {
-      font-family: 'Nunito', sans-serif;
-      background: #f0f7ff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: #fff;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
+    .wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 
-    .logo img {
-      height: 70px;
-      margin-bottom: 4px;
-      display: block;
+    /* ---------- Nav ---------- */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e8eef6;
     }
-
-    .tagline {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 14px;
-      text-align: center;
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { height: 40px; }
+    .nav-links { display: flex; align-items: center; gap: 26px; }
+    .nav-links a {
+      color: var(--ink-soft); text-decoration: none;
+      font-size: 0.94rem; font-weight: 700;
     }
-
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 16px 20px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    .nav-links a:hover { color: var(--sky); }
+    .btn {
+      display: inline-block; text-decoration: none;
+      font-family: inherit; font-weight: 900; cursor: pointer;
+      border: none; border-radius: 12px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
-
-    .view-title {
-      font-size: 1rem;
-      font-weight: 900;
-      color: #1a73e8;
-      margin-bottom: 12px;
-      text-align: center;
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: var(--sky); color: #fff;
+      padding: 12px 24px; font-size: 1rem;
+      box-shadow: 0 4px 14px rgba(26,115,232,0.30);
     }
-
-    label {
-      display: block;
-      font-weight: 700;
-      color: #444;
-      margin-bottom: 2px;
-      font-size: 0.85rem;
+    .btn-primary:hover { background: #1560c4; box-shadow: 0 6px 18px rgba(26,115,232,0.38); }
+    .btn-ghost {
+      background: #fff; color: var(--sky);
+      border: 2px solid var(--sky);
+      padding: 12px 24px; font-size: 1rem;
     }
+    .btn-ghost:hover { background: var(--sky-pale); }
+    .btn-sm { padding: 9px 18px; font-size: 0.92rem; border-radius: 10px; }
 
-    input {
-      width: 100%;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 2px solid #ddd;
-      font-family: 'Nunito', sans-serif;
-      font-size: 0.9rem;
-      margin-bottom: 6px;
-      outline: none;
-      transition: border-color 0.2s;
+    /* ---------- Hero ---------- */
+    .hero {
+      background:
+        radial-gradient(1000px 420px at 82% -8%, rgba(255,201,60,0.20), transparent 60%),
+        radial-gradient(820px 380px at 8% 12%, rgba(0,168,120,0.14), transparent 62%),
+        var(--paper);
+      padding: 76px 0 84px;
+      border-bottom: 1px solid #e8eef6;
     }
-
-    input:focus { border-color: #1a73e8; }
-
-    .btn-join {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      border-radius: 12px;
-      border: none;
-      font-family: 'Nunito', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: #1a73e8;
-      color: white;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .btn-join:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
-    .btn-join:active { transform: translateY(0); }
-    .btn-spinner {
+    .hero-grid { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 52px; align-items: center; }
+    .eyebrow {
       display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 3px solid rgba(255,255,255,0.4);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      background: #fff; border: 1px solid #dbe6f5;
+      color: var(--sky); font-size: 0.82rem; font-weight: 900;
+      padding: 6px 14px; border-radius: 999px; margin-bottom: 20px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 {
+      font-size: clamp(2.1rem, 5vw, 3.3rem);
+      font-weight: 900; line-height: 1.12; letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+    h1 .accent {
+      background: linear-gradient(180deg, transparent 62%, var(--sun) 62%);
+      padding: 0 4px;
+    }
+    .hero p.lede {
+      font-size: 1.12rem; color: var(--ink-soft); max-width: 46ch; margin-bottom: 30px;
+    }
+    .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+    .hero-note { font-size: 0.9rem; color: var(--ink-soft); }
 
-    .error-msg {
-      color: #e53935;
+    /* Hero card */
+    .hero-card {
+      background: #fff; border-radius: 22px; padding: 26px;
+      box-shadow: 0 18px 50px rgba(20,33,61,0.13);
+      border: 1px solid #eef3f9;
+    }
+    .hero-card h3 { font-size: 1rem; margin-bottom: 16px; }
+    .slot {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 14px; border-radius: 13px;
+      background: var(--paper); margin-bottom: 10px;
+      border: 1px solid #eaf0f7;
+    }
+    .slot-icon {
+      width: 38px; height: 38px; flex: 0 0 38px;
+      border-radius: 11px; display: grid; place-items: center;
+      font-size: 1.1rem;
+    }
+    .slot-title { font-weight: 900; font-size: 0.95rem; }
+    .slot-sub { font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* ---------- Sections ---------- */
+    section { padding: 76px 0; }
+    .section-head { text-align: center; max-width: 620px; margin: 0 auto 46px; }
+    h2 {
+      font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+      font-weight: 900; letter-spacing: -0.015em; margin-bottom: 12px;
+    }
+    .section-head p { color: var(--ink-soft); font-size: 1.03rem; }
+
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .card {
+      background: #fff; border: 1px solid #e8eef6; border-radius: 18px;
+      padding: 28px 24px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(20,33,61,0.09); }
+    .card-icon {
+      width: 46px; height: 46px; border-radius: 13px;
+      display: grid; place-items: center; font-size: 1.35rem; margin-bottom: 16px;
+    }
+    .card h3 { font-size: 1.08rem; margin-bottom: 8px; }
+    .card p { color: var(--ink-soft); font-size: 0.95rem; }
+
+    /* Class type panels */
+    .types { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .type {
+      border-radius: 20px; padding: 32px 28px;
+      border: 2px solid #e8eef6; background: #fff;
+    }
+    .type.featured { border-color: var(--sky); background: var(--sky-pale); }
+    .type-tag {
+      display: inline-block; font-size: 0.76rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 5px 11px; border-radius: 999px; margin-bottom: 14px;
+    }
+    .type h3 { font-size: 1.3rem; margin-bottom: 10px; }
+    .type > p { color: var(--ink-soft); margin-bottom: 18px; }
+    .type ul { list-style: none; }
+    .type li {
+      padding: 7px 0 7px 27px; position: relative;
       font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 14px;
-      text-align: center;
-      display: none;
+    }
+    .type li::before {
+      content: '✓'; position: absolute; left: 0; top: 7px;
+      color: var(--leaf); font-weight: 900;
     }
 
-    .admin-link {
-      display: block;
-      text-align: center;
-      margin-top: 24px;
-      color: #bbb;
-      font-size: 0.88rem;
-      text-decoration: none;
-      transition: color 0.2s;
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; counter-reset: step; }
+    .step { text-align: center; }
+    .step-num {
+      width: 46px; height: 46px; margin: 0 auto 14px;
+      border-radius: 50%; background: var(--sky); color: #fff;
+      display: grid; place-items: center;
+      font-weight: 900; font-size: 1.15rem;
     }
-    .admin-link:hover { color: #1a73e8; }
+    .step h3 { font-size: 1.05rem; margin-bottom: 6px; }
+    .step p { color: var(--ink-soft); font-size: 0.94rem; }
+
+    /* Levels */
+    .levels { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .level {
+      background: #fff; border: 2px solid #e8eef6; border-radius: 14px;
+      padding: 16px 22px; text-align: center; min-width: 104px;
+    }
+    .level-code { font-size: 1.3rem; font-weight: 900; color: var(--sky); }
+    .level-name { font-size: 0.82rem; color: var(--ink-soft); font-weight: 700; }
+
+    /* CTA band */
+    .cta-band {
+      background: linear-gradient(135deg, #14213d, #1a3a6e);
+      color: #fff; border-radius: 24px; padding: 54px 40px; text-align: center;
+    }
+    .cta-band h2 { color: #fff; }
+    .cta-band p { color: rgba(255,255,255,0.82); font-size: 1.05rem; margin-bottom: 28px; }
+    .btn-sun { background: var(--sun); color: var(--ink); padding: 15px 34px; font-size: 1.05rem; }
+    .btn-sun:hover { background: #f5bd24; }
+
+    /* Footer */
+    footer {
+      background: var(--paper); border-top: 1px solid #e8eef6;
+      padding: 44px 0 34px; margin-top: 76px;
+    }
+    .foot-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .foot-logo img { height: 38px; }
+    .foot-links { display: flex; gap: 22px; flex-wrap: wrap; }
+    .foot-links a { color: var(--ink-soft); text-decoration: none; font-size: 0.92rem; font-weight: 700; }
+    .foot-links a:hover { color: var(--sky); }
+    .foot-legal {
+      text-align: center; color: #9aa8bd; font-size: 0.85rem;
+      margin-top: 26px; padding-top: 22px; border-top: 1px solid #e5ecf5;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 38px; }
+      .cards, .steps { grid-template-columns: 1fr; }
+      .types { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .nav-links a:not(.btn) { display: none; }
+      section { padding: 56px 0; }
+      .hero { padding: 52px 0 60px; }
+      .cta-band { padding: 40px 24px; }
+      .foot-inner { flex-direction: column; text-align: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; scroll-behavior: auto !important; }
+    }
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid var(--sun); outline-offset: 3px;
+    }
   </style>
 </head>
 <body>
-  <!-- User Login Button - Top Right -->
-  <a href="parent.html" style="position:fixed;top:15px;right:15px;z-index:9999;padding:10px 16px;background:#1a73e8;color:white;border-radius:8px;font-family:Nunito;font-weight:900;text-decoration:none;font-size:0.9rem;">
-    👤 User Login
-  </a>
 
-
-  <div class="logo"><img src="LOGO.png" alt="PolyABC"/></div>
-  <p class="tagline">Learn English from anywhere</p>
-
-  <div class="card">
-    <div style="text-align:center;margin-bottom:16px;color:#666;font-family:Nunito;font-size:0.9rem;">🎓 Classroom Login</div>
-    <div class="error-msg" id="join-error">Wrong room or password. Please try again.</div>
-
-    <label for="room-input">Classroom Number</label>
-    <input type="text" id="room-input" placeholder="e.g. 10" maxlength="10"/>
-    <div style="font-size:0.72rem;color:#888;margin-top:-6px;margin-bottom:8px;">🎓 New student? Check your Parent Panel for your room number (100 or 101)</div>
-
-    <label for="pass-input">Password</label>
-    <input type="password" id="pass-input" placeholder="Enter your password"/>
-
-    <button class="btn-join" onclick="joinClass()">Enter Class →</button>
-  </div>
-
-  <!-- Small discreet link for admin/teacher to go to their panel -->
-  <a class="admin-link" href="admin.html">Admin / Teacher Panel</a>
-
-  <script>
-    // Self-healing service worker: unregister any old SW first, then register the new one.
-    // This ensures users never get stuck with a broken SW — no manual steps needed.
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        const unregisterAll = registrations.map(r => r.unregister());
-        Promise.all(unregisterAll).then(() => {
-          navigator.serviceWorker.register('sw.js').catch(() => {});
-        });
-      });
-    }
-
-    // ── PWA Install Prompt ──
-    let _installPrompt = null;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      _installPrompt = e;
-      // Show popup after 1 second on mobile
-      if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
-        setTimeout(showInstallPopup, 1000);
-      }
-    });
-
-    window.addEventListener('appinstalled', () => {
-      document.getElementById('pwa-popup').style.display = 'none';
-    });
-
-    // iOS detection — show popup if not already installed
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.standalone) {
-      setTimeout(showInstallPopup, 1000);
-    }
-
-    function showInstallPopup() {
-      document.getElementById('pwa-popup').style.display = 'flex';
-    }
-
-    function installApp() {
-      document.getElementById('pwa-popup').style.display = 'none';
-      if (_installPrompt) {
-        _installPrompt.prompt();
-        _installPrompt.userChoice.then(() => { _installPrompt = null; });
-      } else {
-        // iPhone/Safari
-        document.getElementById('ios-install-popup').style.display = 'flex';
-      }
-    }
-
-    function dismissInstall() {
-      document.getElementById('pwa-popup').style.display = 'none';
-    }
-
-    function closeIosPopup() {
-      document.getElementById('ios-install-popup').style.display = 'none';
-    }
-
-    // ---- Your backend server URL goes here ----
-    const SERVER_URL = "https://polyabc-server.onrender.com";
-
-    async function joinClass() {
-      const room = document.getElementById('room-input').value.trim();
-      const pass = document.getElementById('pass-input').value.trim();
-
-      if (!room || !pass) {
-        alert('Please enter both a room number and password.');
-        return;
-      }
-
-      const btn = document.querySelector('.btn-join');
-      btn.disabled = true;
-      document.getElementById('join-error').style.display = 'none';
-      let secs = 55;
-      btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
-      const countdown = setInterval(() => {
-        secs--;
-        if (secs > 0) btn.innerHTML = `<span class="btn-spinner"></span> 🔍 Looking for class... ${secs}s`;
-        else clearInterval(countdown);
-      }, 1000);
-      window._loginCountdown = countdown;
-
-      try {
-        const res = await fetch(`${SERVER_URL}/validate-room`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ room, password: pass })
-        });
-        const data = await res.json();
-        clearInterval(window._loginCountdown);
-
-        if (data.success) {
-          if (data.role === 'trial') {
-          localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel, enrolledType: data.enrolledType || '1v1' }));
-          window.location.href = 'exam.html'; return;
-        }
-        if (data.role === 'teacher') {
-            localStorage.setItem('teacherToken', data.token);
-            localStorage.setItem('teacherRoom', room);
-            localStorage.setItem('teacherName', data.name || 'Teacher');
-            localStorage.setItem('adminToken', data.token);
-            localStorage.removeItem('studentToken');
-            window.location.href = 'greeting.html';
-          } else {
-            localStorage.removeItem('adminToken');
-            localStorage.setItem('studentToken', data.token);
-            localStorage.setItem('studentName', data.name);
-            localStorage.setItem('studentRoom', room);
-            window.location.href = `student-greeting.html`;
-          }
-        } else if (data.suspended) {
-          // Show payment wall
-          document.getElementById('join-error').style.display = 'none';
-          showPaymentWall();
-          btn.innerHTML = 'Enter Class →'; btn.disabled = false;
-        } else {
-          document.getElementById('join-error').textContent = data.message || 'Wrong room or password. Please try again.';
-          document.getElementById('join-error').style.display = 'block';
-          btn.innerHTML = 'Enter Class →'; btn.disabled = false;
-        }
-      } catch(e) {
-        // Server waking up, keep spinner
-      }
-    }
-
-    // Allow pressing Enter to submit
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') joinClass();
-    });
-  </script>
-
-
-<!-- PWA Install Popup -->
-<div id="pwa-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
-  <div style="background:white;border-radius:24px;padding:28px 24px;max-width:320px;width:90%;text-align:center;font-family:Nunito,sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
-    <img src="icon.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:14px;"/>
-    <div style="font-size:1.2rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Install PolyABC</div>
-    <div style="font-size:0.9rem;color:#666;margin-bottom:20px;line-height:1.5;">Get the full app experience! Install PolyABC on your home screen for quick access.</div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="dismissInstall()" style="flex:1;padding:11px;background:#f0f0f0;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;color:#555;">Not now</button>
-      <button onclick="installApp()" style="flex:1;padding:11px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;color:white;">📲 Install!</button>
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a href="index.html" class="nav-logo"><img src="LOGO.png" alt="PolyABC"/></a>
+    <div class="nav-links">
+      <a href="#clases">Clases</a>
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#niveles">Niveles</a>
+      <a href="login.html" class="btn btn-primary btn-sm">Entrar a clase</a>
     </div>
   </div>
-</div>
+</nav>
 
-<!-- iOS Install Instructions Popup -->
-<div id="ios-install-popup" onclick="closeIosPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;padding-bottom:20px;">
-  <div onclick="event.stopPropagation()" style="background:white;border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center;font-family:Nunito,sans-serif;">
-    <div style="font-size:2rem;margin-bottom:8px;">📲</div>
-    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Install PolyABC</div>
-    <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:16px;">
-      Tap the <strong>Share button</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Escuela de inglés en línea</span>
+      <h1>Aprende inglés <span class="accent">desde donde estés</span></h1>
+      <p class="lede">
+        Clases en vivo con maestros reales, en grupos pequeños o uno a uno.
+        Sin apps que instalar — solo abre tu navegador y entra.
+      </p>
+      <div class="hero-cta">
+        <a href="login.html" class="btn btn-primary">Entrar a clase</a>
+        <a href="parent.html" class="btn btn-ghost">Inscribir a un alumno</a>
+      </div>
+      <p class="hero-note">¿Ya tienes cuenta? Entra con el número de salón y tu contraseña.</p>
     </div>
-    <button onclick="closeIosPopup()" style="background:#1a73e8;color:white;border:none;padding:10px 28px;border-radius:10px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;">Got it!</button>
-  </div>
-</div>
-<div id="rotate-msg" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
-  <div style="font-size:4rem;margin-bottom:20px;animation:rotateIcon 2s linear infinite;">📱</div>
-  <p style="font-size:1.4rem;font-weight:900;color:#a0c4ff;margin-bottom:10px;">Please rotate your device</p>
-  
-  <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
-</div>
 
-<!-- Payment Wall -->
-<div id="payment-wall" style="display:none;position:fixed;inset:0;background:rgba(26,26,46,0.97);z-index:9999;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:white;border-radius:24px;padding:32px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-    <div style="font-size:3rem;margin-bottom:12px;">🔒</div>
-    <div style="font-size:1.2rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Account Paused / Cuenta Pausada</div>
-    <div style="font-size:0.9rem;color:#888;margin-bottom:20px;line-height:1.6;">
-      Your access has been temporarily paused due to a pending payment.<br><br>
-      El acceso ha sido pausado temporalmente por un pago pendiente.
+    <div class="hero-card">
+      <h3>Lo que incluye cada clase</h3>
+      <div class="slot">
+        <div class="slot-icon" style="background:#e7f7f1;">🎥</div>
+        <div>
+          <div class="slot-title">Video en vivo</div>
+          <div class="slot-sub">Maestro y alumnos, cara a cara</div>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="slot-icon" style="background:var(--sky-pale);">✏️</div>
+        <div>
+          <div class="slot-title">Pizarra compartida</div>
+          <div class="slot-sub">Para escribir y practicar juntos</div>
+        </div>
+      </div>
+      <div class="slot">
+        <div class="slot-icon" style="background:#fff6df;">📋</div>
+        <div>
+          <div class="slot-title">Panel para padres</div>
+          <div class="slot-sub">Asistencia, calendario y pagos</div>
+        </div>
+      </div>
+      <div class="slot" style="margin-bottom:0;">
+        <div class="slot-icon" style="background:#ffecea;">📶</div>
+        <div>
+          <div class="slot-title">Prueba de conexión</div>
+          <div class="slot-sub">Revisa tu internet antes de entrar</div>
+        </div>
+      </div>
     </div>
-    <div style="background:#fff3e0;border-radius:12px;padding:14px;margin-bottom:20px;font-size:0.85rem;color:#e65100;">
-      ⚠️ Please contact the school or make your payment to restore access.<br>
-      Por favor contacte a la escuela o realice su pago para restaurar el acceso.
-    </div>
-    <a href="parent.html" style="display:block;width:100%;padding:13px;background:#009ee3;color:white;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;text-decoration:none;margin-bottom:10px;box-sizing:border-box;">
-      💳 Ir al Portal de Padres / Go to Parent Portal
-    </a>
-    <button onclick="document.getElementById('payment-wall').style.display='none'"
-      style="width:100%;padding:10px;background:#f5f5f5;color:#888;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:700;cursor:pointer;">
-      ← Volver / Go Back
-    </button>
   </div>
-</div>
+</header>
+
+<section id="clases">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Dos formas de aprender</h2>
+      <p>Elige la que mejor se acomode al horario y al ritmo del alumno.</p>
+    </div>
+    <div class="types">
+      <div class="type">
+        <span class="type-tag" style="background:#e7f7f1;color:#00785a;">Grupal</span>
+        <h3>Clases en grupo</h3>
+        <p>Grupos pequeños del mismo nivel, con horario fijo cada semana.</p>
+        <ul>
+          <li>De lunes a jueves</li>
+          <li>Sesiones de 40 minutos</li>
+          <li>Grupos reducidos</li>
+          <li>Precio más accesible</li>
+        </ul>
+      </div>
+      <div class="type featured">
+        <span class="type-tag" style="background:var(--sky);color:#fff;">1 a 1</span>
+        <h3>Clases privadas</h3>
+        <p>Un maestro dedicado solo al alumno, con horario a elegir.</p>
+        <ul>
+          <li>Tú eliges los días y la hora</li>
+          <li>Sesiones de 30, 40, 50 o 60 minutos</li>
+          <li>De 1 a 4 clases por semana</li>
+          <li>Atención personalizada</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona" style="background:var(--paper);">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Cómo empezar</h2>
+      <p>Tres pasos, y la primera clase de prueba es gratis.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Regístrate</h3>
+        <p>Crea la cuenta del alumno con el código que te da la escuela.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Examen de nivel</h3>
+        <p>Una prueba corta en línea para ubicar al alumno en el nivel correcto.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Clase de prueba</h3>
+        <p>Conoce al maestro en una clase gratis antes de inscribirte.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="niveles">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Niveles</h2>
+      <p>Del primer contacto con el idioma hasta conversación avanzada.</p>
+    </div>
+    <div class="levels">
+      <div class="level"><div class="level-code">A1</div><div class="level-name">Principiante</div></div>
+      <div class="level"><div class="level-code">A2</div><div class="level-name">Básico</div></div>
+      <div class="level"><div class="level-code">B1</div><div class="level-name">Intermedio</div></div>
+      <div class="level"><div class="level-code">B2</div><div class="level-name">Intermedio alto</div></div>
+      <div class="level"><div class="level-code">C1</div><div class="level-name">Avanzado</div></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0;">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>¿Listo para la primera clase?</h2>
+      <p>Regístrate hoy y agenda una clase de prueba sin costo.</p>
+      <a href="parent.html" class="btn btn-sun">Inscribir a un alumno</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-inner">
+      <div class="foot-logo"><img src="LOGO.png" alt="PolyABC"/></div>
+      <div class="foot-links">
+        <a href="login.html">Entrar a clase</a>
+        <a href="parent.html">Panel de padres</a>
+        <a href="#clases">Clases</a>
+        <a href="#niveles">Niveles</a>
+      </div>
+    </div>
+    <div class="foot-legal">© <span id="year"></span> PolyABC — Escuela de inglés en línea</div>
+  </div>
+</footer>
 
 <script>
-function showPaymentWall() {
-  const wall = document.getElementById('payment-wall');
-  wall.style.display = 'flex';
-}
+  document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 </body>
 </html>
-
