@@ -92,7 +92,7 @@
   const token = localStorage.getItem('teacherToken');
   const room  = localStorage.getItem('teacherRoom');
   const name  = localStorage.getItem('teacherName');
-  if (!token || !room) window.location.href = 'index.html';
+  if (!token || !room) window.location.href = 'login.html';
 
   // Connect socket to receive real-time waiting notifications
   const greetingSocket = io(SERVER_URL, { auth: { token }, transports: ['websocket'] });
@@ -327,7 +327,7 @@ let _lastWaitingCount = 0;
   function goSchedule() { window.location.href = 'schedule.html'; }
   function exitToLogin() {
     ['teacherToken','teacherRoom','teacherName','adminToken'].forEach(k => localStorage.removeItem(k));
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
   }
 </script>
 </body>
