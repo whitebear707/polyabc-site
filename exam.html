@@ -265,7 +265,7 @@ const LEVELS = [
 
 // ── Init ──
 window.onload = async () => {
-  if (!trialData.id) { window.location.href = 'index.html'; return; }
+  if (!trialData.id) { window.location.href = 'login.html'; return; }
   const now = new Date();
   calYear = now.getFullYear();
   calMonth = now.getMonth();
@@ -477,7 +477,7 @@ async function confirmBooking() {
 
 function signOut() {
   localStorage.removeItem('trialStudent');
-  window.location.href = 'index.html';
+  window.location.href = 'login.html';
 }
 </script>
 </body>
