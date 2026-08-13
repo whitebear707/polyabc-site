@@ -48,11 +48,12 @@
     .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .nav-logo img { height: 40px; }
     .nav-links { display: flex; align-items: center; gap: 26px; }
-    .nav-links a {
+    .nav-links a:not(.btn) {
       color: var(--ink-soft); text-decoration: none;
       font-size: 0.94rem; font-weight: 700;
     }
-    .nav-links a:hover { color: var(--sky); }
+    .nav-links a:not(.btn):hover { color: var(--sky); }
+    .nav-links a.btn-primary { color: #fff; }
     .btn {
       display: inline-block; text-decoration: none;
       font-family: inherit; font-weight: 900; cursor: pointer;
