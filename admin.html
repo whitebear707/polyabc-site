@@ -506,6 +506,8 @@
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input id="parents-search" placeholder="Search parent or student..." oninput="filterParents()"
         style="padding:8px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;flex:1;min-width:200px;">
+      <button onclick="openCreateParentModal()"
+        style="padding:9px 20px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;white-space:nowrap;">+ Create Parent</button>
     </div>
     <div id="parents-list"></div>
   </div>
@@ -3539,6 +3541,78 @@ async function unassignStudent(parentId, studentName) {
   else showToast('❌ Failed');
 }
 
+function openCreateParentModal() {
+  const modal = document.getElementById('create-parent-modal');
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:26px;max-width:440px;width:100%;">
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">👪 Create Parent Account</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">
+        For parents who'd rather not register themselves. No registration code needed — they can log in right away with the password you set here.
+      </div>
+
+      <div class="field-group"><label>Parent Name *</label>
+        <input type="text" id="cp-name" placeholder="e.g. María González"/></div>
+      <div class="field-group"><label>Email *</label>
+        <input type="email" id="cp-email" placeholder="e.g. maria@email.com"/></div>
+      <div class="field-group"><label>WhatsApp / Phone</label>
+        <input type="tel" id="cp-phone" placeholder="e.g. +52 33 1234 5678"/></div>
+      <div class="field-group"><label>Password * (min 6 characters)</label>
+        <input type="text" id="cp-password" placeholder="Give this to the parent"/></div>
+      <div class="field-group"><label>Relationship</label>
+        <select id="cp-relationship" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
+          <option value="mother">Mother / Mamá</option>
+          <option value="father">Father / Papá</option>
+          <option value="guardian">Guardian / Tutor</option>
+          <option value="self">Adult student</option>
+        </select></div>
+
+      <div id="cp-status" style="font-size:0.85rem;font-weight:700;min-height:18px;margin-top:6px;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button onclick="document.getElementById('create-parent-modal').style.display='none'"
+          style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancel</button>
+        <button onclick="saveNewParent()"
+          style="flex:1;padding:11px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Create</button>
+      </div>
+    </div>`;
+  modal.style.display = 'flex';
+}
+
+async function saveNewParent() {
+  const status = document.getElementById('cp-status');
+  const parentName = document.getElementById('cp-name').value.trim();
+  const email      = document.getElementById('cp-email').value.trim();
+  const phone      = document.getElementById('cp-phone').value.trim();
+  const password   = document.getElementById('cp-password').value;
+  const relationship = document.getElementById('cp-relationship').value;
+
+  if (!parentName || !email || !password) {
+    status.textContent = '⚠️ Name, email and password are required'; status.style.color = '#e53935'; return;
+  }
+  if (password.length < 6) {
+    status.textContent = '⚠️ Password must be at least 6 characters'; status.style.color = '#e53935'; return;
+  }
+
+  status.textContent = 'Creating...'; status.style.color = '#888';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/parents`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ parentName, email, phone, password, relationship })
+    });
+    const d = await res.json();
+    if (!d.success) { status.textContent = '❌ ' + (d.error || 'Could not create'); status.style.color = '#e53935'; return; }
+
+    document.getElementById('create-parent-modal').style.display = 'none';
+    await renderParentsPanel();
+    showAlert('✅','Parent Created',
+      `${parentName} can now log in with:\n\nEmail: ${email}\nPassword: ${password}\n\nAssign students to them from the list below.`,
+      [{label:'Got it',fn:'closeAlert()',primary:true}]);
+  } catch(e) {
+    status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
+  }
+}
+
 function openEditParentModal(id, name, phone, email) {
   document.getElementById('parent-edit-modal').style.display = 'flex';
   document.getElementById('parent-edit-modal').innerHTML = `
@@ -4005,6 +4079,9 @@ async function flushDelete() {
 
 <!-- Parent Edit Modal -->
 <div id="parent-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+
+<!-- Create Parent Modal -->
+<div id="create-parent-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
   <div id="google_translate_element" style="position:fixed;top:65px;right:15px;z-index:9999;"></div>
   <script type="text/javascript">
     function googleTranslateElementInit() {
