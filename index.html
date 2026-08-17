@@ -274,7 +274,7 @@
       <div class="hero-cta">
         <a href="login.html" class="btn btn-primary">Entrar a clase</a>
         <a href="https://wa.me/523313208792?text=Hola%2C%20me%20interesa%20inscribir%20a%20un%20alumno%20en%20PolyABC%20y%20necesito%20un%20c%C3%B3digo%20de%20registro."
-           target="_blank" rel="noopener" class="btn btn-wa">💬 Inscríbete por WhatsApp</a>
+           target="_blank" rel="noopener" class="btn btn-wa js-wa">💬 Inscríbete por WhatsApp</a>
       </div>
       <p class="hero-note">¿Ya tienes cuenta? Entra con el número de salón y tu contraseña.</p>
     </div>
@@ -394,7 +394,7 @@
       <h2>¿Listo para la primera clase?</h2>
       <p>Regístrate hoy y agenda una clase de prueba sin costo.</p>
       <a href="https://wa.me/523313208792?text=Hola%2C%20me%20interesa%20inscribir%20a%20un%20alumno%20en%20PolyABC%20y%20necesito%20un%20c%C3%B3digo%20de%20registro."
-         target="_blank" rel="noopener" class="btn btn-wa btn-wa-lg">💬 Inscríbete por WhatsApp</a>
+         target="_blank" rel="noopener" class="btn btn-wa btn-wa-lg js-wa">💬 Inscríbete por WhatsApp</a>
     </div>
   </div>
 </section>
@@ -416,6 +416,24 @@
 
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Pull the school's current WhatsApp number from the server so admin can change it
+  // without a redeploy. The links already have a working number hardcoded, so if the
+  // server is asleep or unreachable, the buttons still work — they just use the old one.
+  (async () => {
+    try {
+      const res = await fetch('https://polyabc-server.onrender.com/school-info/public', {
+        signal: AbortSignal.timeout(6000)
+      });
+      if (!res.ok) return;
+      const { whatsapp } = await res.json();
+      if (!whatsapp || !/^\d{10,15}$/.test(whatsapp)) return;
+      const msg = encodeURIComponent('Hola, me interesa inscribir a un alumno en PolyABC y necesito un código de registro.');
+      document.querySelectorAll('.js-wa').forEach(a => {
+        a.href = `https://wa.me/${whatsapp}?text=${msg}`;
+      });
+    } catch (e) { /* keep the hardcoded fallback */ }
+  })();
 </script>
 </body>
 </html>
