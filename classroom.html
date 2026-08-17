@@ -799,9 +799,15 @@ function connectSocket() {
 
   socket.on('draw-control', ({ canDraw }) => {
     console.log('[DRAW-PERM] draw-control event received, canDraw =', canDraw, '| IS_TEACHER =', IS_TEACHER);
+    const wasDisabled = window._canDraw === false;
     window._canDraw = canDraw;
     if (!IS_TEACHER) {
       applyDrawPermission(canDraw);
+      // Re-enabled after being blocked — pull the current board so the student
+      // catches up on anything drawn while their pen was off.
+      if (canDraw && wasDisabled) {
+        socket.emit('request-canvas', { room: ROOM });
+      }
     }
   });
 
@@ -2721,7 +2727,10 @@ function initWhiteboard(socket) {
   if (!IS_TEACHER) applyDrawPermission(window._canDraw !== false);
 
   canvas.on('object:added', (e) => {
-    if (!IS_TEACHER && window._canDraw === false) {
+    // Only remove objects this student drew themselves. Incoming drawings from the
+    // teacher or other students arrive with suppressSync=true — those must be kept,
+    // otherwise disabling a student's pen also blanks their view of the board.
+    if (!IS_TEACHER && window._canDraw === false && !suppressSync) {
       setTimeout(() => { canvas.remove(e.target); canvas.renderAll(); }, 0);
     }
   });
