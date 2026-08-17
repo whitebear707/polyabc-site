@@ -257,6 +257,19 @@
 </div>
 
 <div id="main">
+  <p class="section-title">👤 My Profile Picture</p>
+  <div style="background:rgba(255,255,255,0.05);border:1px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <img id="my-photo" src="" alt=""
+      style="display:none;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #1a73e8;"/>
+    <div id="my-photo-placeholder"
+      style="width:76px;height:76px;border-radius:50%;background:#0f3460;color:#a0c4ff;display:grid;place-items:center;font-size:1.9rem;">👤</div>
+    <div style="flex:1;min-width:200px;">
+      <input type="file" id="my-photo-input" accept="image/*" onchange="uploadMyPhoto(this)"
+        style="width:100%;color:#a0c4ff;font-family:Nunito;font-size:0.82rem;"/>
+      <div id="my-photo-status" style="font-size:0.78rem;color:#667;margin-top:6px;">Choose an image to update your picture.</div>
+    </div>
+  </div>
+
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div style="font-size:0.75rem;color:#a0c4ff;margin-bottom:10px;">⏰ All times in Guadalajara Time (Central Mexico)</div>
   <div id="day-hours-card">
@@ -378,6 +391,7 @@
 
     const asRes = await fetch(`${SERVER_URL}/assignments`, { headers: { Authorization: `Bearer ${token}` } });
     assignments = await asRes.json();
+    loadMyPhoto();
 
     // Classes I'm covering as a substitute, in other rooms
     try {
@@ -749,6 +763,70 @@
       if (sEl) { sEl.textContent = tpToDisplay(startVal); sEl.classList.add('set'); }
       if (eEl) { eEl.textContent = tpToDisplay(endVal);   eEl.classList.add('set'); }
     });
+  }
+
+  // ── Profile picture (teacher self-service) ──
+  function _showMyPhoto(dataUrl) {
+    const img = document.getElementById('my-photo');
+    const ph  = document.getElementById('my-photo-placeholder');
+    if (dataUrl) { img.src = dataUrl; img.style.display = 'block'; ph.style.display = 'none'; }
+    else { img.src = ''; img.style.display = 'none'; ph.style.display = 'grid'; }
+  }
+
+  async function loadMyPhoto() {
+    try {
+      const res = await fetch(`${SERVER_URL}/teacher/profile`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const p = await res.json();
+      _showMyPhoto(p.photo || null);
+    } catch(e) {}
+  }
+
+  // Shrink before upload so we're not storing multi-MB phone photos
+  function _shrink(file, maxSize = 400, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read that file'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('That file is not a valid image'));
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadMyPhoto(input) {
+    const status = document.getElementById('my-photo-status');
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { status.textContent = '⚠️ Please choose an image file'; status.style.color = '#ff8a80'; return; }
+    status.textContent = 'Uploading...'; status.style.color = '#667';
+    try {
+      const dataUrl = await _shrink(file);
+      const res = await fetch(`${SERVER_URL}/teacher/photo`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ photo: dataUrl })
+      });
+      const d = await res.json();
+      if (d.success) {
+        _showMyPhoto(dataUrl);
+        status.textContent = '✅ Picture updated'; status.style.color = '#69f0ae';
+      } else {
+        status.textContent = '⚠️ ' + (d.error || 'Could not save'); status.style.color = '#ff8a80';
+      }
+    } catch(e) {
+      status.textContent = '⚠️ ' + e.message; status.style.color = '#ff8a80';
+    }
   }
 
   init();
