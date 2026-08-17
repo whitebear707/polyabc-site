@@ -460,6 +460,39 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-staff" class="panel">
     <div class="panel-title">👔 Admin Staff</div>
+
+    <!-- Permanent school contact record — cannot be deleted, only edited -->
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:1rem;font-weight:900;color:#1a1a2e;">🏫 School Contact (Admin)</span>
+        <span style="background:#e8f0fe;color:#1a73e8;font-size:0.7rem;font-weight:900;padding:2px 8px;border-radius:10px;">PERMANENT</span>
+      </div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:16px;">
+        Admin notification emails go to this address, and the website's WhatsApp button uses this number.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Name</label>
+          <input type="text" id="school-name" placeholder="Admin"
+            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Notification Email</label>
+          <input type="email" id="school-email" placeholder="admin@polyabc.academy"
+            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">WhatsApp (with country code)</label>
+          <input type="tel" id="school-whatsapp" placeholder="523313208792"
+            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+        <button onclick="saveSchoolInfo()" style="padding:10px 22px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">💾 Save</button>
+        <span id="school-info-status" style="font-size:0.85rem;font-weight:700;"></span>
+      </div>
+    </div>
+
     <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Add Staff Member</button>
     <div id="staff-list"></div>
   </div>
@@ -3452,9 +3485,55 @@ async function saveParentEdit(id) {
 // ── STAFF ──
 
 async function renderStaff() {
+  loadSchoolInfo();
   const res = await fetch(`${SERVER_URL}/staff`, { headers: { Authorization: `Bearer ${currentToken}` } });
   _allStaff = await res.json();
   renderStaffList();
+}
+
+async function loadSchoolInfo() {
+  try {
+    const res = await fetch(`${SERVER_URL}/school-info`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const info = await res.json();
+    document.getElementById('school-name').value     = info.name     || '';
+    document.getElementById('school-email').value    = info.email    || '';
+    document.getElementById('school-whatsapp').value = info.whatsapp || '';
+  } catch(e) { console.error('Could not load school info:', e); }
+}
+
+async function saveSchoolInfo() {
+  const status = document.getElementById('school-info-status');
+  const email  = document.getElementById('school-email').value.trim();
+  const wa     = document.getElementById('school-whatsapp').value.replace(/\D/g, '');
+
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    status.textContent = '⚠️ That email doesn\'t look valid'; status.style.color = '#e53935'; return;
+  }
+  if (wa && (wa.length < 10 || wa.length > 15)) {
+    status.textContent = '⚠️ WhatsApp number should include country code (e.g. 523313208792)'; status.style.color = '#e53935'; return;
+  }
+
+  status.textContent = 'Saving...'; status.style.color = '#888';
+  try {
+    const res = await fetch(`${SERVER_URL}/school-info`, {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({
+        name: document.getElementById('school-name').value.trim(),
+        email, whatsapp: wa
+      })
+    });
+    const d = await res.json();
+    if (d.success) {
+      document.getElementById('school-whatsapp').value = d.whatsapp || '';
+      status.textContent = '✅ Saved'; status.style.color = '#2e7d32';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } else {
+      status.textContent = '❌ ' + (d.error || 'Could not save'); status.style.color = '#e53935';
+    }
+  } catch(e) {
+    status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
+  }
 }
 
 function renderStaffList() {
