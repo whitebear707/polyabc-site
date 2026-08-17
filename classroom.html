@@ -997,8 +997,8 @@ function connectSocket() {
     }
   });
 
-  socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Class Full', '#e65100'); } });
-  socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Close Class', '#e53935'); } });
+  socket.on('room-full', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Class Full', '#e65100'); syncOpenClassBtnVisibility(); } });
+  socket.on('room-unlocked', () => { if (IS_TEACHER) { const btn = document.getElementById('open-class-btn'); setOpenClassBtn('🔒 Close Class', '#e53935'); syncOpenClassBtnVisibility(); } });
 
   socket.on('disconnect', () => { document.getElementById('room-label').style.background = '#e65100'; });
   socket.on('reconnect', () => {
@@ -1594,6 +1594,7 @@ function checkTeacherRoomLock() {
   if (current) {
     openBtn.disabled=false; openBtn.style.opacity='1';
     setBtnLabel(openBtn, classIsOpen ? '🔒 Close Class' : '🔓 Open Class');
+    syncOpenClassBtnVisibility();
     openBtn.title='';
     if (enterBtn) { enterBtn.style.display='block'; enterBtn.disabled=false; enterBtn.style.opacity='1'; enterBtn.style.cursor='pointer'; enterBtn.title=''; }
     startTimer(current);
@@ -1622,6 +1623,7 @@ function checkTeacherRoomLock() {
       setBtnLabel(openBtn, '🔒 Close Class'); openBtn.style.background = '#e53935';
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
     }
+    syncOpenClassBtnVisibility();
   } else {
     const next = sorted.find(a => a.sm-20 > nowMins);
     if (next) {
@@ -1712,6 +1714,7 @@ function startTimer(assignment) {
       autoOpened = true; classIsOpen = true;
       const btn = document.getElementById('open-class-btn');
       setOpenClassBtn('🔒 Close Class', '#e53935');
+      syncOpenClassBtnVisibility();
       if (window._socket) window._socket.emit('class-opened', { room: ROOM });
     }
 
@@ -1886,6 +1889,15 @@ function updateMonkey(socketId) {
   else { monkey.style.display = 'none'; }
 }
 
+// Once the class is open there's no reason to close it — the teacher uses
+// "End Class" instead. Hiding it prevents accidentally kicking everyone out
+// by misclicking it (it sits right next to Clear All).
+function syncOpenClassBtnVisibility() {
+  const btn = document.getElementById('open-class-btn');
+  if (!btn) return;
+  btn.style.display = classIsOpen ? 'none' : '';
+}
+
 function setOpenClassBtn(text, color) {
   const btn = document.getElementById('open-class-btn');
   if (!btn) return;
@@ -1922,6 +1934,7 @@ function toggleClassOpen() {
   const btn = document.getElementById('open-class-btn');
   if (classIsOpen) { setOpenClassBtn('🔒 Close Class', '#e53935'); if (window._socket) window._socket.emit('class-opened', { room: ROOM }); }
   else { setOpenClassBtn('🔓 Open Class', '#2e7d32'); if (window._socket) { window._socket.emit('class-closed', { room: ROOM }); window._socket.emit('record-class-end', { room: ROOM }); } }
+  syncOpenClassBtnVisibility();
 }
 
 function toggleMic() {
