@@ -248,6 +248,9 @@
       <div style="font-size:0.8rem;color:#888;">PolyABC Parent Panel</div>
     </div>
 
+    <!-- Payment reminder banner — filled in by renderPaymentBanner() -->
+    <div id="payment-banner" style="display:none;"></div>
+
     <div class="card">
       <div class="dashboard-nav">
         <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
@@ -534,6 +537,60 @@ async function doLogin() {
   }
 }
 
+// Shows a payment reminder at the top of the dashboard: overdue, due today, or due soon.
+function renderPaymentBanner(students) {
+  const el = document.getElementById('payment-banner');
+  if (!el) return;
+
+  const MS_DAY = 24 * 60 * 60 * 1000;
+  const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+
+  const relevant = students
+    .filter(s => s.nextPaymentDue && !s.transferPending)
+    .map(s => {
+      const due = new Date(s.nextPaymentDue);
+      const dueMidnight = new Date(due); dueMidnight.setHours(0,0,0,0);
+      return { name: s.name, due, daysLeft: Math.round((dueMidnight - startOfToday) / MS_DAY) };
+    })
+    .filter(s => s.daysLeft <= 3)          // overdue, today, or within 3 days
+    .sort((a,b) => a.daysLeft - b.daysLeft);
+
+  if (!relevant.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+  const fmt = d => d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long' });
+  const worst = relevant[0];
+
+  let bg, border, icon, heading;
+  if (worst.daysLeft < 0) {
+    bg = '#ffebee'; border = '#c62828'; icon = '⚠️';
+    heading = 'Pago vencido / Payment overdue';
+  } else if (worst.daysLeft === 0) {
+    bg = '#fff3e0'; border = '#e65100'; icon = '💳';
+    heading = 'Tu pago vence hoy / Payment due today';
+  } else {
+    bg = '#fffde7'; border = '#f9a825'; icon = '📅';
+    heading = 'Tu pago vence pronto / Payment due soon';
+  }
+
+  const lines = relevant.map(s => {
+    let when;
+    if (s.daysLeft < 0)       when = `venció el ${fmt(s.due)}`;
+    else if (s.daysLeft === 0) when = 'vence hoy';
+    else if (s.daysLeft === 1) when = 'vence mañana';
+    else                       when = `vence en ${s.daysLeft} días (${fmt(s.due)})`;
+    return `<div style="font-size:0.88rem;margin-top:3px;"><strong>${s.name}</strong> — ${when}</div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="card" style="background:${bg};border-left:5px solid ${border};padding:16px 20px;">
+      <div style="font-weight:900;color:${border};font-size:0.95rem;">${icon} ${heading}</div>
+      ${lines}
+      <button class="btn btn-primary" style="margin-top:12px;padding:9px 18px;font-size:0.9rem;"
+        onclick="showTab('payment')">Ir a pagar / Go to payment</button>
+    </div>`;
+  el.style.display = 'block';
+}
+
 async function loadDashboard() {
   showScreen('dashboard');
   document.getElementById('dash-welcome').textContent = `Welcome, ${localStorage.getItem('parentName') || 'Parent'}! 👋`;
@@ -544,6 +601,7 @@ async function loadDashboard() {
   const data = await res.json();
   _dashboardStudents = data.students || [];
   await loadBillingData();
+  renderPaymentBanner(data.students || []);
 
   // Render students
   const list = document.getElementById('students-list');
