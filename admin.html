@@ -493,6 +493,32 @@
       </div>
     </div>
 
+    <!-- School closures (holidays, no-class weeks) -->
+    <div style="background:#fff;border:2px solid #e65100;border-radius:14px;padding:20px;margin-bottom:22px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">📅 School Closure / Holiday</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:16px;">
+        No class this week? Shift affected parents' due dates forward so they're not billed for it —
+        and the automatic payment reminders won't nag them either, since those follow the due date.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Start Date</label>
+          <input type="date" id="closure-start" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">End Date</label>
+          <input type="date" id="closure-end" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Reason (optional, for the record)</label>
+        <input type="text" id="closure-reason" placeholder="e.g. Día de la Independencia"
+          style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+      </div>
+      <button onclick="previewClosure()" style="margin-top:14px;padding:10px 22px;background:#e65100;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔍 Preview Who's Affected</button>
+      <div id="closure-preview" style="margin-top:14px;"></div>
+    </div>
+
     <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Add Staff Member</button>
     <div id="staff-list"></div>
   </div>
@@ -932,8 +958,9 @@
       </div>
       <div class="field-group"><label>Class Type</label>
         <select id="group-type">
-          <option>Group - 30 Min</option><option>Group - 40 Min</option><option>Group - 50 Min</option>
+          <option>Group - 40 Min</option>
         </select>
+        <div style="font-size:0.75rem;color:#888;margin-top:3px;">Group classes are always 40 min, Mon–Thu.</div>
       </div>
     </div>
     <div class="field-group" style="margin-top:4px;">
@@ -3722,6 +3749,61 @@ async function saveSchoolInfo() {
   } catch(e) {
     status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
   }
+}
+
+async function previewClosure() {
+  const start = document.getElementById('closure-start').value;
+  const end   = document.getElementById('closure-end').value;
+  const box = document.getElementById('closure-preview');
+  if (!start || !end) { box.innerHTML = '<div style="color:#e53935;font-size:0.85rem;font-weight:700;">⚠️ Pick both a start and end date</div>'; return; }
+
+  box.innerHTML = '<div style="color:#888;font-size:0.85rem;">Checking who\'s affected...</div>';
+  const res = await fetch(`${SERVER_URL}/admin/closure/preview`, {
+    method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ startDate: start, endDate: end })
+  });
+  const d = await res.json();
+  if (!d.success) { box.innerHTML = `<div style="color:#e53935;font-size:0.85rem;font-weight:700;">❌ ${d.error}</div>`; return; }
+
+  const fmt = iso => new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  if (!d.students.length) {
+    box.innerHTML = `<div style="background:#f0f4f8;border-radius:10px;padding:14px;font-size:0.85rem;color:#555;">
+      No one currently has a payment due in that ${d.days}-day window — nothing to shift.
+    </div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="background:#fff3e0;border-radius:10px;padding:14px;margin-bottom:10px;">
+      <div style="font-weight:900;font-size:0.9rem;color:#e65100;margin-bottom:8px;">
+        ${d.students.length} student${d.students.length>1?'s':''} affected — due dates will move forward ${d.days} day${d.days>1?'s':''}
+      </div>
+      ${d.students.map(s => `<div style="font-size:0.82rem;color:#555;padding:2px 0;">
+        <strong>${s.name}</strong>: ${fmt(s.oldDue)} → <strong style="color:#2e7d32;">${fmt(s.newDue)}</strong>
+      </div>`).join('')}
+    </div>
+    <button onclick="applyClosure('${start}','${end}')" style="padding:10px 22px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">✅ Apply — Shift These Due Dates</button>
+  `;
+}
+
+async function applyClosure(start, end) {
+  const reason = document.getElementById('closure-reason').value.trim();
+  const box = document.getElementById('closure-preview');
+  box.innerHTML = '<div style="color:#888;font-size:0.85rem;">Applying...</div>';
+
+  const res = await fetch(`${SERVER_URL}/admin/closure/apply`, {
+    method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ startDate: start, endDate: end, reason })
+  });
+  const d = await res.json();
+  if (!d.success) { box.innerHTML = `<div style="color:#e53935;font-size:0.85rem;font-weight:700;">❌ ${d.error}</div>`; return; }
+
+  box.innerHTML = `<div style="background:#e8f5e9;border-radius:10px;padding:14px;color:#2e7d32;font-weight:700;font-size:0.9rem;">
+    ✅ Done — ${d.studentsAffected} student${d.studentsAffected!==1?'s':''} shifted forward ${d.days} day${d.days>1?'s':''}.
+  </div>`;
+  document.getElementById('closure-start').value = '';
+  document.getElementById('closure-end').value = '';
+  document.getElementById('closure-reason').value = '';
 }
 
 function renderStaffList() {
