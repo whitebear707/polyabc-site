@@ -326,7 +326,7 @@ let _lastWaitingCount = 0;
   function enterClass() { proceedToClass(); }
   function goSchedule() { window.location.href = 'schedule.html'; }
   function exitToLogin() {
-    ['teacherToken','teacherRoom','teacherName','adminToken'].forEach(k => localStorage.removeItem(k));
+    ['teacherToken','teacherRoom','teacherName','adminToken','teacherIsSub'].forEach(k => localStorage.removeItem(k));
     window.location.href = 'login.html';
   }
 </script>

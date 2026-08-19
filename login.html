@@ -307,7 +307,11 @@
         }
         if (data.role === 'teacher') {
             localStorage.setItem('teacherToken', data.token);
-            localStorage.setItem('teacherRoom', room);
+            // If this teacher is covering someone else's class, route them into the
+            // ORIGINAL room — that's where the students join. Otherwise use their own.
+            localStorage.setItem('teacherRoom', data.subOriginalRoom || room);
+            if (data.isSub) localStorage.setItem('teacherIsSub', '1');
+            else localStorage.removeItem('teacherIsSub');
             localStorage.setItem('teacherName', data.name || 'Teacher');
             localStorage.setItem('adminToken', data.token);
             localStorage.removeItem('studentToken');
