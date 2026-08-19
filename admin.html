@@ -3386,6 +3386,31 @@ async function confirmPayment(name) {
   loadBillingStudents();
 }
 
+// Group classes are always Mon-Thu = 4x/week, no other option. 1v1 is flexible (1-4x).
+function cpwFieldHTML(type, currentValue) {
+  if (type === 'group') {
+    return `
+      <div style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f0f4f8;color:#555;font-family:Nunito;">
+        4x per week <span style="color:#888;font-size:0.82rem;">(Mon–Thu, fixed)</span>
+      </div>
+      <input type="hidden" id="be-cpw" value="4">`;
+  }
+  const v = [1,2,3,4].includes(Number(currentValue)) ? Number(currentValue) : 1;
+  return `
+    <select id="be-cpw" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+      <option value="1" ${v===1?'selected':''}>1x per week</option>
+      <option value="2" ${v===2?'selected':''}>2x per week</option>
+      <option value="3" ${v===3?'selected':''}>3x per week</option>
+      <option value="4" ${v===4?'selected':''}>4x per week</option>
+    </select>`;
+}
+
+function updateCpwField() {
+  const type = document.getElementById('be-type')?.value;
+  const current = document.getElementById('be-cpw')?.value;
+  document.getElementById('be-cpw-wrap').innerHTML = cpwFieldHTML(type, current);
+}
+
 // Edit billing modal
 function openBillingEdit(name) {
   const s = _billingStudents.find(x => x.name === name);
@@ -3402,7 +3427,7 @@ function openBillingEdit(name) {
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">CLASS TYPE</label>
-          <select id="be-type" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+          <select id="be-type" onchange="updateCpwField()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
             <option value="">— Select —</option>
             <option value="1v1" ${s.enrolledType==='1v1'?'selected':''}>1v1</option>
             <option value="group" ${s.enrolledType==='group'?'selected':''}>Group</option>
@@ -3419,12 +3444,7 @@ function openBillingEdit(name) {
         </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">CLASSES PER WEEK</label>
-          <select id="be-cpw" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-            <option value="1" ${s.classesPerWeek==1?'selected':''}>1x per week</option>
-            <option value="2" ${s.classesPerWeek==2?'selected':''}>2x per week</option>
-            <option value="3" ${s.classesPerWeek==3?'selected':''}>3x per week</option>
-            <option value="4" ${s.classesPerWeek==4?'selected':''}>4x per week</option>
-          </select>
+          <div id="be-cpw-wrap">${cpwFieldHTML(s.enrolledType, s.classesPerWeek)}</div>
         </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:6px;">SCHEDULED DAYS</label>
