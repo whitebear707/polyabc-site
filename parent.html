@@ -369,12 +369,19 @@ let _parentToken = localStorage.getItem('parentToken');
 const urlParams = new URLSearchParams(window.location.search);
 const verifyToken = urlParams.get('verify');
 const resetToken = urlParams.get('reset');
+const linkCode = urlParams.get('code');   // magic registration link from admin
 if (verifyToken) {
   fetch(`${SERVER_URL}/parent/verify?token=${verifyToken}`)
     .then(r => r.json())
     .then(d => { if (d.success) showScreen('verify'); else showScreen('login'); });
 } else if (resetToken) {
   showScreen('reset');
+} else if (linkCode) {
+  // Parent tapped a registration link — fill the code in and validate it for them.
+  showScreen('register-code');
+  const input = document.getElementById('reg-code');
+  if (input) input.value = linkCode.toUpperCase();
+  validateCode();
 } else if (_parentToken) {
   loadDashboard();
 } else {
