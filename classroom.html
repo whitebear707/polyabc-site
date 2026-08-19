@@ -356,6 +356,7 @@
       <div id="teacher-only">
         <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
+        <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
@@ -1007,7 +1008,7 @@ function connectSocket() {
   });
 
   socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
-  socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
+  socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { relockSlides(); canvas.renderAll(); suppressSync = false; }); });
   socket.on('clear-all', () => {
     if (!canvas) return;
     suppressSync = true;
@@ -1024,7 +1025,7 @@ function connectSocket() {
     canvas.renderAll();
     suppressSync = false;
   });
-  socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { canvas.renderAll(); suppressSync = false; }); });
+  socket.on('canvas-state', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { relockSlides(); canvas.renderAll(); suppressSync = false; }); });
 
   // Teacher: student requested canvas on rejoin
   socket.on('canvas-requested', ({ studentId }) => {
@@ -2909,6 +2910,57 @@ function clearBoard() {
   toRemove.forEach(obj => canvas.remove(obj));
   canvas.renderAll();
   if (window._socket) window._socket.emit('whiteboard-clear', { room: ROOM });
+}
+
+// ── SLIDE RESIZE / REPOSITION (teacher only) ──
+// Slides are locked by default so drawing over them never selects them by accident.
+// This toggle temporarily unlocks them so the teacher can scale and move the slide;
+// the existing object:modified handler syncs the result to students.
+let _slideEdit = false;
+
+function getSlideObjects() {
+  if (!canvas) return [];
+  return canvas.getObjects().filter(o => o.type === 'image' && o.data && o.data.locked);
+}
+
+function lockSlide(o) {
+  o.set({ selectable: false, evented: false, lockMovementX: true, lockMovementY: true, hasControls: false, hasBorders: false });
+}
+
+function unlockSlide(o) {
+  o.set({ selectable: true, evented: true, lockMovementX: false, lockMovementY: false, hasControls: true, hasBorders: true, lockUniScaling: true });
+}
+
+// Incoming canvas states must never arrive unlocked, or students could drag the slide.
+function relockSlides() {
+  if (_slideEdit) return;
+  getSlideObjects().forEach(lockSlide);
+}
+
+function toggleSlideEdit() {
+  if (!IS_TEACHER || !canvas) return;
+  const slides = getSlideObjects();
+  const btn = document.getElementById('slide-resize-btn');
+  if (!slides.length) {
+    if (btn) { const old = btn.innerHTML; btn.innerHTML = 'No slide yet'; setTimeout(() => btn.innerHTML = old, 1500); }
+    return;
+  }
+  _slideEdit = !_slideEdit;
+  if (_slideEdit) {
+    canvas.isDrawingMode = false;
+    canvas.selection = true;
+    slides.forEach(unlockSlide);
+    canvas.setActiveObject(slides[slides.length - 1]);
+    if (btn) { btn.innerHTML = '✅ Done Resizing'; btn.style.background = '#2e7d32'; }
+  } else {
+    slides.forEach(lockSlide);
+    canvas.discardActiveObject();
+    canvas.selection = false;
+    if (btn) { btn.innerHTML = '📐 Resize Slide'; btn.style.background = '#00838f'; }
+    setTool(currentTool === 'laser' ? 'draw' : (currentTool || 'draw'));
+    if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) });
+  }
+  canvas.renderAll();
 }
 
 function uploadImage(event) {
