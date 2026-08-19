@@ -369,16 +369,15 @@
   async function loadReviews() {
     monthOptions();
     const month = document.getElementById('review-month').value;
-    const [res, reqRes] = await Promise.all([
-      fetch(`${SERVER_URL}/reviews/my-students?month=${month}`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${SERVER_URL}/reviews/requests`, { headers: { Authorization: `Bearer ${token}` } })
-    ]);
+    const res = await fetch(`${SERVER_URL}/reviews/my-students?month=${month}`, { headers: { Authorization: `Bearer ${token}` } });
     _reviewData = await res.json();
-    const requests = await reqRes.json().catch(() => []);
+    // Requests come from this payload only — it exposes the id as `id`, whereas the raw
+    // /reviews/requests documents expose `_id`, and mixing the two loses the id entirely.
+    const requests = _reviewData.requests || [];
     const reqByStudent = {};
-    (requests || []).forEach(r => { reqByStudent[r.studentName] = r; });
+    requests.forEach(r => { reqByStudent[r.studentName] = r; });
     const banner = document.getElementById('review-requests-banner');
-    banner.innerHTML = (requests || []).length
+    banner.innerHTML = requests.length
       ? '<div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:12px;margin-bottom:12px;">'
         + '<div style="font-weight:900;color:#e65100;margin-bottom:6px;">📨 Reviews requested by admin — these need their own new review</div>'
         + requests.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #ffe0b2;">
@@ -412,6 +411,7 @@
     _reviewStudent = name;
     _reviewRequest = requestId || null;
     const req = requestId ? (_reviewData.requests || []).find(r => r.id === requestId) : null;
+    if (requestId && !req) { alert('That review request is no longer available — reloading.'); loadReviews(); return; }
     const entry = (_reviewData.students || []).find(s => s.name === name);
     // A requested review always starts blank — it must be written fresh.
     const prev = req ? null : entry?.review;
