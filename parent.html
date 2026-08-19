@@ -343,6 +343,18 @@
   </div>
 
   <!-- RESET PASSWORD -->
+  <div id="screen-force-password" style="display:none;">
+    <div class="card">
+      <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔐</div>
+      <h2>Crea tu contraseña / Create your password</h2>
+      <p class="subtitle">Por seguridad, cambia la contraseña temporal antes de continuar.<br>For security, replace your temporary password before continuing.</p>
+      <div class="field"><label>Nueva contraseña / New Password</label><input type="password" id="force-password" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Confirmar / Confirm</label><input type="password" id="force-confirm" placeholder="Repite la contraseña"/></div>
+      <div id="force-error" class="error"></div>
+      <button class="btn btn-primary" onclick="doForcePassword()">Guardar / Save</button>
+    </div>
+  </div>
+
   <div id="screen-reset" style="display:none;">
     <div class="card">
       <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔑</div>
@@ -390,7 +402,7 @@ if (verifyToken) {
 }
 
 function showScreen(name) {
-  ['login','register-code','register-type','register-self','register-parent','register-student','register-class-type','email-sent','dashboard','verify','forgot','reset','trial-ready','select-group-opening'].forEach(s => {
+  ['login','register-code','register-type','register-self','register-parent','register-student','register-class-type','email-sent','dashboard','verify','forgot','reset','trial-ready','select-group-opening','force-password'].forEach(s => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.style.display = 'none';
   });
@@ -527,6 +539,23 @@ function backFromClassType() {
   showScreen(_regPath === 'self' ? 'register-self' : 'register-student');
 }
 
+async function doForcePassword() {
+  const pwd = document.getElementById('force-password').value;
+  const conf = document.getElementById('force-confirm').value;
+  const errEl = document.getElementById('force-error');
+  errEl.style.display = 'none';
+  if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres / At least 6 characters'; errEl.style.display = 'block'; return; }
+  if (pwd !== conf) { errEl.textContent = 'Las contraseñas no coinciden / Passwords do not match'; errEl.style.display = 'block'; return; }
+  const res = await fetch(`${SERVER_URL}/parent/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+    body: JSON.stringify({ newPassword: pwd })
+  });
+  const data = await res.json();
+  if (data.success) { loadDashboard(); }
+  else { errEl.textContent = data.error || 'No se pudo guardar / Could not save'; errEl.style.display = 'block'; }
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pwd = document.getElementById('login-password').value;
@@ -538,6 +567,8 @@ async function doLogin() {
     localStorage.setItem('parentToken', data.token);
     localStorage.setItem('parentName', data.parentName);
     _parentToken = data.token;
+    // Admin-issued temporary password — force the parent to set their own first.
+    if (data.mustChangePassword) { showScreen('force-password'); return; }
     loadDashboard();
   } else {
     errEl.textContent = data.error || 'Login failed / Error al iniciar sesión';

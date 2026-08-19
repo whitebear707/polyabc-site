@@ -3600,12 +3600,33 @@ function renderParentsList(parents) {
       + phoneStr + joinedStr + '</div>'
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + verifiedBadge
       + '<button data-pid="' + pid + '" data-pname="' + pname.replace(/"/g,"&quot;") + '" data-pphone="' + pphone + '" data-pemail="' + pemail + '" onclick="openEditParentModal(this.dataset.pid,this.dataset.pname,this.dataset.pphone,this.dataset.pemail)" style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Edit</button>'
+      + '<button data-pid="' + pid + '" data-pemail="' + pemail + '" onclick="confirmSendCredentials(this.dataset.pid,this.dataset.pemail)" style="padding:4px 10px;background:#1a73e8;border:none;color:white;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">📧 Send Login</button>'
       + '</div></div>'
       + '<div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Students</div>'
       + studentRows
       + _parentAssignDropdown(par, assignedNames)
       + '</div>';
   }).join('');
+}
+
+function confirmSendCredentials(pid, email) {
+  if (!email) { showAlert('😬','No Email','This parent has no email address on file.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
+  showAlert('📧','Send login details?','A new temporary password will be emailed to ' + email + '. Any password they are using now will stop working, and they will be asked to create their own password when they log in.',
+    [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Send',fn:`doSendCredentials('${pid}')`,primary:true}]);
+}
+
+async function doSendCredentials(pid) {
+  closeAlert();
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/parents/${pid}/send-credentials`, {
+      method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) { showToast('✅ Login details sent!'); await renderParentsPanel(); }
+    else showAlert('😬','Could not send',data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+  } catch(e) {
+    showAlert('😬','Could not send',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+  }
 }
 
 async function assignStudent(parentId) {
