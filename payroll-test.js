@@ -11,6 +11,17 @@
     room:ROOM,teacherName:'PayrollTest',teacherPassword:'ptest8001',hourlyRate:RATE})})).json();
   if(!mk.success){console.error('❌ Could not create test room:',mk.message||mk);return;}
 
+  // Wipe assignments left behind by earlier runs. Payroll matches an attendance
+  // record to the FIRST assignment at that date+time, so stale ones would win
+  // and mask the group roster.
+  const oldA=await(await fetch(`${SERVER_URL}/assignments?room=${ROOM}`,{headers:H})).json();
+  for(const a of (Array.isArray(oldA)?oldA:[]))
+    await fetch(`${SERVER_URL}/assignments/${a._id}`,{method:'DELETE',headers:H}).catch(()=>{});
+  const oldG=await(await fetch(`${SERVER_URL}/groups`,{headers:H})).json();
+  for(const g of (Array.isArray(oldG)?oldG:[]).filter(g=>/enrolled, \d+ absent/.test(g.name)))
+    await fetch(`${SERVER_URL}/groups/${g._id}`,{method:'DELETE',headers:H}).catch(()=>{});
+  console.log(`cleared ${(Array.isArray(oldA)?oldA:[]).length} old assignment(s)`);
+
   // [enrolled, absent] — every combination you listed
   const combos=[];
   for(let enrolled=2; enrolled<=6; enrolled++)
