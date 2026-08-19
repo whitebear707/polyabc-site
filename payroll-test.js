@@ -7,8 +7,9 @@
   const hhmm=slot=>{const t=slot*45;return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};
 
   await fetch(`${SERVER_URL}/rooms/${ROOM}`,{method:'DELETE',headers:H}).catch(()=>{});
-  await fetch(`${SERVER_URL}/rooms`,{method:'POST',headers:H,body:JSON.stringify({
-    room:ROOM,teacherName:'PayrollTest',teacherPassword:'ptest8001',hourlyRate:RATE})});
+  const mk=await(await fetch(`${SERVER_URL}/rooms`,{method:'POST',headers:H,body:JSON.stringify({
+    room:ROOM,teacherName:'PayrollTest',teacherPassword:'ptest8001',hourlyRate:RATE})})).json();
+  if(!mk.success){console.error('❌ Could not create test room:',mk.message||mk);return;}
 
   // [enrolled, absent] — every combination you listed
   const combos=[];
@@ -27,6 +28,7 @@
   for(const c of cases){
     const a=await(await fetch(`${SERVER_URL}/assignments`,{method:'POST',headers:H,body:JSON.stringify({
       room:ROOM,date:DATE,time:hhmm(c.slot),level:'A1',classType:c.classType,groupName:c.label})})).json();
+    if(!a.sessionId){console.error('❌ assignment failed for',c.label,a);continue;}
 
     // absent students are present in the roster but never joined (no joinedAt)
     const students=[
@@ -41,6 +43,7 @@
   }
 
   const pay=await(await fetch(`${SERVER_URL}/payroll?from=${DATE}&to=${DATE}&room=${ROOM}`,{headers:H})).json();
+  if(!pay[0]){console.error('❌ Payroll returned no data for room',ROOM,'— raw:',pay);return;}
   const got=(pay[0]?.classes)||[];
   const base=m=>(RATE/60)*m;
   const bonusFor=n=>Math.min(Math.max(0,n-2)*20,60);
