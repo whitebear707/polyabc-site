@@ -3675,6 +3675,7 @@ async function saveNewParent() {
 }
 
 function openEditParentModal(id, name, phone, email) {
+  const _p = (_allParents || []).find(x => String(x._id) === String(id)) || {};
   document.getElementById('parent-edit-modal').style.display = 'flex';
   document.getElementById('parent-edit-modal').innerHTML = `
     <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
@@ -3696,6 +3697,24 @@ function openEditParentModal(id, name, phone, email) {
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">EMAIL</label>
           <input id="pe-email" value="${email}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
         </div>
+
+        <div style="border-top:1px solid #eee;padding-top:12px;">
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">
+            FAMILY DISCOUNT (%) <span style="color:#e65100;">— private</span>
+          </label>
+          <input id="pe-discount" type="number" min="0" max="100" step="1" value="${_p?.familyDiscount || 0}"
+            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+          <div style="font-size:0.75rem;color:#888;margin-top:4px;">
+            Applies to this family's whole payment total. Leave 0 for none.
+            Only this family ever sees it — it's not advertised anywhere.
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">REASON (internal note)</label>
+          <input id="pe-discount-note" value="${(_p?.familyDiscountNote || '').replace(/"/g,'&quot;')}" placeholder="e.g. 2 hermanos — acordado con la mamá"
+            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+
         <button onclick="saveParentEdit('${id}')"
           style="padding:12px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">💾 Save</button>
       </div>
@@ -3707,12 +3726,19 @@ async function saveParentEdit(id) {
     parentName: document.getElementById('pe-name')?.value,
     phone: document.getElementById('pe-phone')?.value,
     email: document.getElementById('pe-email')?.value,
+    familyDiscount: document.getElementById('pe-discount')?.value || 0,
+    familyDiscountNote: document.getElementById('pe-discount-note')?.value || '',
   };
   await fetch(`${SERVER_URL}/admin/parents/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify(body)
   });
+  // refresh cached list so the modal shows the new value next time
+  try {
+    const pr = await fetch(`${SERVER_URL}/admin/parents`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    if (pr.ok) _allParents = await pr.json();
+  } catch(e) {}
   document.getElementById('parent-edit-modal').style.display = 'none';
   showToast('✅ Parent updated');
   renderParentsPanel();
