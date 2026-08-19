@@ -962,6 +962,15 @@
         </select>
         <div style="font-size:0.75rem;color:#888;margin-top:3px;">Group classes are always 40 min, Mon–Thu.</div>
       </div>
+      <div class="field-group"><label>Teacher</label>
+        <select id="group-room">
+          <option value="">-- Not assigned --</option>
+        </select>
+      </div>
+      <div class="field-group"><label>Class Time</label>
+        <input type="time" id="group-time"/>
+        <div style="font-size:0.75rem;color:#888;margin-top:3px;">Guadalajara time. Classes are created Mon–Thu automatically.</div>
+      </div>
     </div>
     <div class="field-group" style="margin-top:4px;">
       <label>Students in Group</label>
@@ -2525,6 +2534,11 @@ function copyTrialMessage() {
 }
 
 // ── GROUPS PANEL ──
+function teacherNameForRoom(room) {
+  const r = rooms.find(r => String(r.room) === String(room));
+  return r ? (r.teacherName || 'Teacher') : 'Teacher';
+}
+
 function renderGroups() {
   const list = document.getElementById('groups-list');
   if (!allGroups.length) { list.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No groups yet. Create one!</div>'; return; }
@@ -2539,6 +2553,7 @@ function renderGroups() {
         <div>
           <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${g.name}</div>
           <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${g.level} · ${g.classType} · ${fmt12(g.time)||'No time set'}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:${g.room?'#2e7d32':'#c62828'};margin-top:3px;">${g.room ? `👩‍🏫 ${teacherNameForRoom(g.room)} (Room ${g.room}) · Mon–Thu weekly` : '⚠️ No teacher assigned — no classes will be created'}</div>
         </div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-blue btn-sm" onclick="openEditGroupModal('${g._id}')">✏️ Edit</button>
@@ -2557,6 +2572,8 @@ function openAddGroupModal() {
   document.getElementById('group-name').value = '';
   document.getElementById('group-level').value = 'A0';
   document.getElementById('group-type').value = 'Group - 40 Min';
+  populateGroupRoomSelect('');
+  document.getElementById('group-time').value = '';
   _groupStudents = [];
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -2571,6 +2588,8 @@ function openEditGroupModal(id) {
   document.getElementById('group-name').value = g.name || '';
   document.getElementById('group-level').value = g.level || 'A0';
   document.getElementById('group-type').value = g.classType || 'Group - 40 Min';
+  populateGroupRoomSelect(g.room || '');
+  document.getElementById('group-time').value = g.time || '';
   _groupStudents = [...(g.students || [])];
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -2578,6 +2597,13 @@ function openEditGroupModal(id) {
 }
 
 function closeGroupModal() { document.getElementById('group-modal').classList.remove('open'); }
+
+function populateGroupRoomSelect(selected) {
+  const sel = document.getElementById('group-room');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Not assigned --</option>' +
+    rooms.map(r => `<option value="${r.room}"${String(r.room) === String(selected) ? ' selected' : ''}>Teacher ${r.teacherName || '—'} (Room ${r.room})</option>`).join('');
+}
 
 function populateGroupStudentSelect() {
   const all = getAllStudents();
@@ -2613,17 +2639,22 @@ async function saveGroup() {
   const name = document.getElementById('group-name').value.trim();
   const level = document.getElementById('group-level').value;
   const classType = document.getElementById('group-type').value;
+  const room = document.getElementById('group-room').value;
+  const time = document.getElementById('group-time').value;
   if (!name) { showAlert('😬','Oh No! Woops!','Group name is required.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (room && !time) { showAlert('😬','Oh No! Woops!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (time && !room) { showAlert('😬','Oh No! Woops!','Pick a teacher for this group, or clear the class time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
 
+  const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents });
   if (id) {
     await fetch(`${SERVER_URL}/groups/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, level, classType, time: '', students: _groupStudents })
+      body: payload
     });
   } else {
     await fetch(`${SERVER_URL}/groups`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ name, level, classType, time: '', students: _groupStudents })
+      body: payload
     });
   }
   closeGroupModal();
