@@ -3098,25 +3098,37 @@ async function generateRegCode() {
   });
   const data = await res.json();
   if (data.code) {
-    // Show copyable modal instead of alert
+    const link = `https://polyabc.academy/parent.html?code=${encodeURIComponent(data.code)}`;
+    const msg  = `¡Hola! 👋 Para registrar a tu alumno en PolyABC, entra aquí:\n\n${link}\n\n⏰ Este enlace es personal y expira en 48 horas.`;
+
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
     modal.innerHTML = `
-      <div style="background:white;border-radius:16px;padding:28px;width:100%;max-width:380px;text-align:center;">
-        <div style="font-size:1.5rem;margin-bottom:8px;">🔑</div>
-        <div style="font-weight:900;font-size:1.1rem;margin-bottom:4px;">Registration Code Generated</div>
-        <div style="color:#888;font-size:0.85rem;margin-bottom:4px;">Share this code with the parent to register their child.</div>
-        <div style="color:#e53935;font-size:0.8rem;font-weight:700;margin-bottom:16px;">⏰ Expires in 24 hours — single use only</div>
-        <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <input id="copy-code-input" value="${data.code}" readonly style="flex:1;padding:12px;border:2px solid #1a73e8;border-radius:10px;font-size:1.1rem;font-weight:900;text-align:center;letter-spacing:3px;color:#1a73e8;background:#f0f7ff;"/>
-          <button onclick="
-            document.getElementById('copy-code-input').select();
-            document.execCommand('copy');
-            this.textContent='✅';
-            setTimeout(()=>this.textContent='📋',1500);
-          " style="padding:12px 14px;background:#1a73e8;color:white;border:none;border-radius:10px;cursor:pointer;font-size:1.1rem;">📋</button>
-        </div>
-        <button onclick="this.closest('div[style]').remove()" style="width:100%;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Close</button>
+      <div style="background:white;border-radius:16px;padding:26px;width:100%;max-width:440px;">
+        <div style="text-align:center;font-size:1.5rem;">🔗</div>
+        <div style="text-align:center;font-weight:900;font-size:1.1rem;margin-bottom:4px;">Registration Link Ready</div>
+        <div style="text-align:center;color:#e53935;font-size:0.8rem;font-weight:700;margin-bottom:18px;">⏰ Expires in 48 hours — single use only</div>
+
+        <label style="font-size:0.78rem;font-weight:900;color:#555;">Message to send the parent</label>
+        <textarea id="reg-msg" readonly style="width:100%;height:110px;margin-top:5px;padding:10px;border:2px solid #ddd;border-radius:10px;font-family:Nunito;font-size:0.85rem;resize:none;">${msg}</textarea>
+        <button onclick="
+          const t=document.getElementById('reg-msg'); t.select(); document.execCommand('copy');
+          this.textContent='✅ Copied!'; setTimeout(()=>this.textContent='📋 Copy message',1500);
+        " style="width:100%;margin-top:8px;padding:11px;background:#25d366;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">📋 Copy message</button>
+
+        <details style="margin-top:14px;">
+          <summary style="cursor:pointer;font-size:0.8rem;color:#888;font-weight:700;">Prefer to send just the code?</summary>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input id="copy-code-input" value="${data.code}" readonly style="flex:1;padding:10px;border:2px solid #1a73e8;border-radius:10px;font-size:1rem;font-weight:900;text-align:center;letter-spacing:2px;color:#1a73e8;background:#f0f7ff;"/>
+            <button onclick="
+              document.getElementById('copy-code-input').select(); document.execCommand('copy');
+              this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500);
+            " style="padding:10px 14px;background:#1a73e8;color:white;border:none;border-radius:10px;cursor:pointer;">📋</button>
+          </div>
+          <div style="font-size:0.75rem;color:#888;margin-top:6px;">The parent can type this on the registration screen instead.</div>
+        </details>
+
+        <button onclick="this.closest('div[style]').remove()" style="width:100%;margin-top:16px;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Close</button>
       </div>
     `;
     document.body.appendChild(modal);
