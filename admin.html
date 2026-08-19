@@ -945,6 +945,25 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="review-req-modal">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-title" id="review-req-title">Request Review</div>
+    <div style="font-size:0.83rem;color:#666;margin-bottom:12px;">The teacher gets an email and a flashing alert on their schedule until the review is submitted.</div>
+    <div class="field-group"><label>Student</label>
+      <select id="review-req-student"><option value="">Loading…</option></select>
+    </div>
+    <div class="field-group"><label>Note for the teacher (optional)</label>
+      <input type="text" id="review-req-note" placeholder="e.g. Parent asked for an update on reading"/>
+    </div>
+    <div id="review-req-pending"></div>
+    <div id="review-req-error" style="color:#c62828;font-weight:700;font-size:0.84rem;margin-top:8px;display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeReviewRequestModal()">Cancel</button>
+      <button class="btn btn-green" onclick="sendReviewRequest()">📨 Send Request</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="group-modal">
   <div class="modal-box" style="max-width:540px;">
     <div class="modal-title" id="group-modal-title">Create Group</div>
@@ -1925,10 +1944,62 @@ function renderTeachers() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-blue btn-sm" onclick="openEditTeacherModal('${r.room}')">✏️ Edit</button>
         <button class="btn btn-gray btn-sm" onclick="openRoomStudents('${r.room}')">👥 Students</button>
+        <button class="btn btn-sm" style="background:#6a1b9a;color:#fff;" onclick="openReviewRequestModal('${r.room}')">📝 Request Review</button>
         <button class="btn btn-red btn-sm" onclick="confirmDeleteRoom('${r.room}')">🗑</button>
       </div>
     </div>`;
   }).join('');
+}
+
+// ── REQUEST A STUDENT REVIEW FROM A TEACHER ──
+let _reqRoom = null;
+
+async function openReviewRequestModal(room) {
+  _reqRoom = room;
+  const box = document.getElementById('review-req-modal');
+  document.getElementById('review-req-title').textContent = 'Request Review — Room ' + room;
+  document.getElementById('review-req-note').value = '';
+  document.getElementById('review-req-error').style.display = 'none';
+  const sel = document.getElementById('review-req-student');
+  sel.innerHTML = '<option value="">Loading students…</option>';
+  box.classList.add('open');
+  try {
+    const [sRes, oRes] = await Promise.all([
+      fetch(`${SERVER_URL}/reviews/room-students?room=${encodeURIComponent(room)}`, { headers: { Authorization: `Bearer ${currentToken}` } }),
+      fetch(`${SERVER_URL}/reviews/requests?room=${encodeURIComponent(room)}`, { headers: { Authorization: `Bearer ${currentToken}` } })
+    ]);
+    const names = await sRes.json();
+    const open  = await oRes.json();
+    const openNames = new Set((open || []).map(o => o.studentName));
+    sel.innerHTML = names.length
+      ? '<option value="">-- Select student --</option>' + names.map(n =>
+          `<option value="${n}"${openNames.has(n) ? ' disabled' : ''}>${n}${openNames.has(n) ? ' (request already open)' : ''}</option>`).join('')
+      : '<option value="">No students assigned to this teacher</option>';
+    const pend = document.getElementById('review-req-pending');
+    pend.innerHTML = (open || []).length
+      ? '<div style="font-size:0.8rem;color:#e65100;font-weight:700;margin-top:10px;">⏳ Open requests: ' + open.map(o => o.studentName).join(', ') + '</div>'
+      : '';
+  } catch(e) {
+    sel.innerHTML = '<option value="">Could not load students</option>';
+  }
+}
+
+function closeReviewRequestModal() { document.getElementById('review-req-modal').classList.remove('open'); }
+
+async function sendReviewRequest() {
+  const studentName = document.getElementById('review-req-student').value;
+  const note = document.getElementById('review-req-note').value;
+  const err = document.getElementById('review-req-error');
+  err.style.display = 'none';
+  if (!studentName) { err.textContent = 'Please pick a student.'; err.style.display = 'block'; return; }
+  const res = await fetch(`${SERVER_URL}/reviews/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room: _reqRoom, studentName, note })
+  });
+  const data = await res.json();
+  if (data.success) { closeReviewRequestModal(); showToast('✅ Review requested — teacher notified'); }
+  else { err.textContent = data.error || 'Could not send request.'; err.style.display = 'block'; }
 }
 
 function openAddTeacherModal() {

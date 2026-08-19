@@ -282,6 +282,7 @@
       <select id="review-month" onchange="loadReviews()" style="padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-weight:700;"></select>
       <div id="review-progress" style="font-weight:900;font-size:0.9rem;"></div>
     </div>
+    <div id="review-requests-banner"></div>
     <div id="review-list"></div>
   </div>
 
@@ -363,8 +364,21 @@
   async function loadReviews() {
     monthOptions();
     const month = document.getElementById('review-month').value;
-    const res = await fetch(`${SERVER_URL}/reviews/my-students?month=${month}`, { headers: { Authorization: `Bearer ${token}` } });
+    const [res, reqRes] = await Promise.all([
+      fetch(`${SERVER_URL}/reviews/my-students?month=${month}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${SERVER_URL}/reviews/requests`, { headers: { Authorization: `Bearer ${token}` } })
+    ]);
     _reviewData = await res.json();
+    const requests = await reqRes.json().catch(() => []);
+    const reqByStudent = {};
+    (requests || []).forEach(r => { reqByStudent[r.studentName] = r; });
+    const banner = document.getElementById('review-requests-banner');
+    banner.innerHTML = (requests || []).length
+      ? '<div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:12px;margin-bottom:12px;">'
+        + '<div style="font-weight:900;color:#e65100;">📨 Review requested by admin</div>'
+        + requests.map(r => `<div style="font-size:0.85rem;color:#5d4037;margin-top:4px;">• <strong>${r.studentName}</strong>${r.note ? ' — ' + r.note : ''}</div>`).join('')
+        + '</div>'
+      : '';
     const list = document.getElementById('review-list');
     const prog = document.getElementById('review-progress');
     const studs = _reviewData.students || [];
@@ -373,8 +387,8 @@
     prog.style.color = done === studs.length && studs.length ? '#2e7d32' : '#c62828';
     if (!studs.length) { list.innerHTML = '<div style="color:#888;font-size:0.88rem;">No students assigned to you yet.</div>'; return; }
     list.innerHTML = studs.map(s => `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eee;">
-        <div style="font-weight:700;">${s.submitted ? '✅' : '⚠️'} ${s.name}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eee;${reqByStudent[s.name] ? 'background:#fff8e1;' : ''}">
+        <div style="font-weight:700;">${reqByStudent[s.name] ? '📨' : (s.submitted ? '✅' : '⚠️')} ${s.name}${reqByStudent[s.name] ? ' <span style="color:#e65100;font-size:0.78rem;">requested</span>' : ''}</div>
         <button onclick="openReviewModal('${s.name.replace(/'/g,"\\'")}')"
           style="padding:6px 12px;border-radius:8px;border:none;background:${s.submitted ? '#f0f4f8' : '#1a73e8'};color:${s.submitted ? '#333' : '#fff'};font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">
           ${s.submitted ? 'View / Edit' : 'Write Review'}
