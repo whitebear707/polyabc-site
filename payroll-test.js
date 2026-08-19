@@ -26,8 +26,19 @@
   cases.push({label:'Trial (1 student)',showed:1,enrolled:1,absent:0,classType:'Trial',dur:15,slot:cases.length+1});
 
   for(const c of cases){
+    // Real group classes have a group roster behind them — that's where the
+    // "enrolled" number comes from, so create one to mirror production.
+    let groupId=null;
+    if(c.classType.includes('Group')){
+      await fetch(`${SERVER_URL}/groups`,{method:'POST',headers:H,body:JSON.stringify({
+        name:c.label,level:'A1',classType:c.classType,
+        students:Array.from({length:c.enrolled},(_,i)=>i<c.showed?`P${i+1}`:`A${i-c.showed+1}`)})});
+      const gs=await(await fetch(`${SERVER_URL}/groups`,{headers:H})).json();
+      groupId=(gs.find(g=>g.name===c.label)||{})._id||null;
+    }
     const a=await(await fetch(`${SERVER_URL}/assignments`,{method:'POST',headers:H,body:JSON.stringify({
-      room:ROOM,date:DATE,time:hhmm(c.slot),level:'A1',classType:c.classType,groupName:c.label})})).json();
+      room:ROOM,date:DATE,time:hhmm(c.slot),level:'A1',classType:c.classType,
+      groupId,groupName:c.label})})).json();
     if(!a.success){console.error('❌ assignment failed for',c.label,a);continue;}
 
     // absent students are present in the roster but never joined (no joinedAt)
@@ -60,12 +71,19 @@
     const actual=r?r.classPay:null;
     const ok=actual!==null&&Math.abs(actual-exp)<0.02;
     if(!ok)fails++;
-    rows.push({Class:c.label,Showed:c.showed,Bonus:c.classType.includes('Group')?bonusFor(c.showed):0,
+    rows.push({Class:c.label,Showed:c.showed,Enrolled:c.enrolled,
+               'Shows as':r?`${r.studentsShowed}/${r.expectedStudents}`:'—',
+               Bonus:c.classType.includes('Group')?bonusFor(c.showed):0,
                Expected:Math.round(exp*100)/100,Actual:actual,Pass:ok?'✅':'❌'});
   }
   console.log('%c PAYROLL MATRIX ','background:#1a73e8;color:white;font-weight:bold');
   console.table(rows);
   console.log(`Server total: $${pay[0]?.totalPay}`);
+  // remove the temporary groups this test created
+  const allG=await(await fetch(`${SERVER_URL}/groups`,{headers:H})).json();
+  for(const g of allG.filter(g=>/enrolled, \d+ absent/.test(g.name)))
+    await fetch(`${SERVER_URL}/groups/${g._id}`,{method:'DELETE',headers:H}).catch(()=>{});
+
   console.log(fails===0?'%c ALL PASSED ':`%c ${fails} MISMATCH(ES) `,
     `background:${fails===0?'#2e7d32':'#c62828'};color:white;font-weight:bold`);
 })()
