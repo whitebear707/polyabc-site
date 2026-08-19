@@ -90,10 +90,10 @@
   console.log('%c PAYROLL MATRIX ','background:#1a73e8;color:white;font-weight:bold');
   console.table(rows);
   console.log(`Server total: $${pay[0]?.totalPay}`);
-  // remove the temporary groups this test created
-  const allG=await(await fetch(`${SERVER_URL}/groups`,{headers:H})).json();
-  for(const g of allG.filter(g=>/enrolled, \d+ absent/.test(g.name)))
-    await fetch(`${SERVER_URL}/groups/${g._id}`,{method:'DELETE',headers:H}).catch(()=>{});
+  // NOTE: the test groups are intentionally LEFT IN PLACE. Payroll reads the
+  // enrolled count from the group roster every time the page is viewed, so
+  // deleting them here would make the Payroll page show "4/4" instead of "4/5".
+  // Clean them up manually when you're done inspecting.
 
   console.log(fails===0?'%c ALL PASSED ':`%c ${fails} MISMATCH(ES) `,
     `background:${fails===0?'#2e7d32':'#c62828'};color:white;font-weight:bold`);
