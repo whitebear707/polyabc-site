@@ -361,6 +361,7 @@
 <script>
 const SERVER_URL = 'https://polyabc-server.onrender.com';
 let _validCode = '';
+let _familyDiscount = 0;   // private per-family discount %, set by admin
 let _regPath = 'parent';
 let _selectedClassType = null;
 let _parentToken = localStorage.getItem('parentToken');
@@ -607,6 +608,7 @@ async function loadDashboard() {
   if (!res.ok) { doLogout(); return; }
   const data = await res.json();
   _dashboardStudents = data.students || [];
+  _familyDiscount = data.familyDiscount || 0;
   await loadBillingData();
   renderPaymentBanner(data.students || []);
 
@@ -1124,14 +1126,17 @@ function getCombinedItems() {
     if (st.type === 'group') groupItems.push(items[items.length - 1]);
   });
   
-  // Apply 15% sibling discount if 2+ group classes
-  if (groupItems.length >= 2) {
-    groupItems.forEach(item => {
-      item.transferAmount = Math.round(item.transferAmount * 0.85);
+  // Private family discount, set per-family by admin. Not automatic and not
+  // advertised — only applies when admin has negotiated one for this family.
+  const pct = Number(_familyDiscount) || 0;
+  if (pct > 0) {
+    items.forEach(item => {
+      item.fullAmount = item.transferAmount;
+      item.transferAmount = Math.round(item.transferAmount * (1 - pct / 100));
       item.discount = true;
     });
   }
-  
+
   return items;
 }
 
@@ -1271,9 +1276,15 @@ function selectPayOption(studentName, field, value) {
   const advertised = calcAdvertised(weeklyBase);
   const weeks = cycleMultiplier(st.cycle);
   const totalMP = advertised * weeks;
-  const totalTransfer = weeklyBase * weeks;
+  const fullTransfer = weeklyBase * weeks;
+  const pct = Number(_familyDiscount) || 0;
+  const totalTransfer = pct > 0 ? Math.round(fullTransfer * (1 - pct/100)) : fullTransfer;
 
-  document.getElementById(`price-transfer-${key}`).textContent = `$${totalTransfer.toLocaleString('es-MX')} MXN`;
+  document.getElementById(`price-transfer-${key}`).innerHTML = pct > 0
+    ? `<span style="text-decoration:line-through;color:#aaa;font-size:0.7em;">$${fullTransfer.toLocaleString('es-MX')}</span>
+       $${totalTransfer.toLocaleString('es-MX')} MXN
+       <div style="font-size:0.6em;color:#2e7d32;font-weight:700;">Descuento familiar aplicado (−${pct}%)</div>`
+    : `$${totalTransfer.toLocaleString('es-MX')} MXN`;
   document.getElementById(`price-summary-${key}`).style.display = 'block';
   document.getElementById(`pay-btns-${key}`).style.display = 'block';
   updateCombinedSummary();
@@ -1336,7 +1347,10 @@ function updateCombinedSummary() {
       <span>${it.name}</span><span>$${it.transferAmount.toLocaleString('es-MX')} ${it.discount ? '<span style="color:green;font-weight:bold;">-15%</span>' : ''}</span>
     </div>`
   ).join('') +
-  `<div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
+  `${(Number(_familyDiscount)||0) > 0 ? `<div style="display:flex;justify-content:space-between;color:#a5d6a7;font-size:0.8rem;font-weight:700;margin-top:6px;">
+    <span>Descuento familiar</span><span>−${_familyDiscount}%</span>
+  </div>` : ''}
+  <div style="border-top:1px solid rgba(255,255,255,0.3);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);font-size:0.8rem;">
     <span>Con transferencia bancaria</span><span>$${totalTransfer.toLocaleString('es-MX')} MXN</span>
   </div>`;
 }
