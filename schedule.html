@@ -276,6 +276,34 @@
     <div class="day-hours-grid" id="day-hours-grid"></div>
   </div>
 
+  <p class="section-title">📝 Monthly Student Reviews</p>
+  <div id="reviews-card" style="background:#fff;border-radius:14px;padding:16px;margin-bottom:24px;color:#1a1a2e;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+      <select id="review-month" onchange="loadReviews()" style="padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-weight:700;"></select>
+      <div id="review-progress" style="font-weight:900;font-size:0.9rem;"></div>
+    </div>
+    <div id="review-list"></div>
+  </div>
+
+  <div id="review-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;padding:12px;">
+    <div style="background:#fff;color:#1a1a2e;border-radius:14px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;">
+      <h3 id="review-modal-title" style="margin:0 0 4px;"></h3>
+      <div id="review-modal-month" style="font-size:0.82rem;color:#888;margin-bottom:12px;"></div>
+      <div id="review-scores"></div>
+      <div style="margin-top:14px;">
+        <label style="font-weight:900;font-size:0.88rem;">Progress comment</label>
+        <textarea id="review-comment" oninput="updateWordCount()" placeholder="Describe this student's progress, strengths, and what they should work on next month..."
+          style="width:100%;height:150px;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;resize:vertical;margin-top:6px;"></textarea>
+        <div id="review-wordcount" style="font-size:0.8rem;font-weight:700;margin-top:4px;"></div>
+      </div>
+      <div id="review-error" style="color:#c62828;font-weight:700;font-size:0.85rem;margin-top:8px;display:none;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <button onclick="closeReviewModal()" style="padding:10px 18px;border-radius:8px;border:none;background:#eee;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+        <button onclick="submitReview()" style="padding:10px 18px;border-radius:8px;border:none;background:#2e7d32;color:#fff;font-family:Nunito;font-weight:700;cursor:pointer;">Save Review</button>
+      </div>
+    </div>
+  </div>
+
   <p class="section-title">📋 My Upcoming Classes</p>
   <div id="upcoming-classes" style="margin-bottom:24px;"></div>
 
@@ -315,6 +343,98 @@
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
   const token = localStorage.getItem('teacherToken');
+
+  // ── MONTHLY STUDENT REVIEWS ──
+  let _reviewData = null, _reviewStudent = null;
+
+  function monthOptions() {
+    const sel = document.getElementById('review-month');
+    if (!sel || sel.options.length) return;
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+    let html = '';
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      html += `<option value="${v}">${d.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</option>`;
+    }
+    sel.innerHTML = html;
+  }
+
+  async function loadReviews() {
+    monthOptions();
+    const month = document.getElementById('review-month').value;
+    const res = await fetch(`${SERVER_URL}/reviews/my-students?month=${month}`, { headers: { Authorization: `Bearer ${token}` } });
+    _reviewData = await res.json();
+    const list = document.getElementById('review-list');
+    const prog = document.getElementById('review-progress');
+    const studs = _reviewData.students || [];
+    const done = studs.filter(s => s.submitted).length;
+    prog.textContent = `${done} / ${studs.length} completed`;
+    prog.style.color = done === studs.length && studs.length ? '#2e7d32' : '#c62828';
+    if (!studs.length) { list.innerHTML = '<div style="color:#888;font-size:0.88rem;">No students assigned to you yet.</div>'; return; }
+    list.innerHTML = studs.map(s => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eee;">
+        <div style="font-weight:700;">${s.submitted ? '✅' : '⚠️'} ${s.name}</div>
+        <button onclick="openReviewModal('${s.name.replace(/'/g,"\\'")}')"
+          style="padding:6px 12px;border-radius:8px;border:none;background:${s.submitted ? '#f0f4f8' : '#1a73e8'};color:${s.submitted ? '#333' : '#fff'};font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">
+          ${s.submitted ? 'View / Edit' : 'Write Review'}
+        </button>
+      </div>`).join('');
+  }
+
+  function openReviewModal(name) {
+    _reviewStudent = name;
+    const entry = (_reviewData.students || []).find(s => s.name === name);
+    const prev = entry?.review;
+    document.getElementById('review-modal-title').textContent = name;
+    document.getElementById('review-modal-month').textContent =
+      document.getElementById('review-month').selectedOptions[0].textContent;
+    document.getElementById('review-scores').innerHTML = (_reviewData.criteria || []).map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f2f2f2;">
+        <div style="font-size:0.88rem;font-weight:700;">${c.label}</div>
+        <div style="display:flex;gap:4px;">
+          ${[0,1,2,3,4,5].map(n => `<label style="cursor:pointer;">
+            <input type="radio" name="sc-${c.key}" value="${n}" ${prev && prev.scores[c.key] === n ? 'checked' : ''} style="display:none;"
+              onchange="document.querySelectorAll('[data-sc=\\'${c.key}\\']').forEach(e=>e.style.background='#eee');this.nextElementSibling.style.background='#1a73e8';this.nextElementSibling.style.color='#fff';">
+            <span data-sc="${c.key}" style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;border-radius:6px;font-size:0.8rem;font-weight:900;background:${prev && prev.scores[c.key] === n ? '#1a73e8' : '#eee'};color:${prev && prev.scores[c.key] === n ? '#fff' : '#333'};">${n}</span>
+          </label>`).join('')}
+        </div>
+      </div>`).join('');
+    document.getElementById('review-comment').value = prev?.comment || '';
+    document.getElementById('review-error').style.display = 'none';
+    updateWordCount();
+    document.getElementById('review-modal').style.display = 'flex';
+  }
+
+  function closeReviewModal() { document.getElementById('review-modal').style.display = 'none'; }
+
+  function updateWordCount() {
+    const n = document.getElementById('review-comment').value.trim().split(/\s+/).filter(Boolean).length;
+    const min = _reviewData?.minWords || 200;
+    const el = document.getElementById('review-wordcount');
+    el.textContent = `${n} / ${min} words`;
+    el.style.color = n >= min ? '#2e7d32' : '#c62828';
+  }
+
+  async function submitReview() {
+    const err = document.getElementById('review-error');
+    err.style.display = 'none';
+    const scores = {};
+    for (const c of (_reviewData.criteria || [])) {
+      const sel = document.querySelector(`input[name="sc-${c.key}"]:checked`);
+      if (!sel) { err.textContent = `Please score ${c.label}.`; err.style.display = 'block'; return; }
+      scores[c.key] = parseInt(sel.value);
+    }
+    const comment = document.getElementById('review-comment').value;
+    const res = await fetch(`${SERVER_URL}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ studentName: _reviewStudent, month: document.getElementById('review-month').value, scores, comment })
+    });
+    const data = await res.json();
+    if (data.success) { closeReviewModal(); loadReviews(); }
+    else { err.textContent = data.error || 'Could not save.'; err.style.display = 'block'; }
+  }
   const room  = localStorage.getItem('teacherRoom') || ''; // v2
   if (!token) { window.location.href = 'greeting.html'; }
 
@@ -830,6 +950,7 @@
   }
 
   init();
+  loadReviews();
 </script>
 <div id="tp-popup" class="time-picker-popup" onclick="event.stopPropagation()"></div>
 

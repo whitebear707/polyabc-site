@@ -2800,7 +2800,20 @@ async function loadPayroll() {
 
   const totalAll = withClasses.reduce((sum, t) => sum + t.netPay, 0);
 
-  results.innerHTML = `
+  const reviewGaps = withClasses.filter(t => t.reviewsMissing && t.reviewsMissing.length);
+  const reviewBanner = reviewGaps.length ? `
+    <div style="background:#fff3e0;border:2px solid #e65100;border-radius:12px;padding:14px 18px;margin-bottom:16px;">
+      <div style="font-weight:900;color:#e65100;margin-bottom:6px;">⚠️ Monthly student reviews outstanding — do not release pay until these are done</div>
+      ${reviewGaps.map(t => `<div style="font-size:0.85rem;color:#5d4037;margin-top:4px;">
+        <strong>${t.teacherName || 'Room ' + t.room}</strong>: ${t.reviewsMissing.length} missing —
+        ${t.reviewsMissing.slice(0,8).map(m => `${m.student} (${m.month})`).join(', ')}${t.reviewsMissing.length > 8 ? ', …' : ''}
+      </div>`).join('')}
+    </div>` : `
+    <div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-weight:900;color:#2e7d32;">
+      ✅ All monthly student reviews are complete for this period
+    </div>`;
+
+  results.innerHTML = reviewBanner + `
     <div style="background:#1a73e8;color:white;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
       <div style="font-weight:900;font-size:1rem;">Total Payroll ${from} → ${to}</div>
       <div style="font-size:1.4rem;font-weight:900;">$${totalAll.toFixed(2)} pesos</div>
