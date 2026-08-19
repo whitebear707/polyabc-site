@@ -28,7 +28,7 @@
   for(const c of cases){
     const a=await(await fetch(`${SERVER_URL}/assignments`,{method:'POST',headers:H,body:JSON.stringify({
       room:ROOM,date:DATE,time:hhmm(c.slot),level:'A1',classType:c.classType,groupName:c.label})})).json();
-    if(!a.sessionId){console.error('❌ assignment failed for',c.label,a);continue;}
+    if(!a.success){console.error('❌ assignment failed for',c.label,a);continue;}
 
     // absent students are present in the roster but never joined (no joinedAt)
     const students=[
@@ -36,10 +36,11 @@
       ...Array.from({length:c.absent},(_,i)=>({name:`A${i+1}`,joinedAt:null,leftAt:null}))
     ];
 
-    await fetch(`${SERVER_URL}/admin/manual-attendance`,{method:'POST',headers:H,body:JSON.stringify({
-      room:ROOM,date:DATE,scheduledTime:hhmm(c.slot),sessionId:a.sessionId,classType:c.classType,
+    const att=await(await fetch(`${SERVER_URL}/admin/manual-attendance`,{method:'POST',headers:H,body:JSON.stringify({
+      room:ROOM,date:DATE,scheduledTime:hhmm(c.slot),classType:c.classType,
       teacherOpenedAt:iso(c.slot,0), classStartedAt:iso(c.slot,0), classEndedAt:iso(c.slot,c.dur),
-      endType:'completed', students })});
+      endType:'completed', students })})).json();
+    if(!att.success){console.error('❌ attendance failed for',c.label,att);}
   }
 
   const pay=await(await fetch(`${SERVER_URL}/payroll?from=${DATE}&to=${DATE}&room=${ROOM}`,{headers:H})).json();
