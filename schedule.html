@@ -346,7 +346,12 @@
   const token = localStorage.getItem('teacherToken');
 
   // ── MONTHLY STUDENT REVIEWS ──
-  let _reviewData = null, _reviewStudent = null;
+  let _reviewData = null, _reviewStudent = null, _reviewRequest = null;
+
+  function fmtPeriod(from, to) {
+    const f = d => { const [y,m,dd] = String(d).split('-'); return `${dd}/${m}/${y}`; };
+    return `${f(from)} – ${f(to)}`;
+  }
 
   function monthOptions() {
     const sel = document.getElementById('review-month');
@@ -375,8 +380,15 @@
     const banner = document.getElementById('review-requests-banner');
     banner.innerHTML = (requests || []).length
       ? '<div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:12px;margin-bottom:12px;">'
-        + '<div style="font-weight:900;color:#e65100;">📨 Review requested by admin</div>'
-        + requests.map(r => `<div style="font-size:0.85rem;color:#5d4037;margin-top:4px;">• <strong>${r.studentName}</strong>${r.note ? ' — ' + r.note : ''}</div>`).join('')
+        + '<div style="font-weight:900;color:#e65100;margin-bottom:6px;">📨 Reviews requested by admin — these need their own new review</div>'
+        + requests.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #ffe0b2;">
+            <div style="font-size:0.85rem;color:#5d4037;">
+              <strong>${r.studentName}</strong><br>
+              <span style="font-size:0.78rem;">Period: ${fmtPeriod(r.periodFrom, r.periodTo)}${r.note ? ' · ' + r.note : ''}</span>
+            </div>
+            <button onclick="openReviewModal('${r.studentName.replace(/'/g,"\\'")}','${r.id}')"
+              style="padding:6px 12px;border-radius:8px;border:none;background:#e65100;color:#fff;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">Write Now</button>
+          </div>`).join('')
         + '</div>'
       : '';
     const list = document.getElementById('review-list');
@@ -389,20 +401,24 @@
     list.innerHTML = studs.map(s => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eee;${reqByStudent[s.name] ? 'background:#fff8e1;' : ''}">
         <div style="font-weight:700;">${reqByStudent[s.name] ? '📨' : (s.submitted ? '✅' : '⚠️')} ${s.name}${reqByStudent[s.name] ? ' <span style="color:#e65100;font-size:0.78rem;">requested</span>' : ''}</div>
-        <button onclick="openReviewModal('${s.name.replace(/'/g,"\\'")}')"
+        <button onclick="openReviewModal('${s.name.replace(/'/g,"\\'")}', null)"
           style="padding:6px 12px;border-radius:8px;border:none;background:${s.submitted ? '#f0f4f8' : '#1a73e8'};color:${s.submitted ? '#333' : '#fff'};font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">
           ${s.submitted ? 'View / Edit' : 'Write Review'}
         </button>
       </div>`).join('');
   }
 
-  function openReviewModal(name) {
+  function openReviewModal(name, requestId) {
     _reviewStudent = name;
+    _reviewRequest = requestId || null;
+    const req = requestId ? (_reviewData.requests || []).find(r => r.id === requestId) : null;
     const entry = (_reviewData.students || []).find(s => s.name === name);
-    const prev = entry?.review;
+    // A requested review always starts blank — it must be written fresh.
+    const prev = req ? null : entry?.review;
     document.getElementById('review-modal-title').textContent = name;
-    document.getElementById('review-modal-month').textContent =
-      document.getElementById('review-month').selectedOptions[0].textContent;
+    document.getElementById('review-modal-month').innerHTML = req
+      ? `<span style="color:#e65100;font-weight:900;">📨 Requested by admin</span><br>Evaluation period: <strong>${fmtPeriod(req.periodFrom, req.periodTo)}</strong>${req.note ? '<br>Note: ' + req.note : ''}`
+      : `Monthly report · Evaluation period: <strong>${fmtPeriod(_reviewData.monthFrom, _reviewData.monthTo)}</strong>`;
     document.getElementById('review-scores').innerHTML = (_reviewData.criteria || []).map(c => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f2f2f2;">
         <div style="font-size:0.88rem;font-weight:700;">${c.label}</div>
@@ -458,7 +474,7 @@
     const res = await fetch(`${SERVER_URL}/reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ studentName: _reviewStudent, month: document.getElementById('review-month').value, scores, comment })
+      body: JSON.stringify({ studentName: _reviewStudent, month: document.getElementById('review-month').value, scores, comment, requestId: _reviewRequest })
     });
     const data = await res.json();
     if (data.success) { closeReviewModal(); loadReviews(); }

@@ -952,6 +952,11 @@
     <div class="field-group"><label>Student</label>
       <select id="review-req-student"><option value="">Loading…</option></select>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group"><label>Evaluation from</label><input type="date" id="review-req-from"/></div>
+      <div class="field-group"><label>Evaluation to</label><input type="date" id="review-req-to"/></div>
+    </div>
+    <div style="font-size:0.76rem;color:#888;margin:-6px 0 10px;">Defaults to the current month. The teacher sees these dates at the top of the report.</div>
     <div class="field-group"><label>Note for the teacher (optional)</label>
       <input type="text" id="review-req-note" placeholder="e.g. Parent asked for an update on reading"/>
     </div>
@@ -1959,6 +1964,13 @@ async function openReviewRequestModal(room) {
   const box = document.getElementById('review-req-modal');
   document.getElementById('review-req-title').textContent = 'Request Review — Room ' + room;
   document.getElementById('review-req-note').value = '';
+  // Default window = the current month, first day to last day.
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+  const pad = n => String(n).padStart(2, '0');
+  const ym = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  document.getElementById('review-req-from').value = `${ym}-01`;
+  document.getElementById('review-req-to').value =
+    `${ym}-${pad(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate())}`;
   document.getElementById('review-req-error').style.display = 'none';
   const sel = document.getElementById('review-req-student');
   sel.innerHTML = '<option value="">Loading students…</option>';
@@ -1991,11 +2003,15 @@ async function sendReviewRequest() {
   const note = document.getElementById('review-req-note').value;
   const err = document.getElementById('review-req-error');
   err.style.display = 'none';
+  const periodFrom = document.getElementById('review-req-from').value;
+  const periodTo   = document.getElementById('review-req-to').value;
   if (!studentName) { err.textContent = 'Please pick a student.'; err.style.display = 'block'; return; }
+  if (!periodFrom || !periodTo) { err.textContent = 'Please set both evaluation dates.'; err.style.display = 'block'; return; }
+  if (periodFrom > periodTo) { err.textContent = 'The start date must come before the end date.'; err.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/reviews/request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room: _reqRoom, studentName, note })
+    body: JSON.stringify({ room: _reqRoom, studentName, note, periodFrom, periodTo })
   });
   const data = await res.json();
   if (data.success) { closeReviewRequestModal(); showToast('✅ Review requested — teacher notified'); }
