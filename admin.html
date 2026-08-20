@@ -611,6 +611,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="panel-title">🎓 All Students</div>
       <button class="btn btn-green" onclick="openAddStudentModal()">+ Add Student</button>
+      <button class="btn" onclick="confirmBackfillEnrollment()" style="background:#6a1b9a;color:white;margin-left:8px;">🔓 Unlock Payments</button>
       <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;position:relative;" id="requests-btn">📥 Requests<span id="requests-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:20px;text-align:center;"></span></button>
     </div>
     <div style="margin-bottom:12px;">
@@ -2315,6 +2316,36 @@ function renderAllStudents() {
         <button class="btn btn-sm" style="background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;" onclick="toggleSuspend('${s.name.replace(/'/g,"\\'")}',${s.manuallySuspended ? 'false' : 'true'})">${s.manuallySuspended ? '✅' : '🚫'}</button></td>
     </tr>`;
   }).join('');
+}
+
+// ── UNLOCK PAYMENTS FOR EXISTING (NON-TRIAL) STUDENTS ──
+// The parent payment tab only appears for students marked as enrolled. Students
+// migrated in by hand never went through a trial, so they need marking once.
+function confirmBackfillEnrollment() {
+  showAlert('🔓','Unlock payments?',
+    'This marks every student who has a real class type (not Trial) as enrolled, so their parents can see the payment tab. Trial students are left alone, and students already marked enrolled are not changed.',
+    [{label:'Cancel',fn:'closeAlert()'},{label:'Unlock',fn:'doBackfillEnrollment()',primary:true}]);
+}
+
+async function doBackfillEnrollment() {
+  closeAlert();
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/students/backfill-enrollment`, {
+      method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showAlert('✅','Done', data.updated
+        ? `${data.updated} student(s) unlocked: ${data.names.join(', ')}`
+        : 'No students needed changing — everyone with a class type is already enrolled.',
+        [{label:'OK',fn:'closeAlert()',primary:true}]);
+      await loadAll(); renderAllStudents();
+    } else {
+      showAlert('😬','Could not update', data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+    }
+  } catch(e) {
+    showAlert('😬','Could not update', e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+  }
 }
 
 // ── MANUAL ACCOUNT SUSPENSION (fake or reversed payment) ──
