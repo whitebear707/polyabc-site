@@ -255,6 +255,7 @@
       <div class="dashboard-nav">
         <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
         <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
+        <button class="nav-tab" onclick="showTab('reports')" id="tab-reports">📝 Reportes</button>
         <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
         <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Pay</button>
       </div>
@@ -268,6 +269,11 @@
       <!-- Attendance tab -->
       <div id="panel-attendance" style="display:none;">
         <div id="attendance-list"></div>
+      </div>
+
+      <!-- Progress reports tab -->
+      <div id="panel-reports" style="display:none;">
+        <div id="reports-list"></div>
       </div>
 
 
@@ -736,15 +742,67 @@ async function loadDashboard() {
 }
 
 function showTab(tab) {
-  ['students','attendance','calendar','payment'].forEach(p => {
+  ['students','attendance','reports','calendar','payment'].forEach(p => {
     const el = document.getElementById(`panel-${p}`);
     if (el) el.style.display = p === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   const activeTab = document.getElementById(`tab-${tab}`);
   if (activeTab) activeTab.classList.add('active');
+  if (tab === 'reports')  renderReportsTab();
   if (tab === 'calendar') renderParentCalendar();
   if (tab === 'payment')  renderPaymentTab();
+}
+
+// ── PROGRESS REPORTS (read-only for parents) ──
+const REPORT_LABELS = {
+  attendance: 'Asistencia y Puntualidad', participation: 'Participación y Esfuerzo',
+  speaking: 'Conversación y Pronunciación', listening: 'Comprensión Auditiva',
+  reading: 'Lectura', grammar: 'Gramática', vocabulary: 'Vocabulario'
+};
+
+function reportDate(d) {
+  if (!d) return '—';
+  const [y, m, dd] = String(d).split('-');
+  return `${dd}/${m}/${y}`;
+}
+
+function scoreBar(v) {
+  const color = v >= 4 ? '#2e7d32' : v >= 3 ? '#f9a825' : '#c62828';
+  return `<span style="display:inline-block;">${[1,2,3,4,5].map(i =>
+    `<span style="display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:2px;background:${i <= v ? color : '#e0e0e0'};"></span>`).join('')}
+    <strong style="margin-left:6px;color:${color};">${v}/5</strong></span>`;
+}
+
+async function renderReportsTab() {
+  const box = document.getElementById('reports-list');
+  box.innerHTML = '<div style="color:#888;font-size:0.88rem;">Cargando…</div>';
+  try {
+    const res = await fetch(`${SERVER_URL}/parent/reviews`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    const reports = await res.json();
+    if (!Array.isArray(reports) || !reports.length) {
+      box.innerHTML = '<div style="color:#888;font-size:0.88rem;text-align:center;padding:20px 0;">Aún no hay reportes de progreso.<br><span style="font-size:0.8rem;">Los maestros los publican al final de cada mes.</span></div>';
+      return;
+    }
+    box.innerHTML = reports.map(r => `
+      <div style="border:2px solid #e6ecf5;border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline;">
+          <div style="font-weight:900;color:#1a1a2e;">${r.studentName}</div>
+          <div style="font-size:0.78rem;color:#888;">Maestro: ${r.teacherName || '—'}</div>
+        </div>
+        <div style="font-size:0.82rem;color:#1a73e8;font-weight:700;margin:4px 0 10px;">
+          Periodo evaluado: ${reportDate(r.periodFrom)} – ${reportDate(r.periodTo)}
+        </div>
+        ${Object.keys(REPORT_LABELS).filter(k => r.scores && r.scores[k] !== undefined).map(k => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f2f2f2;">
+            <span style="font-size:0.83rem;">${REPORT_LABELS[k]}</span>
+            ${scoreBar(r.scores[k])}
+          </div>`).join('')}
+        <div style="margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;font-size:0.86rem;line-height:1.55;white-space:pre-wrap;">${(r.comment || '').replace(/</g,'&lt;')}</div>
+      </div>`).join('');
+  } catch(e) {
+    box.innerHTML = '<div style="color:#c62828;font-size:0.88rem;">No se pudieron cargar los reportes.</div>';
+  }
 }
 
 function showAddStudent() {
