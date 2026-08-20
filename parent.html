@@ -13,6 +13,8 @@
     .header img { height: 44px; cursor: pointer; }
     .header-title { color: white; font-size: 1.1rem; font-weight: 900; }
     .container { max-width: 500px; margin: 40px auto; padding: 0 16px; }
+    /* The dashboard carries five tabs, so it needs more room than the login card. */
+    body.dashboard-mode .container { max-width: 760px; }
     .card { background: white; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 16px; }
     h2 { font-size: 1.4rem; font-weight: 900; color: #1a1a2e; margin-bottom: 6px; }
     .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
@@ -39,7 +41,10 @@
     /* Dashboard styles */
     .dashboard-nav { display: flex; gap: 0; border-bottom: 2px solid #e0e0e0; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .dashboard-nav::-webkit-scrollbar { display: none; }
-    .nav-tab { white-space: nowrap; flex: 0 0 auto; padding: 10px 14px; display: flex; align-items: center; gap: 6px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    @media (max-width: 620px) {
+      .nav-tab { padding: 10px 9px; font-size: 0.8rem; }
+    }
+    .nav-tab { white-space: nowrap; flex: 0 0 auto; padding: 10px 12px; display: flex; align-items: center; gap: 6px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; background: none; border: none; cursor: pointer; color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px; }
     .nav-tab.active { color: #1a73e8; border-bottom-color: #1a73e8; }
     .student-card { background: #f8f9ff; border: 2px solid #e8eeff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
     .student-name { font-size: 1.1rem; font-weight: 900; color: #1a1a2e; }
@@ -408,6 +413,7 @@ if (verifyToken) {
 }
 
 function showScreen(name) {
+  document.body.classList.toggle('dashboard-mode', name === 'dashboard');
   ['login','register-code','register-type','register-self','register-parent','register-student','register-class-type','email-sent','dashboard','verify','forgot','reset','trial-ready','select-group-opening','force-password'].forEach(s => {
     const el = document.getElementById(`screen-${s}`);
     if (el) el.style.display = 'none';
