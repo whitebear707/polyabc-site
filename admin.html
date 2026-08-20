@@ -2244,7 +2244,8 @@ function renderAllStudents() {
   // Attach studentId from allStudents records (room sub-docs don't carry it)
   all = all.map(s => {
     const full = allStudents.find(x => x.name === s.name);
-    return { ...s, studentId: s.studentId || full?.studentId || null };
+    return { ...s, studentId: s.studentId || full?.studentId || null,
+             manuallySuspended: s.manuallySuspended || full?.manuallySuspended || false };
   });
   // Search filter (by name or ID)
   const q = (document.getElementById('student-search')?.value || '').trim().toLowerCase();
@@ -2296,10 +2297,10 @@ function renderAllStudents() {
     const idCell = s.studentId
       ? `<span style="background:#1a73e8;color:white;padding:3px 8px;border-radius:8px;font-size:0.78rem;font-weight:900;font-family:monospace;letter-spacing:1px;">${s.studentId}</span>`
       : '<span style="color:#ccc;">—</span>';
-    return `<tr ${s.isNewTrial ? 'style="background:#fce4ec;"' : ''}>
+    return `<tr ${s.manuallySuspended ? 'style="background:#ffebee;"' : (s.isNewTrial ? 'style="background:#fce4ec;"' : '')}>
       <td>${idCell}</td>
       <td style="font-weight:700;">
-        ${s.name}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
+        ${s.name}${s.manuallySuspended ? ' <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">🚫 DISABLED</span>' : ''}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
         ${s.dob ? `<div style="font-size:0.72rem;color:#aaa;">DOB: ${s.dob}</div>` : ''}
       </td>
       <td class="notranslate" translate="no" style="color:#888;">${s.password}</td>
@@ -2310,9 +2311,38 @@ function renderAllStudents() {
       <td>${levelCell}</td>
       <td>${trialDateCell}</td>
       <td>${paidCell}</td>
-      <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}','${s.dob||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button></td>
+      <td><button class="btn btn-blue btn-sm" onclick="openEditStudentModal('${s.name}','${s.password}','${s.room||''}','${s.dob||''}')">✏️</button> <button class="btn btn-red btn-sm" onclick="confirmDeleteStudent('${s.name}')">🗑</button>
+        <button class="btn btn-sm" style="background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;" onclick="toggleSuspend('${s.name.replace(/'/g,"\\'")}',${s.manuallySuspended ? 'false' : 'true'})">${s.manuallySuspended ? '✅' : '🚫'}</button></td>
     </tr>`;
   }).join('');
+}
+
+// ── MANUAL ACCOUNT SUSPENSION (fake or reversed payment) ──
+function toggleSuspend(name, suspend) {
+  if (!suspend) {
+    showAlert('✅','Restore access?', `${name} will be able to enter class again.`,
+      [{label:'Cancel',fn:'closeAlert()'},{label:'Restore',fn:`doSuspend('${name.replace(/'/g,"\\'")}',false,'')`,primary:true}]);
+    return;
+  }
+  showAlert('🚫','Disable this account?',
+    `${name} will be blocked from entering any class until you restore access. The parent can still sign in to the parent portal so they can pay.`,
+    [{label:'Cancel',fn:'closeAlert()'},{label:'Disable',fn:`doSuspend('${name.replace(/'/g,"\\'")}',true,'Non-payment')`,primary:true}]);
+}
+
+async function doSuspend(name, suspended, reason) {
+  closeAlert();
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/students/suspend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ name, suspended, reason })
+    });
+    const data = await res.json();
+    if (data.success) { showToast(suspended ? '🚫 Account disabled' : '✅ Access restored'); await loadAll(); renderAllStudents(); }
+    else showAlert('😬','Could not update',data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+  } catch(e) {
+    showAlert('😬','Could not update',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+  }
 }
 
 function openEditStudentModal(name, password, room, dob) {

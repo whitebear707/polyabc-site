@@ -645,6 +645,7 @@ async function loadDashboard() {
   if (!res.ok) { doLogout(); return; }
   const data = await res.json();
   _dashboardStudents = data.students || [];
+  renderSuspensionBanner(_dashboardStudents);
   _familyDiscount = data.familyDiscount || 0;
   await loadBillingData();
   renderPaymentBanner(data.students || []);
@@ -752,6 +753,22 @@ function showTab(tab) {
   if (tab === 'reports')  renderReportsTab();
   if (tab === 'calendar') renderParentCalendar();
   if (tab === 'payment')  renderPaymentTab();
+}
+
+// A disabled child can't enter class; the parent still gets in here so they can pay.
+function renderSuspensionBanner(students) {
+  const blocked = (students || []).filter(s => s.suspended);
+  const el = document.getElementById('payment-banner');
+  if (!el || !blocked.length) return;
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="background:#ffebee;border:2px solid #b71c1c;border-radius:12px;padding:14px 18px;margin-bottom:12px;">
+      <div style="font-weight:900;color:#b71c1c;margin-bottom:4px;">🚫 Acceso suspendido</div>
+      <div style="font-size:0.86rem;color:#5d4037;">
+        ${blocked.map(s => `<strong>${s.name}</strong>`).join(', ')} no puede entrar a clase por falta de pago.
+        Por favor realiza tu pago o contáctanos para reactivar la cuenta.
+      </div>
+    </div>` + el.innerHTML;
 }
 
 // ── PROGRESS REPORTS (read-only for parents) ──
