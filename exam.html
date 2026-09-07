@@ -221,6 +221,9 @@
 <script>
 const SERVER_URL = 'https://polyabc-server.onrender.com';
 let trialData = JSON.parse(localStorage.getItem('trialStudent') || '{}');
+const trialToken = localStorage.getItem('trialToken') || '';
+// Trial endpoints are authenticated now; every call carries the token issued at login.
+const trialAuth = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${trialToken}` });
 let answers = [];
 let currentQ = 0;
 let score = 0;
@@ -273,7 +276,7 @@ window.onload = async () => {
 
   // Check if student already has a pending booking
   try {
-    const res = await fetch(`${SERVER_URL}/trial/bookings/student/${trialData.id}`);
+    const res = await fetch(`${SERVER_URL}/trial/bookings/student/${trialData.id}`, { headers: trialAuth() });
     const data = await res.json();
     if (data.booked) { showWaitingScreen(data.date, data.time); return; }
   } catch(e) {}
@@ -357,7 +360,7 @@ function showResults() {
 
   // Save level to server silently
   fetch(`${SERVER_URL}/trial/save-level`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: trialAuth(),
     body: JSON.stringify({ studentId: trialData.id, level: detectedLevel })
   });
 
@@ -391,7 +394,7 @@ async function showBooking() {
     // Group trials don't self-book a slot — send exam results to admin and wait for assignment
     try {
       await fetch(`${SERVER_URL}/trial/group-request`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: trialAuth(),
         body: JSON.stringify({ studentId: trialData.id, studentName: trialData.name, level: detectedLevel })
       });
     } catch(e) {}
@@ -466,7 +469,7 @@ function pickDate(date) {
 async function confirmBooking() {
   document.getElementById('confirm-popup').classList.remove('open');
   await fetch(`${SERVER_URL}/trial/book`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: trialAuth(),
     body: JSON.stringify({ studentId: trialData.id, studentName: trialData.name, level: detectedLevel, date: selectedDate, time: selectedTime })
   });
   const timeDisp = new Date(`2000-01-01T${selectedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});

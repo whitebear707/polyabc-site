@@ -302,6 +302,7 @@
 
         if (data.success) {
           if (data.role === 'trial') {
+          localStorage.setItem('trialToken', data.token || '');
           localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel, enrolledType: data.enrolledType || '1v1' }));
           window.location.href = 'exam.html'; return;
         }
