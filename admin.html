@@ -440,6 +440,20 @@
       </div>
     </div>
 
+    <!-- Password encryption migration -->
+    <div style="background:#f6f2ff;border:2px solid #7e57c2;border-radius:14px;padding:20px;margin-top:20px;">
+      <div style="font-size:0.95rem;font-weight:900;color:#4527a0;margin-bottom:6px;">🔐 Encrypt Stored Passwords</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
+        Converts student and teacher passwords from plain text to encrypted storage.
+        Logins keep working, passwords stay unique, and you can still see them in the tables above.
+        Run this <strong>once</strong> after deploying. Safe to run again — already-encrypted records are skipped.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="migratePasswords()" style="padding:10px 20px;background:#7e57c2;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔐 Encrypt Now</button>
+      </div>
+      <div id="pwmigrate-status" style="margin-top:10px;font-size:0.82rem;font-weight:700;"></div>
+    </div>
+
     <!-- Full data export -->
     <div style="background:#f3f8ff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-top:20px;">
       <div style="font-size:0.95rem;font-weight:900;color:#0b47a1;margin-bottom:6px;">📦 Full Data Export</div>
@@ -4373,6 +4387,27 @@ function printAccounting() {
 
 
 // ── FLUSH ──
+async function migratePasswords() {
+  const status = document.getElementById('pwmigrate-status');
+  if (!confirm('Encrypt all stored student and teacher passwords?\n\nLogins and the password tables keep working exactly as they do now.')) return;
+  status.style.color = '#7e57c2';
+  status.textContent = '\u23f3 Encrypting...';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/migrate-passwords`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Migration failed');
+    status.style.color = '#00897b';
+    status.textContent = `\u2705 Done \u2014 ${data.students} students, ${data.teachers} teachers, ${data.roomStudents} room rosters encrypted. ${data.alreadyDone} already done.`
+      + (data.skipped?.length ? ` Skipped (no password): ${data.skipped.join(', ')}` : '');
+  } catch(e) {
+    status.style.color = '#e53935';
+    status.textContent = '\u274c Failed: ' + e.message;
+  }
+}
+
 async function fullExport() {
   const status = document.getElementById('fullexport-status');
   status.style.color = '#1a73e8';
