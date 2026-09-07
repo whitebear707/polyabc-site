@@ -440,6 +440,20 @@
       </div>
     </div>
 
+    <!-- Full data export -->
+    <div style="background:#f3f8ff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-top:20px;">
+      <div style="font-size:0.95rem;font-weight:900;color:#0b47a1;margin-bottom:6px;">📦 Full Data Export</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
+        A complete portable copy of the school's data &mdash; students, parents, staff, groups, classes,
+        attendance, reviews, billing, accounting and settings &mdash; as an Excel workbook plus CSV files.
+        <strong>Nothing is deleted.</strong> Passwords are never included.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="fullExport()" style="padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">⬇️ Download Everything</button>
+      </div>
+      <div id="fullexport-status" style="margin-top:10px;font-size:0.82rem;font-weight:700;"></div>
+    </div>
+
     <!-- Flush -->
     <div style="background:#fff8f0;border:2px solid #ff9800;border-radius:14px;padding:20px;margin-top:20px;">
       <div style="font-size:0.95rem;font-weight:900;color:#e65100;margin-bottom:6px;">🗑 Database Flush</div>
@@ -4359,6 +4373,34 @@ function printAccounting() {
 
 
 // ── FLUSH ──
+async function fullExport() {
+  const status = document.getElementById('fullexport-status');
+  status.style.color = '#1a73e8';
+  status.textContent = '⏳ Gathering every table — this can take a minute...';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/export/full`, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+    if (!res.ok) {
+      let msg = 'Export failed';
+      try { msg = (await res.json()).error || msg; } catch(_) {}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `datos-completos-${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    status.style.color = '#00897b';
+    status.textContent = '✅ Download started — open LEEME.txt inside the zip for a summary.';
+  } catch(e) {
+    status.style.color = '#e53935';
+    status.textContent = '❌ Export failed: ' + e.message;
+  }
+}
+
 async function flushDownload() {
   const status = document.getElementById('flush-status');
   status.style.color = '#1a73e8';
