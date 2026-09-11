@@ -948,6 +948,22 @@
       <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏰ Time Preference (Parent selected)</label>
       <div id="edit-student-time-pref" style="background:#f5f5f5;padding:10px;border-radius:8px;font-size:0.85rem;color:#555;font-family:monospace;min-height:40px;word-break:break-word;">—</div>
     </div>
+    <div style="border-top:1px solid #eee;margin:14px 0 10px;"></div>
+    <div class="field-group">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏱ Make-Up Time Owed</label>
+      <div style="background:#fff8e1;border:1px solid #f0d878;border-radius:8px;padding:10px;">
+        <div style="font-size:0.85rem;margin-bottom:8px;">Currently owed: <b id="edit-student-owed-display">0 min</b></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="edit-student-owed-amount" placeholder="minutes" min="0" style="width:90px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;">
+          <button type="button" class="btn btn-blue btn-sm" onclick="adjustStudentOwed('add')">+ Add</button>
+          <button type="button" class="btn btn-gray btn-sm" onclick="adjustStudentOwed('subtract')">− Subtract</button>
+          <button type="button" class="btn btn-red btn-sm" onclick="adjustStudentOwed('set', 0)">Clear to 0</button>
+        </div>
+        <input type="text" id="edit-student-owed-reason" placeholder="Reason (optional) — shown in the log" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.82rem;">
+        <div id="edit-student-owed-status" style="font-size:0.78rem;margin-top:6px;"></div>
+        <div id="edit-student-owed-log" style="font-size:0.75rem;color:#888;margin-top:6px;max-height:90px;overflow-y:auto;"></div>
+      </div>
+    </div>
     <div class="field-group">
       <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">📝 Admin Notes</label>
       <textarea id="edit-student-notes" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;resize:vertical;min-height:80px;" placeholder="Leave notes about student or scheduling preferences..."></textarea>
@@ -1032,6 +1048,21 @@
         <option value="">-- Add student --</option>
       </select>
       <button class="btn btn-blue btn-sm" onclick="addStudentToGroup()">+ Add to Group</button>
+    </div>
+    <div class="field-group" id="group-owed-section" style="display:none;">
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏱ Make-Up Time Owed (whole group)</label>
+      <div style="background:#fff8e1;border:1px solid #f0d878;border-radius:8px;padding:10px;">
+        <div style="font-size:0.85rem;margin-bottom:8px;">Currently owed: <b id="edit-group-owed-display">0 min</b></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="edit-group-owed-amount" placeholder="minutes" min="0" style="width:90px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;">
+          <button type="button" class="btn btn-blue btn-sm" onclick="adjustGroupOwed('add')">+ Add</button>
+          <button type="button" class="btn btn-gray btn-sm" onclick="adjustGroupOwed('subtract')">− Subtract</button>
+          <button type="button" class="btn btn-red btn-sm" onclick="adjustGroupOwed('set', 0)">Clear to 0</button>
+        </div>
+        <input type="text" id="edit-group-owed-reason" placeholder="Reason (optional) — shown in the log" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.82rem;">
+        <div id="edit-group-owed-status" style="font-size:0.78rem;margin-top:6px;"></div>
+        <div id="edit-group-owed-log" style="font-size:0.75rem;color:#888;margin-top:6px;max-height:90px;overflow-y:auto;"></div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeGroupModal()">Cancel</button>
@@ -2415,6 +2446,11 @@ function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-dob').value = s.dob || dob || '';
   document.getElementById('edit-student-type').value = s.enrolledType || '';
   document.getElementById('edit-student-notes').value = s.adminNotes || '';
+  document.getElementById('edit-student-owed-display').textContent = `${s.makeUpMinutesOwed || 0} min`;
+  document.getElementById('edit-student-owed-amount').value = '';
+  document.getElementById('edit-student-owed-reason').value = '';
+  document.getElementById('edit-student-owed-status').textContent = '';
+  renderOwedLog('edit-student-owed-log', s.makeUpMinutesLog);
   
   // Format time preferences for display
   let timePrefText = '—';
@@ -2457,6 +2493,75 @@ function openEditStudentModal(name, password, room, dob) {
   sel.innerHTML = '<option value="">-- No room --</option>' +
     rooms.map(r => `<option value="${r.room}"${r.room === studentRoom ? ' selected' : ''}>Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
   document.getElementById('edit-student-modal').classList.add('open');
+}
+
+function renderOwedLog(elId, log) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const entries = (log || []).slice(-5).reverse();
+  if (!entries.length) { el.innerHTML = ''; return; }
+  const modeLabel = { add: '+', subtract: '−', set: '→' };
+  el.innerHTML = entries.map(e => {
+    const d = new Date(e.date);
+    const when = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const sign = modeLabel[e.mode] || '';
+    return `<div>${when} &middot; ${sign}${e.amount}min &rarr; ${e.to}min${e.reason ? ' &middot; ' + e.reason : ''}</div>`;
+  }).join('');
+}
+
+async function adjustStudentOwed(mode, forcedAmount) {
+  const name = document.getElementById('edit-student-original-name').value;
+  const amount = forcedAmount !== undefined ? forcedAmount : Number(document.getElementById('edit-student-owed-amount').value || 0);
+  const reason = document.getElementById('edit-student-owed-reason').value.trim();
+  const status = document.getElementById('edit-student-owed-status');
+  if (mode !== 'set' && (!amount || amount <= 0)) { status.style.color = '#e53935'; status.textContent = 'Enter a number of minutes first.'; return; }
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/students/${encodeURIComponent(name)}/owed-minutes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ mode, amount, reason })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Failed');
+    document.getElementById('edit-student-owed-display').textContent = `${data.makeUpMinutesOwed} min`;
+    document.getElementById('edit-student-owed-amount').value = '';
+    document.getElementById('edit-student-owed-reason').value = '';
+    status.style.color = '#00897b';
+    status.textContent = '✅ Updated';
+    const s = (allStudents || []).find(x => x.name === name);
+    if (s) { s.makeUpMinutesOwed = data.makeUpMinutesOwed; s.makeUpMinutesLog = [...(s.makeUpMinutesLog || []), data.log].slice(-20); renderOwedLog('edit-student-owed-log', s.makeUpMinutesLog); }
+  } catch (e) {
+    status.style.color = '#e53935';
+    status.textContent = '❌ ' + e.message;
+  }
+}
+
+async function adjustGroupOwed(mode, forcedAmount) {
+  const id = document.getElementById('edit-group-id').value;
+  if (!id) return; // Create Group has no id yet — section is hidden in that case anyway
+  const amount = forcedAmount !== undefined ? forcedAmount : Number(document.getElementById('edit-group-owed-amount').value || 0);
+  const reason = document.getElementById('edit-group-owed-reason').value.trim();
+  const status = document.getElementById('edit-group-owed-status');
+  if (mode !== 'set' && (!amount || amount <= 0)) { status.style.color = '#e53935'; status.textContent = 'Enter a number of minutes first.'; return; }
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/groups/${id}/owed-minutes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ mode, amount, reason })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Failed');
+    document.getElementById('edit-group-owed-display').textContent = `${data.makeUpMinutesOwed} min`;
+    document.getElementById('edit-group-owed-amount').value = '';
+    document.getElementById('edit-group-owed-reason').value = '';
+    status.style.color = '#00897b';
+    status.textContent = '✅ Updated';
+    const g = (allGroups || []).find(x => x._id === id);
+    if (g) { g.makeUpMinutesOwed = data.makeUpMinutesOwed; g.makeUpMinutesLog = [...(g.makeUpMinutesLog || []), data.log].slice(-20); renderOwedLog('edit-group-owed-log', g.makeUpMinutesLog); }
+  } catch (e) {
+    status.style.color = '#e53935';
+    status.textContent = '❌ ' + e.message;
+  }
 }
 
 async function saveEditStudent() {
@@ -2745,6 +2850,7 @@ function renderGroups() {
 function openAddGroupModal() {
   document.getElementById('group-modal-title').textContent = 'Create Group';
   document.getElementById('edit-group-id').value = '';
+  document.getElementById('group-owed-section').style.display = 'none';
   document.getElementById('group-name').value = '';
   document.getElementById('group-level').value = 'A0';
   document.getElementById('group-type').value = 'Group - 40 Min';
@@ -2761,6 +2867,12 @@ function openEditGroupModal(id) {
   if (!g) return;
   document.getElementById('group-modal-title').textContent = 'Edit Group';
   document.getElementById('edit-group-id').value = id;
+  document.getElementById('group-owed-section').style.display = 'block';
+  document.getElementById('edit-group-owed-display').textContent = `${g.makeUpMinutesOwed || 0} min`;
+  document.getElementById('edit-group-owed-amount').value = '';
+  document.getElementById('edit-group-owed-reason').value = '';
+  document.getElementById('edit-group-owed-status').textContent = '';
+  renderOwedLog('edit-group-owed-log', g.makeUpMinutesLog);
   document.getElementById('group-name').value = g.name || '';
   document.getElementById('group-level').value = g.level || 'A0';
   document.getElementById('group-type').value = g.classType || 'Group - 40 Min';
