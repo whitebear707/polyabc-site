@@ -200,10 +200,15 @@
         return `<div class="sched-item">
           <div class="sched-time">${localStr} <span style="font-size:0.75rem;color:#888;">your time</span></div>
           <div class="sched-gdl">${gdlStr}</div>
-          <div class="sched-type">⏱ ${a.classType || ''}${a.groupName ? ' · ' + a.groupName : ''}</div>
+          <div class="sched-type">⏱ ${escHtml(a.classType || '')}${a.groupName ? ' · ' + escHtml(a.groupName) : ''}</div>
           ${soonTag}
         </div>`;
       }).join('');
+  }
+
+  function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   loadCalendar();
