@@ -1779,14 +1779,14 @@ function _showAssignGroupModal(dateStr, room) {
 
   const panel = document.getElementById('assign-day-panel');
   const groupOptions = allGroups.map(g =>
-    `<option value="group:${g._id}" data-type="${g.classType}">${g.name} · ${g.level} · ${g.classType}</option>`
+    `<option value="group:${escHtml(g._id)}" data-type="${escHtml(g.classType)}">${escHtml(g.name)} · ${escHtml(g.level)} · ${escHtml(g.classType)}</option>`
   ).join('');
 
   const standaloneStudents = getAllStudents().filter(s =>
     !allGroups.some(g => (g.students||[]).includes(s.name))
   );
   const studentOptions = standaloneStudents.map(s =>
-    `<option value="student:${s.name}" data-type="1v1">👤 ${s.name} (1v1)</option>`
+    `<option value="student:${escHtml(s.name)}" data-type="1v1">👤 ${escHtml(s.name)} (1v1)</option>`
   ).join('');
 
   panel.innerHTML = `
@@ -1999,18 +1999,18 @@ function renderTeachers() {
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
         ${avatar}
         <div>
-          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">Room ${r.room}</div>
-          <div style="font-size:0.85rem;color:#666;">👩‍🏫 Teacher ${r.teacherName || '—'}</div>
+          <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">Room ${escHtml(r.room)}</div>
+          <div style="font-size:0.85rem;color:#666;">👩‍🏫 Teacher ${escHtml(r.teacherName || '—')}</div>
         </div>
       </div>
-      <div class="notranslate" translate="no" style="font-size:0.85rem;color:#666;margin-bottom:4px;">🔑 ${r.teacherPassword}</div>
+      <div class="notranslate" translate="no" style="font-size:0.85rem;color:#666;margin-bottom:4px;">🔑 ${escHtml(r.teacherPassword)}</div>
       <div style="font-size:0.85rem;color:#666;margin-bottom:4px;">💰 $${r.hourlyRate||0}/hr ${r.timeOverride ? '<span style="background:#fff3e0;color:#e65100;padding:1px 7px;border-radius:10px;font-size:0.75rem;font-weight:700;">⚡ Emergency</span>' : ''}</div>
       <div style="font-size:0.85rem;color:#666;margin-bottom:12px;">🎓 ${(r.students||[]).length} students</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-blue btn-sm" onclick="openEditTeacherModal('${r.room}')">✏️ Edit</button>
-        <button class="btn btn-gray btn-sm" onclick="openRoomStudents('${r.room}')">👥 Students</button>
-        <button class="btn btn-sm" style="background:#6a1b9a;color:#fff;" onclick="openReviewRequestModal('${r.room}')">📝 Request Review</button>
-        <button class="btn btn-red btn-sm" onclick="confirmDeleteRoom('${r.room}')">🗑</button>
+        <button class="btn btn-blue btn-sm" onclick="openEditTeacherModal('${escJsAttr(r.room)}')">✏️ Edit</button>
+        <button class="btn btn-gray btn-sm" onclick="openRoomStudents('${escJsAttr(r.room)}')">👥 Students</button>
+        <button class="btn btn-sm" style="background:#6a1b9a;color:#fff;" onclick="openReviewRequestModal('${escJsAttr(r.room)}')">📝 Request Review</button>
+        <button class="btn btn-red btn-sm" onclick="confirmDeleteRoom('${escJsAttr(r.room)}')">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -2239,8 +2239,8 @@ async function renderRoomStudentsList(roomId) {
   if (!students.length) { list.innerHTML = '<div style="color:#aaa;font-size:0.9rem;padding:8px 0;">No students yet.</div>'; return; }
   list.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Password</th><th></th></tr></thead><tbody>
     ${students.map((s,i) => `<tr>
-      <td style="font-weight:700;">${s.name}</td>
-      <td class="notranslate" translate="no" style="color:#888;">${s.password}</td>
+      <td style="font-weight:700;">${escHtml(s.name)}</td>
+      <td class="notranslate" translate="no" style="color:#888;">${escHtml(s.password)}</td>
       <td><button class="btn btn-red btn-sm" onclick="deleteRoomStudent(${i})">🗑</button></td>
     </tr>`).join('')}
   </tbody></table>`;
@@ -2518,7 +2518,7 @@ function renderOwedLog(elId, log) {
     const d = new Date(e.date);
     const when = isNaN(d) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const sign = modeLabel[e.mode] || '';
-    return `<div>${when} &middot; ${sign}${e.amount}min &rarr; ${e.to}min${e.reason ? ' &middot; ' + e.reason : ''}</div>`;
+    return `<div>${when} &middot; ${sign}${e.amount}min &rarr; ${e.to}min${e.reason ? ' &middot; ' + escHtml(e.reason) : ''}</div>`;
   }).join('');
 }
 
@@ -2728,7 +2728,7 @@ function openAddStudentModal() {
     rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
   const groupSel = document.getElementById('global-student-group');
   groupSel.innerHTML = '<option value="">-- No group --</option><option value="__new__">➕ Create new group...</option>' +
-    allGroups.map(g => `<option value="${g._id}">${g.name} · ${g.level} · ${g.classType}</option>`).join('');
+    allGroups.map(g => `<option value="${escHtml(g._id)}">${escHtml(g.name)} · ${escHtml(g.level)} · ${escHtml(g.classType)}</option>`).join('');
   document.getElementById('add-student-modal').classList.add('open');
 }
 
@@ -2845,17 +2845,17 @@ function renderGroups() {
     return `<div class="card" style="border-left:4px solid #2e7d32;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div>
-          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${g.name}</div>
-          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${g.level} · ${g.classType} · ${fmt12(g.time)||'No time set'}</div>
-          <div style="font-size:0.8rem;font-weight:700;color:${g.room?'#2e7d32':'#c62828'};margin-top:3px;">${g.room ? `👩‍🏫 ${teacherNameForRoom(g.room)} (Room ${g.room}) · Mon–Thu weekly` : '⚠️ No teacher assigned — no classes will be created'}</div>
+          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${escHtml(g.name)}</div>
+          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${escHtml(g.level)} · ${escHtml(g.classType)} · ${fmt12(g.time)||'No time set'}</div>
+          <div style="font-size:0.8rem;font-weight:700;color:${g.room?'#2e7d32':'#c62828'};margin-top:3px;">${g.room ? `👩‍🏫 ${escHtml(teacherNameForRoom(g.room))} (Room ${escHtml(g.room)}) · Mon–Thu weekly` : '⚠️ No teacher assigned — no classes will be created'}</div>
         </div>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-blue btn-sm" onclick="openEditGroupModal('${g._id}')">✏️ Edit</button>
-          <button class="btn btn-red btn-sm" onclick="confirmDeleteGroup('${g._id}','${g.name}')">🗑</button>
+          <button class="btn btn-blue btn-sm" onclick="openEditGroupModal('${escJsAttr(g._id)}')">✏️ Edit</button>
+          <button class="btn btn-red btn-sm" onclick="confirmDeleteGroup('${escJsAttr(g._id)}','${escJsAttr(g.name)}')">🗑</button>
         </div>
       </div>
       <div style="font-size:0.82rem;font-weight:700;color:#555;margin-bottom:6px;">👥 ${(g.students||[]).length} student(s):</div>
-      <div>${(g.students||[]).map(s => `<span class="student-chip">${s}</span>`).join('') || '<span style="color:#aaa;font-size:0.82rem;">No students yet</span>'}</div>
+      <div>${(g.students||[]).map(s => `<span class="student-chip">${escHtml(s)}</span>`).join('') || '<span style="color:#aaa;font-size:0.82rem;">No students yet</span>'}</div>
     </div>`;
   }).join('');
 }
@@ -2903,7 +2903,7 @@ function populateGroupRoomSelect(selected) {
   const sel = document.getElementById('group-room');
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Not assigned --</option>' +
-    rooms.map(r => `<option value="${r.room}"${String(r.room) === String(selected) ? ' selected' : ''}>Teacher ${r.teacherName || '—'} (Room ${r.room})</option>`).join('');
+    rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(selected) ? ' selected' : ''}>Teacher ${escHtml(r.teacherName || '—')} (Room ${escHtml(r.room)})</option>`).join('');
 }
 
 function populateGroupStudentSelect() {
@@ -2911,7 +2911,7 @@ function populateGroupStudentSelect() {
   const sel = document.getElementById('group-add-student-select');
   sel.innerHTML = '<option value="">-- Add student --</option>' +
     all.filter(s => !_groupStudents.includes(s.name))
-       .map(s => `<option value="${s.name}">${s.name} (Room ${s.room})</option>`).join('');
+       .map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)} (Room ${escHtml(s.room)})</option>`).join('');
 }
 
 function addStudentToGroup() {
@@ -2931,7 +2931,7 @@ function removeGroupStudent(name) {
 
 function renderGroupStudentChips() {
   document.getElementById('group-student-chips').innerHTML =
-    _groupStudents.map(s => `<span class="student-chip">${s}<button onclick="removeGroupStudent('${s}')">×</button></span>`).join('') ||
+    _groupStudents.map(s => `<span class="student-chip">${escHtml(s)}<button onclick="removeGroupStudent('${escJsAttr(s)}')">×</button></span>`).join('') ||
     '<span style="color:#aaa;font-size:0.82rem;padding:4px;">No students yet</span>';
 }
 
@@ -3317,7 +3317,7 @@ function openAttDetail(idx) {
   // Build student rows — mark no-shows and show disconnect log
   const buildStudentRow = (name, actual) => {
     if (!actual) return `<tr>
-      <td style="font-weight:700;">${name}</td>
+      <td style="font-weight:700;">${escHtml(name)}</td>
       <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
       <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
       <td>—</td>
@@ -3347,7 +3347,7 @@ function openAttDetail(idx) {
         </td>
       </tr>` : '';
     return `<tr>
-      <td style="font-weight:700;">${name}${disconnectBadge}</td>
+      <td style="font-weight:700;">${escHtml(name)}${disconnectBadge}</td>
       <td style="color:#2e7d32;font-weight:700;">${fmtT(actual.joinedAt)}</td>
       <td>${fmtT(actual.leftAt || r.classEndedAt)}</td>
       <td style="color:${totalGap > 0 ? '#b71c1c' : '#888'};font-weight:${totalGap > 0 ? '700' : '400'};">${totalGap > 0 ? totalGap + ' min' : '—'}</td>
@@ -3524,22 +3524,22 @@ async function showStudentRequests() {
   } else {
     list.innerHTML = requests.map(r => `
       <div style="background:#f8f9ff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px;">
-        <div style="font-weight:900;font-size:1rem;">${r.student.displayName || r.student.name}</div>
+        <div style="font-weight:900;font-size:1rem;">${escHtml(r.student.displayName || r.student.name)}</div>
         <div style="font-size:0.82rem;color:#555;margin-top:4px;">
-          👤 ${r.relationship === 'self' ? 'Adult Student / Estudiante Adulto' : r.relationship === 'mother' ? 'Mother / Mamá' : r.relationship === 'father' ? 'Father / Papá' : 'Guardian'}: ${r.parentName}<br>
-          📱 ${r.phone}<br>
-          📧 ${r.email}<br>
-          🎂 DOB: ${r.student.dob}
+          👤 ${r.relationship === 'self' ? 'Adult Student / Estudiante Adulto' : r.relationship === 'mother' ? 'Mother / Mamá' : r.relationship === 'father' ? 'Father / Papá' : 'Guardian'}: ${escHtml(r.parentName)}<br>
+          📱 ${escHtml(r.phone)}<br>
+          📧 ${escHtml(r.email)}<br>
+          🎂 DOB: ${escHtml(r.student.dob)}
         </div>
         ${r.student.status === 'pending' ? `
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button onclick="handleRequest('${r.parentId}','${r.student.name}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
-          <button onclick="handleRequest('${r.parentId}','${r.student.name}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
+          <button onclick="handleRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
+          <button onclick="handleRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
         </div>` : ''}
         ${r.student.status === 'approved' ? `
         <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-top:8px;font-size:0.85rem;">
           <div style="color:#2e7d32;font-weight:700;margin-bottom:4px;">✅ Approved — Trial Credentials:</div>
-          <div>Room: <b>101</b> &nbsp;|&nbsp; Password: <b>${r.student.trialPassword || 'try1'}</b></div>
+          <div>Room: <b>101</b> &nbsp;|&nbsp; Password: <b>${escHtml(r.student.trialPassword || 'try1')}</b></div>
         </div>
         <a href="exam.html" target="_blank" style="display:block;margin-top:8px;padding:10px;background:#2e7d32;color:white;border-radius:10px;text-align:center;font-weight:900;font-size:0.9rem;text-decoration:none;">
           📝 Exam / Examen
@@ -3547,7 +3547,7 @@ async function showStudentRequests() {
         ${r.student.status === 'denied' ? `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
           <span style="color:#c62828;font-size:0.85rem;font-weight:700;">❌ Denied</span>
-          <button onclick="deleteStudentRequest('${r.parentId}','${r.student.name}')" style="padding:6px 14px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">🗑 Delete</button>
+          <button onclick="deleteStudentRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}')" style="padding:6px 14px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">🗑 Delete</button>
         </div>` : ''}
       </div>
     `).join('');
@@ -3681,30 +3681,30 @@ function renderBillingTable(students) {
     const daysLabel = s.scheduledDays?.length ? s.scheduledDays.map(d => d.slice(0,3)).join(', ') : '—';
     const timeLabel = s.scheduledTime || '—';
     // If admin hasn't assigned an actual day/time yet, fall back to what the parent asked for
-    let schedueDisplay = `${daysLabel}<br><span style="color:#888;">${timeLabel}</span>`;
+    let schedueDisplay = `${escHtml(daysLabel)}<br><span style="color:#888;">${escHtml(timeLabel)}</span>`;
     if (!s.scheduledDays?.length && !s.scheduledTime) {
       if (s.timePreference === 'flexible') schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Flexible</span>`;
-      else if (s.timePreference === 'range' && s.preferredTimeRange) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Range: ${s.preferredTimeRange.start}–${s.preferredTimeRange.end}</span>`;
-      else if (s.timePreference === 'specific' && s.specificTimes) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">${s.specificTimes}</span>`;
-      else if (s.timePreference === 'contact-me') schedueDisplay = `<span style="color:#e65100;font-weight:700;">📞 Contact via ${s.contactMethod === 'whatsapp' ? 'WhatsApp' : 'call'}${s.contactPhone ? ': ' + s.contactPhone : ''}</span>`;
+      else if (s.timePreference === 'range' && s.preferredTimeRange) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Range: ${escHtml(s.preferredTimeRange.start)}–${escHtml(s.preferredTimeRange.end)}</span>`;
+      else if (s.timePreference === 'specific' && s.specificTimes) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">${escHtml(s.specificTimes)}</span>`;
+      else if (s.timePreference === 'contact-me') schedueDisplay = `<span style="color:#e65100;font-weight:700;">📞 Contact via ${s.contactMethod === 'whatsapp' ? 'WhatsApp' : 'call'}${s.contactPhone ? ': ' + escHtml(s.contactPhone) : ''}</span>`;
       else schedueDisplay = '—';
     }
     const overdueFlag = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date() && !s.paid
       ? ' <span style="color:#e53935;font-size:0.7rem;font-weight:900;">⚠️ OVERDUE</span>' : '';
     return `<tr>
-      <td style="font-weight:700;">${s.name}</td>
-      <td><span style="color:${typeColor};font-weight:900;">${s.enrolledType || '—'}</span></td>
-      <td>${s.billingCycle || '—'}</td>
-      <td style="text-align:center;">${s.classesPerWeek || '—'}</td>
-      <td style="text-align:center;">${s.minutesPerClass || '—'}</td>
+      <td style="font-weight:700;">${escHtml(s.name)}</td>
+      <td><span style="color:${typeColor};font-weight:900;">${escHtml(s.enrolledType || '—')}</span></td>
+      <td>${escHtml(s.billingCycle || '—')}</td>
+      <td style="text-align:center;">${escHtml(s.classesPerWeek || '—')}</td>
+      <td style="text-align:center;">${escHtml(s.minutesPerClass || '—')}</td>
       <td style="font-size:0.82rem;">${schedueDisplay}</td>
-      <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${s.name}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Mark Done</button>`}</td>
+      <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${escJsAttr(s.name)}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Mark Done</button>`}</td>
       <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Paid' : '❌ Unpaid'}</span>${overdueFlag}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.lastPaidAt)}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.nextPaymentDue)}</td>
       <td style="white-space:nowrap;">
-        <button onclick="openBillingEdit('${s.name}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Edit</button>
-        <button onclick="confirmPayment('${s.name}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">💰 Paid</button>
+        <button onclick="openBillingEdit('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Edit</button>
+        <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">💰 Paid</button>
       </td>
     </tr>`;
   }).join('');
@@ -3868,26 +3868,26 @@ function filterParents() {
 function _parentStudentRow(par, s) {
   const stu   = getAllStudents().find(x => x.name === s.name);
   const group = allGroups.find(g => (g.students||[]).includes(s.name));
-  const groupTag   = group   ? '<span style="background:#e3f2fd;color:#1a73e8;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:6px;">' + group.name + '</span>' : '';
-  const levelTag   = stu?.trialLevel ? '<span style="background:#f3e5f5;color:#6a1b9a;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:4px;">' + stu.trialLevel + '</span>' : '';
+  const groupTag   = group   ? '<span style="background:#e3f2fd;color:#1a73e8;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:6px;">' + escHtml(group.name) + '</span>' : '';
+  const levelTag   = stu?.trialLevel ? '<span style="background:#f3e5f5;color:#6a1b9a;padding:1px 7px;border-radius:8px;font-size:0.72rem;font-weight:700;margin-left:4px;">' + escHtml(stu.trialLevel) + '</span>' : '';
   const lastPaid   = stu?.lastPaidAt ? '<div style="font-size:0.72rem;color:#2e7d32;margin-top:2px;">Last paid: ' + new Date(stu.lastPaidAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short'}) + '</div>' : '';
   const pid = par._id; const sname = s.name;
   return '<div style="display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border-radius:10px;padding:8px 12px;margin-bottom:6px;flex-wrap:wrap;gap:6px;">'
-    + '<div><span style="font-weight:900;color:#1a1a2e;">' + sname + '</span>' + groupTag + levelTag + lastPaid + '</div>'
-    + '<button data-pid="' + pid + '" data-sname="' + sname + '" onclick="unassignStudent(this.dataset.pid,this.dataset.sname)" style="padding:3px 8px;background:#ffebee;color:#c62828;border:none;border-radius:6px;font-size:0.72rem;font-weight:700;cursor:pointer;">✕ Unassign</button>'
+    + '<div><span style="font-weight:900;color:#1a1a2e;">' + escHtml(sname) + '</span>' + groupTag + levelTag + lastPaid + '</div>'
+    + '<button data-pid="' + escHtml(pid) + '" data-sname="' + escHtml(sname) + '" onclick="unassignStudent(this.dataset.pid,this.dataset.sname)" style="padding:3px 8px;background:#ffebee;color:#c62828;border:none;border-radius:6px;font-size:0.72rem;font-weight:700;cursor:pointer;">✕ Unassign</button>'
     + '</div>';
 }
 
 function _parentAssignDropdown(par, assignedNames) {
   const opts = getAllStudents()
     .filter(s => !assignedNames.includes(s.name))
-    .map(s => '<option value="' + s.name + '">' + s.name + '</option>')
+    .map(s => '<option value="' + escHtml(s.name) + '">' + escHtml(s.name) + '</option>')
     .join('');
   const pid = par._id;
   return '<div style="display:flex;gap:8px;margin-top:8px;">'
-    + '<select id="assign-sel-' + pid + '" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.85rem;">'
+    + '<select id="assign-sel-' + escHtml(pid) + '" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.85rem;">'
     + '<option value="">+ Assign a student...</option>' + opts + '</select>'
-    + '<button data-pid="' + pid + '" onclick="assignStudent(this.dataset.pid)" style="padding:7px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Assign</button>'
+    + '<button data-pid="' + escHtml(pid) + '" onclick="assignStudent(this.dataset.pid)" style="padding:7px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Assign</button>'
     + '</div>';
 }
 
@@ -3902,19 +3902,19 @@ function renderParentsList(parents) {
       ? '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ Verified</span>'
       : '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:900;">⏳ Unverified</span>';
     const joinedStr = par.createdAt ? '<div style="font-size:0.72rem;color:#aaa;margin-top:2px;">Joined: ' + new Date(par.createdAt).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City',day:'2-digit',month:'short',year:'numeric'}) + '</div>' : '';
-    const phoneStr  = par.phone ? '<div style="font-size:0.82rem;color:#555;margin-top:1px;">📱 ' + par.phone + '</div>' : '';
-    const pid = par._id; const pname = (par.name||'').replace(/'/g,"\'"); const pphone = par.phone||''; const pemail = par.email||'';
+    const phoneStr  = par.phone ? '<div style="font-size:0.82rem;color:#555;margin-top:1px;">📱 ' + escHtml(par.phone) + '</div>' : '';
+    const pid = par._id; const pname = par.name || ''; const pphone = par.phone||''; const pemail = par.email||'';
     const studentRows = students.length
       ? students.map(s => _parentStudentRow(par, s)).join('')
       : '<div style="color:#aaa;font-size:0.85rem;padding:6px 0;">No students linked</div>';
     return '<div style="background:white;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'
-      + '<div><div style="font-size:1rem;font-weight:900;color:#1a1a2e;">' + relIcon + ' ' + (par.name||'—') + '</div>'
-      + '<div style="font-size:0.82rem;color:#1a73e8;margin-top:2px;">📧 ' + (par.email||'—') + '</div>'
+      + '<div><div style="font-size:1rem;font-weight:900;color:#1a1a2e;">' + relIcon + ' ' + escHtml(par.name||'—') + '</div>'
+      + '<div style="font-size:0.82rem;color:#1a73e8;margin-top:2px;">📧 ' + escHtml(par.email||'—') + '</div>'
       + phoneStr + joinedStr + '</div>'
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + verifiedBadge
-      + '<button data-pid="' + pid + '" data-pname="' + pname.replace(/"/g,"&quot;") + '" data-pphone="' + pphone + '" data-pemail="' + pemail + '" onclick="openEditParentModal(this.dataset.pid,this.dataset.pname,this.dataset.pphone,this.dataset.pemail)" style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Edit</button>'
-      + '<button data-pid="' + pid + '" data-pemail="' + pemail + '" onclick="confirmSendCredentials(this.dataset.pid,this.dataset.pemail)" style="padding:4px 10px;background:#1a73e8;border:none;color:white;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">📧 Send Login</button>'
+      + '<button data-pid="' + escHtml(pid) + '" data-pname="' + escHtml(pname) + '" data-pphone="' + escHtml(pphone) + '" data-pemail="' + escHtml(pemail) + '" onclick="openEditParentModal(this.dataset.pid,this.dataset.pname,this.dataset.pphone,this.dataset.pemail)" style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Edit</button>'
+      + '<button data-pid="' + escHtml(pid) + '" data-pemail="' + escHtml(pemail) + '" onclick="confirmSendCredentials(this.dataset.pid,this.dataset.pemail)" style="padding:4px 10px;background:#1a73e8;border:none;color:white;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">📧 Send Login</button>'
       + '</div></div>'
       + '<div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Students</div>'
       + studentRows
@@ -4192,7 +4192,7 @@ async function previewClosure() {
         ${d.students.length} student${d.students.length>1?'s':''} affected — due dates will move forward ${d.days} day${d.days>1?'s':''}
       </div>
       ${d.students.map(s => `<div style="font-size:0.82rem;color:#555;padding:2px 0;">
-        <strong>${s.name}</strong>: ${fmt(s.oldDue)} → <strong style="color:#2e7d32;">${fmt(s.newDue)}</strong>
+        <strong>${escHtml(s.name)}</strong>: ${fmt(s.oldDue)} → <strong style="color:#2e7d32;">${fmt(s.newDue)}</strong>
       </div>`).join('')}
     </div>
     <button onclick="applyClosure('${start}','${end}')" style="padding:10px 22px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">✅ Apply — Shift These Due Dates</button>
@@ -4231,18 +4231,18 @@ function renderStaffList() {
       ${members.map(s => `
         <div style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div>
-            <div style="font-weight:900;color:#1a1a2e;">${s.name}</div>
-            ${s.email ? `<div style="font-size:0.78rem;color:#888;">📧 ${s.email}</div>` : ''}
-            ${s.phone ? `<div style="font-size:0.78rem;color:#888;">📱 ${s.phone}</div>` : ''}
-            ${s.room ? `<div style="font-size:0.78rem;color:#1a73e8;">🏫 Room ${s.room}</div>` : ''}
+            <div style="font-weight:900;color:#1a1a2e;">${escHtml(s.name)}</div>
+            ${s.email ? `<div style="font-size:0.78rem;color:#888;">📧 ${escHtml(s.email)}</div>` : ''}
+            ${s.phone ? `<div style="font-size:0.78rem;color:#888;">📱 ${escHtml(s.phone)}</div>` : ''}
+            ${s.room ? `<div style="font-size:0.78rem;color:#1a73e8;">🏫 Room ${escHtml(s.room)}</div>` : ''}
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="text-align:right;">
               <div style="font-size:0.72rem;color:#888;font-weight:700;">${s.salaryType === 'hourly' ? 'HOURLY RATE' : 'MONTHLY SALARY'}</div>
               <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">$${parseFloat(s.salary||0).toLocaleString('es-MX')} <span style="font-size:0.75rem;color:#888;">MXN</span></div>
             </div>
-            <button onclick="openEditStaffModal('${s._id}')" style="padding:5px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">✏️</button>
-            <button onclick="deleteStaff('${s._id}','${s.name}')" style="padding:5px 10px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">🗑</button>
+            <button onclick="openEditStaffModal('${escJsAttr(s._id)}')" style="padding:5px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">✏️</button>
+            <button onclick="deleteStaff('${escJsAttr(s._id)}','${escJsAttr(s.name)}')" style="padding:5px 10px;background:#ffebee;color:#c62828;border:none;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:Nunito;">🗑</button>
           </div>
         </div>`).join('')}
     </div>`;
@@ -4401,7 +4401,7 @@ function renderPendingTransfers(students) {
       ? `${s.enrolledMinutesPerClass} min ${s.enrolledDaysPerWeek}x/week` 
       : '—';
     const amount = s.transferPendingAmount ? `$${s.transferPendingAmount.toLocaleString('es-MX')}` : '—';
-    return `<tr><td>${s.name}</td><td>${s.parentEmail || '—'}</td><td>${type}<br><span style="font-size:0.75rem;color:#888;">${details}</span></td><td>${amount}</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td><td><button onclick="confirmBankTransfer('${s.name}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
+    return `<tr><td>${escHtml(s.name)}</td><td>${escHtml(s.parentEmail || '—')}</td><td>${escHtml(type)}<br><span style="font-size:0.75rem;color:#888;">${escHtml(details)}</span></td><td>${amount}</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td><td><button onclick="confirmBankTransfer('${escJsAttr(s.name)}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
   }).join('');
   tbody.innerHTML = html;
   console.log('[RENDER DEBUG] HTML written, tbody innerHTML length:', tbody.innerHTML.length);
@@ -4462,12 +4462,12 @@ function renderLedger(entries) {
     const isIngreso = e.type === 'ingreso';
     const catLabels = { colegiatura: '📚 Colegiatura', nomina: '👔 Nómina', otro: '📌 Otro' };
     return `<tr>
-      <td style="font-size:0.82rem;color:#555;">${e.date}</td>
+      <td style="font-size:0.82rem;color:#555;">${escHtml(e.date)}</td>
       <td><span style="padding:2px 8px;border-radius:8px;font-size:0.75rem;font-weight:900;background:${isIngreso?'#e8f5e9':'#ffebee'};color:${isIngreso?'#2e7d32':'#c62828'};">
         ${isIngreso ? '⬆ Ingreso' : '⬇ Egreso'}
       </span></td>
-      <td style="font-size:0.82rem;">${catLabels[e.category] || e.category}</td>
-      <td style="font-size:0.82rem;color:#555;">${e.description}</td>
+      <td style="font-size:0.82rem;">${escHtml(catLabels[e.category] || e.category)}</td>
+      <td style="font-size:0.82rem;color:#555;">${escHtml(e.description)}</td>
       <td style="text-align:right;font-weight:900;color:${isIngreso?'#2e7d32':'#c62828'};">
         ${isIngreso?'+':'-'}$${parseFloat(e.amount||0).toLocaleString('es-MX',{minimumFractionDigits:2})}
       </td>
