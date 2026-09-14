@@ -345,6 +345,17 @@
   const SERVER_URL = "https://polyabc-server.onrender.com";
   const token = localStorage.getItem('teacherToken');
 
+  function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  // For a value embedded inside onclick="...('VALUE')" - both the JS-string
+  // layer and the HTML-attribute layer need escaping.
+  function escJsAttr(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
   // ── MONTHLY STUDENT REVIEWS ──
   let _reviewData = null, _reviewStudent = null, _reviewRequest = null;
 
@@ -382,10 +393,10 @@
         + '<div style="font-weight:900;color:#e65100;margin-bottom:6px;">📨 Reviews requested by admin — these need their own new review</div>'
         + requests.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #ffe0b2;">
             <div style="font-size:0.85rem;color:#5d4037;">
-              <strong>${r.studentName}</strong><br>
-              <span style="font-size:0.78rem;">Period: ${fmtPeriod(r.periodFrom, r.periodTo)}${r.note ? ' · ' + r.note : ''}</span>
+              <strong>${escHtml(r.studentName)}</strong><br>
+              <span style="font-size:0.78rem;">Period: ${fmtPeriod(r.periodFrom, r.periodTo)}${r.note ? ' · ' + escHtml(r.note) : ''}</span>
             </div>
-            <button onclick="openReviewModal('${r.studentName.replace(/'/g,"\\'")}','${r.id}')"
+            <button onclick="openReviewModal('${escJsAttr(r.studentName)}','${escJsAttr(r.id)}')"
               style="padding:6px 12px;border-radius:8px;border:none;background:#e65100;color:#fff;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">Write Now</button>
           </div>`).join('')
         + '</div>'
@@ -399,8 +410,8 @@
     if (!studs.length) { list.innerHTML = '<div style="color:#888;font-size:0.88rem;">No students assigned to you yet.</div>'; return; }
     list.innerHTML = studs.map(s => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #eee;${reqByStudent[s.name] ? 'background:#fff8e1;' : ''}">
-        <div style="font-weight:700;">${reqByStudent[s.name] ? '📨' : (s.submitted ? '✅' : '⚠️')} ${s.name}${reqByStudent[s.name] ? ' <span style="color:#e65100;font-size:0.78rem;">requested</span>' : ''}</div>
-        <button onclick="openReviewModal('${s.name.replace(/'/g,"\\'")}', null)"
+        <div style="font-weight:700;">${reqByStudent[s.name] ? '📨' : (s.submitted ? '✅' : '⚠️')} ${escHtml(s.name)}${reqByStudent[s.name] ? ' <span style="color:#e65100;font-size:0.78rem;">requested</span>' : ''}</div>
+        <button onclick="openReviewModal('${escJsAttr(s.name)}', null)"
           style="padding:6px 12px;border-radius:8px;border:none;background:${s.submitted ? '#f0f4f8' : '#1a73e8'};color:${s.submitted ? '#333' : '#fff'};font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">
           ${s.submitted ? 'View / Edit' : 'Write Review'}
         </button>
@@ -417,7 +428,7 @@
     const prev = req ? null : entry?.review;
     document.getElementById('review-modal-title').textContent = name;
     document.getElementById('review-modal-month').innerHTML = req
-      ? `<span style="color:#e65100;font-weight:900;">📨 Requested by admin</span><br>Evaluation period: <strong>${fmtPeriod(req.periodFrom, req.periodTo)}</strong>${req.note ? '<br>Note: ' + req.note : ''}`
+      ? `<span style="color:#e65100;font-weight:900;">📨 Requested by admin</span><br>Evaluation period: <strong>${fmtPeriod(req.periodFrom, req.periodTo)}</strong>${req.note ? '<br>Note: ' + escHtml(req.note) : ''}`
       : `Monthly report · Evaluation period: <strong>${fmtPeriod(_reviewData.monthFrom, _reviewData.monthTo)}</strong>`;
     document.getElementById('review-scores').innerHTML = (_reviewData.criteria || []).map(c => `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f2f2f2;">
@@ -606,9 +617,9 @@
       return `<div style="background:${isCoveredByOther?'rgba(255,255,255,0.03)':isToday?'rgba(255,215,64,0.1)':'rgba(255,255,255,0.05)'};border:1px solid ${isSubDuty?'#6a1b9a':isNew?'#e53935':isToday?'#ffd740':'#1a73e8'};border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;${isCoveredByOther?'opacity:0.55;':''}">
         <div>
           <div style="font-weight:900;color:${isSubDuty?'#ce93d8':isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
-          <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${a.classType||''}${a.groupName?' · '+a.groupName:''}</div>
-          ${isSubDuty ? `<div style="font-size:0.78rem;color:#ce93d8;font-weight:700;margin-top:4px;">🔁 Substituting for ${a.originalTeacherName||'another teacher'} · Room ${a.room}</div>` : ''}
-          ${isCoveredByOther ? `<div style="font-size:0.78rem;color:#888;font-weight:700;margin-top:4px;">Covered by substitute: ${a.subTeacherName||'—'}</div>` : ''}
+          <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${escHtml(a.classType||'')}${a.groupName?' · '+escHtml(a.groupName):''}</div>
+          ${isSubDuty ? `<div style="font-size:0.78rem;color:#ce93d8;font-weight:700;margin-top:4px;">🔁 Substituting for ${escHtml(a.originalTeacherName||'another teacher')} · Room ${escHtml(a.room)}</div>` : ''}
+          ${isCoveredByOther ? `<div style="font-size:0.78rem;color:#888;font-weight:700;margin-top:4px;">Covered by substitute: ${escHtml(a.subTeacherName||'—')}</div>` : ''}
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           ${isNew?'<span style="background:#e53935;color:white;padding:3px 8px;border-radius:20px;font-size:0.72rem;font-weight:900;">NEW</span>':''}
@@ -857,7 +868,7 @@
       return `
       <div class="assignment-row">
         <div class="a-time">🕐 ${fmt12(a.time)} ${statusBadge}</div>
-        <div class="a-detail">👥 ${a.students} student${a.students !== 1 ? 's' : ''} &nbsp;|&nbsp; 🎓 Level ${a.level} &nbsp;|&nbsp; ⏱ ${a.classType}${a.groupName ? ' &nbsp;|&nbsp; 👤 '+a.groupName : ''}</div>
+        <div class="a-detail">👥 ${a.students} student${a.students !== 1 ? 's' : ''} &nbsp;|&nbsp; 🎓 Level ${escHtml(a.level)} &nbsp;|&nbsp; ⏱ ${escHtml(a.classType)}${a.groupName ? ' &nbsp;|&nbsp; 👤 '+escHtml(a.groupName) : ''}</div>
       </div>
     `}).join('') || '<div style="color:#888;text-align:center;">No classes assigned.</div>';
     modal.style.display = 'flex';
