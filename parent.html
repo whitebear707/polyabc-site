@@ -1252,54 +1252,6 @@ function getCombinedItems() {
   return items;
 }
 
-async function payCombined() {
-  const items = getCombinedItems();
-  if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.\nPlease set up the plan for at least 2 students above.'); return; }
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Preparando...';
-  
-  // Save time preferences for all students before payment
-  for (const item of items) {
-    const timePrefs = getTimePreferencesForStudent(item.name);
-    if (timePrefs) {
-      try {
-        await fetch(SERVER_URL + '/parent/schedule-preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
-          body: JSON.stringify({ studentName: item.name, ...timePrefs })
-        });
-      } catch(e) { console.error('Could not save preferences for', item.name); }
-    }
-  }
-  
-  // Save time preferences for all students before payment
-  for (const item of items) {
-    const timePrefs = getTimePreferencesForStudent(item.name);
-    if (timePrefs) {
-      try {
-        await fetch(SERVER_URL + '/parent/schedule-preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
-          body: JSON.stringify({ studentName: item.name, ...timePrefs })
-        });
-      } catch(e) { console.error('Could not save preferences for', item.name); }
-    }
-  }
-  const total = items.reduce((sum, it) => sum + it.transferAmount, 0);
-  const description = 'PolyABC — ' + items.map(i => i.name).join(', ');
-  try {
-    const res = await fetch(SERVER_URL + '/parent/payment-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentName: items.map(i => i.name).join(','), amount: total, description })
-    });
-    const data = await res.json();
-    if (data.success && (data.sandboxUrl || data.checkoutUrl)) {
-      window.open(data.sandboxUrl || data.checkoutUrl, '_blank');
-    } else { btn.textContent = '❌ Error'; btn.disabled = false; }
-  } catch(e) { btn.textContent = '❌ Error'; btn.disabled = false; }
-}
-
 async function transferCombined() {
   const items = getCombinedItems();
   if (items.length < 2) { alert('Por favor configura el plan de al menos 2 alumnos arriba.'); return; }
@@ -1551,52 +1503,6 @@ async function confirmTransfer(studentName) {
       }
     } else {
       btn.textContent = '❌ Error — Intente de nuevo';
-      btn.disabled = false;
-    }
-  } catch(e) {
-    btn.textContent = '❌ Error — Intente de nuevo';
-    btn.disabled = false;
-  }
-}
-
-async function initPayment(studentName) {
-  const st = _payState[studentName];
-  if (!st) return;
-  const key = studentName.replace(/\s/g,'_');
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = '⏳ Preparando pago...';
-  
-  // Save time preferences before payment
-  const timePrefs = getTimePreferencesForStudent(studentName);
-  if (timePrefs) {
-    try {
-      await fetch(SERVER_URL + '/parent/schedule-preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
-        body: JSON.stringify({ studentName, ...timePrefs })
-      });
-    } catch(e) { console.error('Could not save preferences:', e); }
-  }
-
-  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
-  const advertised = calcAdvertised(weeklyBase);
-  const weeks = cycleMultiplier(st.cycle);
-  const amount = advertised * weeks;
-  const description = 'PolyABC — ' + studentName + ' (' + cycleLabel(st.cycle) + ')';
-
-  try {
-    const res = await fetch(SERVER_URL + '/parent/payment-request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentName, amount, description })
-    });
-    const data = await res.json();
-    if (data.success && (data.sandboxUrl || data.checkoutUrl)) {
-      btn.disabled = false;
-      window.open(data.sandboxUrl || data.checkoutUrl, '_blank');
-    } else {
-      btn.textContent = '❌ Error — Contacte a la escuela';
       btn.disabled = false;
     }
   } catch(e) {
