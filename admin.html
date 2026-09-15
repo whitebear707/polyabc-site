@@ -3595,6 +3595,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAlert
 // ── BILLING ──
 let _billingPrices = {};
 let _billingStudents = [];
+let _pendingTransferStudents = [];
 
 async function renderBilling() {
   await Promise.all([loadBillingPrices(), loadBillingStudents()]);
@@ -4364,19 +4365,16 @@ async function renderAccounting() {
 }
 
 async function loadPendingTransfers() {
-  console.log('[PENDING] loadPendingTransfers() called, currentToken:', !!currentToken);
   try {
     const res = await fetch(`${SERVER_URL}/students`, {
       headers: { Authorization: `Bearer ${currentToken}` }
     });
     const students = await res.json();
-    console.log('[DEBUG] loadPendingTransfers: fetched', students.length, 'students');
     // Filter for students with transferPending: true and paid: false
     const pending = students.filter(s => s.transferPending && !s.paid);
-    console.log('[DEBUG] Filtered to', pending.length, 'pending transfers:', pending.map(s => s.name));
+    _pendingTransferStudents = pending;
     renderPendingTransfers(pending);
   } catch(e) { console.error('[PENDING] Error loading pending transfers:', e); }
-  console.log('[PENDING] loadPendingTransfers() done');
 }
 
 function renderPendingTransfers(students) {
@@ -4403,12 +4401,18 @@ function renderPendingTransfers(students) {
 }
 
 async function confirmBankTransfer(studentName) {
-  if (!confirm(`Confirm bank transfer for ${studentName}?`)) return;
+  const s = _pendingTransferStudents.find(x => x.name === studentName);
+  const cycle = s?.billingCycle || s?.enrolledCycle || prompt('Billing cycle? (weekly / biweekly / monthly)', 'weekly');
+  if (!cycle) return;
+  const suggested = s?.transferPendingAmount || s?.amountDue || '';
+  const amount = prompt(`Confirm amount received (MXN) — the parent reported $${suggested || '—'}:`, suggested);
+  if (amount === null) return;
+  if (!confirm(`Confirm bank transfer for ${studentName}: $${amount} (${cycle})?`)) return;
   try {
     const res = await fetch(`${SERVER_URL}/billing/confirm-payment/${encodeURIComponent(studentName)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({})
+      body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
     });
     const result = await res.json();
     if (result.success) {
