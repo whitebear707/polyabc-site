@@ -639,7 +639,7 @@ function connectSocket() {
     if (IS_TEACHER) {
       // Load today's assignment and check lock BEFORE showing Enter button
       try {
-        const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`);
+        const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
         todayAssignments = await res.json();
       } catch(e) {}
       checkTeacherRoomLock();
@@ -1540,7 +1540,7 @@ let timerInterval = null;
 
 async function loadTodayAssignment() {
   try {
-    const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`);
+    const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
     todayAssignments = await res.json();
     if (IS_TEACHER) {
     const ctrl = document.getElementById('right-panel-controls');
