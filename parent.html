@@ -259,6 +259,7 @@
     <div class="card">
       <div class="dashboard-nav">
         <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
+        <button class="nav-tab" onclick="showTab('classes')" id="tab-classes">📚 Clases Disponibles</button>
         <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
         <button class="nav-tab" onclick="showTab('reports')" id="tab-reports">📝 Reportes</button>
         <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
@@ -269,6 +270,11 @@
       <div id="panel-students">
         <div id="students-list"></div>
         <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student</button>
+      </div>
+
+      <!-- Classes Available tab -->
+      <div id="panel-classes" style="display:none;">
+        <div id="classes-available-list"></div>
       </div>
 
       <!-- Attendance tab -->
@@ -754,14 +760,63 @@ async function loadDashboard() {
   }
 }
 
+async function renderAvailableClasses() {
+  const wrap = document.getElementById('classes-available-list');
+  wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Cargando... / Loading...</div>';
+  try {
+    const [classesRes, infoRes] = await Promise.all([
+      fetch(`${SERVER_URL}/parent/available-classes`, { headers: { Authorization: `Bearer ${_parentToken}` } }),
+      fetch(`${SERVER_URL}/school-info/public`)
+    ]);
+    const { classes } = await classesRes.json();
+    const info = await infoRes.json().catch(() => ({}));
+    const wa = info.whatsapp;
+    const waMsg = encodeURIComponent('Hola, quisiera más información sobre horarios / clases disponibles.');
+    const waLink = wa ? `https://wa.me/${wa}?text=${waMsg}` : null;
+
+    const rows = (classes || []).map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;background:${c.full ? '#f5f5f5' : '#f0f7ff'};border-radius:10px;padding:12px 16px;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:900;color:#1a1a2e;">Grupal ${escHtml(c.level)} · ${escHtml(c.time) || '—'}</div>
+          <div style="font-size:0.78rem;color:#888;">Lun–Jue · ${escHtml(c.classType)}</div>
+        </div>
+        <div style="text-align:right;">
+          ${c.full
+            ? '<span style="background:#e0e0e0;color:#666;padding:4px 10px;border-radius:10px;font-size:0.8rem;font-weight:900;">Lleno / Full</span>'
+            : `<span style="background:#00c853;color:white;padding:4px 10px;border-radius:10px;font-size:0.8rem;font-weight:900;">${c.seatsAvailable} lugar${c.seatsAvailable===1?'':'es'} / seat${c.seatsAvailable===1?'':'s'}</span>`}
+          <div style="font-size:0.72rem;color:#aaa;margin-top:2px;">${c.seatsTaken}/6</div>
+        </div>
+      </div>`).join('');
+
+    wrap.innerHTML = `
+      <div style="font-size:0.85rem;color:#555;margin-bottom:14px;line-height:1.5;">
+        Estos son los horarios de clases grupales disponibles ahora mismo. Si un horario nuevo te conviene más,
+        contáctanos — el cambio se hace por WhatsApp, no desde aquí.<br>
+        <span style="color:#888;">These are the group class schedules currently available. If a new time suits you better,
+        contact us — switching is done via WhatsApp, not from this page.</span>
+      </div>
+      ${rows || '<div style="text-align:center;color:#aaa;padding:20px;">No hay clases grupales configuradas todavía / No group classes set up yet.</div>'}
+      <div style="margin-top:18px;padding:16px;background:#fff8e1;border-radius:12px;">
+        <div style="font-weight:900;color:#e65100;margin-bottom:4px;">🎓 ¿Buscas clases 1v1?</div>
+        <div style="font-size:0.85rem;color:#666;margin-bottom:10px;">Los horarios 1v1 son personalizados — contáctanos directamente.<br>1v1 schedules are personalized — contact us directly.</div>
+        ${waLink
+          ? `<a href="${waLink}" target="_blank" style="display:inline-block;padding:10px 20px;background:#25d366;color:white;border-radius:10px;text-decoration:none;font-weight:900;font-size:0.9rem;">💬 Contactar por WhatsApp</a>`
+          : ''}
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = '<div style="text-align:center;color:#c62828;padding:20px;">Error loading classes.</div>';
+  }
+}
+
 function showTab(tab) {
-  ['students','attendance','reports','calendar','payment'].forEach(p => {
+  ['students','classes','attendance','reports','calendar','payment'].forEach(p => {
     const el = document.getElementById(`panel-${p}`);
     if (el) el.style.display = p === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   const activeTab = document.getElementById(`tab-${tab}`);
   if (activeTab) activeTab.classList.add('active');
+  if (tab === 'classes')  renderAvailableClasses();
   if (tab === 'reports')  renderReportsTab();
   if (tab === 'calendar') renderParentCalendar();
   if (tab === 'payment')  renderPaymentTab();
