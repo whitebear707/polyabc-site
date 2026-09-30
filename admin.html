@@ -3451,11 +3451,20 @@ async function pollPendingRequests() {
     });
     const requests = await res.json();
     const pendingCount = requests.filter(r => r.student.status === 'pending').length;
+
+    let reschedCount = 0;
+    try {
+      const rr = await fetch(`${SERVER_URL}/admin/reschedule-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
+      const rd = await rr.json();
+      reschedCount = (rd.requests || []).length;
+    } catch(e) {}
+
+    const totalCount = pendingCount + reschedCount;
     const btn = document.getElementById('requests-btn');
     const badge = document.getElementById('requests-badge');
-    if (pendingCount > 0) {
+    if (totalCount > 0) {
       if (btn) btn.classList.add('requests-glow');
-      if (badge) { badge.textContent = pendingCount; badge.style.display = 'flex'; }
+      if (badge) { badge.textContent = totalCount; badge.style.display = 'flex'; }
     } else {
       if (btn) btn.classList.remove('requests-glow');
       if (badge) badge.style.display = 'none';
@@ -3552,7 +3561,42 @@ async function showStudentRequests() {
       </div>
     `).join('');
   }
+
+  // Reschedule requests (1v1 trials) — separate section, same modal
+  const rrSection = document.getElementById('reschedule-requests-section');
+  const rrList = document.getElementById('reschedule-requests-list');
+  try {
+    const rr = await fetch(`${SERVER_URL}/admin/reschedule-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const rrData = await rr.json();
+    const rrRequests = rrData.requests || [];
+    if (rrRequests.length) {
+      rrSection.style.display = 'block';
+      rrList.innerHTML = rrRequests.map(r => `
+        <div style="background:#fff8e1;border:1px solid #ffe0b2;border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div style="font-weight:900;font-size:1rem;">${escHtml(r.studentName)}</div>
+          <div style="font-size:0.82rem;color:#555;margin-top:4px;">
+            ${r.currentDate ? `Current: ${escHtml(r.currentDate)} ${escHtml(r.currentTime||'')}<br>` : ''}
+            Requested: <strong>${escHtml(r.requestedDate)} ${escHtml(r.requestedTime)}</strong>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button onclick="handleRescheduleRequest('${escJsAttr(r._id)}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
+            <button onclick="handleRescheduleRequest('${escJsAttr(r._id)}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      rrSection.style.display = 'none';
+    }
+  } catch(e) { rrSection.style.display = 'none'; }
+
   modal.style.display = 'flex';
+}
+
+async function handleRescheduleRequest(id, action) {
+  await fetch(`${SERVER_URL}/admin/reschedule-requests/${id}/${action}`, {
+    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+  });
+  showStudentRequests();
 }
 
 async function deleteStudentRequest(parentId, studentName) {
@@ -4649,6 +4693,10 @@ async function doFlushDelete() {
       <button onclick="document.getElementById('student-requests-modal').style.display='none'" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700;">✕</button>
     </div>
     <div id="requests-list"></div>
+    <div id="reschedule-requests-section" style="display:none;margin-top:20px;padding-top:16px;border-top:2px solid #f0f0f0;">
+      <div style="font-size:1.05rem;font-weight:900;margin-bottom:12px;">📅 Reschedule Requests</div>
+      <div id="reschedule-requests-list"></div>
+    </div>
   </div>
 </div>
 
