@@ -253,6 +253,33 @@
   <div class="spinner"></div>
 </div>
 
+<!-- BREAK DURATION CHOICE MODAL (teacher only) -->
+<div id="break-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#16213e;border-radius:20px;padding:32px;width:100%;max-width:380px;margin:20px;text-align:center;font-family:Nunito,sans-serif;">
+    <div style="font-size:2rem;margin-bottom:8px;">☕</div>
+    <p style="font-size:1.2rem;font-weight:900;color:white;margin-bottom:6px;">Take a Break</p>
+    <p id="break-modal-remaining" style="font-size:0.85rem;color:#888;margin-bottom:22px;"></p>
+    <div style="display:flex;gap:10px;margin-bottom:12px;">
+      <button onclick="startBreak(5)" style="flex:1;padding:16px 8px;background:#0f3460;color:#a0c4ff;border:2px solid #1a73e8;border-radius:12px;font-family:Nunito,sans-serif;font-weight:900;font-size:1rem;cursor:pointer;">5 min</button>
+      <button onclick="startBreak(10)" style="flex:1;padding:16px 8px;background:#0f3460;color:#a0c4ff;border:2px solid #1a73e8;border-radius:12px;font-family:Nunito,sans-serif;font-weight:900;font-size:1rem;cursor:pointer;">10 min</button>
+      <button onclick="startBreak(15)" style="flex:1;padding:16px 8px;background:#0f3460;color:#a0c4ff;border:2px solid #1a73e8;border-radius:12px;font-family:Nunito,sans-serif;font-weight:900;font-size:1rem;cursor:pointer;">15 min</button>
+    </div>
+    <button onclick="document.getElementById('break-modal').style.display='none'" style="width:100%;padding:10px;background:none;color:#888;border:none;font-family:Nunito,sans-serif;font-size:0.9rem;cursor:pointer;">Cancel</button>
+  </div>
+</div>
+
+<!-- BREAK SCREEN (shown to teacher AND students while a break is active) -->
+<div id="break-screen" style="display:none;position:fixed;inset:0;background:#1a1a2e;z-index:997;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+  <img src="LOGO.png" style="height:90px;margin-bottom:16px;"/>
+  <div style="font-size:3rem;margin-bottom:8px;">☕</div>
+  <p style="font-size:1.6rem;font-weight:900;color:#a0c4ff;margin-bottom:6px;">On a Break</p>
+  <p style="font-size:1rem;color:#888;margin-bottom:20px;">En un descanso</p>
+  <div id="break-countdown" style="font-size:2.2rem;font-weight:900;color:#ffd740;margin-bottom:8px;">5:00</div>
+  <p id="break-note" style="font-size:0.85rem;color:#888;max-width:320px;">Class will resume when the teacher is ready.<br>La clase continuará cuando el maestro esté listo.</p>
+  <button id="break-resume-btn" onclick="resumeFromBreak()" style="display:none;margin-top:28px;background:#2e7d32;color:white;border:none;padding:16px 36px;border-radius:14px;font-family:Nunito,sans-serif;font-size:1.05rem;font-weight:900;cursor:pointer;">▶️ Resume Class</button>
+</div>
+
+
 <!-- STUDENT SCHEDULE POPUP -->
 <div id="student-schedule-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#16213e;border-radius:20px;padding:28px;max-width:420px;width:90%;font-family:Nunito,sans-serif;max-height:80vh;overflow-y:auto;">
@@ -360,6 +387,7 @@
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
+        <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
       <div class="tool-separator"></div>
@@ -624,7 +652,7 @@ function connectSocket() {
     socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
   });
 
-  socket.on('room-joined', async ({ name, teacherLoginAt }) => {
+  socket.on('room-joined', async ({ name, teacherLoginAt, activeBreak }) => {
     _joinedName = name; _joinedSocket = socket;
     // Store original login time from server — used for owed timer on reconnects
     // This prevents the timer from thinking teacher is late based on reconnect time
@@ -635,6 +663,8 @@ function connectSocket() {
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('connect-msg').textContent = IS_TEACHER ? `Welcome, ${name}!` : `Welcome, ${name}! 👋`;
+
+    if (activeBreak) showBreakScreen(activeBreak.durationMins);
 
     if (IS_TEACHER) {
       // Load today's assignment and check lock BEFORE showing Enter button
@@ -848,6 +878,17 @@ function connectSocket() {
   });
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
+
+  socket.on('break-started', ({ durationMins, breakNumber, breaksRemaining }) => {
+    _breaksRemaining = breaksRemaining;
+    if (IS_TEACHER && breaksRemaining <= 0) {
+      const btn = document.getElementById('take-break-btn');
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'not-allowed'; }
+    }
+    showBreakScreen(durationMins);
+  });
+  socket.on('break-ended', () => hideBreakScreen());
+  socket.on('break-error', ({ message }) => { if (IS_TEACHER) alert(message); });
 
   socket.on('reaction', ({ emoji }) => showReaction(emoji));
   socket.on('show-result', ({ text, sub, type, extra }) => {
@@ -1944,6 +1985,50 @@ function setBtnLabel(btn, text) {
   [...btn.childNodes].forEach(n => { if (n !== badge) btn.removeChild(n); });
   // Insert the new label as the first child (before the badge)
   btn.insertBefore(document.createTextNode(text), badge || null);
+}
+
+let _breaksRemaining = 3;
+let _breakCountdownInterval = null;
+
+function openBreakModal() {
+  if (!IS_TEACHER) return;
+  document.getElementById('break-modal-remaining').textContent =
+    _breaksRemaining > 0 ? `${_breaksRemaining} break${_breaksRemaining===1?'':'s'} remaining this class` : 'No breaks remaining this class';
+  document.getElementById('break-modal').style.display = 'flex';
+}
+
+function startBreak(mins) {
+  document.getElementById('break-modal').style.display = 'none';
+  if (window._socket) window._socket.emit('start-break', { room: ROOM, sessionId: SESSION_ID, durationMins: mins });
+}
+
+function resumeFromBreak() {
+  if (!IS_TEACHER) return;
+  if (window._socket) window._socket.emit('end-break', { room: ROOM, sessionId: SESSION_ID });
+}
+
+function showBreakScreen(durationMins) {
+  document.getElementById('break-resume-btn').style.display = IS_TEACHER ? 'block' : 'none';
+  document.getElementById('break-screen').style.display = 'flex';
+  // This countdown is informational only - it does NOT auto-resume. The
+  // teacher decides when to come back; the real duration used for pay is
+  // whatever the server actually timestamps, not this display.
+  let secsLeft = durationMins * 60;
+  const el = document.getElementById('break-countdown');
+  clearInterval(_breakCountdownInterval);
+  const tick = () => {
+    if (secsLeft <= 0) { el.textContent = 'Any moment now...'; return; }
+    const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+    el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+    secsLeft--;
+  };
+  tick();
+  _breakCountdownInterval = setInterval(tick, 1000);
+}
+
+function hideBreakScreen() {
+  clearInterval(_breakCountdownInterval);
+  document.getElementById('break-screen').style.display = 'none';
 }
 
 function toggleClassOpen() {
