@@ -846,15 +846,9 @@
     <div class="modal-title" id="room-students-title">Students in Room</div>
     <div id="room-students-list" style="margin-bottom:16px;"></div>
     <div style="border-top:2px solid #eee;padding-top:14px;">
-      <div style="font-weight:900;color:#1a1a2e;font-size:0.9rem;margin-bottom:10px;">➕ Add Student</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
-        <div><label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Name</label>
-          <input type="text" id="new-student-name" placeholder="Student name" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/></div>
-        <div><label style="font-size:0.8rem;font-weight:700;color:#555;display:block;margin-bottom:3px;">Password</label>
-          <input type="text" id="new-student-pass" placeholder="Password" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/></div>
-        <button class="btn btn-green btn-sm" onclick="addStudentToRoom()">Add</button>
+      <div style="background:#f0f7ff;border-radius:10px;padding:10px 14px;font-size:0.8rem;color:#1a73e8;">
+        ℹ️ To add a 1v1 student to this teacher, use <strong>Edit Billing</strong> for that student in Accounting — that's the one place teacher assignment happens now.
       </div>
-      <div id="add-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-top:6px;"></div>
     </div>
     <div class="modal-actions"><button class="btn btn-gray" onclick="closeRoomStudentsModal()">Close</button></div>
   </div>
@@ -877,12 +871,6 @@
       <label>Password</label>
       <input type="text" id="global-student-pass" placeholder="e.g. juan123"/>
       <div id="trial-pass-hint" style="display:none;font-size:0.75rem;color:#888;margin-top:3px;">🔒 Auto-generated for trial students</div>
-    </div>
-    <div class="field-group">
-      <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
-      <select id="global-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-        <option value="">-- No room --</option>
-      </select>
     </div>
     <div class="field-group">
       <label>Assign to Group <span style="color:#aaa;font-weight:400;">(optional)</span></label>
@@ -908,6 +896,9 @@
         </div>
       </div>
     </div>
+    <div style="background:#f0f7ff;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:0.8rem;color:#1a73e8;">
+      ℹ️ To assign a 1v1 teacher, save this student first, then use <strong>Edit Billing</strong> in Accounting — that's the one place teacher assignment happens now.
+    </div>
     <div id="global-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="document.getElementById('add-student-modal').classList.remove('open')">Cancel</button>
@@ -924,12 +915,6 @@
     <div class="field-group"><label>Student Name</label><input type="text" id="edit-student-name"/></div>
     <div class="field-group"><label>Password</label><input type="text" id="edit-student-pass"/></div>
     <div class="field-group"><label>Date of Birth <span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="edit-student-dob"/></div>
-    <div class="field-group">
-      <label>Assign to Room <span style="color:#aaa;font-weight:400;">(optional)</span></label>
-      <select id="edit-student-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-        <option value="">-- No room --</option>
-      </select>
-    </div>
     <div style="border-top:1px solid #eee;margin:14px 0 10px;"></div>
     <div class="field-group">
       <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Class Type</label>
@@ -2237,9 +2222,6 @@ let _currentRoomForStudents = null;
 async function openRoomStudents(roomId) {
   _currentRoomForStudents = roomId;
   document.getElementById('room-students-title').textContent = `Students — Room ${roomId}`;
-  document.getElementById('new-student-name').value = '';
-  document.getElementById('new-student-pass').value = '';
-  document.getElementById('add-student-error').style.display = 'none';
   await renderRoomStudentsList(roomId);
   document.getElementById('room-students-modal').classList.add('open');
 }
@@ -2256,28 +2238,6 @@ async function renderRoomStudentsList(roomId) {
       <td><button class="btn btn-red btn-sm" onclick="deleteRoomStudent(${i})">🗑</button></td>
     </tr>`).join('')}
   </tbody></table>`;
-}
-
-async function addStudentToRoom() {
-  const name = document.getElementById('new-student-name').value.trim();
-  const pass = document.getElementById('new-student-pass').value.trim();
-  const err  = document.getElementById('add-student-error');
-  if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
-  // Duplicate password check
-  const dup = checkDuplicatePassword(pass, null);
-  if (dup) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
-  err.style.display = 'none';
-  const res  = await fetch(`${SERVER_URL}/rooms/${_currentRoomForStudents}/students`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass })
-  });
-  const data = await res.json();
-  if (!data.success) { err.textContent = '⚠️ ' + (data.message || 'Could not add student.'); err.style.display = 'block'; return; }
-  document.getElementById('new-student-name').value = '';
-  document.getElementById('new-student-pass').value = '';
-  await loadRooms();
-  renderRoomStudentsList(_currentRoomForStudents);
-  renderAllStudents();
 }
 
 async function deleteRoomStudent(idx) {
@@ -2500,10 +2460,6 @@ function openEditStudentModal(name, password, room, dob) {
     parentSel.dispatchEvent(new Event('change'));
   }
   document.getElementById('edit-student-error').style.display = 'none';
-  const sel = document.getElementById('edit-student-room');
-  const studentRoom = s.room || room || '';
-  sel.innerHTML = '<option value="">-- No room --</option>' +
-    rooms.map(r => `<option value="${r.room}"${r.room === studentRoom ? ' selected' : ''}>Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
   document.getElementById('edit-student-modal').classList.add('open');
 }
 
@@ -2580,11 +2536,10 @@ async function saveEditStudent() {
   const originalName = document.getElementById('edit-student-original-name').value;
   const name  = document.getElementById('edit-student-name').value.trim();
   const pass  = document.getElementById('edit-student-pass').value.trim();
-  const room  = document.getElementById('edit-student-room').value;
   const dob   = document.getElementById('edit-student-dob').value;
   const err   = document.getElementById('edit-student-error');
   if (!name || !pass) { err.textContent = 'Name and password required.'; err.style.display = 'block'; return; }
-  const dup = checkDuplicatePassword(pass, room);
+  const dup = checkDuplicatePassword(pass, null);
   if (dup && dup.name !== originalName) { err.textContent = `⚠️ Password already used by ${dup.name} (Room ${dup.room})`; err.style.display = 'block'; return; }
   err.style.display = 'none';
 
@@ -2599,7 +2554,6 @@ async function saveEditStudent() {
   const body = {
     name,
     password: pass,
-    room: room || null,
     dob: dob || null,
     enrolledType,
     adminNotes
@@ -2722,9 +2676,6 @@ function openAddStudentModal() {
   document.getElementById('trial-pass-hint').style.display = 'none';
   const passInput = document.getElementById('global-student-pass');
   passInput.style.background = ''; passInput.style.color = ''; passInput.readOnly = false;
-  const roomSel = document.getElementById('global-student-room');
-  roomSel.innerHTML = '<option value="">-- No room --</option>' +
-    rooms.map(r => `<option value="${r.room}">Room ${r.room} · Teacher ${r.teacherName||'—'}</option>`).join('');
   const groupSel = document.getElementById('global-student-group');
   groupSel.innerHTML = '<option value="">-- No group --</option><option value="__new__">➕ Create new group...</option>' +
     allGroups.map(g => `<option value="${escHtml(g._id)}">${escHtml(g.name)} · ${escHtml(g.level)} · ${escHtml(g.classType)}</option>`).join('');
@@ -2734,7 +2685,6 @@ function openAddStudentModal() {
 async function saveGlobalStudent() {
   const name  = document.getElementById('global-student-name').value.trim();
   const pass  = document.getElementById('global-student-pass').value.trim();
-  const room  = document.getElementById('global-student-room').value;
   const groupVal = document.getElementById('global-student-group').value;
   const classType = document.getElementById('global-student-type').value;
   const dob   = document.getElementById('global-student-dob').value;
@@ -2747,7 +2697,7 @@ async function saveGlobalStudent() {
   // Save to students collection
   await fetch(`${SERVER_URL}/students`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ name, password: pass, room: room || null, classType: classType || null, dob: dob || null })
+    body: JSON.stringify({ name, password: pass, classType: classType || null, dob: dob || null })
   });
 
   // Handle group
