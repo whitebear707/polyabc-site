@@ -3811,6 +3811,27 @@ function updateCpwField() {
   const type = document.getElementById('be-type')?.value;
   const current = document.getElementById('be-cpw')?.value;
   document.getElementById('be-cpw-wrap').innerHTML = cpwFieldHTML(type, current);
+  updateRoomField();
+}
+
+function roomFieldHTML(type, currentRoom) {
+  if (type !== '1v1') {
+    return `<div style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f0f4f8;color:#888;font-family:Nunito;font-size:0.85rem;">
+      Group students get their teacher from the group they're in, not set here.
+    </div>`;
+  }
+  return `<select id="be-room" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+    <option value="">-- Not assigned yet --</option>
+    ${rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room)===String(currentRoom)?' selected':''}>Teacher ${escHtml(r.teacherName||'—')} (Room ${escHtml(r.room)})</option>`).join('')}
+  </select>
+  <div style="font-size:0.78rem;color:#888;margin-top:4px;">Once assigned, their recurring classes generate automatically from the days/time/duration set above.</div>`;
+}
+
+function updateRoomField() {
+  const type = document.getElementById('be-type')?.value;
+  const current = document.getElementById('be-room')?.value;
+  const wrap = document.getElementById('be-room-wrap');
+  if (wrap) wrap.innerHTML = roomFieldHTML(type, current);
 }
 
 // Edit billing modal
@@ -3849,6 +3870,12 @@ function openBillingEdit(name) {
           <div id="be-cpw-wrap">${cpwFieldHTML(s.enrolledType, s.classesPerWeek)}</div>
         </div>
         <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">MINUTES PER CLASS</label>
+          <select id="be-mins" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+            ${[30,40,50,60].map(m => `<option value="${m}" ${Number(s.minutesPerClass||s.enrolledMinutesPerClass)===m?'selected':''}>${m} min</option>`).join('')}
+          </select>
+        </div>
+        <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:6px;">SCHEDULED DAYS</label>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
             ${DAYS.map(d => `<label style="display:flex;align-items:center;gap:4px;font-size:0.85rem;cursor:pointer;">
@@ -3859,6 +3886,10 @@ function openBillingEdit(name) {
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SCHEDULED TIME (GDL)</label>
           <input type="time" id="be-time" value="${s.scheduledTime||''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        </div>
+        <div>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">ASSIGNED TEACHER</label>
+          <div id="be-room-wrap">${roomFieldHTML(s.enrolledType, s.studentRoom)}</div>
         </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">AMOUNT DUE (MXN)</label>
@@ -3875,8 +3906,10 @@ async function saveBillingEdit(name) {
     enrolledType:   document.getElementById('be-type')?.value || null,
     billingCycle:   document.getElementById('be-cycle')?.value || null,
     classesPerWeek: parseInt(document.getElementById('be-cpw')?.value) || 1,
+    minutesPerClass: parseInt(document.getElementById('be-mins')?.value) || 40,
     scheduledDays,
     scheduledTime:  document.getElementById('be-time')?.value || null,
+    studentRoom:    document.getElementById('be-room')?.value || null,
     amountDue:      document.getElementById('be-amount')?.value || null,
   };
   await fetch(`${SERVER_URL}/billing/student/${encodeURIComponent(name)}`, {
