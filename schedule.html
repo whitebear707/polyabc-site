@@ -20,7 +20,7 @@
     }
     #topbar img { height: 44px; cursor: pointer; justify-self: center; }
     #topbar .teacher-name { font-size: 1.3rem; font-weight: 900; color: #a0c4ff; }
-    #pay-period-header { justify-self: end; font-size: 1rem; }
+    #pay-period-header { font-size: 1rem; }
 
     #main { padding: 24px; max-width: 760px; margin: 0 auto; }
 
@@ -226,6 +226,7 @@
     }
     .btn-save:hover { background: #1558b0; }
     .save-msg { color: #69f0ae; font-weight: 700; font-size: 0.95rem; align-self: center; display: none; position: absolute; left: 50%; transform: translateX(-50%); }
+    #pay-translate-wrap { justify-self: end; }
 
     /* MOBILE ONLY */
     @media (max-width: 768px) {
@@ -237,7 +238,8 @@
       }
       #topbar .teacher-name { display: none; }
       #topbar img { height: 36px; }
-      #pay-period-header { justify-self: center; font-size: 0.72rem !important; white-space: normal; text-align: center; }
+      #pay-translate-wrap { justify-self: center; flex-direction: column; gap: 4px; }
+      #pay-period-header { font-size: 0.72rem !important; white-space: normal; text-align: center; }
 
       #main { padding: 16px; text-align: center; }
       .section-title { text-align: center; }
@@ -253,7 +255,10 @@
 <div id="topbar">
   <span class="teacher-name" id="teacher-name-label">Loading...</span>
   <a href="index.html"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a>
-  <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
+  <div id="pay-translate-wrap" style="display:flex;align-items:center;gap:10px;">
+    <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
+    <div id="google_translate_element" style="background:rgba(255,255,255,0.1);border:2px solid #1a73e8;border-radius:20px;padding:3px 10px;display:flex;align-items:center;"></div>
+  </div>
 </div>
 
 <div id="main">
@@ -1009,6 +1014,25 @@
   loadReviews();
 </script>
 <div id="tp-popup" class="time-picker-popup" onclick="event.stopPropagation()"></div>
+
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+
+    // Auto-detect browser language and suggest Spanish if needed
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('es')) {
+      setTimeout(() => {
+        const selectField = document.querySelector('.goog-te-combo');
+        if (selectField) {
+          selectField.value = 'es';
+          selectField.dispatchEvent(new Event('change'));
+        }
+      }, 1000);
+    }
+  }
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </body>
 </html>
