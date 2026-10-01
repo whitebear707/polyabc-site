@@ -313,6 +313,7 @@
       <span style="color:white;font-weight:900;font-size:1rem;">PolyABC Admin</span>
     </div>
     <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 New Trial!</div>
+    <div class="menu-item" onclick="toggleMobileLanguage()">🌐 Español / English</div>
 
     <div style="padding:14px 20px 6px;font-size:0.7rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operations</div>
     <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Schedule</div>
@@ -341,6 +342,7 @@
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
+      <div id="google_translate_element" style="background:#f0f4f8;border:2px solid #1a73e8;border-radius:20px;padding:3px 10px;display:flex;align-items:center;"></div>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </div>
@@ -1250,6 +1252,15 @@ function toggleMenu() {
 function closeMenu() {
   document.getElementById('hamburger-menu').classList.remove('open');
   document.getElementById('menu-overlay').classList.remove('open');
+}
+
+function toggleMobileLanguage() {
+  const selectField = document.querySelector('.goog-te-combo');
+  if (!selectField) { alert('Translate is still loading — please try again in a moment.'); return; }
+  const isSpanish = selectField.value === 'es';
+  selectField.value = isSpanish ? 'en' : 'es';
+  selectField.dispatchEvent(new Event('change'));
+  closeMenu();
 }
 
 function menuNav(name) {
@@ -4712,10 +4723,21 @@ async function doFlushDelete() {
 
 <!-- Create Parent Modal -->
 <div id="create-parent-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
-  <div id="google_translate_element" style="position:fixed;top:65px;right:15px;z-index:9999;"></div>
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+
+      // Auto-detect browser language and suggest Spanish if needed
+      const browserLang = navigator.language || navigator.userLanguage;
+      if (browserLang.startsWith('es')) {
+        setTimeout(() => {
+          const selectField = document.querySelector('.goog-te-combo');
+          if (selectField) {
+            selectField.value = 'es';
+            selectField.dispatchEvent(new Event('change'));
+          }
+        }, 1000);
+      }
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
