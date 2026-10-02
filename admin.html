@@ -314,7 +314,7 @@
       <span style="color:white;font-weight:900;font-size:0.9rem;">PolyABC Admin</span>
     </div>
     <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 New Trial!</div>
-    <div class="menu-item" onclick="toggleMobileLanguage()">🌐 Español / English</div>
+    <div class="menu-item" onclick="openLanguageModal();closeMenu();">🌐 Español / English</div>
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operations</div>
     <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Schedule</div>
@@ -343,7 +343,8 @@
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
-      <div id="google_translate_element" style="background:#f0f4f8;border:2px solid #1a73e8;border-radius:20px;padding:3px 10px;display:flex;align-items:center;"></div>
+      <div id="google_translate_element" style="position:absolute;left:-9999px;top:-9999px;"></div>
+      <button onclick="openLanguageModal()" title="Change language / Cambiar idioma" style="background:none;border:none;font-size:1.2rem;cursor:pointer;padding:4px 6px;">🌐</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
     </div>
   </div>
@@ -1250,13 +1251,33 @@ function closeMenu() {
   document.getElementById('menu-overlay').classList.remove('open');
 }
 
-function toggleMobileLanguage() {
+// Drives Google's translate engine directly without showing its own default
+// widget UI - applies a language, remembers the choice, and only touches
+// the page if Spanish is picked (English is the page's native language).
+function applyLang(lang) {
+  localStorage.setItem('polyabc_lang', lang);
   const selectField = document.querySelector('.goog-te-combo');
-  if (!selectField) { alert('Translate is still loading — please try again in a moment.'); return; }
-  const isSpanish = selectField.value === 'es';
-  selectField.value = isSpanish ? 'en' : 'es';
-  selectField.dispatchEvent(new Event('change'));
-  closeMenu();
+  if (!selectField) return;
+  if (selectField.value !== lang) {
+    selectField.value = lang;
+    selectField.dispatchEvent(new Event('change'));
+  }
+}
+
+function openLanguageModal() {
+  document.getElementById('language-modal').style.display = 'flex';
+}
+
+function chooseLang(lang) {
+  applyLang(lang);
+  document.getElementById('language-modal').style.display = 'none';
+}
+
+function checkLanguageOnLoad() {
+  const saved = localStorage.getItem('polyabc_lang');
+  if (saved) { applyLang(saved); return; }
+  // First visit - ask, don't guess from browser locale.
+  openLanguageModal();
 }
 
 function menuNav(name) {
@@ -4846,21 +4867,18 @@ async function doFlushDelete() {
 
 <!-- Create Parent Modal -->
 <div id="create-parent-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
+  <div id="language-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:18px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">Choose your language</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:18px;">Elige tu idioma</div>
+      <button onclick="chooseLang('en')" style="width:100%;padding:12px;margin-bottom:10px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇺🇸 English</button>
+      <button onclick="chooseLang('es')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇲🇽 Español</button>
+    </div>
+  </div>
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-
-      // Auto-detect browser language and suggest Spanish if needed
-      const browserLang = navigator.language || navigator.userLanguage;
-      if (browserLang.startsWith('es')) {
-        setTimeout(() => {
-          const selectField = document.querySelector('.goog-te-combo');
-          if (selectField) {
-            selectField.value = 'es';
-            selectField.dispatchEvent(new Event('change'));
-          }
-        }, 1000);
-      }
+      setTimeout(checkLanguageOnLoad, 1000);
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
