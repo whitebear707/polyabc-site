@@ -171,7 +171,7 @@
       </div>
       <div class="field"><label>Last Name (optional)</label><input type="text" id="self-lastname" placeholder="Garcia"/></div>
       <div class="field"><label>Nickname (optional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
-      <div class="field"><label>Date of Birth</label><input type="date" id="self-dob"/></div>
+      <div class="field"><label>Date of Birth (optional)</label><input type="date" id="self-dob"/></div>
       <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Email</label><input type="email" id="self-email" placeholder="your@email.com"/></div>
       <div class="field"><label>Password</label><input type="password" id="self-password" placeholder="At least 6 characters"/></div>
@@ -217,7 +217,7 @@
         <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only here — last name goes below.</div>
       </div>
       <div class="field"><label>Last Name (optional)</label><input type="text" id="reg-student-lastname" placeholder="Garcia"/></div>
-      <div class="field"><label>Date of Birth</label><input type="date" id="reg-student-dob"/></div>
+      <div class="field"><label>Date of Birth (optional)</label><input type="date" id="reg-student-dob"/></div>
       <div class="field"><label>Nickname (optional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
       <div id="student-error" class="error"></div>
       <button class="btn btn-primary" onclick="doRegister()">Submit</button>
@@ -333,7 +333,7 @@
           <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only here — last name goes below.</div>
         </div>
         <div class="field"><label>Last Name (optional)</label><input type="text" id="add-lastname" placeholder="Garcia"/></div>
-        <div class="field"><label>Date of Birth</label><input type="date" id="add-dob"/></div>
+        <div class="field"><label>Date of Birth (optional)</label><input type="date" id="add-dob"/></div>
         <div class="field"><label>Nickname (optional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
         <div class="field">
           <label>Class Type</label>
@@ -517,7 +517,7 @@ async function doSelfRegister() {
   const password = document.getElementById('self-password').value;
   if (!name) { errEl.textContent = 'Please enter your first name / Ingresa tu primer nombre'; errEl.style.display = 'block'; return; }
   if (name.includes(' ')) { errEl.textContent = 'First name only / Solo primer nombre'; errEl.style.display = 'block'; return; }
-  if (!dob || !phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
+  if (!phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
 
   // Ask for class type before submitting
@@ -584,7 +584,6 @@ async function doRegister() {
   const nickname = document.getElementById('reg-student-nickname').value.trim();
   if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
   if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
-  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha de nacimiento'; errEl.style.display = 'block'; return; }
 
   // Ask for class type before submitting
   if (!_selectedClassType) { showScreen('register-class-type'); return; }
@@ -969,7 +968,6 @@ async function submitAddStudent() {
   errEl.style.display = 'none'; if(sucEl) sucEl.style.display = 'none';
   if (!name) { errEl.textContent = 'Please enter first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
   if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre'; errEl.style.display = 'block'; return; }
-  if (!dob) { errEl.textContent = 'Please enter date of birth / Por favor ingresa la fecha'; errEl.style.display = 'block'; return; }
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const classType = document.getElementById('add-classtype')?.value || '1v1';
   const res = await fetch(`${SERVER_URL}/parent/add-student`, {
