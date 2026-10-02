@@ -1253,15 +1253,30 @@ async function renderPaymentTab() {
                 ${d}x/sem
               </button>`).join('')}
           </div>
-          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">¿Qué días? / Which days?</div>
-          <div id="days-of-week-${s.name.replace(/\s/g,'_')}" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px;">
-            ${[['monday','Lun'],['tuesday','Mar'],['wednesday','Mié'],['thursday','Jue'],['friday','Vie'],['saturday','Sáb'],['sunday','Dom']].map(([val,label]) => `
-              <button type="button" onclick="toggleDayOfWeek('${s.name}','${val}')" id="dow-${s.name.replace(/\s/g,'_')}-${val}"
-                class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.8rem;cursor:pointer;">
-                ${label}
-              </button>`).join('')}
+        </div>
+
+        <!-- Schedule mode toggle -->
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📅 ¿Cómo prefieres agendar? / How would you like to schedule?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <button type="button" onclick="setScheduleMode('${s.name}','choose')" id="mode-${s.name.replace(/\s/g,'_')}-choose"
+            class="pay-opt-btn" style="padding:10px 6px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.82rem;cursor:pointer;">
+            🗓️ Elegir mi horario<br><span style="font-weight:400;font-size:0.75rem;">Choose my schedule</span>
+          </button>
+          <button type="button" onclick="setScheduleMode('${s.name}','contact')" id="mode-${s.name.replace(/\s/g,'_')}-contact"
+            class="pay-opt-btn" style="padding:10px 6px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.82rem;cursor:pointer;">
+            📞 Contáctenme<br><span style="font-weight:400;font-size:0.75rem;">Contact me instead</span>
+          </button>
+        </div>
+
+        <!-- CHOOSE MODE: time picker + real availability calendar -->
+        <div id="choose-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
+          <div style="font-size:0.82rem;color:#888;text-align:center;margin-bottom:8px;">Si todos tus días son a la misma hora. Para horarios distintos por día, usa "Contáctenme".<br>Only if all your days share the same time. For different times per day, use "Contact me".</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
+            <input type="time" id="sched-time-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
+            <button onclick="searchScheduleAvailability('${s.name}')" style="padding:8px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">Buscar / Search</button>
           </div>
-          <div id="days-of-week-hint-${s.name.replace(/\s/g,'_')}" style="font-size:0.75rem;color:#888;text-align:center;margin-bottom:14px;">Elige primero cuántos días por semana / Pick days-per-week first</div>
+          <div id="sched-cal-${s.name.replace(/\s/g,'_')}"></div>
+          <div id="sched-hint-${s.name.replace(/\s/g,'_')}" style="font-size:0.78rem;color:#888;text-align:center;margin-top:6px;"></div>
         </div>
 
         <!-- Billing cycle -->
@@ -1274,22 +1289,23 @@ async function renderPaymentTab() {
             </button>`).join('')}
         </div>
 
-        <!-- Time range -->
-        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible? / What hours are you available?</div>
-        <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
-          <span style="color:#888;font-weight:700;">—</span>
-          <input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
-        </div>
-        <div style="font-size:0.78rem;color:#888;text-align:center;margin-top:-10px;margin-bottom:14px;">El admin confirmará un horario exacto dentro de esta ventana.<br>Admin will confirm an exact time within this window.</div>
+        <!-- CONTACT MODE: time range + contact method -->
+        <div id="contact-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible? / What hours are you available?</div>
+          <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
+            <span style="color:#888;font-weight:700;">—</span>
+            <input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
+          </div>
+          <div style="font-size:0.78rem;color:#888;text-align:center;margin-top:-10px;margin-bottom:14px;">El admin confirmará un horario exacto dentro de esta ventana.<br>Admin will confirm an exact time within this window.</div>
 
-        <!-- Contact method -->
-        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📞 ¿Cómo prefieres que te contactemos? / How should we contact you?</div>
-        <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Call / Llamada</label>
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> WhatsApp</label>
-          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="email" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Email / Correo</label>
-          <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:10px;">
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📞 ¿Cómo prefieres que te contactemos? / How should we contact you?</div>
+          <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
+            <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Call / Llamada</label>
+            <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> WhatsApp</label>
+            <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="email" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Email / Correo</label>
+            <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:10px;">
+          </div>
         </div>
 
         <!-- Price summary -->
@@ -1405,6 +1421,7 @@ async function transferCombined() {
         });
       } catch(e) { console.error('Could not save preferences for', item.name); }
     }
+    await submitScheduleRequest(item.name);
   }
   
   if (!confirm('Transferir $' + total.toLocaleString('es-MX') + ' MXN por ' + names.join(', ') + '?\n\nUsa los IDs de los alumnos como concepto.')) return;
@@ -1437,16 +1454,12 @@ function selectPayOption(studentName, field, value) {
   if (!_payState[studentName]) _payState[studentName] = {};
   _payState[studentName][field] = value;
 
-  // Changing days-per-week invalidates any specific days already picked -
-  // clear them so there's never a stale count mismatch.
+  // Changing days-per-week invalidates any specific dates already picked on
+  // the schedule calendar - clear them so there's never a stale count
+  // mismatch, and re-run the search if a calendar is currently showing.
   if (field === 'days') {
-    _payState[studentName].selectedDays = [];
-    ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
-      const btn = document.getElementById(`dow-${key}-${d}`);
-      if (btn) { btn.style.borderColor = '#ddd'; btn.style.background = 'white'; btn.style.color = '#1a1a2e'; }
-    });
-    const hint = document.getElementById(`days-of-week-hint-${key}`);
-    if (hint) hint.textContent = `Elige ${value} día${value===1?'':'s'} / Pick ${value} day${value===1?'':'s'}`;
+    _payState[studentName].selectedSchedDates = [];
+    if (_payState[studentName].schedTime) searchScheduleAvailability(studentName);
   }
 
   // Update button styles
@@ -1501,29 +1514,136 @@ function selectPayOption(studentName, field, value) {
   updateCombinedSummary();
 }
 
-function toggleDayOfWeek(studentName, day) {
+function setScheduleMode(studentName, mode) {
   const key = studentName.replace(/\s/g,'_');
   if (!_payState[studentName]) _payState[studentName] = {};
+  _payState[studentName].scheduleMode = mode;
+
+  const chooseBtn = document.getElementById(`mode-${key}-choose`);
+  const contactBtn = document.getElementById(`mode-${key}-contact`);
+  [chooseBtn, contactBtn].forEach(b => { if (b) { b.style.borderColor = '#ddd'; b.style.background = 'white'; } });
+  const activeBtn = mode === 'choose' ? chooseBtn : contactBtn;
+  if (activeBtn) { activeBtn.style.borderColor = '#1a73e8'; activeBtn.style.background = '#e8f0fe'; }
+
+  const chooseDiv = document.getElementById(`choose-mode-${key}`);
+  const contactDiv = document.getElementById(`contact-mode-${key}`);
+  if (chooseDiv) chooseDiv.style.display = mode === 'choose' ? 'block' : 'none';
+  if (contactDiv) contactDiv.style.display = mode === 'contact' ? 'block' : 'none';
+}
+
+// Always the upcoming Sunday-Saturday, mirroring the server's nextWeekDates()
+// exactly - never the current week, even if today happens to be a Sunday.
+function nextWeekDatesClient() {
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+  const today = new Date(todayStr + 'T12:00:00');
+  const todayDow = today.getDay();
+  const daysUntilNextSunday = (7 - todayDow) || 7;
+  const start = new Date(today); start.setDate(start.getDate() + daysUntilNextSunday);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    dates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  return dates;
+}
+
+async function searchScheduleAvailability(studentName) {
+  const key = studentName.replace(/\s/g,'_');
+  const time = document.getElementById(`sched-time-${key}`)?.value;
+  const hint = document.getElementById(`sched-hint-${key}`);
+  const calDiv = document.getElementById(`sched-cal-${key}`);
+  if (!time) { if (hint) hint.textContent = 'Elige una hora primero / Pick a time first'; return; }
+
+  if (!_payState[studentName]) _payState[studentName] = {};
+  _payState[studentName].schedTime = time;
+  _payState[studentName].selectedSchedDates = [];
+
+  let colorMap = {};
+  try {
+    const res = await fetch(`${SERVER_URL}/trial/availability?time=${encodeURIComponent(time)}`);
+    const data = await res.json();
+    colorMap = data.colorMap || {};
+  } catch(e) {}
+
+  const dates = nextWeekDatesClient();
+  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const anyAvailable = dates.some(d => colorMap[d] === 'green');
+
+  calDiv.innerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:4px;">
+    ${dates.map(d => {
+      const dow = new Date(d+'T12:00:00').getDay();
+      const avail = colorMap[d] === 'green';
+      return `<button type="button" ${avail ? `onclick="toggleScheduleDate('${studentName}','${d}')"` : 'disabled'}
+        id="sd-${key}-${d}"
+        style="padding:8px 2px;border:2px solid ${avail?'#ddd':'#eee'};border-radius:8px;background:${avail?'white':'#f5f5f5'};font-family:Nunito;font-weight:700;font-size:0.72rem;cursor:${avail?'pointer':'not-allowed'};color:${avail?'#1a1a2e':'#ccc'};">
+        ${dayNames[dow]}<br>${d.slice(8,10)}
+      </button>`;
+    }).join('')}
+  </div>`;
+
+  if (!anyAvailable) {
+    hint.innerHTML = `<span style="color:#e65100;">No hay maestros disponibles a esa hora la próxima semana. Usa "Contáctenme" para que te ayudemos.<br>No teachers available at that time next week. Use "Contact me" so we can help.</span>`;
+  } else {
+    const limit = (_payState[studentName] || {}).days || 1;
+    hint.textContent = `0 / ${limit} días elegidos · 0/${limit} days picked`;
+  }
+}
+
+function toggleScheduleDate(studentName, dateStr) {
+  const key = studentName.replace(/\s/g,'_');
   const st = _payState[studentName];
-  if (!st.selectedDays) st.selectedDays = [];
+  if (!st.selectedSchedDates) st.selectedSchedDates = [];
   const limit = st.days || 1;
-  const btn = document.getElementById(`dow-${key}-${day}`);
-  const idx = st.selectedDays.indexOf(day);
+  const btn = document.getElementById(`sd-${key}-${dateStr}`);
+  const idx = st.selectedSchedDates.indexOf(dateStr);
 
   if (idx >= 0) {
-    st.selectedDays.splice(idx, 1);
+    st.selectedSchedDates.splice(idx, 1);
     if (btn) { btn.style.borderColor = '#ddd'; btn.style.background = 'white'; btn.style.color = '#1a1a2e'; }
   } else {
-    if (st.selectedDays.length >= limit) {
+    if (st.selectedSchedDates.length >= limit) {
       alert(`Ya elegiste ${limit} día${limit===1?'':'s'}. Cambia "días por semana" para elegir más.\nYou already picked ${limit} day${limit===1?'':'s'}. Change "days per week" to pick more.`);
       return;
     }
-    st.selectedDays.push(day);
+    st.selectedSchedDates.push(dateStr);
     if (btn) { btn.style.borderColor = '#1a73e8'; btn.style.background = '#e8f0fe'; btn.style.color = '#1a73e8'; }
   }
 
-  const hint = document.getElementById(`days-of-week-hint-${key}`);
-  if (hint) hint.textContent = `${st.selectedDays.length} / ${limit} días elegidos · ${st.selectedDays.length}/${limit} days picked`;
+  const hint = document.getElementById(`sched-hint-${key}`);
+  if (hint) hint.textContent = `${st.selectedSchedDates.length} / ${limit} días elegidos · ${st.selectedSchedDates.length}/${limit} days picked`;
+}
+
+// Submits the actual schedule request (pending admin approval) - separate
+// from /parent/schedule-preferences, which only saves display info for the
+// admin billing table. This is what actually creates something for admin
+// to see and act on. 1v1 only - group students use the existing seat-based
+// Available Classes flow instead.
+async function submitScheduleRequest(studentName) {
+  const st = _payState[studentName] || {};
+  if (st.type !== '1v1') return;
+  const mode = st.scheduleMode;
+  if (!mode) return;
+
+  let body = { studentName, mode };
+  if (mode === 'choose') {
+    if (!st.schedTime || !(st.selectedSchedDates||[]).length) return; // nothing picked, nothing to submit
+    body.time = st.schedTime;
+    body.dates = st.selectedSchedDates;
+  } else {
+    const key = studentName.replace(/\s/g,'_');
+    const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
+    if (!method) return;
+    body.contactMethod = method;
+    if (method === 'call' || method === 'whatsapp') body.contactPhone = document.getElementById(`contact-phone-${key}`)?.value || null;
+  }
+
+  try {
+    await fetch(SERVER_URL + '/parent/request-1v1-schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _parentToken },
+      body: JSON.stringify(body)
+    });
+  } catch(e) { console.error('Could not submit schedule request for', studentName); }
 }
 
 function toggleContactPhoneField(studentName) {
@@ -1535,22 +1655,29 @@ function toggleContactPhoneField(studentName) {
 
 function getTimePreferencesForStudent(studentName) {
   const key = studentName.replace(/\s/g,'_');
+  const mode = (_payState[studentName] || {}).scheduleMode;
   const prefs = {};
 
-  const from = document.getElementById(`range-from-${key}`)?.value;
-  const to = document.getElementById(`range-to-${key}`)?.value;
-  if (from && to) { prefs.timePreference = 'range'; prefs.preferredTimeRange = { start: from, end: to }; }
+  // Time range and contact method both belong to contact mode - choose
+  // mode's actual picks go through submitScheduleRequest separately.
+  if (mode === 'contact') {
+    const from = document.getElementById(`range-from-${key}`)?.value;
+    const to = document.getElementById(`range-to-${key}`)?.value;
+    if (from && to) { prefs.timePreference = 'range'; prefs.preferredTimeRange = { start: from, end: to }; }
 
-  const selectedDays = (_payState[studentName] || {}).selectedDays;
-  if (selectedDays && selectedDays.length) prefs.preferredDays = selectedDays;
-
-  const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
-  if (method) {
-    prefs.contactMethod = method;
-    if (method === 'call' || method === 'whatsapp') {
-      const phone = document.getElementById(`contact-phone-${key}`)?.value;
-      if (phone) prefs.contactPhone = phone;
+    const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
+    if (method) {
+      prefs.contactMethod = method;
+      if (method === 'call' || method === 'whatsapp') {
+        const phone = document.getElementById(`contact-phone-${key}`)?.value;
+        if (phone) prefs.contactPhone = phone;
+      }
     }
+  } else if (mode === 'choose') {
+    const st = _payState[studentName] || {};
+    if (st.schedTime) prefs.timePreference = 'range';
+    if (st.schedTime) prefs.preferredTimeRange = { start: st.schedTime, end: st.schedTime };
+    if ((st.selectedSchedDates||[]).length) prefs.preferredDays = st.selectedSchedDates;
   }
 
   return Object.keys(prefs).length ? prefs : null;
@@ -1618,6 +1745,7 @@ async function confirmTransfer(studentName) {
       });
     } catch(e) { console.error('Could not save preferences:', e); }
   }
+  await submitScheduleRequest(studentName);
 
   const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
   const weeks = cycleMultiplier(st.cycle);
