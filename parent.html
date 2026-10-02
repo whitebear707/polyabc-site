@@ -1253,6 +1253,15 @@ async function renderPaymentTab() {
                 ${d}x/sem
               </button>`).join('')}
           </div>
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">¿Qué días? / Which days?</div>
+          <div id="days-of-week-${s.name.replace(/\s/g,'_')}" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px;">
+            ${[['monday','Lun'],['tuesday','Mar'],['wednesday','Mié'],['thursday','Jue'],['friday','Vie'],['saturday','Sáb'],['sunday','Dom']].map(([val,label]) => `
+              <button type="button" onclick="toggleDayOfWeek('${s.name}','${val}')" id="dow-${s.name.replace(/\s/g,'_')}-${val}"
+                class="pay-opt-btn" style="padding:8px 4px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.8rem;cursor:pointer;">
+                ${label}
+              </button>`).join('')}
+          </div>
+          <div id="days-of-week-hint-${s.name.replace(/\s/g,'_')}" style="font-size:0.75rem;color:#888;text-align:center;margin-bottom:14px;">Elige primero cuántos días por semana / Pick days-per-week first</div>
         </div>
 
         <!-- Billing cycle -->
@@ -1265,21 +1274,22 @@ async function renderPaymentTab() {
             </button>`).join('')}
         </div>
 
-        <!-- Time Preference -->
-        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ Preferencia de horario</div>
+        <!-- Time range -->
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible? / What hours are you available?</div>
+        <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
+          <span style="color:#888;font-weight:700;">—</span>
+          <input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
+        </div>
+        <div style="font-size:0.78rem;color:#888;text-align:center;margin-top:-10px;margin-bottom:14px;">El admin confirmará un horario exacto dentro de esta ventana.<br>Admin will confirm an exact time within this window.</div>
+
+        <!-- Contact method -->
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📞 ¿Cómo prefieres que te contactemos? / How should we contact you?</div>
         <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="flexible" onchange="selectTimePreference('${s.name}','flexible')" style="margin-right:8px;"> I'm flexible / Flexible</label>
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="range" onchange="selectTimePreference('${s.name}','range')" style="margin-right:8px;"> Time range / Rango horario</label>
-          <div id="range-inputs-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-bottom:10px;gap:8px;"><input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" placeholder="From / De" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;"><input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" placeholder="To / Hasta" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:8px;"></div>
-          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="specific" onchange="selectTimePreference('${s.name}','specific')" style="margin-right:8px;"> Specific times / Horarios específicos</label>
-          <input type="text" id="specific-times-${s.name.replace(/\s/g,'_')}" placeholder="e.g., Mon 3pm, Wed 8pm / p.ej., Lun 3pm, Mié 8pm" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-left:24px;margin-bottom:10px;">
-          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="time-pref-${s.name.replace(/\s/g,'_')}" value="contact-me" onchange="selectTimePreference('${s.name}','contact-me')" style="margin-right:8px;"> Please contact me / Contactarme</label>
-          <div id="contact-fields-${s.name.replace(/\s/g,'_')}" style="display:none;margin-left:24px;margin-top:10px;">
-            <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">Contact method / Método de contacto:</div>
-            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" style="margin-right:8px;"> Call / Llamada</label>
-            <label style="display:flex;align-items:center;margin-bottom:8px;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" style="margin-right:8px;"> WhatsApp</label>
-            <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:8px;">
-          </div>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Call / Llamada</label>
+          <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> WhatsApp</label>
+          <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="email" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Email / Correo</label>
+          <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:10px;">
         </div>
 
         <!-- Price summary -->
@@ -1427,6 +1437,18 @@ function selectPayOption(studentName, field, value) {
   if (!_payState[studentName]) _payState[studentName] = {};
   _payState[studentName][field] = value;
 
+  // Changing days-per-week invalidates any specific days already picked -
+  // clear them so there's never a stale count mismatch.
+  if (field === 'days') {
+    _payState[studentName].selectedDays = [];
+    ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(d => {
+      const btn = document.getElementById(`dow-${key}-${d}`);
+      if (btn) { btn.style.borderColor = '#ddd'; btn.style.background = 'white'; btn.style.color = '#1a1a2e'; }
+    });
+    const hint = document.getElementById(`days-of-week-hint-${key}`);
+    if (hint) hint.textContent = `Elige ${value} día${value===1?'':'s'} / Pick ${value} day${value===1?'':'s'}`;
+  }
+
   // Update button styles
   const allBtns = document.querySelectorAll(`#pay-card-${key} .pay-opt-btn`);
   allBtns.forEach(b => {
@@ -1479,49 +1501,59 @@ function selectPayOption(studentName, field, value) {
   updateCombinedSummary();
 }
 
-function selectTimePreference(studentName, type) {
+function toggleDayOfWeek(studentName, day) {
   const key = studentName.replace(/\s/g,'_');
-  const rangeInputs = document.getElementById(`range-inputs-${key}`);
-  const specificInput = document.getElementById(`specific-times-${key}`);
-  const contactFields = document.getElementById(`contact-fields-${key}`);
-  
-  // Hide all conditional fields
-  if (rangeInputs) rangeInputs.style.display = 'none';
-  if (specificInput) specificInput.style.display = 'none';
-  if (contactFields) contactFields.style.display = 'none';
-  
-  // Show relevant fields
-  if (type === 'range' && rangeInputs) rangeInputs.style.display = 'flex';
-  if (type === 'specific' && specificInput) specificInput.style.display = 'block';
-  if (type === 'contact-me' && contactFields) contactFields.style.display = 'block';
+  if (!_payState[studentName]) _payState[studentName] = {};
+  const st = _payState[studentName];
+  if (!st.selectedDays) st.selectedDays = [];
+  const limit = st.days || 1;
+  const btn = document.getElementById(`dow-${key}-${day}`);
+  const idx = st.selectedDays.indexOf(day);
+
+  if (idx >= 0) {
+    st.selectedDays.splice(idx, 1);
+    if (btn) { btn.style.borderColor = '#ddd'; btn.style.background = 'white'; btn.style.color = '#1a1a2e'; }
+  } else {
+    if (st.selectedDays.length >= limit) {
+      alert(`Ya elegiste ${limit} día${limit===1?'':'s'}. Cambia "días por semana" para elegir más.\nYou already picked ${limit} day${limit===1?'':'s'}. Change "days per week" to pick more.`);
+      return;
+    }
+    st.selectedDays.push(day);
+    if (btn) { btn.style.borderColor = '#1a73e8'; btn.style.background = '#e8f0fe'; btn.style.color = '#1a73e8'; }
+  }
+
+  const hint = document.getElementById(`days-of-week-hint-${key}`);
+  if (hint) hint.textContent = `${st.selectedDays.length} / ${limit} días elegidos · ${st.selectedDays.length}/${limit} days picked`;
+}
+
+function toggleContactPhoneField(studentName) {
+  const key = studentName.replace(/\s/g,'_');
+  const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
+  const phoneField = document.getElementById(`contact-phone-${key}`);
+  if (phoneField) phoneField.style.display = (method === 'call' || method === 'whatsapp') ? 'block' : 'none';
 }
 
 function getTimePreferencesForStudent(studentName) {
   const key = studentName.replace(/\s/g,'_');
-  const selectedType = document.querySelector(`input[name="time-pref-${key}"]:checked`)?.value;
-  if (!selectedType) return null;
-  
-  const prefs = { timePreference: selectedType };
-  
-  if (selectedType === 'range') {
-    const from = document.getElementById(`range-from-${key}`)?.value;
-    const to = document.getElementById(`range-to-${key}`)?.value;
-    if (from && to) prefs.preferredTimeRange = { start: from, end: to };
-  }
-  else if (selectedType === 'specific') {
-    const times = document.getElementById(`specific-times-${key}`)?.value;
-    if (times) prefs.specificTimes = times;
-  }
-  else if (selectedType === 'contact-me') {
-    const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
-    const phone = document.getElementById(`contact-phone-${key}`)?.value;
-    if (method && phone) {
-      prefs.contactMethod = method;
-      prefs.contactPhone = phone;
+  const prefs = {};
+
+  const from = document.getElementById(`range-from-${key}`)?.value;
+  const to = document.getElementById(`range-to-${key}`)?.value;
+  if (from && to) { prefs.timePreference = 'range'; prefs.preferredTimeRange = { start: from, end: to }; }
+
+  const selectedDays = (_payState[studentName] || {}).selectedDays;
+  if (selectedDays && selectedDays.length) prefs.preferredDays = selectedDays;
+
+  const method = document.querySelector(`input[name="contact-method-${key}"]:checked`)?.value;
+  if (method) {
+    prefs.contactMethod = method;
+    if (method === 'call' || method === 'whatsapp') {
+      const phone = document.getElementById(`contact-phone-${key}`)?.value;
+      if (phone) prefs.contactPhone = phone;
     }
   }
-  
-  return prefs;
+
+  return Object.keys(prefs).length ? prefs : null;
 }
 
 function updateCombinedSummary() {
