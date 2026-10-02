@@ -167,8 +167,9 @@
       <div class="field">
         <label>First Name only</label>
         <input type="text" id="self-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only!</div>
+        <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only here — last name goes below.</div>
       </div>
+      <div class="field"><label>Last Name (optional)</label><input type="text" id="self-lastname" placeholder="Garcia"/></div>
       <div class="field"><label>Nickname (optional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
       <div class="field"><label>Date of Birth</label><input type="date" id="self-dob"/></div>
       <div class="field"><label>WhatsApp / Phone</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
@@ -213,8 +214,9 @@
       <div class="field">
         <label>First Name only</label>
         <input type="text" id="reg-student-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only please! No spaces.</div>
+        <div id="name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only here — last name goes below.</div>
       </div>
+      <div class="field"><label>Last Name (optional)</label><input type="text" id="reg-student-lastname" placeholder="Garcia"/></div>
       <div class="field"><label>Date of Birth</label><input type="date" id="reg-student-dob"/></div>
       <div class="field"><label>Nickname (optional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
       <div id="student-error" class="error"></div>
@@ -328,8 +330,9 @@
         <div class="field">
           <label>First Name only</label>
           <input type="text" id="add-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
-          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only! No spaces.</div>
+          <div id="add-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ First name only here — last name goes below.</div>
         </div>
+        <div class="field"><label>Last Name (optional)</label><input type="text" id="add-lastname" placeholder="Garcia"/></div>
         <div class="field"><label>Date of Birth</label><input type="date" id="add-dob"/></div>
         <div class="field"><label>Nickname (optional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
         <div class="field">
@@ -506,6 +509,7 @@ async function doSelfRegister() {
   const errEl = document.getElementById('self-error');
   errEl.style.display = 'none';
   const name = document.getElementById('self-name').value.trim();
+  const lastname = document.getElementById('self-lastname').value.trim();
   const nickname = document.getElementById('self-nickname').value.trim();
   const dob = document.getElementById('self-dob').value;
   const phone = document.getElementById('self-phone').value.trim();
@@ -525,7 +529,7 @@ async function doSelfRegister() {
     code: _validCode, registrationType: 'self',
     parentName: displayName, phone, email, password,
     relationship: 'self',
-    studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: '',
+    studentName: capName, studentNickname: nickname, studentDOB: dob, studentFullName: lastname ? `${capName} ${lastname}` : '',
     classType: _selectedClassType
   };
   const res = await fetch(`${SERVER_URL}/parent/register`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -575,6 +579,7 @@ async function doRegister() {
   const errEl = document.getElementById('student-error');
   errEl.style.display = 'none';
   const studentName = document.getElementById('reg-student-name').value.trim();
+  const studentLastname = document.getElementById('reg-student-lastname').value.trim();
   const dob = document.getElementById('reg-student-dob').value;
   const nickname = document.getElementById('reg-student-nickname').value.trim();
   if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
@@ -598,7 +603,7 @@ async function doRegister() {
     studentName: capName,
     studentNickname: nickname,
     studentDOB: dob,
-    studentFullName: '',
+    studentFullName: studentLastname ? `${capName} ${studentLastname}` : '',
     classType: _selectedClassType
   };
 
@@ -956,6 +961,7 @@ function showAddStudent() {
 
 async function submitAddStudent() {
   const name = document.getElementById('add-name').value.trim();
+  const lastname = document.getElementById('add-lastname')?.value.trim() || '';
   const dob = document.getElementById('add-dob').value;
   const nickname = document.getElementById('add-nickname')?.value.trim() || '';
   const errEl = document.getElementById('add-error');
@@ -968,7 +974,7 @@ async function submitAddStudent() {
   const classType = document.getElementById('add-classtype')?.value || '1v1';
   const res = await fetch(`${SERVER_URL}/parent/add-student`, {
     method: 'POST', headers: {'Content-Type':'application/json', Authorization: `Bearer ${_parentToken}`},
-    body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname, classType })
+    body: JSON.stringify({ studentName: capName, studentDOB: dob, studentNickname: nickname, studentFullName: lastname ? `${capName} ${lastname}` : '', classType })
   });
   const data = await res.json();
   if (data.success) {
