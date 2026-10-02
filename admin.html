@@ -3469,7 +3469,14 @@ async function pollPendingRequests() {
       reschedCount = (rd.requests || []).length;
     } catch(e) {}
 
-    const totalCount = pendingCount + reschedCount;
+    let schedReqCount = 0;
+    try {
+      const sr = await fetch(`${SERVER_URL}/admin/schedule-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
+      const sd = await sr.json();
+      schedReqCount = (sd.requests || []).length;
+    } catch(e) {}
+
+    const totalCount = pendingCount + reschedCount + schedReqCount;
     const btn = document.getElementById('requests-btn');
     const badge = document.getElementById('requests-badge');
     if (totalCount > 0) {
@@ -3599,7 +3606,70 @@ async function showStudentRequests() {
     }
   } catch(e) { rrSection.style.display = 'none'; }
 
+  const srSection = document.getElementById('schedule-requests-section');
+  const srList = document.getElementById('schedule-requests-list');
+  try {
+    const sr = await fetch(`${SERVER_URL}/admin/schedule-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const srData = await sr.json();
+    const srRequests = srData.requests || [];
+    if (srRequests.length) {
+      srSection.style.display = 'block';
+      srList.innerHTML = srRequests.map(r => {
+        if (r.mode === 'contact') {
+          const methodLabel = r.contactMethod === 'whatsapp' ? 'WhatsApp' : r.contactMethod === 'email' ? 'Email' : 'Call';
+          return `
+            <div style="background:#fff8e1;border:1px solid #ffe0b2;border-radius:12px;padding:14px;margin-bottom:10px;">
+              <div style="font-weight:900;font-size:1rem;">${escHtml(r.studentName)}</div>
+              <div style="font-size:0.82rem;color:#555;margin-top:4px;">📞 Wants to be contacted via <strong>${methodLabel}</strong>${r.contactPhone ? ': ' + escHtml(r.contactPhone) : ''}</div>
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                <button onclick="handleScheduleRequestDeny('${escJsAttr(r._id)}')" style="flex:1;padding:8px;background:#555;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Mark Handled</button>
+              </div>
+            </div>`;
+        }
+        const candidates = r.candidates || [];
+        const options = candidates.length
+          ? candidates.map(c => `<option value="${escHtml(c.room)}">${escHtml(c.teacherName)} (Room ${escHtml(c.room)})</option>`).join('')
+          : rooms.map(rm => `<option value="${escHtml(rm.room)}">${escHtml(rm.teacherName||'Room '+rm.room)} (Room ${escHtml(rm.room)})</option>`).join('');
+        const noMatchNote = candidates.length ? '' : `<div style="font-size:0.75rem;color:#e65100;margin-top:4px;">No automatic match found — pick manually and confirm with the teacher directly.</div>`;
+        return `
+          <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:14px;margin-bottom:10px;">
+            <div style="font-weight:900;font-size:1rem;">${escHtml(r.studentName)}</div>
+            <div style="font-size:0.82rem;color:#555;margin-top:4px;">
+              Time: <strong>${escHtml(r.time)}</strong><br>
+              Dates: <strong>${(r.dates||[]).join(', ')}</strong>
+            </div>
+            ${noMatchNote}
+            <select id="sr-teacher-${escJsAttr(r._id)}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;margin-top:8px;">${options}</select>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button onclick="handleScheduleRequestApprove('${escJsAttr(r._id)}')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
+              <button onclick="handleScheduleRequestDeny('${escJsAttr(r._id)}')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
+            </div>
+          </div>`;
+      }).join('');
+    } else {
+      srSection.style.display = 'none';
+    }
+  } catch(e) { srSection.style.display = 'none'; }
+
   modal.style.display = 'flex';
+}
+
+async function handleScheduleRequestApprove(id) {
+  const room = document.getElementById(`sr-teacher-${id}`)?.value;
+  if (!room) return;
+  await fetch(`${SERVER_URL}/admin/schedule-requests/${id}/approve`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify({ room })
+  });
+  showStudentRequests();
+  loadBillingStudents();
+}
+
+async function handleScheduleRequestDeny(id) {
+  await fetch(`${SERVER_URL}/admin/schedule-requests/${id}/deny`, {
+    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+  });
+  showStudentRequests();
 }
 
 async function handleRescheduleRequest(id, action) {
@@ -4756,6 +4826,10 @@ async function doFlushDelete() {
     <div id="reschedule-requests-section" style="display:none;margin-top:20px;padding-top:16px;border-top:2px solid #f0f0f0;">
       <div style="font-size:1.05rem;font-weight:900;margin-bottom:12px;">📅 Reschedule Requests</div>
       <div id="reschedule-requests-list"></div>
+    </div>
+    <div id="schedule-requests-section" style="display:none;margin-top:20px;padding-top:16px;border-top:2px solid #f0f0f0;">
+      <div style="font-size:1.05rem;font-weight:900;margin-bottom:12px;">🗓️ 1v1 Schedule Requests</div>
+      <div id="schedule-requests-list"></div>
     </div>
   </div>
 </div>
