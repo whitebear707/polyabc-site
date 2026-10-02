@@ -3615,7 +3615,7 @@ async function showStudentRequests() {
           👤 ${r.relationship === 'self' ? 'Adult Student / Estudiante Adulto' : r.relationship === 'mother' ? 'Mother / Mamá' : r.relationship === 'father' ? 'Father / Papá' : 'Guardian'}: ${escHtml(r.parentName)}<br>
           📱 ${escHtml(r.phone)}<br>
           📧 ${escHtml(r.email)}<br>
-          🎂 DOB: ${escHtml(r.student.dob)}
+          🎂 DOB: ${r.student.dob ? escHtml(r.student.dob) : 'Not provided'}
         </div>
         ${r.student.status === 'pending' ? `
         <div style="display:flex;gap:8px;margin-top:10px;">
