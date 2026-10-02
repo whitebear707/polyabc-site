@@ -259,7 +259,7 @@
   <a href="index.html"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a>
   <div id="pay-translate-wrap" style="display:flex;align-items:center;gap:10px;">
     <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
-    <div id="google_translate_element" style="position:absolute;left:-9999px;top:-9999px;"></div>
+    <div id="google_translate_element" style="display:none;"></div>
     <button onclick="openLanguageModal()" title="Change language / Cambiar idioma" style="background:none;border:none;font-size:1.2rem;cursor:pointer;padding:4px 6px;color:white;">🌐</button>
   </div>
 </div>
@@ -1046,10 +1046,14 @@
   // Drives Google's translate engine directly without showing its own
   // default widget UI - applies a language, remembers the choice, and
   // only touches the page if Spanish is picked.
-  function applyLang(lang) {
+  function applyLang(lang, attempt) {
+    attempt = attempt || 0;
     localStorage.setItem('polyabc_lang', lang);
     const selectField = document.querySelector('.goog-te-combo');
-    if (!selectField) return;
+    if (!selectField) {
+      if (attempt < 15) setTimeout(() => applyLang(lang, attempt + 1), 300);
+      return;
+    }
     if (selectField.value !== lang) {
       selectField.value = lang;
       selectField.dispatchEvent(new Event('change'));
