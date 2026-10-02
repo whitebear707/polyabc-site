@@ -343,7 +343,7 @@
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
-      <div id="google_translate_element" style="position:absolute;left:-9999px;top:-9999px;"></div>
+      <div id="google_translate_element" style="display:none;"></div>
       <button onclick="openLanguageModal()" title="Change language / Cambiar idioma" style="background:none;border:none;font-size:1.2rem;cursor:pointer;padding:4px 6px;">🌐</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
     </div>
@@ -1254,10 +1254,17 @@ function closeMenu() {
 // Drives Google's translate engine directly without showing its own default
 // widget UI - applies a language, remembers the choice, and only touches
 // the page if Spanish is picked (English is the page's native language).
-function applyLang(lang) {
+function applyLang(lang, attempt) {
+  attempt = attempt || 0;
   localStorage.setItem('polyabc_lang', lang);
   const selectField = document.querySelector('.goog-te-combo');
-  if (!selectField) return;
+  if (!selectField) {
+    // Widget may still be initializing - retry for a few seconds rather
+    // than silently giving up, which is what made this look like it did
+    // nothing at all.
+    if (attempt < 15) setTimeout(() => applyLang(lang, attempt + 1), 300);
+    return;
+  }
   if (selectField.value !== lang) {
     selectField.value = lang;
     selectField.dispatchEvent(new Event('change'));
