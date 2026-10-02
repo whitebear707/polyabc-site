@@ -343,7 +343,7 @@
     <div id="header-center"><a href="index.html" title="Go to homepage"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
       <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
-      <div id="google_translate_element" style="display:none;"></div>
+      <div id="google_translate_element" style="max-width:90px;font-size:0.7rem;"></div>
       <button onclick="openLanguageModal()" title="Change language / Cambiar idioma" style="background:none;border:none;font-size:1.2rem;cursor:pointer;padding:4px 6px;">🌐</button>
       <button id="logout-btn" onclick="logout()">Sign Out</button>
     </div>
@@ -1280,7 +1280,12 @@ function chooseLang(lang) {
 function checkLanguageOnLoad() {
   const saved = localStorage.getItem('polyabc_lang');
   if (saved) { applyLang(saved); return; }
-  // First visit - ask, don't guess from browser locale.
+  // No saved choice yet - if the browser is clearly set to Spanish, just
+  // apply it directly rather than making them answer a question with an
+  // obvious answer. Anything else (including English) still asks, since an
+  // English-set browser doesn't guarantee an English speaker.
+  const browserLang = navigator.language || navigator.userLanguage || '';
+  if (browserLang.toLowerCase().startsWith('es')) { applyLang('es'); return; }
   openLanguageModal();
 }
 
