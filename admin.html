@@ -582,7 +582,7 @@
         <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Any Teacher --</option>
         </select>
-        <select id="day-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
+        <select id="day-filter" onchange="renderMasterCalendar();renderExtraSlotResults();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Any Day --</option>
           <option value="0">Sunday</option>
           <option value="1">Monday</option>
@@ -592,8 +592,14 @@
           <option value="5">Friday</option>
           <option value="6">Saturday</option>
         </select>
-        <input type="time" id="time-filter" oninput="renderMasterCalendar()" placeholder="e.g. 18:00"/>
-        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';document.getElementById('teacher-filter').value='';renderMasterCalendar();"
+        <input type="time" id="time-filter" oninput="renderMasterCalendar();renderExtraSlotResults();" placeholder="e.g. 18:00"/>
+
+        <div id="extra-day-time-rows" style="margin-top:8px;"></div>
+        <button onclick="addExtraDayTimeRow()" style="width:100%;background:#f0f4f8;border:1px dashed #bbb;padding:6px;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;margin-top:4px;">+ Also needs this day/time</button>
+        <div style="font-size:0.72rem;color:#aaa;margin-top:3px;">Adding another day/time finds teachers free for ALL of them — e.g. Mondays 3pm AND Fridays 6pm.</div>
+        <div id="extra-slot-results" style="margin-top:8px;"></div>
+
+        <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';document.getElementById('teacher-filter').value='';clearExtraDayTimeRows();renderMasterCalendar();"
           style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
       </div>
 
@@ -1338,6 +1344,82 @@ function matchesFilters(teachers, filterTime, filterDayOfWeek) {
     if (filterTime && !(filterTime >= t.hours.start && filterTime <= t.hours.end)) return false;
     return true;
   });
+}
+
+// Extra day/time rows, built into the same "Filter by Day & Time" block.
+// The primary day-filter/time-filter fields count as the first slot; these
+// add more, so admin can ask "who's free Mondays 3pm AND Fridays 6pm"
+// without a separate tool.
+let _extraDayTimeRows = [];
+
+function addExtraDayTimeRow() {
+  _extraDayTimeRows.push({ day: '1', time: '' });
+  renderExtraDayTimeRows();
+}
+
+function removeExtraDayTimeRow(idx) {
+  _extraDayTimeRows.splice(idx, 1);
+  renderExtraDayTimeRows();
+  renderExtraSlotResults();
+}
+
+function updateExtraDayTimeRow(idx, field, value) {
+  _extraDayTimeRows[idx][field] = value;
+  renderExtraSlotResults();
+}
+
+function clearExtraDayTimeRows() {
+  _extraDayTimeRows = [];
+  renderExtraDayTimeRows();
+  renderExtraSlotResults();
+}
+
+function renderExtraDayTimeRows() {
+  const wrap = document.getElementById('extra-day-time-rows');
+  if (!wrap) return;
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  wrap.innerHTML = _extraDayTimeRows.map((slot, i) => `
+    <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center;">
+      <select onchange="updateExtraDayTimeRow(${i},'day',this.value)" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd;font-family:Nunito;font-size:0.8rem;">
+        ${dayNames.map((d,n) => `<option value="${n}" ${String(n)===slot.day?'selected':''}>${d}</option>`).join('')}
+      </select>
+      <input type="time" value="${slot.time}" onchange="updateExtraDayTimeRow(${i},'time',this.value)" style="flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;font-size:0.8rem;">
+      <button onclick="removeExtraDayTimeRow(${i})" style="background:#ffebee;color:#c62828;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-weight:900;">✕</button>
+    </div>`).join('');
+}
+
+// Combines the primary day-filter/time-filter with any extra rows and
+// shows which teachers' stated hours cover every one of them.
+function renderExtraSlotResults() {
+  const resultsEl = document.getElementById('extra-slot-results');
+  if (!resultsEl) return;
+  if (!_extraDayTimeRows.length) { resultsEl.innerHTML = ''; return; }
+
+  const primaryDay  = document.getElementById('day-filter')?.value;
+  const primaryTime = document.getElementById('time-filter')?.value;
+  const slots = [];
+  if (primaryDay !== '' && primaryTime) slots.push({ day: primaryDay, time: primaryTime });
+  slots.push(..._extraDayTimeRows.filter(s => s.time));
+
+  if (slots.length < 2) {
+    resultsEl.innerHTML = '<div style="font-size:0.78rem;color:#c62828;">Set a day + time above, and at least one more below, to search multiple.</div>';
+    return;
+  }
+
+  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const matches = allAvailability.filter(t => {
+    return slots.every(slot => {
+      const hours = t.dayHours?.[dayNames[slot.day]];
+      return hours && slot.time >= hours.start && slot.time <= hours.end;
+    });
+  });
+
+  if (!matches.length) {
+    resultsEl.innerHTML = '<div style="font-size:0.78rem;color:#888;">No teacher\u2019s stated hours cover all of these.</div>';
+    return;
+  }
+  resultsEl.innerHTML = `<div style="font-size:0.78rem;font-weight:900;color:#555;margin-bottom:6px;">${matches.length} match${matches.length===1?'':'es'}:</div>` +
+    matches.map(t => `<div style="background:#e8f5e9;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:0.85rem;font-weight:700;color:#2e7d32;">${escHtml(t.teacherName||'Room '+t.room)} (Room ${escHtml(t.room)})</div>`).join('');
 }
 
 function renderMasterCalendar() {
