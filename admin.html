@@ -3672,10 +3672,17 @@ function renderBillingTable(students) {
     let schedueDisplay = `${escHtml(daysLabel)}<br><span style="color:#888;">${escHtml(timeLabel)}</span>`;
     if (!s.scheduledDays?.length && !s.scheduledTime) {
       if (s.timePreference === 'flexible') schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Flexible</span>`;
-      else if (s.timePreference === 'range' && s.preferredTimeRange) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Range: ${escHtml(s.preferredTimeRange.start)}–${escHtml(s.preferredTimeRange.end)}</span>`;
+      else if (s.timePreference === 'range' && s.preferredTimeRange) {
+        const daysPart = s.preferredDays?.length ? escHtml(s.preferredDays.map(d => d.slice(0,3)).join(', ')) + '<br>' : '';
+        schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">${daysPart}Range: ${escHtml(s.preferredTimeRange.start)}–${escHtml(s.preferredTimeRange.end)}</span>`;
+      }
       else if (s.timePreference === 'specific' && s.specificTimes) schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">${escHtml(s.specificTimes)}</span>`;
       else if (s.timePreference === 'contact-me') schedueDisplay = `<span style="color:#e65100;font-weight:700;">📞 Contact via ${s.contactMethod === 'whatsapp' ? 'WhatsApp' : 'call'}${s.contactPhone ? ': ' + escHtml(s.contactPhone) : ''}</span>`;
       else schedueDisplay = '—';
+      if (s.contactMethod) {
+        const methodLabel = s.contactMethod === 'whatsapp' ? 'WhatsApp' : s.contactMethod === 'email' ? 'Email' : 'Call';
+        schedueDisplay += `<br><span style="color:#888;font-size:0.72rem;">📞 ${methodLabel}${s.contactPhone ? ': ' + escHtml(s.contactPhone) : ''}</span>`;
+      }
     }
     const overdueFlag = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date() && !s.paid
       ? ' <span style="color:#e53935;font-size:0.7rem;font-weight:900;">⚠️ OVERDUE</span>' : '';
