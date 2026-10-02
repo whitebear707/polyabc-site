@@ -597,15 +597,6 @@
           style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title">🔎 Multi-Slot Teacher Search</div>
-        <div style="font-size:0.78rem;color:#888;margin-bottom:10px;">Find teachers free for ALL of these — e.g. Mondays 3pm AND Fridays 6pm.</div>
-        <div id="multi-slot-rows"></div>
-        <button onclick="addSearchSlot()" style="width:100%;background:#f0f4f8;border:1px dashed #bbb;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.82rem;font-weight:700;cursor:pointer;margin-top:4px;">+ Add Day/Time</button>
-        <button onclick="runMultiSlotSearch()" style="width:100%;background:#1a73e8;color:white;border:none;padding:9px;border-radius:8px;font-family:Nunito;font-size:0.88rem;font-weight:900;cursor:pointer;margin-top:8px;">Search</button>
-        <div id="multi-slot-results" style="margin-top:10px;"></div>
-      </div>
-
       <div id="day-detail">
         <div style="color:#aaa;text-align:center;padding:24px 16px;font-size:0.9rem;">Click a day to see available teachers</div>
       </div>
@@ -1310,7 +1301,7 @@ function showPanel(name) {
   if (attBtn) attBtn.style.background = name === 'attendance' ? '#1a73e8' : '';
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
-  if (name === 'calendar')   { renderMasterCalendar(); if (!_searchSlots.length) addSearchSlot(); }
+  if (name === 'calendar')   { renderMasterCalendar(); }
   if (name === 'teachers')   renderTeachers();
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
@@ -1349,57 +1340,6 @@ function matchesFilters(teachers, filterTime, filterDayOfWeek) {
   });
 }
 
-// ── Multi-slot teacher search ──
-let _searchSlots = [];
-
-function addSearchSlot() {
-  _searchSlots.push({ day: '1', time: '' });
-  renderSearchSlots();
-}
-
-function removeSearchSlot(idx) {
-  _searchSlots.splice(idx, 1);
-  renderSearchSlots();
-}
-
-function updateSearchSlot(idx, field, value) {
-  _searchSlots[idx][field] = value;
-}
-
-function renderSearchSlots() {
-  const wrap = document.getElementById('multi-slot-rows');
-  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  wrap.innerHTML = _searchSlots.map((slot, i) => `
-    <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center;">
-      <select onchange="updateSearchSlot(${i},'day',this.value)" style="flex:1;padding:6px;border-radius:6px;border:1px solid #ddd;font-family:Nunito;font-size:0.8rem;">
-        ${dayNames.map((d,n) => `<option value="${n}" ${String(n)===slot.day?'selected':''}>${d}</option>`).join('')}
-      </select>
-      <input type="time" value="${slot.time}" onchange="updateSearchSlot(${i},'time',this.value)" style="flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;font-size:0.8rem;">
-      <button onclick="removeSearchSlot(${i})" style="background:#ffebee;color:#c62828;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-weight:900;">✕</button>
-    </div>`).join('');
-}
-
-function runMultiSlotSearch() {
-  const resultsEl = document.getElementById('multi-slot-results');
-  const validSlots = _searchSlots.filter(s => s.time);
-  if (!validSlots.length) { resultsEl.innerHTML = '<div style="color:#c62828;font-size:0.82rem;">Add at least one day/time with a time set.</div>'; return; }
-
-  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-  const matches = allAvailability.filter(t => {
-    return validSlots.every(slot => {
-      const hours = t.dayHours?.[dayNames[slot.day]];
-      return hours && slot.time >= hours.start && slot.time <= hours.end;
-    });
-  });
-
-  if (!matches.length) {
-    resultsEl.innerHTML = '<div style="color:#888;font-size:0.82rem;">No teacher\u2019s stated hours cover all of these.</div>';
-    return;
-  }
-  resultsEl.innerHTML = `<div style="font-size:0.78rem;font-weight:900;color:#555;margin-bottom:6px;">${matches.length} match${matches.length===1?'':'es'}:</div>` +
-    matches.map(t => `<div style="background:#e8f5e9;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:0.85rem;font-weight:700;color:#2e7d32;">${escHtml(t.teacherName||'Room '+t.room)} (Room ${escHtml(t.room)})</div>`).join('');
-}
-
 function renderMasterCalendar() {
   document.getElementById('master-cal-title').textContent = `${MONTHS[masterMonth]} ${masterYear}`;
   const grid = document.getElementById('master-cal-grid');
@@ -1426,6 +1366,12 @@ function renderMasterCalendar() {
     const teachers  = getAvailableTeachersForDate(dateStr).filter(t => !filterTeacher || t.room === filterTeacher);
     const assignments = allAssignments.filter(a => a.date === dateStr);
 
+    // When a time filter is set, only count teachers whose hours actually
+    // cover that time - previously this stayed as the raw per-day count no
+    // matter what time was typed in, which is why the badge looked the
+    // same regardless of the search.
+    const displayTeachers = filterTime ? teachers.filter(t => t.hours && filterTime >= t.hours.start && filterTime <= t.hours.end) : teachers;
+
     // Both filters must match if set
     const dayMatches  = filterDay === '' || dayOfWeek === parseInt(filterDay);
     const timeMatches = filterTime === '' || matchesFilters(teachers, filterTime, dayOfWeek);
@@ -1436,11 +1382,11 @@ function renderMasterCalendar() {
     if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
     if (matches) cls += ' has-filter-match';
-    else if (teachers.length > 0) cls += ' has-avail';
+    else if (displayTeachers.length > 0) cls += ' has-avail';
     else cls += ' no-avail';
 
-    const countHtml = teachers.length > 0
-      ? `<div class="cal-day-count">✅ ${teachers.length} teacher${teachers.length>1?'s':''}</div>` : '';
+    const countHtml = displayTeachers.length > 0
+      ? `<div class="cal-day-count">✅ ${displayTeachers.length} teacher${displayTeachers.length>1?'s':''}</div>` : '';
 
     // Show debt badges on calendar day
     const debtGroups = assignments.reduce((acc, a) => {
