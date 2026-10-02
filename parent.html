@@ -1199,8 +1199,11 @@ async function renderPaymentTab() {
         Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
       </div>`;
 
-    // Not due yet — hide the payment form to prevent double payments, show status instead
-    const isDue = !s.nextPaymentDue || new Date(s.nextPaymentDue) <= new Date();
+    // Not due yet — hide the payment form to prevent double payments, show status instead.
+    // Must actually be marked paid, not just have some due date sitting in the
+    // future — otherwise a student correctly reverted to unpaid could still
+    // show "all paid up" forever if nextPaymentDue wasn't also cleared.
+    const isDue = !s.paid || !s.nextPaymentDue || new Date(s.nextPaymentDue) <= new Date();
     if (!isDue) return `
       <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
         <div style="font-size:2.5rem;margin-bottom:10px;">✅</div>
