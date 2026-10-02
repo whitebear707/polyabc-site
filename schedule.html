@@ -78,6 +78,8 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.6);
       font-family: Nunito, sans-serif;
       min-width: 220px;
+      max-height: calc(100vh - 16px);
+      overflow-y: auto;
     }
     .time-picker-popup.open { display: block; }
     .tp-label { font-size: 0.75rem; font-weight: 900; color: #a0c4ff; margin-bottom: 6px; }
@@ -672,9 +674,25 @@
     renderPickerPopup(id);
     const rect = document.getElementById(id).getBoundingClientRect();
     const popup = document.getElementById('tp-popup');
-    popup.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
+    popup.classList.add('open'); // must be visible before measuring height
+    const popupHeight = popup.offsetHeight;
+    const margin = 8;
+
+    // Prefer below the clicked element, but flip above it if there isn't
+    // room, and otherwise clamp so it never runs off the bottom (or top)
+    // of the screen - this was the actual bug, nothing adjusted for a
+    // click low on the page.
+    let top;
+    if (rect.bottom + margin + popupHeight <= window.innerHeight) {
+      top = rect.bottom + margin;
+    } else if (rect.top - margin - popupHeight >= 0) {
+      top = rect.top - margin - popupHeight;
+    } else {
+      top = Math.max(margin, window.innerHeight - popupHeight - margin);
+    }
+
+    popup.style.top  = (top + window.scrollY) + 'px';
     popup.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
-    popup.classList.add('open');
   }
 
   function renderPickerPopup(id) {
