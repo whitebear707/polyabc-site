@@ -3693,6 +3693,7 @@ function renderBillingTable(students) {
       <td style="white-space:nowrap;">
         <button onclick="openBillingEdit('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Edit</button>
         <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Paid</button>
+        ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Undo this payment confirmation — wrong click, or the transfer turned out to be fake/cancelled" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Unpaid</button>` : ''}
         <button onclick="togglePaymentExempt('${escJsAttr(s.name)}',${!s.paymentExempt})"
           title="${s.paymentExempt ? 'Remove exempt — student WILL be suspended for non-payment' : 'Mark exempt — student will NOT be suspended for non-payment'}"
           style="padding:4px 8px;background:${s.paymentExempt?'#e3f2fd':'#f5f5f5'};border:1px solid ${s.paymentExempt?'#1a73e8':'#ddd'};border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${s.paymentExempt?'#1a73e8':'#aaa'};margin-right:4px;">
@@ -3722,6 +3723,15 @@ async function confirmPayment(name) {
     body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
   });
   showToast(`✅ Payment confirmed for ${name}`);
+  loadBillingStudents();
+}
+
+async function markUnpaid(name) {
+  if (!confirm(`Undo the payment confirmation for ${name}? This reverts their paid status, due date, and removes the matching ledger entry.`)) return;
+  await fetch(`${SERVER_URL}/billing/mark-unpaid/${encodeURIComponent(name)}`, {
+    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+  });
+  showToast(`↩️ Payment undone for ${name}`);
   loadBillingStudents();
 }
 
