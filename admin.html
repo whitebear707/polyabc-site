@@ -3731,6 +3731,7 @@ async function handleScheduleRequestApprove(id) {
   });
   showStudentRequests();
   loadBillingStudents();
+  await loadAllAssignmentsData(); // calendar tab otherwise keeps showing stale data
 }
 
 async function handleScheduleRequestDeny(id) {
@@ -3751,6 +3752,7 @@ async function handleRescheduleRequest(id, action) {
     body: JSON.stringify(body)
   });
   showStudentRequests();
+  if (action === 'approve') await loadAllAssignmentsData(); // calendar tab otherwise keeps showing stale data
 }
 
 async function deleteStudentRequest(parentId, studentName) {
