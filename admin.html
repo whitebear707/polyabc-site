@@ -3616,9 +3616,17 @@ async function showStudentRequests() {
   if (btn) btn.classList.remove('requests-glow');
   if (badge) badge.style.display = 'none';
   const res = await fetch(`${SERVER_URL}/admin/student-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
-  const requests = await res.json();
+  const allRequests = await res.json();
   const modal = document.getElementById('student-requests-modal');
   const list = document.getElementById('requests-list');
+
+  // Auto-approved registrations don't need action, so they're hidden -
+  // otherwise this fills up with finished parents and new requests end up
+  // buried at the bottom. Anything needing attention goes first.
+  const statusRank = { pending: 0, denied: 1 };
+  const requests = allRequests
+    .filter(r => r.student.status !== 'approved')
+    .sort((a, b) => (statusRank[a.student.status] ?? 2) - (statusRank[b.student.status] ?? 2));
 
   if (!requests.length) {
     list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No pending requests</div>';
@@ -3634,17 +3642,9 @@ async function showStudentRequests() {
         </div>
         ${r.student.status === 'pending' ? `
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button onclick="handleRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
+          <button onclick="handleRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}','approve','${escJsAttr(r.student.trialPassword || 'try1')}')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
           <button onclick="handleRequest('${escJsAttr(r.parentId)}','${escJsAttr(r.student.name)}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
         </div>` : ''}
-        ${r.student.status === 'approved' ? `
-        <div style="background:#e8f5e9;border-radius:8px;padding:10px;margin-top:8px;font-size:0.85rem;">
-          <div style="color:#2e7d32;font-weight:700;margin-bottom:4px;">✅ Approved — Trial Credentials:</div>
-          <div>Room: <b>101</b> &nbsp;|&nbsp; Password: <b>${escHtml(r.student.trialPassword || 'try1')}</b></div>
-        </div>
-        <a href="exam.html" target="_blank" style="display:block;margin-top:8px;padding:10px;background:#2e7d32;color:white;border-radius:10px;text-align:center;font-weight:900;font-size:0.9rem;text-decoration:none;">
-          📝 Exam / Examen
-        </a>` : ''}
         ${r.student.status === 'denied' ? `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
           <span style="color:#c62828;font-size:0.85rem;font-weight:700;">❌ Denied</span>
@@ -3779,13 +3779,18 @@ async function deleteStudentRequest(parentId, studentName) {
   showStudentRequests();
 }
 
-async function handleRequest(parentId, studentName, action) {
+async function handleRequest(parentId, studentName, action, trialPassword) {
   await fetch(`${SERVER_URL}/admin/student-request/${action}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ parentId, studentName })
   });
   showStudentRequests(); // refresh
-  if (action === 'approve') loadStudents(); // refresh student list
+  if (action === 'approve') {
+    loadStudents(); // refresh student list
+    // Approved requests leave this list, so confirm the trial login here
+    // while the admin is still looking at it.
+    showToast(`✅ ${studentName} approved — Room 101 · Password: ${trialPassword || 'try1'}`, 9000);
+  }
 }
 
 
@@ -4097,7 +4102,7 @@ async function saveBillingEdit(name) {
   loadBillingStudents();
 }
 
-function showToast(msg) {
+function showToast(msg, ms) {
   let t = document.getElementById('billing-toast');
   if (!t) {
     t = document.createElement('div');
@@ -4107,7 +4112,8 @@ function showToast(msg) {
   }
   t.textContent = msg;
   t.style.opacity = '1';
-  setTimeout(() => t.style.opacity = '0', 2500);
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(() => t.style.opacity = '0', ms || 2500);
 }
 
 // ── PARENTS PANEL ──
