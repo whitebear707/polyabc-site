@@ -2406,6 +2406,12 @@ function escJsAttr(str) {
   if (str === null || str === undefined) return '';
   return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+// fullName is "First Last" - strip the already-shown first name so it
+// doesn't display redundantly next to itself.
+function lastNameOnly(name, fullName) {
+  if (!fullName) return '';
+  return fullName.startsWith(name + ' ') ? fullName.slice(name.length + 1) : fullName;
+}
 
 function renderAllStudents() {
   const tbody = document.getElementById('students-tbody');
@@ -2460,7 +2466,7 @@ function renderAllStudents() {
       <td>${idCell}</td>
       <td style="font-weight:700;">
         ${escHtml(s.name)}${s.manuallySuspended ? ' <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">🚫 DISABLED</span>' : ''}${s.isNewTrial ? ' <span style="background:#e53935;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;">NEW</span>' : ''}${s.debtMins > 0 ? ` <span style="background:#b71c1c;color:white;font-size:0.7rem;padding:2px 6px;border-radius:10px;font-weight:900;">-${s.debtMins} min</span>` : ''}
-        ${s.fullName ? `<div style="font-size:0.75rem;color:#666;font-weight:400;">${escHtml(s.fullName)}</div>` : ''}
+        ${s.fullName ? `<div style="font-size:0.75rem;color:#666;font-weight:400;">${escHtml(lastNameOnly(s.name, s.fullName))}</div>` : ''}
         ${s.dob ? `<div style="font-size:0.72rem;color:#aaa;">DOB: ${escHtml(s.dob)}</div>` : ''}
       </td>
       <td class="notranslate" translate="no" style="color:#888;">${escHtml(s.password)}</td>
@@ -3619,7 +3625,7 @@ async function showStudentRequests() {
   } else {
     list.innerHTML = requests.map(r => `
       <div style="background:#f8f9ff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px;">
-        <div style="font-weight:900;font-size:1rem;">${escHtml(r.student.displayName || r.student.name)}${r.student.fullName ? ` <span style="font-weight:400;color:#888;font-size:0.85rem;">(${escHtml(r.student.fullName)})</span>` : ''}</div>
+        <div style="font-weight:900;font-size:1rem;">${escHtml(r.student.displayName || r.student.name)}${r.student.fullName ? ` <span style="font-weight:400;color:#888;font-size:0.85rem;">(${escHtml(lastNameOnly(r.student.name, r.student.fullName))})</span>` : ''}</div>
         <div style="font-size:0.82rem;color:#555;margin-top:4px;">
           👤 ${r.relationship === 'self' ? 'Adult Student / Estudiante Adulto' : r.relationship === 'mother' ? 'Mother / Mamá' : r.relationship === 'father' ? 'Father / Papá' : 'Guardian'}: ${escHtml(r.parentName)}<br>
           📱 ${escHtml(r.phone)}<br>
@@ -3903,7 +3909,7 @@ function renderBillingTable(students) {
     const overdueFlag = s.nextPaymentDue && new Date(s.nextPaymentDue) < new Date() && !s.paid
       ? ' <span style="color:#e53935;font-size:0.7rem;font-weight:900;">⚠️ OVERDUE</span>' : '';
     return `<tr>
-      <td style="font-weight:700;">${escHtml(s.name)}${s.manuallySuspended ? ' <span style="background:#b71c1c;color:white;font-size:0.68rem;padding:2px 6px;border-radius:10px;font-weight:900;">🚫 DISABLED</span>' : ''}${s.studentId ? `<div style="margin-top:2px;"><span style="background:#1a73e8;color:white;padding:1px 6px;border-radius:6px;font-size:0.68rem;font-weight:900;font-family:monospace;letter-spacing:0.5px;">${escHtml(s.studentId)}</span></div>` : ''}${s.fullName ? `<div style="font-size:0.72rem;color:#666;font-weight:400;">${escHtml(s.fullName)}</div>` : ''}</td>
+      <td style="font-weight:700;">${escHtml(s.name)}${s.manuallySuspended ? ' <span style="background:#b71c1c;color:white;font-size:0.68rem;padding:2px 6px;border-radius:10px;font-weight:900;">🚫 DISABLED</span>' : ''}${s.studentId ? `<div style="margin-top:2px;"><span style="background:#1a73e8;color:white;padding:1px 6px;border-radius:6px;font-size:0.68rem;font-weight:900;font-family:monospace;letter-spacing:0.5px;">${escHtml(s.studentId)}</span></div>` : ''}${s.fullName ? `<div style="font-size:0.72rem;color:#666;font-weight:400;">${escHtml(lastNameOnly(s.name, s.fullName))}</div>` : ''}</td>
       <td><span style="color:${typeColor};font-weight:900;">${escHtml(s.enrolledType || '—')}</span></td>
       <td>${escHtml(s.billingCycle || '—')}</td>
       <td style="text-align:center;">${escHtml(s.classesPerWeek || '—')}</td>
