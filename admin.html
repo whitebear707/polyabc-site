@@ -3648,19 +3648,27 @@ async function showStudentRequests() {
     const rrRequests = rrData.requests || [];
     if (rrRequests.length) {
       rrSection.style.display = 'block';
-      rrList.innerHTML = rrRequests.map(r => `
+      rrList.innerHTML = rrRequests.map(r => {
+        const candidates = r.candidates || [];
+        const options = candidates.length
+          ? candidates.map(c => `<option value="${escHtml(c.room)}" ${c.room===r.currentRoom?' selected':''}>${escHtml(c.teacherName)} (Room ${escHtml(c.room)})</option>`).join('')
+          : rooms.map(rm => `<option value="${escHtml(rm.room)}" ${rm.room===r.currentRoom?' selected':''}>${escHtml(rm.teacherName||'Room '+rm.room)} (Room ${escHtml(rm.room)})</option>`).join('');
+        const noMatchNote = candidates.length ? '' : `<div style="font-size:0.75rem;color:#e65100;margin-top:4px;">No automatic match for the new time — pick manually and confirm with the teacher directly.</div>`;
+        return `
         <div style="background:#fff8e1;border:1px solid #ffe0b2;border-radius:12px;padding:14px;margin-bottom:10px;">
           <div style="font-weight:900;font-size:1rem;">${escHtml(r.studentName)}</div>
           <div style="font-size:0.82rem;color:#555;margin-top:4px;">
             ${r.currentDate ? `Current: ${escHtml(r.currentDate)} ${escHtml(r.currentTime||'')}<br>` : ''}
             Requested: <strong>${escHtml(r.requestedDate)} ${escHtml(r.requestedTime)}</strong>
           </div>
+          ${noMatchNote}
+          <select id="rr-teacher-${escJsAttr(r._id)}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;margin-top:8px;">${options}</select>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button onclick="handleRescheduleRequest('${escJsAttr(r._id)}','approve')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Approve</button>
             <button onclick="handleRescheduleRequest('${escJsAttr(r._id)}','deny')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Deny</button>
           </div>
         </div>
-      `).join('');
+      `;}).join('');
     } else {
       rrSection.style.display = 'none';
     }
@@ -3733,8 +3741,14 @@ async function handleScheduleRequestDeny(id) {
 }
 
 async function handleRescheduleRequest(id, action) {
+  const body = {};
+  if (action === 'approve') {
+    const room = document.getElementById(`rr-teacher-${id}`)?.value;
+    if (room) body.room = room;
+  }
   await fetch(`${SERVER_URL}/admin/reschedule-requests/${id}/${action}`, {
-    method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+    body: JSON.stringify(body)
   });
   showStudentRequests();
 }
