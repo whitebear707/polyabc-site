@@ -691,7 +691,11 @@
       top = Math.max(margin, window.innerHeight - popupHeight - margin);
     }
 
-    popup.style.top  = (top + window.scrollY) + 'px';
+    // position:fixed is relative to the viewport, not the page - top is
+    // already correct as-is. Adding scrollY here was the actual bug: it
+    // pushed the popup down by however far the page had scrolled, stacked
+    // on top of a position that was already correct for the viewport.
+    popup.style.top  = top + 'px';
     popup.style.left = Math.min(rect.left, window.innerWidth - 240) + 'px';
   }
 
