@@ -1867,9 +1867,10 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   }
 
   // Create the assignment on calendar
+  const _booking = allTrialBookings.find(b => b._id === bookingId);
   await fetch(`${SERVER_URL}/assignments`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
-    body: JSON.stringify({ room, date: dateStr, time, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class' })
+    body: JSON.stringify({ room, date: dateStr, time, classType: 'Trial', level: 'Trial', students: 1, groupName: 'Trial Class', studentName: _booking?.studentName || null })
   });
   document.getElementById('assign-day-overlay').style.display = 'none';
   await loadAllAssignmentsData();
