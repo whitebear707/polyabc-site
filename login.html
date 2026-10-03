@@ -335,7 +335,13 @@
           btn.innerHTML = 'Enter Class →'; btn.disabled = false;
         }
       } catch(e) {
-        // Server waking up, keep spinner
+        // The server didn't answer properly (waking up, offline, or an error
+        // page). Never leave the button frozen on "Looking for class..." with
+        // no way out - say so and let them try again.
+        clearInterval(window._loginCountdown);
+        document.getElementById('join-error').textContent = 'Could not reach the server. Please wait a moment and try again. / No se pudo conectar con el servidor. Espera un momento e intenta de nuevo.';
+        document.getElementById('join-error').style.display = 'block';
+        btn.innerHTML = 'Enter Class →'; btn.disabled = false;
       }
     }
 
