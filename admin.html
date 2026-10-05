@@ -950,6 +950,7 @@
       <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏱ Make-Up Time Owed</label>
       <div style="background:#fff8e1;border:1px solid #f0d878;border-radius:8px;padding:10px;">
         <div style="font-size:0.85rem;margin-bottom:8px;">Currently owed: <b id="edit-student-owed-display">0 min</b></div>
+        <div id="edit-student-owed-note" style="font-size:0.75rem;color:#999;margin:-4px 0 8px;"></div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input type="number" id="edit-student-owed-amount" placeholder="minutes" min="0" style="width:90px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;">
           <button type="button" class="btn btn-blue btn-sm" onclick="adjustStudentOwed('add')">+ Add</button>
@@ -1050,6 +1051,7 @@
       <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">⏱ Make-Up Time Owed (whole group)</label>
       <div style="background:#fff8e1;border:1px solid #f0d878;border-radius:8px;padding:10px;">
         <div style="font-size:0.85rem;margin-bottom:8px;">Currently owed: <b id="edit-group-owed-display">0 min</b></div>
+        <div id="edit-group-owed-note" style="font-size:0.75rem;color:#999;margin:-4px 0 8px;"></div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
           <input type="number" id="edit-group-owed-amount" placeholder="minutes" min="0" style="width:90px;padding:8px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;">
           <button type="button" class="btn btn-blue btn-sm" onclick="adjustGroupOwed('add')">+ Add</button>
@@ -2551,7 +2553,7 @@ function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-dob').value = s.dob || dob || '';
   document.getElementById('edit-student-type').value = s.enrolledType || '';
   document.getElementById('edit-student-notes').value = s.adminNotes || '';
-  document.getElementById('edit-student-owed-display').textContent = `${s.makeUpMinutesOwed || 0} min`;
+  setOwedDisplay('edit-student', currentDebtFor(name));
   document.getElementById('edit-student-owed-amount').value = '';
   document.getElementById('edit-student-owed-reason').value = '';
   document.getElementById('edit-student-owed-status').textContent = '';
@@ -2596,6 +2598,24 @@ function openEditStudentModal(name, password, room, dob) {
   document.getElementById('edit-student-modal').classList.add('open');
 }
 
+// The real running debt for a student is what the "-39 min" badge shows: their
+// teacher's room-roster entry when they're on one, otherwise their own record.
+function currentDebtFor(name) {
+  for (const r of rooms) {
+    const entry = (r.students || []).find(x => x.name === name);
+    if (entry) return Number(entry.debtMins || 0);
+  }
+  const s = (allStudents || []).find(x => x.name === name);
+  return Number(s?.debtMins || 0);
+}
+// prefix is 'edit-student' or 'edit-group'
+function setOwedDisplay(prefix, mins) {
+  const m = Number(mins || 0);
+  document.getElementById(`${prefix}-owed-display`).textContent = `${m} min`;
+  const note = document.getElementById(`${prefix}-owed-note`);
+  if (note) note.textContent = m > 0 ? `Shown as −${m} min next to the name.` : '';
+}
+
 function renderOwedLog(elId, log) {
   const el = document.getElementById(elId);
   if (!el) return;
@@ -2624,13 +2644,16 @@ async function adjustStudentOwed(mode, forcedAmount) {
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Failed');
-    document.getElementById('edit-student-owed-display').textContent = `${data.makeUpMinutesOwed} min`;
+    setOwedDisplay('edit-student', data.debtMins ?? data.makeUpMinutesOwed);
     document.getElementById('edit-student-owed-amount').value = '';
     document.getElementById('edit-student-owed-reason').value = '';
     status.style.color = '#00897b';
     status.textContent = '✅ Updated';
+    // The red badge next to the name reads this same number - refresh the list
+    // behind the modal so it changes right away instead of looking unchanged.
+    await loadAll(); renderAllStudents();
     const s = (allStudents || []).find(x => x.name === name);
-    if (s) { s.makeUpMinutesOwed = data.makeUpMinutesOwed; s.makeUpMinutesLog = [...(s.makeUpMinutesLog || []), data.log].slice(-20); renderOwedLog('edit-student-owed-log', s.makeUpMinutesLog); }
+    if (s) renderOwedLog('edit-student-owed-log', s.makeUpMinutesLog);
   } catch (e) {
     status.style.color = '#e53935';
     status.textContent = '❌ ' + e.message;
@@ -2652,13 +2675,14 @@ async function adjustGroupOwed(mode, forcedAmount) {
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.message || 'Failed');
-    document.getElementById('edit-group-owed-display').textContent = `${data.makeUpMinutesOwed} min`;
+    setOwedDisplay('edit-group', data.debtMins ?? data.makeUpMinutesOwed);
     document.getElementById('edit-group-owed-amount').value = '';
     document.getElementById('edit-group-owed-reason').value = '';
     status.style.color = '#00897b';
     status.textContent = '✅ Updated';
+    await loadGroups(); renderGroups();
     const g = (allGroups || []).find(x => x._id === id);
-    if (g) { g.makeUpMinutesOwed = data.makeUpMinutesOwed; g.makeUpMinutesLog = [...(g.makeUpMinutesLog || []), data.log].slice(-20); renderOwedLog('edit-group-owed-log', g.makeUpMinutesLog); }
+    if (g) renderOwedLog('edit-group-owed-log', g.makeUpMinutesLog);
   } catch (e) {
     status.style.color = '#e53935';
     status.textContent = '❌ ' + e.message;
@@ -2966,7 +2990,7 @@ function openEditGroupModal(id) {
   document.getElementById('group-modal-title').textContent = 'Edit Group';
   document.getElementById('edit-group-id').value = id;
   document.getElementById('group-owed-section').style.display = 'block';
-  document.getElementById('edit-group-owed-display').textContent = `${g.makeUpMinutesOwed || 0} min`;
+  setOwedDisplay('edit-group', g.debtMins || 0);
   document.getElementById('edit-group-owed-amount').value = '';
   document.getElementById('edit-group-owed-reason').value = '';
   document.getElementById('edit-group-owed-status').textContent = '';
