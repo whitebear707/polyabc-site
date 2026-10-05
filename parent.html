@@ -1090,6 +1090,10 @@ async function renderCalendarMonth() {
       classInfo[a.date].push(a);
     });
   } catch(e) {}
+  try {
+    const ar = await fetch(`${SERVER_URL}/parent/absences`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    window._absenceData = await ar.json();
+  } catch(e) { window._absenceData = { noticeHours: 12, absences: [] }; }
 
   const year = _calDate.getFullYear();
   const month = _calDate.getMonth();
@@ -1124,7 +1128,7 @@ async function renderCalendarMonth() {
     const isPast = dateStr < todayStr;
     const cls = ['p-cal-cell', hasClass?'has-class':'', isToday&&!hasClass?'today':'', isPast&&!hasClass?'past':''].filter(Boolean).join(' ');
     const starClick = hasClass ? `onclick="showClassPopup('${dateStr}')" style="cursor:pointer;"` : '';
-    cells.push(`<div class="${cls}" ${starClick}>${d}${hasClass ? '<span class="star">⭐</span>' : ''}</div>`);
+    cells.push(`<div class="${cls}" ${starClick}>${d}${hasClass ? `<span class="star">${absentOn(dateStr) ? '🚫' : '⭐'}</span>` : ''}</div>`);
   }
 
   window._calClassInfo = classInfo; // store for popup use
@@ -1140,6 +1144,7 @@ async function renderCalendarMonth() {
       <div class="p-cal-grid">${dayLabels}${cells.join('')}</div>
       <div style="display:flex;gap:12px;margin-top:12px;font-size:0.78rem;color:#888;">
         <span>⭐ = Class day</span>
+        <span>🚫 = Absence reported</span>
         <span style="background:#1a1a2e;color:white;padding:1px 6px;border-radius:4px;">■</span><span>= Scheduled</span>
       </div>
     </div>`;
@@ -1393,16 +1398,15 @@ function getCombinedItems() {
     if (st.type === 'group') groupItems.push(items[items.length - 1]);
   });
   
-  // Private family discount, set per-family by admin. Not automatic and not
-  // advertised — only applies when admin has negotiated one for this family.
-  const pct = Number(_familyDiscount) || 0;
-  if (pct > 0) {
-    items.forEach(item => {
-      item.fullAmount = item.transferAmount;
-      item.transferAmount = Math.round(item.transferAmount * (1 - pct / 100));
-      item.discount = true;
-    });
-  }
+  // Family discount (set per-family by admin), then any absence credit - the same
+  // calculation the single-child payment and the on-screen price use (finalAmountFor).
+  items.forEach(item => {
+    const f = finalAmountFor(item.name);
+    if (f.pct > 0 || f.credit.value > 0) { item.fullAmount = f.full; item.discount = true; }
+    item.transferAmount = f.amount;
+    item.creditMins = f.credit.mins;
+    item.creditValue = f.credit.value;
+  });
 
   return items;
 }
@@ -1436,7 +1440,8 @@ async function transferCombined() {
       enrolledType: _payState[item.name].type === '1v1' ? '1v1 Privada' : 'Grupal',
       enrolledCycle: _payState[item.name].cycle,
       enrolledDaysPerWeek: _payState[item.name].days || 4,
-      enrolledMinutesPerClass: _payState[item.name].mins || 40
+      enrolledMinutesPerClass: _payState[item.name].mins || 40,
+      creditMinsApplied: item.creditMins || 0
     }));
     
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
@@ -1504,14 +1509,15 @@ function selectPayOption(studentName, field, value) {
   const advertised = calcAdvertised(weeklyBase);
   const weeks = cycleMultiplier(st.cycle);
   const totalMP = advertised * weeks;
-  const fullTransfer = weeklyBase * weeks;
-  const pct = Number(_familyDiscount) || 0;
-  const totalTransfer = pct > 0 ? Math.round(fullTransfer * (1 - pct/100)) : fullTransfer;
-
-  document.getElementById(`price-transfer-${key}`).innerHTML = pct > 0
+  const f = finalAmountFor(studentName);
+  const fullTransfer = f.full, pct = f.pct, totalTransfer = f.amount;
+  const priceNotes = [];
+  if (pct > 0) priceNotes.push(`Descuento familiar aplicado (−${pct}%)`);
+  if (f.credit.value > 0) priceNotes.push(`Crédito por ausencia: −$${f.credit.value.toLocaleString('es-MX')} (${f.credit.mins} min)`);
+  document.getElementById(`price-transfer-${key}`).innerHTML = priceNotes.length
     ? `<span style="text-decoration:line-through;color:#aaa;font-size:0.7em;">$${fullTransfer.toLocaleString('es-MX')}</span>
        $${totalTransfer.toLocaleString('es-MX')} MXN
-       <div style="font-size:0.6em;color:#2e7d32;font-weight:700;">Descuento familiar aplicado (−${pct}%)</div>`
+       <div style="font-size:0.6em;color:#2e7d32;font-weight:700;">${priceNotes.join('<br>')}</div>`
     : `$${totalTransfer.toLocaleString('es-MX')} MXN`;
   document.getElementById(`price-summary-${key}`).style.display = 'block';
   document.getElementById(`pay-btns-${key}`).style.display = 'block';
@@ -1716,6 +1722,30 @@ function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
 
 function calcAdvertised(base) { return Math.round(base * 1.05); }
 
+// ── Absence credit ──
+// When admin resolves a reported absence as "discount", the child gets class-credit minutes.
+// They are turned into pesos at the same per-minute price as the plan being paid (after any
+// family discount) and taken off this payment - never more than the bill itself.
+function creditFor(name, st, amount) {
+  const s = (_billingData?.students || []).find(x => x.name === name);
+  const creditMins = Number(s?.creditMins) || 0;
+  if (creditMins <= 0 || !st || !(amount > 0)) return { mins: 0, value: 0 };
+  const minsInCycle = cycleMultiplier(st.cycle) * (st.mins || 40) * (st.days || 4);
+  const perMin = amount / minsInCycle;
+  if (!(perMin > 0) || !isFinite(perMin)) return { mins: 0, value: 0 };
+  const mins = Math.min(creditMins, minsInCycle);
+  return { mins, value: Math.min(amount, Math.round(mins * perMin)) };
+}
+// The one place a child's payment amount is worked out: plan price -> family discount -> absence credit.
+function finalAmountFor(name) {
+  const st = _payState[name];
+  const full = calcWeeklyBase(st.type, st.mins || 40, st.days || 4) * cycleMultiplier(st.cycle);
+  const pct = Number(_familyDiscount) || 0;
+  const afterFamily = pct > 0 ? Math.round(full * (1 - pct / 100)) : full;
+  const credit = creditFor(name, st, afterFamily);
+  return { full, pct, afterFamily, credit, amount: afterFamily - credit.value };
+}
+
 function cycleMultiplier(cycle) {
   return { biweekly: 2, monthly: 4, quarterly: 13, semiannual: 26 }[cycle] || 1;
 }
@@ -1751,9 +1781,10 @@ async function confirmTransfer(studentName) {
   }
   await submitScheduleRequest(studentName);
 
-  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
-  const weeks = cycleMultiplier(st.cycle);
-  const amount = weeklyBase * weeks; // transfer price (no 5% markup)
+  // Exactly what the parent sees on screen: plan price, family discount, absence credit.
+  // (This used to ignore the family discount even though the screen showed it.)
+  const f = finalAmountFor(studentName);
+  const amount = f.amount;
 
   try {
     const payload = {
@@ -1765,7 +1796,8 @@ async function confirmTransfer(studentName) {
         enrolledType: st.type === '1v1' ? '1v1 Privada' : 'Grupal',
         enrolledCycle: st.cycle,
         enrolledDaysPerWeek: st.days || 4,
-        enrolledMinutesPerClass: st.mins || 40
+        enrolledMinutesPerClass: st.mins || 40,
+        creditMinsApplied: f.credit.mins
       }]
     };
     console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));
@@ -1943,6 +1975,8 @@ function showClassPopup(dateStr) {
     </div>`;
   }).join('');
 
+  const absenceSection = classes.map(c => absenceBlock(c)).join('');
+
   // Create/reuse popup
   let popup = document.getElementById('class-popup');
   if (!popup) {
@@ -1964,12 +1998,65 @@ function showClassPopup(dateStr) {
           style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">✕</button>
       </div>
       ${classRows}
+      ${absenceSection}
       <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:8px;">Go to <strong>polyabc.academy</strong> to join your class</div>
     </div>`;
 
   popup.style.display = 'flex';
 }
 
+
+// ── Absence reporting (calendar popup) ──
+function absentOn(dateStr) {
+  return (window._absenceData?.absences || []).some(x => x.studentName === _calStudentName && x.date === dateStr);
+}
+function absenceBlock(c) {
+  if (!c.sessionId || !c.date) return '';
+  const notice = window._absenceData?.noticeHours || 12;
+  const safe = (v) => String(v || '').replace(/[^\w-]/g, '');
+  const ab = (window._absenceData?.absences || []).find(x => x.studentName === _calStudentName && x.sessionId === c.sessionId);
+  const [h, m] = String(c.time || '00:00').split(':').map(Number);
+  const hoursLeft = (new Date(c.date + 'T06:00:00.000Z').getTime() + (h * 60 + m) * 60000 - Date.now()) / 3600000;
+  const box = (inner) => `<div style="margin-top:8px;padding:10px;border-radius:10px;background:#fff8e1;font-size:0.82rem;text-align:center;">${inner}</div>`;
+  const btnCss = 'margin-top:6px;padding:8px 12px;border:none;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;';
+  if (ab) {
+    const label = ab.status === 'resolved' ? '✅ Ausencia avisada — la escuela ya la atendió<br><small>Absence reported — handled by the school</small>'
+                                           : '🚫 Ausencia avisada<br><small>Absence reported</small>';
+    const undo = ab.status === 'reported' && hoursLeft > 0
+      ? `<br><button onclick="cancelAbsence('${safe(ab.id)}')" style="${btnCss}background:#eceff1;color:#455a64;">Deshacer / Undo</button>` : '';
+    return box(`<b>${label}</b>${undo}`);
+  }
+  if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}')" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
+    <div style="color:#888;font-size:0.72rem;margin-top:4px;">Se requieren ${notice} horas de anticipación / ${notice} hours' notice required</div>`);
+  if (hoursLeft > 0) return box(`<span style="color:#888;">Las ausencias deben avisarse con ${notice} horas de anticipación.<br>Absences need ${notice} hours' notice.</span>`);
+  return '';
+}
+async function reportAbsence(sessionId) {
+  const name = _calStudentName;
+  if (!confirm(`¿Confirmas que ${name} no asistirá a esta clase?\nConfirm that ${name} will miss this class?`)) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/report-absence`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+      body: JSON.stringify({ studentName: name, sessionId }) });
+    const d = await r.json();
+    if (!d.success) { alert(d.error || 'Error'); return; }
+    alert('Listo. Avisamos al maestro y a la escuela.\nDone — the teacher and the school have been notified.');
+  } catch(e) { alert('Error — intente de nuevo'); return; }
+  document.getElementById('class-popup').style.display = 'none';
+  await renderCalendarMonth();
+}
+async function cancelAbsence(id) {
+  if (!confirm('¿Deshacer el aviso de ausencia?\nUndo the absence report?')) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/cancel-absence`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+      body: JSON.stringify({ id }) });
+    const d = await r.json();
+    if (!d.success) { alert(d.error || 'Error'); return; }
+  } catch(e) { alert('Error — intente de nuevo'); return; }
+  document.getElementById('class-popup').style.display = 'none';
+  await renderCalendarMonth();
+}
 
 function goBackToStudents() {
   showScreen('dashboard');
