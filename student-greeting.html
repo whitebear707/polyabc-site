@@ -38,9 +38,13 @@
     #net-enter-btn { display: none; width: 100%; padding: 14px; border-radius: 12px; border: none; background: #1a73e8; color: white; font-family: Nunito; font-size: 1rem; font-weight: 900; cursor: pointer; margin-bottom: 10px; }
     #net-enter-btn:hover { background: #1558b0; }
     .net-close-btn { width: 100%; padding: 10px; border-radius: 12px; border: none; background: #0f3460; color: #a0c4ff; font-family: Nunito; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+    #nudge-bar { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 14px 12px; text-align: center; color: white; font-weight: 900; font-size: 1.05rem; line-height: 1.5; animation: nudgeflash 0.9s infinite; box-shadow: 0 4px 18px rgba(0,0,0,0.5); }
+    @keyframes nudgeflash { 0%, 100% { background: #e53935; } 50% { background: #7f0000; } }
   </style>
 </head>
 <body>
+
+<div id="nudge-bar"></div>
 
 <a href="index.html"><img src="LOGO.png" class="logo" alt="PolyABC" style="cursor:pointer;"/></a>
 <div class="welcome-title">Welcome, <span id="student-name">Student</span>! 👋</div>
@@ -84,6 +88,7 @@
   document.getElementById('student-name').textContent = name || 'Student';
 
   let _sessionId = null;
+  let _sessionTime = null;
   let _netResult = null;
 
   function nowGDLMins() {
@@ -107,12 +112,14 @@
         const diff = Math.abs(nowMins - (hh * 60 + mm));
         if (diff < bestDiff && diff <= 90) { bestDiff = diff; best = a; }
       }
+      _sessionTime = best?.time || null;
       return best?.sessionId || null;
     } catch(e) { return null; }
   }
 
   async function init() {
     _sessionId = await getActiveSessionId();
+    postLobby('lobby-opened');
     const cached = _sessionId && localStorage.getItem(`nettest_${_sessionId}`);
     if (cached) { _netResult = JSON.parse(cached); unlockEnterBtn(_netResult); }
   }
@@ -191,10 +198,63 @@
   }
 
   function proceedToClass() {
+    postLobby('enter-clicked');
     window.location.href = _sessionId ? `classroom.html?room=${room}&sessionId=${_sessionId}` : `classroom.html?room=${room}`;
   }
 
   function enterClass() { proceedToClass(); }
+
+  // Tell the server what the student does in the lobby (best effort, never blocks anything)
+  function postLobby(event) {
+    if (!_sessionId) return;
+    try {
+      fetch(`${SERVER_URL}/student/lobby-event`, { method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sessionId: _sessionId, event }) }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // ── "Your class is open" nudge ──
+  // Once the class has started AND the teacher has opened it, a student still sitting on this
+  // page gets an unmissable flashing banner. After 5 minutes their parent is actually emailed
+  // (the server checks the class is open and the student still isn't in it), so the on-screen
+  // warning is never an empty threat.
+  const NUDGE_WARN_SECS = 300;
+  let _classOpen = false, _nudgeSince = null, _warned = false;
+  async function pollClassOpen() {
+    if (!_sessionId || !_sessionTime) return;
+    const [hh, mm] = _sessionTime.split(':').map(Number);
+    if (nowGDLMins() < hh * 60 + mm) { _classOpen = false; return; }   // not started yet - nothing to nag about
+    try {
+      const r = await fetch(`${SERVER_URL}/class-open`, { headers: { Authorization: `Bearer ${token}` } });
+      _classOpen = (await r.json()).open === true;
+    } catch (e) {}
+  }
+  function renderNudge() {
+    const bar = document.getElementById('nudge-bar');
+    if (!_classOpen) { bar.style.display = 'none'; _nudgeSince = null; return; }
+    if (!_nudgeSince) _nudgeSince = Date.now();
+    const elapsed = Math.floor((Date.now() - _nudgeSince) / 1000);
+    bar.style.display = 'block';
+    if (elapsed >= NUDGE_WARN_SECS) {
+      bar.innerHTML = '📞 Contactando a tus padres...<br><small>Contacting your parents...</small>';
+      if (!_warned) {
+        _warned = true;
+        fetch(`${SERVER_URL}/student/lobby-warning`, { method: 'POST', keepalive: true,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ sessionId: _sessionId }) }).catch(() => {});
+      }
+      return;
+    }
+    const left = NUDGE_WARN_SECS - elapsed;
+    const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    const todo = document.getElementById('enter-btn').disabled
+      ? 'Corre la prueba de velocidad y luego entra / Run the speed test, then enter'
+      : 'Presiona "Enter Class" ahora / Press "Enter Class" now';
+    bar.innerHTML = `🔴 ¡TU CLASE YA ESTÁ ABIERTA! / YOUR CLASS IS OPEN!<br><span style="font-size:0.9rem;">${todo}</span><br><small>Contactaremos a tus padres en ${clock} / We will contact your parents in ${clock}</small>`;
+  }
+  setInterval(pollClassOpen, 5000);
+  setInterval(renderNudge, 1000);
   function exitToLogin() {
     ['studentToken','studentName','studentRoom'].forEach(k => localStorage.removeItem(k));
     window.location.href = 'login.html';
