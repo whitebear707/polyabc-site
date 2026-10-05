@@ -1972,10 +1972,9 @@ function showClassPopup(dateStr) {
           <div style="color:white;font-size:1.5rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${studentPassword}</div>
         </div>
       </div>
+      ${absenceBlock(c)}
     </div>`;
   }).join('');
-
-  const absenceSection = classes.map(c => absenceBlock(c)).join('');
 
   // Create/reuse popup
   let popup = document.getElementById('class-popup');
@@ -1992,13 +1991,12 @@ function showClassPopup(dateStr) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <div>
           <div style="font-weight:900;color:#1a1a2e;font-size:1rem;">📅 ${dateLabel}</div>
-          <div style="color:#888;font-size:0.8rem;margin-top:2px;">${_calStudentName}</div>
+          <div style="color:#1a73e8;font-size:0.9rem;font-weight:900;margin-top:2px;">👤 ${_calStudentName}</div>
         </div>
         <button onclick="document.getElementById('class-popup').style.display='none'"
           style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">✕</button>
       </div>
       ${classRows}
-      ${absenceSection}
       <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:8px;">Go to <strong>polyabc.academy</strong> to join your class</div>
     </div>`;
 
@@ -2012,6 +2010,7 @@ function absentOn(dateStr) {
 }
 function absenceBlock(c) {
   if (!c.sessionId || !c.date) return '';
+  if (c.mine === false) return '';   // not this child's class (e.g. an old class with no student on it)
   const notice = window._absenceData?.noticeHours || 4;
   const isGroup = c.kind ? c.kind === 'group' : !!c.groupName;
   const safe = (v) => String(v || '').replace(/[^\w-]/g, '');
