@@ -1,4 +1,6 @@
 # PolyABC Platform — AI Notes & Project Memory
+
+> ⚠️ **This file is PUBLIC** (polyabc.academy/AI_NOTES.md). Never add passwords, keys or security details here. The current, fuller handoff is `HANDOFF.md` in the **private** `polyabc-server` repo.
 > **For any AI continuing this project:** Read this file first. It contains all business rules, architecture decisions, and session history. The human is Alfred, developer for Zeltzin's English school in Guadalajara, Mexico. Alfred tests from Tijuana. All class times are in Guadalajara timezone (America/Mexico_City, UTC-6).
 
 ---
@@ -268,7 +270,7 @@
 ## DEVELOPER PANEL
 
 - Hidden button: bottom-right of admin calendar legend (faint gray square, opacity 0.3)
-- Password: `polydev2026`
+- Password: (redacted — this file is public; ask the owner)
 - Allows manual creation of attendance records
 - All manual records flagged with `manualEntry: true` and `🛠️ MANUAL ENTRY` badge
 - Fields: room, date, time, classType, groupName, status, timestamps, students, disconnect mins
