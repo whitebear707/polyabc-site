@@ -1490,13 +1490,17 @@ function renderMasterCalendar() {
     const assignHtml = assignments.length > 0
       ? `<div class="cal-day-assigned">📋 ${assignments.length} class${assignments.length>1?'es':''}</div>` : '';
 
+    const needAttn = assignments.filter(a => a.cancelPending).length;
+    const attnHtml = needAttn > 0
+      ? `<div style="font-size:0.65rem;color:#d32f2f;font-weight:900;">❗ ${needAttn} cancelled</div>` : '';
+
     const trialOnDay = allTrialBookings.filter(b => b.date === dateStr && b.status === 'pending');
     const trialHtml = trialOnDay.length > 0
       ? `<div style="font-size:0.65rem;color:#9c27b0;font-weight:900;">⭐ ${trialOnDay.length} trial</div>` : '';
 
     html += `<div class="${cls}" onclick="selectDay('${dateStr}')">
       <div class="cal-day-num">${d}</div>
-      ${countHtml}${assignHtml}${debtHtml}${trialHtml}
+      ${countHtml}${assignHtml}${attnHtml}${debtHtml}${trialHtml}
     </div>`;
   }
 
@@ -1560,12 +1564,19 @@ function renderDayDetail(dateStr) {
         const subBadge = a.subTeacherRoom
           ? `<div style="font-size:0.7rem;color:#6a1b9a;font-weight:900;margin-top:2px;">🔁 Sub: ${a.subTeacherName || '—'}</div>`
           : '';
-        return `<div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;margin-top:4px;">
+        const cancelBox = a.cancelPending
+          ? `<div style="background:#ffebee;border:1px solid #d32f2f;border-radius:6px;padding:6px 8px;margin:4px 0;color:#b71c1c;">
+              <div style="font-weight:900;">❗ Cancelled by parent — needs your decision</div>
+              <div style="display:flex;gap:6px;margin-top:6px;">
+                <button onclick="confirmCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#d32f2f;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">✔ Confirm cancel</button>
+                <button onclick="undoCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#2e7d32;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">↩ Undo cancel</button>
+              </div></div>` : '';
+        return `<div style="background:${a.cancelPending ? '#fff0f0' : '#fff3e0'};border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;margin-top:4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span>${fmt12(a.time)} · ${g ? g.name : a.level+' '+a.classType}${debtBadge}</span>
+            <span>${a.cancelPending ? '❗ ' : ''}${fmt12(a.time)} · ${g ? g.name : (a.studentName ? a.studentName + ' · ' : '') + a.level+' '+a.classType}${debtBadge}</span>
             <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
           </div>
-          ${subBadge}
+          ${cancelBox}${subBadge}
           <button onclick="${a.subTeacherRoom ? `removeSubFromClass('${a._id}','${dateStr}')` : `openAssignSubModal('${a._id}','${t.room}','${dateStr}','${a.time}')`}"
             style="margin-top:4px;background:none;border:1px solid #6a1b9a;color:#6a1b9a;padding:2px 8px;border-radius:6px;font-family:Nunito;font-size:0.7rem;font-weight:700;cursor:pointer;">
             ${a.subTeacherRoom ? '❌ Remove Sub' : '🔁 Assign Sub'}
@@ -3798,7 +3809,7 @@ async function showStudentRequests() {
       document.getElementById('absence-reports-list').innerHTML = pendingAb.map(x => {
         const b = (res, label, bg) => `<button onclick="resolveAbsence('${escJsAttr(x.id)}','${res}')" style="flex:1;min-width:120px;padding:8px;background:${bg};color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">${label}</button>`;
         const buttons = x.kind === '1v1'
-          ? b('rescheduled', '📅 Rescheduled', '#1a73e8') + b('no-credit', 'No credit', '#757575')
+          ? b('cancelled', '✔ Confirm cancel', '#d32f2f') + `<button onclick="undoCancelClass('${escJsAttr(x.id)}', null)" style="flex:1;min-width:120px;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">↩ Undo cancel</button>`
           : b('discount', `🎟️ Discount next bill (${x.durationMins || 40} min)`, '#2e7d32') + b('moved-group', '🔀 Moved to another group', '#6a1b9a') + b('no-credit', 'No credit', '#757575');
         return `<div style="background:#fff8e1;border-radius:12px;padding:12px;margin-bottom:10px;">
           <div style="font-weight:900;">${escHtml(x.fullName || x.studentName)} <span style="font-weight:400;color:#888;font-size:0.8rem;">· ${x.kind === '1v1' ? '1v1' : 'Group ' + escHtml(x.groupName || '')}</span></div>
@@ -3812,8 +3823,36 @@ async function showStudentRequests() {
   modal.style.display = 'flex';
 }
 
+async function _refreshAfterCancel(dateStr) {
+  try { await loadAllAssignmentsData(); renderMasterCalendar(); if (dateStr) renderDayDetail(dateStr); } catch (e) {}
+  try { pollPendingRequests(); } catch (e) {}
+  try { const m = document.getElementById('student-requests-modal'); if (m && m.style.display === 'flex') showStudentRequests(); } catch (e) {}
+}
+async function confirmCancelClass(id, dateStr) {
+  if (!id) { alert('This class has no cancellation record. Delete it with the 🗑 button instead.'); return; }
+  if (!confirm('Confirm the cancellation? The class will be removed from the calendar for good.')) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/resolve`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ resolution: 'cancelled' }) });
+    const d = await r.json();
+    if (!d.success) alert(d.error || 'Could not save'); else showToast('✅ Class cancelled and removed', 5000);
+  } catch (e) { alert('Could not save'); }
+  _refreshAfterCancel(dateStr);
+}
+async function undoCancelClass(id, dateStr) {
+  if (!id) { alert('This class has no cancellation record.'); return; }
+  if (!confirm('Undo the cancellation? The class is back on and the teacher and parent will be emailed.')) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/undo-cancel`, { method: 'POST',
+      headers: { Authorization: `Bearer ${currentToken}` } });
+    const d = await r.json();
+    if (!d.success) alert(d.error || 'Could not undo'); else showToast('✅ Class restored — teacher and parent emailed', 5000);
+  } catch (e) { alert('Could not undo'); }
+  _refreshAfterCancel(dateStr);
+}
+
 async function resolveAbsence(id, resolution) {
-  const what = { 'rescheduled': 'marked RESCHEDULED (remember to move the class in the Calendar)', 'moved-group': 'marked MOVED TO ANOTHER GROUP',
+  const what = { 'cancelled': 'CANCELLED for good (the class is removed from the calendar)', 'rescheduled': 'marked RESCHEDULED (remember to move the class in the Calendar)', 'moved-group': 'marked MOVED TO ANOTHER GROUP',
                  'discount': 'turned into a CLASS CREDIT that comes off their next payment', 'no-credit': 'closed with NO CREDIT' }[resolution];
   if (!confirm(`This absence will be ${what}. Continue?`)) return;
   try {

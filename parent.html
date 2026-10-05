@@ -2020,27 +2020,32 @@ function absenceBlock(c) {
   const box = (inner) => `<div style="margin-top:8px;padding:10px;border-radius:10px;background:#fff8e1;font-size:0.82rem;text-align:center;">${inner}</div>`;
   const btnCss = 'margin-top:6px;padding:8px 12px;border:none;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;';
   if (ab) {
-    const label = ab.status === 'resolved' ? '✅ Ausencia avisada — la escuela ya la atendió<br><small>Absence reported — handled by the school</small>'
+    const one = ab.kind === '1v1';
+    const label = one ? '🚫 Clase cancelada<br><small>Class cancelled — para deshacerla contacte a la escuela / to undo, contact the school</small>'
+                : ab.status === 'resolved' ? '✅ Ausencia avisada — la escuela ya la atendió<br><small>Absence reported — handled by the school</small>'
                                            : '🚫 Ausencia avisada<br><small>Absence reported</small>';
-    const undo = ab.status === 'reported' && hoursLeft > 0
+    const undo = !one && ab.status === 'reported' && hoursLeft > 0
       ? `<br><button onclick="cancelAbsence('${safe(ab.id)}')" style="${btnCss}background:#eceff1;color:#455a64;">Deshacer / Undo</button>` : '';
     return box(`<b>${label}</b>${undo}`);
   }
-  if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}')" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
+  if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}', ${c.groupName ? 'false' : 'true'})" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
     <div style="color:#888;font-size:0.72rem;margin-top:4px;">Se requieren ${notice} horas de anticipación / ${notice} hours' notice required</div>`);
   if (hoursLeft > 0) return box(`<span style="color:#888;">Las ausencias deben avisarse con ${notice} horas de anticipación.<br>Absences need ${notice} hours' notice.</span>`);
   return '';
 }
-async function reportAbsence(sessionId) {
+async function reportAbsence(sessionId, is1v1) {
   const name = _calStudentName;
-  if (!confirm(`¿Confirmas que ${name} no asistirá a esta clase?\nConfirm that ${name} will miss this class?`)) return;
+  const msg = is1v1
+    ? `¿Confirmas que quieres CANCELAR esta clase de ${name}?\nSolo la escuela podrá restablecerla.\n\nCancel this class for ${name}? Only the school can bring it back.`
+    : `¿Confirmas que ${name} no asistirá a esta clase?\nConfirm that ${name} will miss this class?`;
+  if (!confirm(msg)) return;
   try {
     const r = await fetch(`${SERVER_URL}/parent/report-absence`, { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
       body: JSON.stringify({ studentName: name, sessionId }) });
     const d = await r.json();
     if (!d.success) { alert(d.error || 'Error'); return; }
-    alert('Listo. Avisamos al maestro y a la escuela.\nDone — the teacher and the school have been notified.');
+    alert('Listo. Avisamos al maestro y a la escuela, y le enviamos un correo de confirmación.\nDone — the teacher and the school were notified, and we emailed you a confirmation.');
   } catch(e) { alert('Error — intente de nuevo'); return; }
   document.getElementById('class-popup').style.display = 'none';
   await renderCalendarMonth();
