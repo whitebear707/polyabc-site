@@ -1093,7 +1093,7 @@ async function renderCalendarMonth() {
   try {
     const ar = await fetch(`${SERVER_URL}/parent/absences`, { headers: { Authorization: `Bearer ${_parentToken}` } });
     window._absenceData = await ar.json();
-  } catch(e) { window._absenceData = { noticeHours: 12, absences: [] }; }
+  } catch(e) { window._absenceData = { noticeHours: 4, absences: [] }; }
 
   const year = _calDate.getFullYear();
   const month = _calDate.getMonth();
@@ -2012,7 +2012,8 @@ function absentOn(dateStr) {
 }
 function absenceBlock(c) {
   if (!c.sessionId || !c.date) return '';
-  const notice = window._absenceData?.noticeHours || 12;
+  const notice = window._absenceData?.noticeHours || 4;
+  const isGroup = c.kind ? c.kind === 'group' : !!c.groupName;
   const safe = (v) => String(v || '').replace(/[^\w-]/g, '');
   const ab = (window._absenceData?.absences || []).find(x => x.studentName === _calStudentName && x.sessionId === c.sessionId);
   const [h, m] = String(c.time || '00:00').split(':').map(Number);
@@ -2029,10 +2030,10 @@ function absenceBlock(c) {
       ? `<br><button onclick="cancelAbsence('${safe(ab.id)}')" style="${btnCss}background:#eceff1;color:#455a64;">Deshacer / Undo</button>` : '';
     return box(`<b>${label}</b>${undo}`);
   }
-  if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}', ${c.groupName ? 'false' : 'true'})" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
+  if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}', ${isGroup ? 'false' : 'true'})" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
     <div style="color:#888;font-size:0.72rem;margin-top:4px;">Se requieren ${notice} horas de anticipación / ${notice} hours' notice required</div>`);
   if (hoursLeft > 0) {
-    if (c.groupName) return box(`<span style="color:#888;">Las clases de grupo deben cancelarse con ${notice} horas de anticipación y no se pueden reponer.<br>Group classes need ${notice} hours' notice and cannot be made up.</span>`);
+    if (isGroup) return box(`<span style="color:#888;">Las clases de grupo deben cancelarse con ${notice} horas de anticipación y no se pueden reponer.<br>Group classes need ${notice} hours' notice and cannot be made up.</span>`);
     const limit = window._absenceData?.emergencyLimit || 2;
     const month = String(c.date).slice(0, 7);
     const used = (window._absenceData?.absences || []).filter(x => x.studentName === _calStudentName && x.emergency && String(x.date).slice(0, 7) === month).length;
