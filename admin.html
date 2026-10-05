@@ -1566,7 +1566,7 @@ function renderDayDetail(dateStr) {
           : '';
         const cancelBox = a.cancelPending
           ? `<div style="background:#ffebee;border:1px solid #d32f2f;border-radius:6px;padding:6px 8px;margin:4px 0;color:#b71c1c;">
-              <div style="font-weight:900;">❗ Cancelled by parent — needs your decision</div>
+              <div style="font-weight:900;">❗ ${a.cancelEmergency ? '🚨 Emergency reschedule — schedule a new class, then confirm' : 'Cancelled by parent — needs your decision'}</div>
               <div style="display:flex;gap:6px;margin-top:6px;">
                 <button onclick="confirmCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#d32f2f;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">✔ Confirm cancel</button>
                 <button onclick="undoCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#2e7d32;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">↩ Undo cancel</button>
@@ -3612,7 +3612,7 @@ async function pollPendingRequests() {
     let absenceCount = 0;
     try {
       const ab = await fetch(`${SERVER_URL}/admin/absences`, { headers: { Authorization: `Bearer ${currentToken}` } });
-      absenceCount = ((await ab.json()).absences || []).filter(x => x.status === 'reported').length;
+      absenceCount = ((await ab.json()).absences || []).filter(x => x.status === 'reported' && (x.kind === '1v1' || x.monthCount >= 2)).length;
     } catch(e) {}
 
     const totalCount = pendingCount + reschedCount + schedReqCount + absenceCount;
@@ -3803,16 +3803,19 @@ async function showStudentRequests() {
   try {
     const ar = await fetch(`${SERVER_URL}/admin/absences`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const ad = await ar.json();
-    const pendingAb = (ad.absences || []).filter(x => x.status === 'reported');
+    // Group absences only need you once the student has missed 2 in the month (1st one = nothing to decide)
+    const pendingAb = (ad.absences || []).filter(x => x.status === 'reported' && (x.kind === '1v1' || x.monthCount >= 2));
     if (pendingAb.length) {
       abSection.style.display = 'block';
       document.getElementById('absence-reports-list').innerHTML = pendingAb.map(x => {
         const b = (res, label, bg) => `<button onclick="resolveAbsence('${escJsAttr(x.id)}','${res}')" style="flex:1;min-width:120px;padding:8px;background:${bg};color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">${label}</button>`;
         const buttons = x.kind === '1v1'
           ? b('cancelled', '✔ Confirm cancel', '#d32f2f') + `<button onclick="undoCancelClass('${escJsAttr(x.id)}', null)" style="flex:1;min-width:120px;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">↩ Undo cancel</button>`
-          : b('discount', `🎟️ Discount next bill (${x.durationMins || 40} min)`, '#2e7d32') + b('moved-group', '🔀 Moved to another group', '#6a1b9a') + b('no-credit', 'No credit', '#757575');
+          : b('discount', `🎟️ Discount (proof received) · ${x.durationMins || 40} min`, '#2e7d32') + b('no-credit', 'No credit', '#757575');
         return `<div style="background:#fff8e1;border-radius:12px;padding:12px;margin-bottom:10px;">
           <div style="font-weight:900;">${escHtml(x.fullName || x.studentName)} <span style="font-weight:400;color:#888;font-size:0.8rem;">· ${x.kind === '1v1' ? '1v1' : 'Group ' + escHtml(x.groupName || '')}</span></div>
+          ${x.emergency ? `<div style="font-size:0.8rem;font-weight:800;color:#e65100;margin-top:4px;">🚨 Emergency reschedule (${x.emergencyCount} of ${x.emergencyLimit} this month) — schedule a new class in the Calendar</div>` : ''}
+          ${x.kind === 'group' ? `<div style="font-size:0.8rem;font-weight:800;color:#b71c1c;margin-top:4px;">Missed ${x.monthCount} group classes this month — ask for a doctor's note / proof before any discount</div>` : ''}
           <div style="font-size:0.82rem;color:#555;margin:4px 0 8px;">📅 ${escHtml(x.date)} · ${escHtml(x.time)} · Room ${escHtml(x.room)} · reported ${escHtml(String(x.noticeHours))} h ahead</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">${buttons}</div>
         </div>`;
@@ -3852,12 +3855,13 @@ async function undoCancelClass(id, dateStr) {
 }
 
 async function resolveAbsence(id, resolution) {
-  const what = { 'cancelled': 'CANCELLED for good (the class is removed from the calendar)', 'rescheduled': 'marked RESCHEDULED (remember to move the class in the Calendar)', 'moved-group': 'marked MOVED TO ANOTHER GROUP',
+  const what = { 'cancelled': 'CANCELLED for good (the class is removed from the calendar)',
                  'discount': 'turned into a CLASS CREDIT that comes off their next payment', 'no-credit': 'closed with NO CREDIT' }[resolution];
+  if (resolution === 'discount' && !confirm('Did you receive the doctor\'s note or proof for these absences?\n\nOK = yes, I have it.')) return;
   if (!confirm(`This absence will be ${what}. Continue?`)) return;
   try {
     const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/resolve`, { method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ resolution }) });
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ resolution, proofReceived: resolution === 'discount' }) });
     const d = await r.json();
     if (!d.success) alert(d.error || 'Could not save');
     else showToast(resolution === 'discount' ? '✅ Credit added — it comes off their next payment' : resolution === 'rescheduled' ? '✅ Marked rescheduled — move the class in the Calendar' : '✅ Absence resolved', 6000);
