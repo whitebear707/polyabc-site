@@ -676,6 +676,7 @@ function connectSocket() {
       // If locked, don't show enter button yet — checkTeacherRoomLock handles the button
       if (!todayAssignments.length) {
         document.getElementById('enter-btn').style.display = 'block';
+      startAutoEnterCountdown();
       }
       // Re-check every minute in case time crosses the unlock window
       setInterval(() => { checkTeacherRoomLock(); }, 30000);
@@ -1279,7 +1280,7 @@ function createAudioPeer(targetId, socket) {
   const pc = new RTCPeerConnection(ICE_CONFIG);
   if (localStream) localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
   pc.onicecandidate = (e) => { if (e.candidate) socket.emit('audio-ice', { to: targetId, candidate: e.candidate }); };
-  pc.ontrack = (e) => { const audio = new Audio(); audio.srcObject = e.streams[0]; audio.autoplay = true; audio.play().catch(() => {}); audio.id = `audio-${targetId}`; document.body.appendChild(audio); };
+  pc.ontrack = (e) => { const audio = new Audio(); audio.srcObject = e.streams[0]; audio.autoplay = true; audio.play().catch(() => { showSoundUnlock(); }); audio.id = `audio-${targetId}`; document.body.appendChild(audio); };
   audioPeers[targetId] = pc; return pc;
 }
 
@@ -1910,7 +1911,68 @@ function startAudioRelayOld(socket) {
   } catch(e) {}
 }
 
+// ── AUTO-ENTER ──
+// The class is already open when a student reaches the Welcome screen, and the server already
+// counts them as present. A student must not be able to sit on this screen all class, so after
+// 30 seconds they are put into the class automatically.
+const AUTO_ENTER_SECS = 30;
+let _autoEnterTimer = null;
+function startAutoEnterCountdown() {
+  if (IS_TEACHER) return;
+  clearInterval(_autoEnterTimer);
+  const btn = document.getElementById('enter-btn');
+  let note = document.getElementById('auto-enter-note');
+  if (!note) {
+    note = document.createElement('p');
+    note.id = 'auto-enter-note';
+    note.style.cssText = 'color:#a0c4ff;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;text-align:center;margin-top:16px;';
+    btn.insertAdjacentElement('afterend', note);
+  }
+  let left = AUTO_ENTER_SECS;
+  const paint = () => {
+    setBtnLabel(btn, `▶ Enter Class (${left})`);
+    note.textContent = `Entrarás a la clase automáticamente en ${left} s · Entering class automatically in ${left} s`;
+  };
+  paint();
+  _autoEnterTimer = setInterval(() => {
+    left--;
+    const screen = document.getElementById('connecting-screen');
+    if (!screen || screen.style.display === 'none') { clearInterval(_autoEnterTimer); return; }
+    if (left <= 0) { clearInterval(_autoEnterTimer); window._autoEntered = true; enterClass(); return; }
+    paint();
+  }, 1000);
+}
+function stopAutoEnterCountdown() {
+  clearInterval(_autoEnterTimer); _autoEnterTimer = null;
+  const note = document.getElementById('auto-enter-note'); if (note) note.remove();
+  const btn = document.getElementById('enter-btn'); if (btn) setBtnLabel(btn, '▶ Enter Class');
+}
+
+// Browsers may block sound (and fullscreen) until the person touches the page. After an
+// automatic entry, or whenever the teacher's audio is blocked, show one big banner: any tap
+// anywhere turns the sound on and goes fullscreen.
+function showSoundUnlock() {
+  if (IS_TEACHER || document.getElementById('sound-unlock')) return;
+  const b = document.createElement('div');
+  b.id = 'sound-unlock';
+  b.style.cssText = 'position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:99999;background:#e53935;color:white;font-family:Nunito,sans-serif;font-weight:900;font-size:1.2rem;padding:14px 26px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,0.4);cursor:pointer;text-align:center;';
+  b.innerHTML = '🔊 Toca aquí para escuchar a tu maestro<br><span style="font-size:0.9rem;font-weight:700;">Tap here to hear your teacher</span>';
+  document.body.appendChild(b);
+  const unlock = () => {
+    document.querySelectorAll('audio').forEach(a => { try { a.play().catch(() => {}); } catch (e) {} });
+    try { if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume(); } catch (e) {}
+    document.documentElement.requestFullscreen().catch(() => {});
+    const el = document.getElementById('sound-unlock'); if (el) el.remove();
+    document.removeEventListener('pointerdown', unlock, true);
+    document.removeEventListener('keydown', unlock, true);
+  };
+  document.addEventListener('pointerdown', unlock, true);
+  document.addEventListener('keydown', unlock, true);
+}
+
 function enterClass() {
+  stopAutoEnterCountdown();
+  if (!IS_TEACHER && window._autoEntered) showSoundUnlock();
   if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
   document.getElementById('connecting-screen').style.display = 'none';
   document.getElementById('room-label').style.background = '#2e7d32';
