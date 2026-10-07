@@ -566,7 +566,8 @@
       <b style="font-size:0.9rem;">Who gets the emails</b>
       <div style="display:grid;gap:8px;margin-top:8px;">
         <label style="font-size:0.8rem;font-weight:700;">Tech support <input id="tk-tech" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="techsupport@polyabc.academy"></label>
-        <label style="font-size:0.8rem;font-weight:700;">Admin (student reports) — separate with commas <input id="tk-admin" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Admin — Spanish student reports (commas) <input id="tk-admin" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Admin — English student reports (commas) <input id="tk-admin-en" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
         <label style="font-size:0.8rem;font-weight:700;">Billing (pending transfers) — separate with commas <input id="tk-billing" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
       </div>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -4645,12 +4646,13 @@ async function loadTicketSettings() {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { headers: tkAuth() }); const d = await r.json();
     document.getElementById('tk-tech').value = d.techEmail || '';
     document.getElementById('tk-admin').value = (d.adminEmails || []).join(', ');
+    document.getElementById('tk-admin-en').value = (d.adminEmailsEn || []).join(', ');
     document.getElementById('tk-billing').value = (d.billingEmails || []).join(', ');
   } catch (e) {}
 }
 async function saveTicketSettings() {
   const st = document.getElementById('tk-status');
-  const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, billingEmails: document.getElementById('tk-billing').value };
+  const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, adminEmailsEn: document.getElementById('tk-admin-en').value, billingEmails: document.getElementById('tk-billing').value };
   try {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
     st.textContent = d.success ? 'Saved ✓' : (d.message || 'Could not save'); st.style.color = d.success ? '#2e7d32' : '#e53935';
