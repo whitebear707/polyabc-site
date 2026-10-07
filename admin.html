@@ -611,7 +611,7 @@
           </select>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Can watch</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room (required)</label>
           <select id="spec-room" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;background:#fff;"></select>
         </div>
       </div>
@@ -4663,7 +4663,9 @@ function specEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c =>
 function specStatus(msg, ok) { const el = document.getElementById('spec-status'); if (!el) return; el.textContent = msg || ''; el.style.color = ok ? '#2e7d32' : '#e53935'; if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 5000); }
 function specRoomOptions(selected) {
   const list = (typeof rooms !== 'undefined' && Array.isArray(rooms)) ? [...rooms].sort((a, b) => String(a.room).localeCompare(String(b.room), undefined, { numeric: true })) : [];
-  return `<option value="">Any room</option>` + list.map(r => `<option value="${specEsc(r.room)}"${String(selected || '') === String(r.room) ? ' selected' : ''}>Room ${specEsc(r.room)}${r.teacherName ? ' — ' + specEsc(r.teacherName) : ''}</option>`).join('');
+  const hasSel = list.some(r => String(selected || '') === String(r.room));
+  // No "any room": a spectator always belongs to one room. The placeholder can't be picked again.
+  return `<option value="" disabled${hasSel ? '' : ' selected'}>Choose a room…</option>` + list.map(r => `<option value="${specEsc(r.room)}"${String(selected || '') === String(r.room) ? ' selected' : ''}>Room ${specEsc(r.room)}${r.teacherName ? ' — ' + specEsc(r.teacherName) : ''}</option>`).join('');
 }
 async function renderSpectators() {
   const sel = document.getElementById('spec-room'); if (sel) { const cur = sel.value; sel.innerHTML = specRoomOptions(cur); }
@@ -4678,13 +4680,13 @@ async function renderSpectators() {
 function renderSpectatorsList() {
   const box = document.getElementById('spectators-list'); if (!box) return;
   if (!_spectators.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No spectators yet. Create one above.</div>'; return; }
-  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Password</th><th>Type</th><th>Can watch</th><th>Status</th><th></th></tr></thead><tbody>` +
+  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Access</th><th>Password</th><th>Type</th><th>Room</th><th></th></tr></thead><tbody>` +
     _spectators.map(s => `<tr id="spec-row-${s.id}" style="${s.enabled ? '' : 'opacity:0.55;'}">
       <td style="font-weight:800;">${specEsc(s.label) || '<span style="color:#aaa;">—</span>'}</td>
+      <td><button onclick="updateSpectator('${s.id}', { enabled: ${!s.enabled} })" title="${s.enabled ? 'Turn this access off (it keeps the password and room)' : 'Turn this access back on'}" style="padding:6px 12px;border:none;border-radius:14px;font-family:Nunito;font-weight:900;font-size:0.78rem;cursor:pointer;color:#fff;background:${s.enabled ? '#2e7d32' : '#757575'};white-space:nowrap;">${s.enabled ? 'ON · turn off' : 'OFF · turn on'}</button></td>
       <td id="spec-pw-${s.id}"><code style="background:#f1f3f4;padding:3px 8px;border-radius:6px;font-size:0.9rem;">${specEsc(s.password)}</code></td>
       <td><span style="background:${s.type === 'IT' ? '#ede7f6' : '#e8f0fe'};color:${s.type === 'IT' ? '#5e35b1' : '#1a73e8'};font-weight:900;font-size:0.72rem;padding:3px 9px;border-radius:10px;">${s.type === 'IT' ? 'IT SUPPORT' : 'NORMAL'}</span></td>
-      <td><select onchange="updateSpectator('${s.id}', { assignedRoom: this.value || null })" style="padding:5px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.82rem;background:#fff;">${specRoomOptions(s.assignedRoom)}</select></td>
-      <td><button onclick="updateSpectator('${s.id}', { enabled: ${!s.enabled} })" style="padding:5px 12px;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.78rem;cursor:pointer;color:#fff;background:${s.enabled ? '#2e7d32' : '#9e9e9e'};">${s.enabled ? '✅ Enabled' : '⏸ Disabled'}</button></td>
+      <td><select onchange="if(this.value)updateSpectator('${s.id}', { assignedRoom: this.value })" style="padding:5px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.82rem;background:#fff;">${specRoomOptions(s.assignedRoom)}</select></td>
       <td style="white-space:nowrap;">
         <button onclick="copySpectatorInfo('${s.id}')" title="Copy login info" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.8rem;">📋</button>
         <button onclick="editSpectatorPassword('${s.id}')" title="Change password" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.8rem;">🔑</button>
@@ -4698,6 +4700,7 @@ async function createSpectator() {
   const assignedRoom = document.getElementById('spec-room').value || null;
   if (password.length < 8) { specStatus('⚠️ Password needs at least 8 characters', false); return; }
   if (/\s/.test(password)) { specStatus('⚠️ Password cannot contain spaces', false); return; }
+  if (!assignedRoom) { specStatus('⚠️ Choose a room for this spectator', false); return; }
   specStatus('Saving...', true);
   try {
     const res = await fetch(`${SERVER_URL}/admin/spectators`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ label, password, type, assignedRoom }) });
