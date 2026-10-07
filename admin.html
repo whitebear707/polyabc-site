@@ -332,6 +332,7 @@
     <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Accounting</div>
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">System</div>
+    <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Spectators</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generate Student Code</div>
   </div>
 
@@ -552,6 +553,51 @@
 
     <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Add Staff Member</button>
     <div id="staff-list"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: SPECTATORS -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-spectators" class="panel">
+    <div class="panel-title">👁 Spectators</div>
+    <div style="font-size:0.85rem;color:#666;margin-bottom:16px;line-height:1.5;">
+      A spectator logs in on the normal login page with a <b>room number + the password you give them</b>, and watches the class without being seen or heard.
+      They never appear in attendance and never take a student seat. <b>Normal</b> = watch only (parents, teachers, QA).
+      <b>IT</b> = tech support (watch, and chat with the class — chat is coming next).
+    </div>
+
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">➕ New spectator</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;">
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Who is it? (label)</label>
+          <input type="text" id="spec-label" maxlength="60" placeholder="e.g. Billy's mom, QA agent"
+            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Password (8+ characters, no spaces)</label>
+          <input type="text" id="spec-password" placeholder="e.g. Seeme2020" autocomplete="off"
+            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Type</label>
+          <select id="spec-type" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;background:#fff;">
+            <option value="normal">Normal — watch only</option>
+            <option value="IT">IT — tech support</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Can watch</label>
+          <select id="spec-room" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;background:#fff;"></select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+        <button onclick="createSpectator()" style="padding:10px 22px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Create spectator</button>
+        <span id="spec-status" style="font-size:0.85rem;font-weight:700;"></span>
+      </div>
+    </div>
+
+    <div id="spectators-list"></div>
   </div>
 
 
@@ -1296,7 +1342,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1304,7 +1350,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1322,6 +1368,7 @@ function showPanel(name) {
   if (name === 'accounting') { renderAccounting(); }
   if (name === 'parents')    renderParentsPanel();
   if (name === 'staff')      renderStaff();
+  if (name === 'spectators') renderSpectators();
 }
 
 // ── MASTER CALENDAR ──
@@ -4522,6 +4569,96 @@ async function saveParentEdit(id) {
 }
 
 // ── STAFF ──
+
+// ── SPECTATORS ──
+let _spectators = [];
+function specEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function specStatus(msg, ok) { const el = document.getElementById('spec-status'); if (!el) return; el.textContent = msg || ''; el.style.color = ok ? '#2e7d32' : '#e53935'; if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 5000); }
+function specRoomOptions(selected) {
+  const list = (typeof rooms !== 'undefined' && Array.isArray(rooms)) ? [...rooms].sort((a, b) => String(a.room).localeCompare(String(b.room), undefined, { numeric: true })) : [];
+  return `<option value="">Any room</option>` + list.map(r => `<option value="${specEsc(r.room)}"${String(selected || '') === String(r.room) ? ' selected' : ''}>Room ${specEsc(r.room)}${r.teacherName ? ' — ' + specEsc(r.teacherName) : ''}</option>`).join('');
+}
+async function renderSpectators() {
+  const sel = document.getElementById('spec-room'); if (sel) { const cur = sel.value; sel.innerHTML = specRoomOptions(cur); }
+  const box = document.getElementById('spectators-list'); if (!box) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/spectators`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const data = await res.json();
+    _spectators = Array.isArray(data) ? data : [];
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load spectators. Try again.</div>'; return; }
+  renderSpectatorsList();
+}
+function renderSpectatorsList() {
+  const box = document.getElementById('spectators-list'); if (!box) return;
+  if (!_spectators.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No spectators yet. Create one above.</div>'; return; }
+  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Password</th><th>Type</th><th>Can watch</th><th>Status</th><th></th></tr></thead><tbody>` +
+    _spectators.map(s => `<tr id="spec-row-${s.id}" style="${s.enabled ? '' : 'opacity:0.55;'}">
+      <td style="font-weight:800;">${specEsc(s.label) || '<span style="color:#aaa;">—</span>'}</td>
+      <td id="spec-pw-${s.id}"><code style="background:#f1f3f4;padding:3px 8px;border-radius:6px;font-size:0.9rem;">${specEsc(s.password)}</code></td>
+      <td><span style="background:${s.type === 'IT' ? '#ede7f6' : '#e8f0fe'};color:${s.type === 'IT' ? '#5e35b1' : '#1a73e8'};font-weight:900;font-size:0.72rem;padding:3px 9px;border-radius:10px;">${s.type === 'IT' ? 'IT SUPPORT' : 'NORMAL'}</span></td>
+      <td><select onchange="updateSpectator('${s.id}', { assignedRoom: this.value || null })" style="padding:5px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.82rem;background:#fff;">${specRoomOptions(s.assignedRoom)}</select></td>
+      <td><button onclick="updateSpectator('${s.id}', { enabled: ${!s.enabled} })" style="padding:5px 12px;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.78rem;cursor:pointer;color:#fff;background:${s.enabled ? '#2e7d32' : '#9e9e9e'};">${s.enabled ? '✅ Enabled' : '⏸ Disabled'}</button></td>
+      <td style="white-space:nowrap;">
+        <button onclick="copySpectatorInfo('${s.id}')" title="Copy login info" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.8rem;">📋</button>
+        <button onclick="editSpectatorPassword('${s.id}')" title="Change password" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.8rem;">🔑</button>
+        <button onclick="deleteSpectator('${s.id}')" title="Delete" style="padding:5px 9px;border:2px solid #f5c6c6;border-radius:8px;background:#fff;cursor:pointer;font-size:0.8rem;">🗑</button>
+      </td></tr>`).join('') + `</tbody></table></div>`;
+}
+async function createSpectator() {
+  const label = document.getElementById('spec-label').value.trim();
+  const password = document.getElementById('spec-password').value.trim();
+  const type = document.getElementById('spec-type').value;
+  const assignedRoom = document.getElementById('spec-room').value || null;
+  if (password.length < 8) { specStatus('⚠️ Password needs at least 8 characters', false); return; }
+  if (/\s/.test(password)) { specStatus('⚠️ Password cannot contain spaces', false); return; }
+  specStatus('Saving...', true);
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/spectators`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ label, password, type, assignedRoom }) });
+    const d = await res.json();
+    if (!d.success) { specStatus('⚠️ ' + (d.message || 'Could not create'), false); return; }
+    document.getElementById('spec-label').value = ''; document.getElementById('spec-password').value = '';
+    specStatus('✅ Spectator created', true);
+    renderSpectators();
+  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+}
+async function updateSpectator(id, fields) {
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(fields) });
+    const d = await res.json();
+    if (!d.success) { specStatus('⚠️ ' + (d.message || 'Could not save'), false); }
+    else specStatus('✅ Saved', true);
+  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+  renderSpectators();
+}
+function editSpectatorPassword(id) {
+  const cell = document.getElementById(`spec-pw-${id}`); if (!cell) return;
+  cell.innerHTML = `<input type="text" id="spec-pw-input-${id}" placeholder="New password" autocomplete="off" style="width:130px;padding:5px;border:2px solid #1a73e8;border-radius:8px;font-family:Nunito;font-size:0.85rem;"/>
+    <button onclick="saveSpectatorPassword('${id}')" style="padding:5px 9px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:900;cursor:pointer;font-size:0.78rem;">Save</button>
+    <button onclick="renderSpectatorsList()" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.78rem;">✕</button>`;
+  const inp = document.getElementById(`spec-pw-input-${id}`); if (inp) inp.focus();
+}
+function saveSpectatorPassword(id) {
+  const v = (document.getElementById(`spec-pw-input-${id}`)?.value || '').trim();
+  if (v.length < 8) { specStatus('⚠️ Password needs at least 8 characters', false); return; }
+  if (/\s/.test(v)) { specStatus('⚠️ Password cannot contain spaces', false); return; }
+  updateSpectator(id, { password: v });
+}
+async function deleteSpectator(id) {
+  const s = _spectators.find(x => x.id === id); if (!s) return;
+  if (!confirm(`Delete spectator "${s.label || s.password}"? They will be unable to log in, and will be removed from any class they are watching the next time they reconnect.`)) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+    const d = await res.json();
+    specStatus(d.success ? '🗑 Deleted' : '⚠️ Could not delete', !!d.success);
+  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+  renderSpectators();
+}
+function copySpectatorInfo(id) {
+  const s = _spectators.find(x => x.id === id); if (!s) return;
+  const text = `PolyABC — Acceso para observar clase / Spectator access\nhttps://polyabc.academy\nSala / Room: ${s.assignedRoom || '(te lo indicaremos / we will tell you)'}\nContraseña / Password: ${s.password}`;
+  const done = () => specStatus('📋 Login info copied', true);
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => specStatus('⚠️ Could not copy', false)); else specStatus('⚠️ Could not copy', false);
+}
 
 async function renderStaff() {
   loadSchoolInfo();
