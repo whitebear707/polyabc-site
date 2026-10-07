@@ -458,6 +458,19 @@
   <div id="leaderboard-list" style="color:#aaa;text-align:center;font-size:0.9rem;">No stars yet!</div>
 </div>
 
+<!-- TECH SUPPORT CHAT (shown only when an IT spectator is in the room) -->
+<div id="it-chat" style="display:none;position:fixed;right:12px;bottom:12px;z-index:9000;font-family:'Nunito',sans-serif;">
+  <button id="it-chat-toggle" onclick="itToggle()" style="background:#6a1b9a;color:#fff;border:none;border-radius:22px;padding:10px 16px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4);position:relative;">🛠 Tech Support<span id="it-chat-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:.68rem;align-items:center;justify-content:center;"></span></button>
+  <div id="it-chat-box" style="display:none;width:min(88vw,320px);height:340px;background:#16213e;border:2px solid #6a1b9a;border-radius:14px;margin-bottom:8px;flex-direction:column;overflow:hidden;">
+    <div style="padding:8px 12px;background:#6a1b9a;color:#fff;font-weight:800;font-size:.9rem;">🛠 Tech Support chat</div>
+    <div id="it-chat-msgs" style="flex:1;overflow:auto;padding:8px;font-size:.85rem;color:#eee;"></div>
+    <div style="display:flex;gap:6px;padding:8px;border-top:1px solid #0f3460;">
+      <input id="it-chat-input" maxlength="500" placeholder="Type a message…" onkeydown="if(event.key==='Enter')itSend()" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:none;font-size:.9rem;">
+      <button onclick="itSend()" style="background:#6a1b9a;color:#fff;border:none;border-radius:8px;padding:0 12px;font-weight:800;cursor:pointer;">Send</button>
+    </div>
+  </div>
+</div>
+
 <!-- TEACHER CHAT PANEL -->
 <div id="chat-panel" style="display:none;">
   <div style="padding:12px 16px;border-bottom:1px solid #0f3460;display:flex;justify-content:space-between;align-items:center;">
@@ -828,6 +841,8 @@ function connectSocket() {
     if (ssPeers[socketId]) { ssPeers[socketId].close(); delete ssPeers[socketId]; }
   });
   socket.on('spectator-count', ({ count }) => updateSpectatorEye(count));
+  socket.on('it-present', ({ present }) => { if (IS_SPECTATOR && !IS_IT) return; if (IS_IT) itShow(true); else if (present) itShow(true); else if (!document.getElementById('it-chat-msgs').children.length) itShow(false); });
+  socket.on('it-chat', itReceive);
 
   socket.on('you-are-muted', () => {
     if (localStream) { localStream.getAudioTracks().forEach(t => t.enabled = false); myMicOn = false; }
@@ -1202,6 +1217,31 @@ function connectSocket() {
 
   // Audio relay started in enterClass() after localStream is confirmed ready
   startAudioRelay(socket);
+}
+
+
+// ── Tech Support chat (IT spectator <-> teacher/students) ──
+let _itUnread = 0, _itOpen = false;
+function itShow(show) { const w = document.getElementById('it-chat'); if (w) w.style.display = show ? 'block' : 'none'; }
+function itToggle() {
+  _itOpen = !_itOpen;
+  document.getElementById('it-chat-box').style.display = _itOpen ? 'flex' : 'none';
+  if (_itOpen) { _itUnread = 0; document.getElementById('it-chat-badge').style.display = 'none'; const m = document.getElementById('it-chat-msgs'); m.scrollTop = m.scrollHeight; document.getElementById('it-chat-input').focus(); }
+}
+function itSend() {
+  const i = document.getElementById('it-chat-input'); const t = i.value.trim();
+  if (!t || !window._socket) return;
+  window._socket.emit('it-chat', { message: t }); i.value = '';
+}
+function itReceive(d) {
+  itShow(true);
+  const m = document.getElementById('it-chat-msgs'); if (!m) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'margin:0 0 8px;padding:6px 8px;border-radius:8px;background:' + (d.role === 'it' ? '#4a148c' : '#0f3460') + ';';
+  const t = new Date(d.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  div.innerHTML = `<div style="font-weight:800;font-size:.75rem;color:#ce93d8;">${escapeHtml(d.from)} <span style="color:#888;font-weight:400;">${t}</span></div><div>${escapeHtml(d.message)}</div>`;
+  m.appendChild(div); m.scrollTop = m.scrollHeight;
+  if (!_itOpen) { _itUnread++; const b = document.getElementById('it-chat-badge'); b.textContent = _itUnread > 9 ? '9+' : _itUnread; b.style.display = 'flex'; if (d.role === 'it' && !IS_IT) { try { playMessagePing(); } catch (e) {} } }
 }
 
 let unreadCount = 0;
