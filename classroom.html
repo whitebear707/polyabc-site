@@ -845,6 +845,7 @@ function connectSocket() {
   socket.on('spectator-count', ({ count }) => updateSpectatorEye(count));
   socket.on('it-present', ({ present }) => { if (IS_SPECTATOR && !IS_IT) return; if (IS_IT) itShow(true); else if (present) itShow(true); else if (!document.getElementById('it-chat-msgs').children.length) itShow(false); });
   socket.on('it-chat', itReceive);
+  socket.on('student-presence', ({ online }) => { window._studentsOnline = !!online; });
 
   socket.on('you-are-muted', () => {
     if (localStream) { localStream.getAudioTracks().forEach(t => t.enabled = false); myMicOn = false; }
@@ -1891,7 +1892,13 @@ function startTimer(assignment) {
         const cappedMins = Math.min(fullMinsOver, totalOwed);
         const om = Math.floor(overMins), os = Math.floor((overMins % 1) * 60);
         debtEl.style.display = 'block';
-        if (cappedMins >= totalOwed) {
+        if (window._studentsOnline === false) {
+          // Nobody is connected: the debt clock stops, and nothing is reported as paid until a student is back.
+          debtEl.textContent = `⏸ Debt paused — no student online`;
+          debtEl.style.color = '#ffd740';
+          debtEl.style.border = '1px solid #ffd740';
+          debtEl.style.background = 'rgba(255,215,64,0.12)';
+        } else if (cappedMins >= totalOwed) {
           debtEl.textContent = `🏅 Debt paid! +${totalOwed} min`;
           debtEl.style.color = '#00c853';
           debtEl.style.border = '1px solid #00c853';
@@ -1900,8 +1907,9 @@ function startTimer(assignment) {
           debtEl.textContent = `🏅 +${om}:${String(os).padStart(2,'0')} paying debt (${cappedMins}/${totalOwed} min)`;
         }
         window._debtPayoffMins = cappedMins;
-        // Stamp debt payoff on server every full minute so it persists even if browser closes
-        if (IS_TEACHER && window._socket && cappedMins > (window._lastStampedDebtMins || 0)) {
+        // Stamp debt payoff on server every full minute so it persists even if browser closes.
+        // The server only credits minutes with a student online, so this is just the claim.
+        if (IS_TEACHER && window._socket && window._studentsOnline !== false && cappedMins > (window._lastStampedDebtMins || 0)) {
           window._lastStampedDebtMins = cappedMins;
           window._socket.emit('debt-payoff-update', { room: ROOM, debtPayoffMins: cappedMins, sessionId: SESSION_ID });
         }
