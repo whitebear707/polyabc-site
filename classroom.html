@@ -686,6 +686,8 @@ function connectSocket() {
 
   socket.on('room-joined', async ({ name, teacherLoginAt, activeBreak }) => {
     _joinedName = name; _joinedSocket = socket;
+    // The server forgets open classes when it restarts (deploys, crashes). If this teacher's page still shows the class as open, re-announce it so students and spectators are let in again.
+    if (IS_TEACHER && classIsOpen) socket.emit('class-opened', { room: ROOM });
     // Store original login time from server — used for owed timer on reconnects
     // This prevents the timer from thinking teacher is late based on reconnect time
     if (IS_TEACHER && teacherLoginAt && !window._originalLoginAt) {
