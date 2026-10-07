@@ -333,6 +333,7 @@
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">System</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Spectators</div>
+    <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">🛠 Tech Support <span id="ticket-open-badge" style="display:none;background:#e53935;color:#fff;border-radius:10px;padding:1px 7px;font-size:0.72rem;margin-left:4px;"></span></div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generate Student Code</div>
   </div>
 
@@ -558,6 +559,29 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: SPECTATORS -->
   <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-tickets" class="panel">
+    <div class="panel-title">🛠 Tech Support</div>
+    <div style="font-size:0.85rem;color:#666;margin-bottom:14px;line-height:1.5;">Reports sent by teachers from the classroom Help menu. Only admin and tech support are notified — teachers see nothing further.</div>
+    <div class="card" style="margin-bottom:14px;">
+      <b style="font-size:0.9rem;">Who gets the emails</b>
+      <div style="display:grid;gap:8px;margin-top:8px;">
+        <label style="font-size:0.8rem;font-weight:700;">Tech support <input id="tk-tech" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="techsupport@polyabc.academy"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Admin (student reports) — separate with commas <input id="tk-admin" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Billing (pending transfers) — separate with commas <input id="tk-billing" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button onclick="saveTicketSettings()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Save</button>
+        <span style="font-size:0.78rem;color:#888;">Leave a box empty to use the built-in address.</span>
+        <span id="tk-status" style="font-size:0.85rem;font-weight:700;"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button id="tk-f-open" onclick="setTicketFilter('open')" style="padding:7px 14px;border:2px solid #1a73e8;border-radius:8px;cursor:pointer;font-weight:700;">Open</button>
+      <button id="tk-f-resolved" onclick="setTicketFilter('resolved')" style="padding:7px 14px;border:2px solid #ddd;border-radius:8px;cursor:pointer;font-weight:700;">Resolved</button>
+    </div>
+    <div id="tickets-list"></div>
+  </div>
+
   <div id="panel-spectators" class="panel">
     <div class="panel-title">👁 Spectators</div>
     <div style="font-size:0.85rem;color:#666;margin-bottom:16px;line-height:1.5;">
@@ -1193,6 +1217,8 @@ async function doLogin() {
     setInterval(checkNewTrials, 30000);
     pollPendingRequests();
     setInterval(pollPendingRequests, 30000);
+    refreshTicketBadge();
+    setInterval(refreshTicketBadge, 30000);
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
     showAlert('😬','Connection Error','Could not reach the server.',[{label:'OK',fn:'closeAlert()',primary:true}]);
@@ -1342,7 +1368,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1350,7 +1376,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1369,6 +1395,7 @@ function showPanel(name) {
   if (name === 'parents')    renderParentsPanel();
   if (name === 'staff')      renderStaff();
   if (name === 'spectators') renderSpectators();
+  if (name === 'tickets')    renderTickets();
 }
 
 // ── MASTER CALENDAR ──
@@ -4571,6 +4598,66 @@ async function saveParentEdit(id) {
 // ── STAFF ──
 
 // ── SPECTATORS ──
+
+// ── TECH SUPPORT TICKETS ──
+let _tkFilter = 'open', _tickets = [];
+const TK_LABEL = { student_absent: '🚫 Student not here', student_problem: '⚠️ Student having problems', tech_help: '🛠 Tech help' };
+function tkAuth(extra) { return { Authorization: `Bearer ${currentToken}`, ...(extra || {}) }; }
+function setTicketFilter(f) { _tkFilter = f; ['open','resolved'].forEach(x => { const b = document.getElementById('tk-f-' + x); if (b) b.style.borderColor = x === f ? '#1a73e8' : '#ddd'; }); renderTickets(true); }
+async function refreshTicketBadge() {
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/tickets?status=open`, { headers: tkAuth() }); const d = await r.json();
+    const b = document.getElementById('ticket-open-badge'); if (!b) return;
+    b.textContent = d.openCount || ''; b.style.display = d.openCount ? 'inline-block' : 'none';
+  } catch (e) {}
+}
+async function renderTickets(keepSettings) {
+  const box = document.getElementById('tickets-list'); if (!box) return;
+  if (!keepSettings) loadTicketSettings();
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/tickets?status=${_tkFilter}`, { headers: tkAuth() }); const d = await r.json();
+    _tickets = d.tickets || [];
+    const b = document.getElementById('ticket-open-badge'); if (b && _tkFilter === 'open') { b.textContent = d.openCount || ''; b.style.display = d.openCount ? 'inline-block' : 'none'; }
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load tickets. Try again.</div>'; return; }
+  if (!_tickets.length) { box.innerHTML = `<div class="card" style="color:#aaa;text-align:center;padding:24px;">No ${_tkFilter} tickets.</div>`; return; }
+  box.innerHTML = _tickets.map(t => {
+    const when = t.createdAt ? new Date(t.createdAt).toLocaleString() : '';
+    const who = t.studentFullName || t.studentName;
+    return `<div class="card" style="margin-bottom:10px;padding:12px;${t.status === 'open' ? 'border-left:5px solid #e53935;' : 'opacity:0.8;border-left:5px solid #2e7d32;'}">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><b>${TK_LABEL[t.kind] || specEsc(t.kind)}</b><span style="font-size:0.78rem;color:#888;">${specEsc(when)}</span></div>
+      <div style="font-size:0.88rem;margin-top:4px;">Room <b>${specEsc(t.room)}</b> · Teacher <b>${specEsc(t.teacherName)}</b>${who ? ' · Student <b>' + specEsc(who) + '</b>' : ''}${t.scheduledTime ? ' · ' + specEsc(t.scheduledTime) : ''}</div>
+      ${t.status === 'resolved' ? `<div style="font-size:0.8rem;color:#2e7d32;margin-top:4px;">✔ Resolved${t.resolutionNote ? ': ' + specEsc(t.resolutionNote) : ''}</div>` : ''}
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        ${t.status === 'open'
+          ? `<input id="tk-note-${t.id}" type="text" maxlength="500" placeholder="Note (optional)" style="flex:1;min-width:140px;padding:6px;border:2px solid #ddd;border-radius:8px;"><button onclick="resolveTicket('${t.id}')" style="padding:6px 14px;border:none;border-radius:8px;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">Resolve</button>`
+          : `<button onclick="reopenTicket('${t.id}')" style="padding:6px 14px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-weight:700;">Reopen</button>`}
+      </div></div>`;
+  }).join('');
+}
+async function resolveTicket(id) {
+  const note = (document.getElementById('tk-note-' + id) || {}).value || '';
+  await fetch(`${SERVER_URL}/admin/tickets/${id}/resolve`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify({ note }) });
+  renderTickets(true);
+}
+async function reopenTicket(id) { await fetch(`${SERVER_URL}/admin/tickets/${id}/reopen`, { method: 'POST', headers: tkAuth() }); renderTickets(true); }
+async function loadTicketSettings() {
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/support-settings`, { headers: tkAuth() }); const d = await r.json();
+    document.getElementById('tk-tech').value = d.techEmail || '';
+    document.getElementById('tk-admin').value = (d.adminEmails || []).join(', ');
+    document.getElementById('tk-billing').value = (d.billingEmails || []).join(', ');
+  } catch (e) {}
+}
+async function saveTicketSettings() {
+  const st = document.getElementById('tk-status');
+  const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, billingEmails: document.getElementById('tk-billing').value };
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/support-settings`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
+    st.textContent = d.success ? 'Saved ✓' : (d.message || 'Could not save'); st.style.color = d.success ? '#2e7d32' : '#e53935';
+    if (d.success) loadTicketSettings();
+  } catch (e) { st.textContent = 'Could not save'; st.style.color = '#e53935'; }
+}
+
 let _spectators = [];
 function specEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function specStatus(msg, ok) { const el = document.getElementById('spec-status'); if (!el) return; el.textContent = msg || ''; el.style.color = ok ? '#2e7d32' : '#e53935'; if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 5000); }
