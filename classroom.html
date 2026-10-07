@@ -19,6 +19,7 @@
 
     #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; position: relative; }
     #topbar img { height: 40px; }
+    body.spectator #student-chat-bar, body.spectator #my-controls, body.spectator #my-schedule-btn, body.spectator #leave-btn { display: none !important; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
     #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
     #leave-btn { background: #e53935; color: white; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
@@ -487,6 +488,11 @@ const NET_TEST     = SESSION_ID ? (() => { try { const c = localStorage.getItem(
 const IS_TEACHER   = !!localStorage.getItem('adminToken');
 const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
+// SPECTATOR: watch-only login (admin-created). The server decides what it may do; this only shapes the page.
+const MY_TOKEN_ROLE = (() => { try { return JSON.parse(atob(MY_TOKEN.split('.')[0])).role; } catch (e) { return null; } })();
+const IS_SPECTATOR = !IS_TEACHER && (MY_TOKEN_ROLE === 'spectator' || MY_TOKEN_ROLE === 'spectator_it');
+const IS_IT        = IS_SPECTATOR && MY_TOKEN_ROLE === 'spectator_it';
+if (IS_SPECTATOR) { document.body.classList.add('spectator'); window._canDraw = false; }
 const studentSlots = {};
 
 // Get the stable identity (name) for a socketId — used for DOM lookups
@@ -503,7 +509,7 @@ if (IS_TEACHER) {
   document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
-  document.getElementById('student-chat-bar').style.display = 'flex';
+  document.getElementById('student-chat-bar').style.display = IS_SPECTATOR ? 'none' : 'flex';
 }
 
 const capCanvas = document.createElement('canvas');
@@ -559,6 +565,12 @@ function updateSelfMonkey() {
 }
 
 async function startMedia() {
+  if (IS_SPECTATOR) {
+    document.getElementById('left-label').textContent = 'Waiting for teacher...';
+    document.getElementById('connect-msg').textContent = 'Connecting...';
+    connectSocket();
+    return;
+  }
   try {
     document.getElementById('connect-msg').textContent = 'Starting camera...';
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -659,6 +671,17 @@ function connectSocket() {
     if (IS_TEACHER && teacherLoginAt && !window._originalLoginAt) {
       window._originalLoginAt = teacherLoginAt;
     }
+    if (IS_SPECTATOR) {
+      document.getElementById('waiting-screen').style.display = 'none';
+      document.getElementById('connecting-screen').style.display = 'none';
+      if (!window._specEntered) {
+        window._specEntered = true;
+        enterClass();
+        setTimeout(() => socket.emit('request-canvas', { room: ROOM }), 1200);
+        setTimeout(() => { if (canvas && canvas.getObjects().length === 0) socket.emit('request-canvas', { room: ROOM }); }, 3000);
+      }
+      return;
+    }
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
@@ -724,6 +747,11 @@ function connectSocket() {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
       setTimeout(() => callVideoPeer(socketId, socket), 1200);
     }
+    // Spectator connects to everyone (nobody else knows it exists, so it makes every call)
+    if (IS_SPECTATOR && role === 'teacher') {
+      setTimeout(() => callAudioPeer(socketId, socket), 1000);
+      setTimeout(() => callVideoPeer(socketId, socket), 1200);
+    }
     // Students connect to other students (not teacher - teacher handles that)
     if (!IS_TEACHER && role === 'student') {
       setTimeout(() => callAudioPeer(socketId, socket), 1000);
@@ -779,6 +807,20 @@ function connectSocket() {
   });
 
   socket.on('user-left', (socketId) => removeRemote(socketId));
+
+  // ── Spectators: teachers get their socket id (to send screenshare); everyone sees the 👁 count ──
+  window._spectatorIds = window._spectatorIds || new Set();
+  socket.on('spectator-joined', ({ socketId }) => {
+    if (!IS_TEACHER) return;
+    window._spectatorIds.add(socketId);
+    if (isSharing && screenStream) callSsPeer(socketId);
+  });
+  socket.on('spectator-left', ({ socketId }) => {
+    if (!IS_TEACHER) return;
+    window._spectatorIds.delete(socketId);
+    if (ssPeers[socketId]) { ssPeers[socketId].close(); delete ssPeers[socketId]; }
+  });
+  socket.on('spectator-count', ({ count }) => updateSpectatorEye(count));
 
   socket.on('you-are-muted', () => {
     if (localStream) { localStream.getAudioTracks().forEach(t => t.enabled = false); myMicOn = false; }
@@ -1330,7 +1372,7 @@ function removeVideoPeer(socketId) {
 }
 
 function startAudioRelay(socket) {
-  if (!localStream) return;
+  if (!localStream && !IS_SPECTATOR) return;
   // Remove any existing listeners first to prevent duplicates on reconnect
   socket.off('audio-offer');
   socket.off('audio-answer');
@@ -1581,6 +1623,7 @@ let todayAssignments = [];
 let timerInterval = null;
 
 async function loadTodayAssignment() {
+  if (IS_SPECTATOR) return;
   try {
     const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
     todayAssignments = await res.json();
@@ -1970,10 +2013,20 @@ function showSoundUnlock() {
   document.addEventListener('keydown', unlock, true);
 }
 
+// 👁 N next to the room number: how many spectators are watching (hidden when none). Shown to everyone in the room.
+function updateSpectatorEye(count) {
+  const label = document.getElementById('room-label'); if (!label) return;
+  let eye = document.getElementById('spectator-eye');
+  if (!count) { if (eye) eye.remove(); return; }
+  if (!eye) { eye = document.createElement('span'); eye.id = 'spectator-eye'; eye.style.cssText = 'margin-left:10px;padding-left:10px;border-left:1px solid rgba(255,255,255,0.45);'; label.appendChild(eye); }
+  eye.textContent = `👁 ${count}`;
+  eye.title = count === 1 ? '1 spectator watching' : `${count} spectators watching`;
+}
+
 function enterClass() {
   stopAutoEnterCountdown();
   if (!IS_TEACHER && window._autoEntered) showSoundUnlock();
-  if (!IS_TEACHER) document.documentElement.requestFullscreen().catch(() => {});
+  if (!IS_TEACHER && !IS_SPECTATOR) document.documentElement.requestFullscreen().catch(() => {});
   document.getElementById('connecting-screen').style.display = 'none';
   document.getElementById('room-label').style.background = '#2e7d32';
   initWhiteboard(_joinedSocket);
@@ -1983,12 +2036,20 @@ function enterClass() {
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
       setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
-    } else if (remoteRoles[sid] === 'teacher') {
+    } else if (remoteRoles[sid] === 'teacher' || IS_SPECTATOR) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
       setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
     }
   });
   loadTodayAssignment();
+  if (IS_SPECTATOR && !document.getElementById('spectator-exit')) {
+    const b = document.createElement('button');
+    b.id = 'spectator-exit';
+    b.textContent = IS_IT ? '👁 Tech Support · Exit' : '👁 Spectator · Exit / Salir';
+    b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;background:rgba(15,52,96,0.92);color:#fff;border:1px solid #a0c4ff;border-radius:12px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;';
+    b.onclick = () => { try { if (window._socket) window._socket.disconnect(); } catch (e) {} window.location.href = 'login.html'; };
+    document.body.appendChild(b);
+  }
   if (IS_TEACHER) {
     const newBtn = document.getElementById('new-class-btn');
     if (newBtn) newBtn.style.display = 'block';
@@ -2791,6 +2852,7 @@ async function toggleScreenShare() {
       window._socket.emit('screenshare-start', { room: ROOM });
       // Call each currently connected student
       Object.keys(studentSlots).forEach(sid => callSsPeer(sid));
+      (window._spectatorIds || []).forEach(sid => callSsPeer(sid));
     }
 
     screenStream.getVideoTracks()[0].onended = () => stopScreenShare();

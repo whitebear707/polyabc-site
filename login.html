@@ -306,6 +306,14 @@
           localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel, enrolledType: data.enrolledType || '1v1' }));
           window.location.href = 'exam.html'; return;
         }
+        if (data.role === 'spectator' || data.role === 'spectator_it') {
+          // Watch-only access: straight into the classroom, no greeting, no camera
+          localStorage.removeItem('adminToken'); localStorage.removeItem('teacherToken');
+          localStorage.setItem('studentToken', data.token);
+          localStorage.setItem('studentName', data.name);
+          localStorage.setItem('studentRoom', room);
+          window.location.href = `classroom.html?room=${encodeURIComponent(room)}`; return;
+        }
         if (data.role === 'teacher') {
             localStorage.setItem('teacherToken', data.token);
             // If this teacher is covering someone else's class, route them into the
