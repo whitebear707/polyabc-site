@@ -255,6 +255,12 @@
 </div>
 
 <!-- BREAK DURATION CHOICE MODAL (teacher only) -->
+<div id="help-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:22px;width:min(92vw,380px);max-height:85vh;overflow:auto;font-family:'Nunito',sans-serif;color:#222;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><b id="help-title" style="font-size:1.1rem;">Help</b><button onclick="closeHelp()" style="border:none;background:none;font-size:1.4rem;cursor:pointer;">✕</button></div>
+    <div id="help-body"></div>
+  </div>
+</div>
 <div id="break-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#16213e;border-radius:20px;padding:32px;width:100%;max-width:380px;margin:20px;text-align:center;font-family:Nunito,sans-serif;">
     <div style="font-size:2rem;margin-bottom:8px;">☕</div>
@@ -389,6 +395,7 @@
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
         <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
+        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
       </div>
       <div class="tool-separator"></div>
@@ -1960,6 +1967,50 @@ function startAudioRelayOld(socket) {
 // 30 seconds they are put into the class automatically.
 const AUTO_ENTER_SECS = 30;
 let _autoEnterTimer = null;
+
+// ── Teacher Help menu → support tickets ──
+let _help = { kind: null, students: null, busy: false };
+function _hEsc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function _hBtn(label, fn, color) { return `<button onclick="${fn}" style="display:block;width:100%;margin:6px 0;padding:12px;border:none;border-radius:10px;background:${color || '#0f3460'};color:white;font:700 0.95rem Nunito,sans-serif;cursor:pointer;text-align:left;">${label}</button>`; }
+function _hSet(title, html) { document.getElementById('help-title').textContent = title; document.getElementById('help-body').innerHTML = html; }
+function openHelp() { if (!IS_TEACHER) return; _help = { kind: null, students: null, busy: false }; helpHome(); document.getElementById('help-modal').style.display = 'flex'; }
+function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
+function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a')); }
+function helpStudentMenu() { _hSet('Student Help', _hBtn('🚫 Student not here', "helpPick('student_absent')", '#e65100') + _hBtn('⚠️ Student having problems', "helpPick('student_problem')", '#f9a825') + '<button onclick="helpHome()" style="margin-top:6px;border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); }
+async function helpPick(kind) {
+  _help.kind = kind;
+  _hSet(kind === 'tech_help' ? 'Technical Help' : 'Which student?', '<p style="color:#555;">Loading…</p>');
+  try {
+    const q = SESSION_ID ? '&sessionId=' + encodeURIComponent(SESSION_ID) : '';
+    const r = await fetch(`${SERVER_URL}/teacher/class-roster?room=${encodeURIComponent(ROOM)}${q}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.message || 'error');
+    _help.students = d.students || [];
+  } catch (e) { _help.students = []; }
+  const list = _help.students.map((s, i) => _hBtn(_hEsc(s.fullName || s.name), `helpSend(${i})`, '#0f3460')).join('');
+  if (kind === 'tech_help') {
+    _hSet('Technical Help', '<p style="margin:0 0 6px;color:#555;">Is this about a specific student?</p>' + list + _hBtn('No specific student', 'helpSend(-1)', '#6a1b9a') + '<button onclick="helpHome()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
+  } else if (!_help.students.length) {
+    _hSet('Which student?', '<p style="color:#c62828;">No students are scheduled for this class.</p><button onclick="helpStudentMenu()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
+  } else {
+    _hSet('Which student?', list + '<button onclick="helpStudentMenu()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
+  }
+}
+async function helpSend(i) {
+  if (_help.busy) return; _help.busy = true;
+  const st = i >= 0 ? _help.students[i] : null;
+  _hSet('Sending…', '<p style="color:#555;">One moment…</p>');
+  let msg, good = false;
+  try {
+    const r = await fetch(`${SERVER_URL}/teacher/support-ticket`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ kind: _help.kind, studentName: st ? st.name : undefined, sessionId: SESSION_ID || undefined }) });
+    const d = await r.json();
+    if (d.success) { good = true; msg = d.duplicate ? 'Already reported — thank you, the team has it.' : (_help.kind === 'tech_help' ? 'Tech support has been notified.' : 'Reported. The office has been notified.'); }
+    else msg = d.message || 'Could not send. Please try again.';
+  } catch (e) { msg = 'Connection problem. Please try again.'; }
+  _help.busy = false;
+  _hSet(good ? '✅ Done' : '⚠️ Not sent', `<p style="font-size:1rem;">${_hEsc(msg)}</p>` + _hBtn('Close', 'closeHelp()', good ? '#2e7d32' : '#555'));
+}
+
 function startAutoEnterCountdown() {
   if (IS_TEACHER) return;
   clearInterval(_autoEnterTimer);
