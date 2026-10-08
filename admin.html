@@ -581,6 +581,27 @@
       <button id="tk-f-resolved" onclick="setTicketFilter('resolved')" style="padding:7px 14px;border:2px solid #ddd;border-radius:8px;cursor:pointer;font-weight:700;">Resolved</button>
     </div>
     <div id="tickets-list"></div>
+
+    <div class="panel-title" style="margin-top:28px;font-size:1.05rem;">🎬 Help Videos</div>
+    <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Paste a YouTube link and choose who can see it. Each panel's Help section shows only the videos for its role.</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:grid;gap:8px;">
+        <label style="font-size:0.8rem;font-weight:700;">Video title <input id="hv-title" type="text" maxlength="120" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="How to add a student"></label>
+        <label style="font-size:0.8rem;font-weight:700;">YouTube link <input id="hv-url" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="https://youtu.be/..."></label>
+        <div style="font-size:0.8rem;font-weight:700;">Who can see it</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.9rem;">
+          <label><input type="checkbox" class="hv-aud" value="admin"> Admin</label>
+          <label><input type="checkbox" class="hv-aud" value="student"> Student</label>
+          <label><input type="checkbox" class="hv-aud" value="teacher"> Teacher</label>
+          <label><input type="checkbox" class="hv-aud" value="parent"> Parent</label>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Add video</button>
+        <span id="hv-status" style="font-size:0.85rem;font-weight:700;"></span>
+      </div>
+    </div>
+    <div id="hv-list"></div>
   </div>
 
   <div id="panel-spectators" class="panel">
@@ -4614,7 +4635,7 @@ async function refreshTicketBadge() {
 }
 async function renderTickets(keepSettings) {
   const box = document.getElementById('tickets-list'); if (!box) return;
-  if (!keepSettings) loadTicketSettings();
+  if (!keepSettings) { loadTicketSettings(); loadHelpVideos(); }
   try {
     const r = await fetch(`${SERVER_URL}/admin/tickets?status=${_tkFilter}`, { headers: tkAuth() }); const d = await r.json();
     _tickets = d.tickets || [];
@@ -4658,6 +4679,41 @@ async function saveTicketSettings() {
     st.textContent = d.success ? 'Saved ✓' : (d.message || 'Could not save'); st.style.color = d.success ? '#2e7d32' : '#e53935';
     if (d.success) loadTicketSettings();
   } catch (e) { st.textContent = 'Could not save'; st.style.color = '#e53935'; }
+}
+
+// ── HELP VIDEOS ──
+const HV_LABEL = { admin: 'Admin', student: 'Student', teacher: 'Teacher', parent: 'Parent' };
+async function loadHelpVideos() {
+  const box = document.getElementById('hv-list'); if (!box) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/help-videos`, { headers: tkAuth() }); const d = await r.json();
+    const vids = d.videos || [];
+    if (!vids.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No help videos yet.</div>'; return; }
+    box.innerHTML = vids.map(v => `<div class="card" style="margin-bottom:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+      <img src="https://img.youtube.com/vi/${specEsc(v.youtubeId)}/default.jpg" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;">
+      <div style="flex:1;min-width:160px;">
+        <b>${specEsc(v.title)}</b>
+        <div style="font-size:0.8rem;margin-top:4px;color:#555;">Visible to: ${(v.audience || []).map(a => HV_LABEL[a] || specEsc(a)).join(', ')}</div>
+        <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Open on YouTube</a>
+      </div>
+      <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Delete</button>
+    </div>`).join('');
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load help videos.</div>'; }
+}
+async function addHelpVideo() {
+  const st = document.getElementById('hv-status');
+  const audience = [...document.querySelectorAll('.hv-aud:checked')].map(c => c.value);
+  const body = { title: document.getElementById('hv-title').value.trim(), url: document.getElementById('hv-url').value.trim(), audience };
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/help-videos`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
+    st.textContent = d.success ? 'Added ✓' : (d.message || 'Could not add'); st.style.color = d.success ? '#2e7d32' : '#e53935';
+    if (d.success) { document.getElementById('hv-title').value = ''; document.getElementById('hv-url').value = ''; document.querySelectorAll('.hv-aud').forEach(c => c.checked = false); loadHelpVideos(); }
+  } catch (e) { st.textContent = 'Could not add'; st.style.color = '#e53935'; }
+}
+async function deleteHelpVideo(id) {
+  if (!confirm('Delete this help video?')) return;
+  await fetch(`${SERVER_URL}/admin/help-videos/${id}`, { method: 'DELETE', headers: tkAuth() });
+  loadHelpVideos();
 }
 
 let _spectators = [];
