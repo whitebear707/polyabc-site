@@ -331,6 +331,9 @@
     </div>
   </div>
   </div><!-- end cal-container -->
+
+  <p class="section-title">❓ Help Videos</p>
+  <div id="help-videos-box" style="margin-bottom:24px;"></div>
 </div>
 <div id="save-bar">
   <button class="btn-save" onclick="saveAvailability()">💾 Save Schedule</button>
@@ -351,6 +354,23 @@
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
   const token = localStorage.getItem('teacherToken');
+
+  // ---- Help videos (admin chooses which ones show for teachers) ----
+  async function loadHelpVideos() {
+    const box = document.getElementById('help-videos-box'); if (!box || !token) return;
+    const esc = escHtml;
+    try {
+      const r = await fetch(`${SERVER_URL}/help-videos`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json(); const vids = d.videos || [];
+      if (!vids.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:16px;">No help videos yet.</div>'; return; }
+      box.innerHTML = vids.map(v => `<div style="margin-bottom:18px;">
+        <div style="font-weight:900;margin-bottom:6px;">${esc(v.title)}</div>
+        <div style="position:relative;padding-bottom:56.25%;height:0;">
+          <iframe src="https://www.youtube-nocookie.com/embed/${esc(v.youtubeId)}" title="${esc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        </div></div>`).join('');
+    } catch (e) { box.innerHTML = '<div style="color:#c62828;">Could not load help videos.</div>'; }
+  }
+  loadHelpVideos();
 
   function escHtml(str) {
     if (str === null || str === undefined) return '';

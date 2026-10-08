@@ -285,6 +285,12 @@
         <button class="nav-tab" onclick="showTab('reports')" id="tab-reports">📝 Reportes</button>
         <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
         <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Pay</button>
+        <button class="nav-tab" onclick="showTab('help')" id="tab-help">❓ Ayuda / Help</button>
+      </div>
+
+      <!-- Help tab — videos chosen by admin for parents -->
+      <div id="panel-help" style="display:none;">
+        <div id="help-videos-box" style="padding:8px 0;"></div>
       </div>
 
       <!-- Students tab -->
@@ -873,11 +879,28 @@ async function renderAvailableClasses() {
   }
 }
 
+// ---- Help videos (admin chooses which ones show for parents) ----
+async function loadHelpVideos() {
+  const box = document.getElementById('help-videos-box'); if (!box || !_parentToken) return;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  try {
+    const r = await fetch(`${SERVER_URL}/help-videos`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    const d = await r.json(); const vids = d.videos || [];
+    if (!vids.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">Aún no hay videos de ayuda. / No help videos yet.</div>'; return; }
+    box.innerHTML = vids.map(v => `<div style="margin-bottom:20px;">
+      <div style="font-weight:700;margin-bottom:6px;">${esc(v.title)}</div>
+      <div style="position:relative;padding-bottom:56.25%;height:0;">
+        <iframe src="https://www.youtube-nocookie.com/embed/${esc(v.youtubeId)}" title="${esc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div></div>`).join('');
+  } catch (e) { box.innerHTML = '<div style="color:#e53935;">No se pudieron cargar los videos. / Could not load videos.</div>'; }
+}
+
 function showTab(tab) {
-  ['students','classes','attendance','reports','calendar','payment'].forEach(p => {
+  ['students','classes','attendance','reports','calendar','payment','help'].forEach(p => {
     const el = document.getElementById(`panel-${p}`);
     if (el) el.style.display = p === tab ? 'block' : 'none';
   });
+  if (tab === 'help') loadHelpVideos();
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   const activeTab = document.getElementById(`tab-${tab}`);
   if (activeTab) activeTab.classList.add('active');
