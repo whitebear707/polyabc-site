@@ -87,7 +87,7 @@
 <body>
 
 <div class="header">
-  <a href="index.html"><img src="LOGO.png" alt="PolyABC"/></a>
+  <a href="login.html"><img src="LOGO.png" alt="PolyABC"/></a>
   <div class="header-title"></div>
   <div style="display:flex;align-items:center;gap:10px;">
     <div id="google_translate_element" style="transform:scale(0.75);transform-origin:left center;"></div>
@@ -2261,7 +2261,6 @@ async function confirmRescheduleRequest() {
       if (saved) { applyLang(saved); return; }
       const browserLang = navigator.language || navigator.userLanguage || '';
       if (browserLang.toLowerCase().startsWith('es')) { applyLang('es'); return; }
-      openLanguageModal(); // not clearly Spanish - ask rather than assume English
     }
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
