@@ -67,6 +67,12 @@
       <button class="nav-tab active" onclick="showTab('calendar')" id="tab-calendar">🗓 Calendar</button>
       <button class="nav-tab" onclick="showTab('homework')" id="tab-homework">📚 Homework</button>
       <button class="nav-tab" onclick="showTab('tests')" id="tab-tests">📝 Tests</button>
+      <button class="nav-tab" onclick="showTab('help')" id="tab-help">❓ Help</button>
+    </div>
+
+    <!-- Help tab — videos chosen by admin for students -->
+    <div id="panel-help" style="display:none;">
+      <div id="help-videos-box" style="padding:8px 0;"></div>
     </div>
 
     <!-- Calendar tab -->
@@ -117,10 +123,27 @@
   }
 
   function showTab(tab) {
-    ['calendar','homework','tests'].forEach(t => {
+    ['calendar','homework','tests','help'].forEach(t => {
       document.getElementById(`panel-${t}`).style.display = t === tab ? 'block' : 'none';
       document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     });
+    if (tab === 'help') loadHelpVideos();
+  }
+
+  // ---- Help videos (admin chooses which ones show here) ----
+  function helpEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+  async function loadHelpVideos() {
+    const box = document.getElementById('help-videos-box'); if (!box || !token) return;
+    try {
+      const r = await fetch(`${SERVER_URL}/help-videos`, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json(); const vids = d.videos || [];
+      if (!vids.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">No help videos yet. / Aún no hay videos de ayuda.</div>'; return; }
+      box.innerHTML = vids.map(v => `<div style="margin-bottom:20px;">
+        <div style="font-weight:700;margin-bottom:6px;">${helpEsc(v.title)}</div>
+        <div style="position:relative;padding-bottom:56.25%;height:0;">
+          <iframe src="https://www.youtube-nocookie.com/embed/${helpEsc(v.youtubeId)}" title="${helpEsc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        </div></div>`).join('');
+    } catch (e) { box.innerHTML = '<div style="color:#e53935;">Could not load help videos.</div>'; }
   }
 
   // ---- Calendar (reuses the same authenticated /assignments endpoint as the rest of the app) ----
