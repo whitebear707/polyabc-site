@@ -288,7 +288,7 @@
     <div style="font-size:2rem;margin-bottom:8px;">📲</div>
     <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Instalar PolyABC Admin</div>
     <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:16px;">
-      Tap the <strong>Share button</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
+      Tap the <strong>Compartir</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
     </div>
     <button onclick="closeAdminIosPopup()" style="background:#1a73e8;color:white;border:none;padding:10px 28px;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:700;cursor:pointer;">Got it!</button>
   </div>
@@ -1086,7 +1086,7 @@
     <div class="modal-title" id="review-req-title">Pedir reseña</div>
     <div style="font-size:0.83rem;color:#666;margin-bottom:12px;">The teacher gets an email and a flashing alert on their schedule until the review is submitted.</div>
     <div class="field-group"><label>Alumno</label>
-      <select id="review-req-student"><option value="">Loading…</option></select>
+      <select id="review-req-student"><option value="">Cargando…</option></select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="field-group"><label>Evaluación desde</label><input type="date" id="review-req-from"/></div>
@@ -1221,7 +1221,7 @@ async function doLogin() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pass })
     });
-    if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
     const data = await res.json();
     if (!data.success) { document.getElementById('login-error').style.display = 'block'; return; }
     if (data.role !== 'admin') {
@@ -1243,7 +1243,7 @@ async function doLogin() {
     refreshTicketBadge();
     setInterval(refreshTicketBadge, 30000);
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
     showAlert('😬','Error de conexión','No se pudo conectar con el servidor.',[{label:'OK',fn:'closeAlert()',primary:true}]);
   }
 }
@@ -1626,7 +1626,7 @@ function renderDayDetail(dateStr) {
               <div style="font-weight:900;">❗ ${a.cancelEmergency ? '🚨 Emergency reschedule — schedule a new class, then confirm' : 'Cancelled by parent — needs your decision'}</div>
               <div style="display:flex;gap:6px;margin-top:6px;">
                 <button onclick="confirmCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#d32f2f;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">✔ Confirm cancel</button>
-                <button onclick="undoCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#2e7d32;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">↩ Undo cancel</button>
+                <button onclick="undoCancelClass('${escJsAttr(a.cancelAbsenceId || '')}','${dateStr}')" style="flex:1;background:#2e7d32;color:white;border:none;padding:6px;border-radius:6px;font-family:Nunito;font-weight:800;font-size:0.72rem;cursor:pointer;">↩ Deshacer cancelación</button>
               </div></div>` : '';
         return `<div style="background:${a.cancelPending ? '#fff0f0' : '#fff3e0'};border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;margin-top:4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1787,7 +1787,7 @@ function refreshNewTrialTeachers() {
 async function saveNewTrialSlot(bookingId) {
   const dateStr = document.getElementById('trial-new-date').value;
   const time = document.getElementById('trial-new-time').value;
-  if (!dateStr || !time) { alert('Please pick a date and time'); return; }
+  if (!dateStr || !time) { alert('Elige una fecha y hora'); return; }
   await saveTrialAssignment(bookingId, dateStr, time);
 }
 
@@ -1798,8 +1798,8 @@ async function assignTrialToExisting(bookingId, studentName) {
   const passwordInput = document.getElementById('trial-existing-password');
   const password = passwordInput.value.trim();
 
-  if (!assignmentId) { status.textContent = '⚠️ Please choose a class'; status.style.color = '#e53935'; return; }
-  if (!password) { status.textContent = '⚠️ Please set a password for this student'; status.style.color = '#e53935'; return; }
+  if (!assignmentId) { status.textContent = '⚠️ Elige una clase'; status.style.color = '#e53935'; return; }
+  if (!password) { status.textContent = '⚠️ Pon una contraseña para este alumno'; status.style.color = '#e53935'; return; }
 
   const assignment = allAssignments.find(a => a._id === assignmentId);
   if (!assignment) { status.textContent = '⚠️ Class not found — try refreshing'; status.style.color = '#e53935'; return; }
@@ -1810,7 +1810,7 @@ async function assignTrialToExisting(bookingId, studentName) {
   });
   const assignData = await assignRes.json();
   if (!assignData.success) {
-    status.textContent = '❌ ' + (assignData.error || 'Could not assign — try a different password');
+    status.textContent = '❌ ' + (assignData.error || 'No se pudo asignar — prueba otra contraseña');
     status.style.color = '#e53935';
     return;
   }
@@ -1851,14 +1851,14 @@ function openAssignSubModal(assignmentId, room, dateStr, time) {
 async function saveAssignSub(assignmentId, dateStr) {
   const subRoom = document.getElementById('sub-teacher-select').value;
   const status = document.getElementById('assign-sub-status');
-  if (!subRoom) { status.textContent = '⚠️ Please choose a substitute teacher'; status.style.color = '#e53935'; return; }
+  if (!subRoom) { status.textContent = '⚠️ Elige un maestro suplente'; status.style.color = '#e53935'; return; }
 
   const res = await fetch(`${SERVER_URL}/assignments/${assignmentId}/assign-sub`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ subRoom })
   });
   const data = await res.json();
-  if (!data.success) { status.textContent = '❌ ' + (data.error || 'Could not assign substitute'); status.style.color = '#e53935'; return; }
+  if (!data.success) { status.textContent = '❌ ' + (data.error || 'No se pudo asignar el suplente'); status.style.color = '#e53935'; return; }
 
   document.getElementById('assign-day-overlay').style.display = 'none';
   await loadAllAssignmentsData();
@@ -1901,7 +1901,7 @@ async function checkTrialPasswordAvailable(studentName) {
         status.style.color = '#00897b';
         input.style.borderColor = '#00897b';
       } else {
-        status.textContent = '❌ Already used by another student — choose a different password';
+        status.textContent = '❌ Ya lo usa otro alumno — elige otra contraseña';
         status.style.color = '#e53935';
         input.style.borderColor = '#e53935';
       }
@@ -1918,7 +1918,7 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   const status = document.getElementById('trial-password-status');
 
   if (!password) {
-    status.textContent = '⚠️ Please set a password for this student';
+    status.textContent = '⚠️ Pon una contraseña para este alumno';
     status.style.color = '#e53935';
     passwordInput.style.borderColor = '#e53935';
     return;
@@ -1932,7 +1932,7 @@ async function saveTrialAssignment(bookingId, dateStr, time) {
   });
   const assignData = await assignRes.json();
   if (!assignData.success) {
-    status.textContent = '❌ ' + (assignData.error || 'Could not assign — try a different password');
+    status.textContent = '❌ ' + (assignData.error || 'No se pudo asignar — prueba otra contraseña');
     status.style.color = '#e53935';
     passwordInput.style.borderColor = '#e53935';
     return;
@@ -1993,7 +1993,7 @@ function _showAssignGroupModal(dateStr, room) {
     <div class="field-group">
       <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Tipo de clase</label>
       <select id="modal-class-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
-        <option value="">-- Select type --</option>
+        <option value="">-- Elige tipo --</option>
         <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
         <option>Group - 40 Min</option>
       </select>
@@ -2095,18 +2095,18 @@ async function populateGDLTimeDropdown(dateStr) {
     if (!isToday && upcoming.length) sel.value = upcoming[0].val;
 
   } catch(e) {
-    sel.innerHTML = '<option value="">⚠️ Could not load times — check connection</option>';
+    sel.innerHTML = '<option value="">⚠️ No se pudieron cargar los horarios — revisa la conexión</option>';
   }
 }
 
 async function saveAssignGroup(dateStr, room) {
   const selVal = document.getElementById('modal-group-select').value;
-  if (!selVal) { showAlert('😬','Oh No! Woops!','Please select a group or student.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (!selVal) { showAlert('😬','¡Ups!','Elige un grupo o alumno.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   const rawTime = document.getElementById('modal-assign-time').value;
-  if (!rawTime) { showAlert('😬','Oh No! Woops!','Please set a time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (!rawTime) { showAlert('😬','¡Ups!','Pon una hora.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   const time = rawTime; // Already Guadalajara time — came from server
   const classType = document.getElementById('modal-class-type').value;
-  if (!classType) { showAlert('😬','Oh No! Woops!','Please select a class type.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (!classType) { showAlert('😬','¡Ups!','Elige un tipo de clase.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
   const isStudent = selVal.startsWith('student:');
   const studentName = isStudent ? selVal.replace('student:','') : null;
@@ -2120,7 +2120,7 @@ async function saveAssignGroup(dateStr, room) {
   const teacherName = `Teacher ${teacher?.teacherName || 'Room '+room}`;
   const dateStatus = teacher?.dates?.[dateStr] || 'unavailable';
   if (dateStatus !== 'available') {
-    showAlert('😬','Oh No! Woops!',`${teacherName} is not marked as available on ${dateStr}.`,[{label:'Got it',fn:'closeAlert()',primary:true}]); return;
+    showAlert('😬','¡Ups!',`${teacherName} is not marked as available on ${dateStr}.`,[{label:'Entendido',fn:'closeAlert()',primary:true}]); return;
   }
 
   // Check time is within teacher's available hours for that day
@@ -2128,9 +2128,9 @@ async function saveAssignGroup(dateStr, room) {
   const hours = teacher?.dayHours?.[dayName];
   if (hours?.start && hours?.end) {
     if (time < hours.start || time > hours.end) {
-      showAlert('😬','Oh No! Woops!',
+      showAlert('😬','¡Ups!',
         `${teacherName} está disponible los ${dayName}s de ${fmt12(hours.start)} a ${fmt12(hours.end)}.\n\n${fmt12(time)} está fuera de su horario.`,
-        [{label:'Got it',fn:'closeAlert()',primary:true}]); return;
+        [{label:'Entendido',fn:'closeAlert()',primary:true}]); return;
     }
   }
 
@@ -2142,7 +2142,7 @@ async function saveAssignGroup(dateStr, room) {
     return newStart < aEnd && newEnd > aStart;
   });
   if (overlap) {
-    showAlert('😬','Oh No! Woops!',`Overlaps with an existing class at ${fmt12(overlap.time)}.`,[{label:'Got it',fn:'closeAlert()',primary:true}]); return;
+    showAlert('😬','¡Ups!',`Overlaps with an existing class at ${fmt12(overlap.time)}.`,[{label:'Entendido',fn:'closeAlert()',primary:true}]); return;
   }
 
   await fetch(`${SERVER_URL}/assignments`, {
@@ -2224,7 +2224,7 @@ async function openReviewRequestModal(room) {
     `${ym}-${pad(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate())}`;
   document.getElementById('review-req-error').style.display = 'none';
   const sel = document.getElementById('review-req-student');
-  sel.innerHTML = '<option value="">Loading students…</option>';
+  sel.innerHTML = '<option value="">Cargando alumnos…</option>';
   box.classList.add('open');
   try {
     const [sRes, oRes] = await Promise.all([
@@ -2235,7 +2235,7 @@ async function openReviewRequestModal(room) {
     const open  = await oRes.json();
     const openNames = new Set((open || []).map(o => o.studentName));
     sel.innerHTML = names.length
-      ? '<option value="">-- Select student --</option>' + names.map(n =>
+      ? '<option value="">-- Elige alumno --</option>' + names.map(n =>
           `<option value="${n}"${openNames.has(n) ? ' disabled' : ''}>${n}${openNames.has(n) ? ' (solicitud ya abierta)' : ''}</option>`).join('')
       : '<option value="">Ningún alumno asignado a este maestro</option>';
     const pend = document.getElementById('review-req-pending');
@@ -2256,9 +2256,9 @@ async function sendReviewRequest() {
   err.style.display = 'none';
   const periodFrom = document.getElementById('review-req-from').value;
   const periodTo   = document.getElementById('review-req-to').value;
-  if (!studentName) { err.textContent = 'Please pick a student.'; err.style.display = 'block'; return; }
-  if (!periodFrom || !periodTo) { err.textContent = 'Please set both evaluation dates.'; err.style.display = 'block'; return; }
-  if (periodFrom > periodTo) { err.textContent = 'The start date must come before the end date.'; err.style.display = 'block'; return; }
+  if (!studentName) { err.textContent = 'Elige un alumno.'; err.style.display = 'block'; return; }
+  if (!periodFrom || !periodTo) { err.textContent = 'Pon ambas fechas de evaluación.'; err.style.display = 'block'; return; }
+  if (periodFrom > periodTo) { err.textContent = 'La fecha de inicio debe ser anterior a la de fin.'; err.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/reviews/request`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
@@ -2266,7 +2266,7 @@ async function sendReviewRequest() {
   });
   const data = await res.json();
   if (data.success) { closeReviewRequestModal(); showToast('✅ Review requested — teacher notified'); }
-  else { err.textContent = data.error || 'Could not send request.'; err.style.display = 'block'; }
+  else { err.textContent = data.error || 'No se pudo enviar la solicitud.'; err.style.display = 'block'; }
 }
 
 function openAddTeacherModal() {
@@ -2344,7 +2344,7 @@ async function handleTeacherPhotoPick(input) {
   const status = document.getElementById('teacher-photo-status');
   const file = input.files?.[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) { status.textContent = '⚠️ Please choose an image file'; status.style.color = '#e53935'; return; }
+  if (!file.type.startsWith('image/')) { status.textContent = '⚠️ Elige un archivo de imagen'; status.style.color = '#e53935'; return; }
   status.textContent = 'Processing...'; status.style.color = '#888';
   try {
     const dataUrl = await shrinkImage(file);
@@ -2374,7 +2374,7 @@ async function saveTeacher() {
   const pass    = document.getElementById('teacher-pass-input').value.trim();
   const rate    = document.getElementById('teacher-rate-input').value;
   const timeOverride = document.getElementById('teacher-emergency').checked;
-  if (!room || !pass) { showAlert('😬','Oh No! Woops!','Room number and password are required.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (!room || !pass) { showAlert('😬','¡Ups!','Room number and password are required.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
   const body = { teacherName: name, teacherEmail: email, teacherPassword: pass, hourlyRate: parseFloat(rate)||0, timeOverride };
   if (_teacherPhotoPending !== null) body.photo = _teacherPhotoPending;
@@ -2385,14 +2385,14 @@ async function saveTeacher() {
       body: JSON.stringify(body)
     });
     const data = await res.json();
-    if (data.success === false) { showAlert('😬','Oh No! Woops!',data.message||'Could not save.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+    if (data.success === false) { showAlert('😬','¡Ups!',data.message||'No se pudo guardar.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   } else {
     const res = await fetch(`${SERVER_URL}/rooms`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({ room, ...body })
     });
     const data = await res.json();
-    if (!data.success) { showAlert('😬','Oh No! Woops!',data.message||'Could not create room.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+    if (!data.success) { showAlert('😬','¡Ups!',data.message||'No se pudo crear el salón.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   }
   closeTeacherModal();
   await loadRooms();
@@ -2568,7 +2568,7 @@ async function doBackfillEnrollment() {
     });
     const data = await res.json();
     if (data.success) {
-      showAlert('✅','Done', data.updated
+      showAlert('✅','Listo', data.updated
         ? `${data.updated} student(s) unlocked: ${data.names.join(', ')}`
         : 'No hubo alumnos que cambiar — todos con tipo de clase ya están inscritos.',
         [{label:'OK',fn:'closeAlert()',primary:true}]);
@@ -2585,7 +2585,7 @@ async function doBackfillEnrollment() {
 function toggleSuspend(name, suspend) {
   if (!suspend) {
     showAlert('✅','¿Restaurar acceso?', `${name} podrá volver a entrar a clase.`,
-      [{label:'Cancel',fn:'closeAlert()'},{label:'Restore',fn:`doSuspend('${name.replace(/'/g,"\\'")}',false,'')`,primary:true}]);
+      [{label:'Cancel',fn:'closeAlert()'},{label:'Restaurar',fn:`doSuspend('${name.replace(/'/g,"\\'")}',false,'')`,primary:true}]);
     return;
   }
   showAlert('🚫','¿Desactivar esta cuenta?',
@@ -2799,7 +2799,7 @@ async function saveEditStudent() {
       return;
     }
   } catch(e) {
-    err.textContent = '⚠️ Network error — could not save.';
+    err.textContent = '⚠️ Error de red — no se pudo guardar.';
     err.style.display = 'block';
     return;
   }
@@ -3023,7 +3023,7 @@ function renderGroups() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div>
           <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${escHtml(g.name)}</div>
-          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${escHtml(g.level)} · ${escHtml(g.classType)} · ${fmt12(g.time)||'No time set'}</div>
+          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${escHtml(g.level)} · ${escHtml(g.classType)} · ${fmt12(g.time)||'Sin hora'}</div>
           <div style="font-size:0.8rem;font-weight:700;color:${g.room?'#2e7d32':'#c62828'};margin-top:3px;">${g.room ? `👩‍🏫 ${escHtml(teacherNameForRoom(g.room))} (Room ${escHtml(g.room)}) · Mon–Thu weekly` : '⚠️ No teacher assigned — no classes will be created'}</div>
         </div>
         <div style="display:flex;gap:6px;">
@@ -3032,7 +3032,7 @@ function renderGroups() {
         </div>
       </div>
       <div style="font-size:0.82rem;font-weight:700;color:#555;margin-bottom:6px;">👥 ${(g.students||[]).length} student(s):</div>
-      <div>${(g.students||[]).map(s => `<span class="student-chip">${escHtml(s)}</span>`).join('') || '<span style="color:#aaa;font-size:0.82rem;">No students yet</span>'}</div>
+      <div>${(g.students||[]).map(s => `<span class="student-chip">${escHtml(s)}</span>`).join('') || '<span style="color:#aaa;font-size:0.82rem;">Aún no hay alumnos</span>'}</div>
     </div>`;
   }).join('');
 }
@@ -3094,7 +3094,7 @@ function populateGroupStudentSelect() {
 function addStudentToGroup() {
   const val = document.getElementById('group-add-student-select').value;
   if (!val) return;
-  if (_groupStudents.length >= 6) { showAlert('😬','Oh No! Woops!','Groups can have a maximum of 6 students.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (_groupStudents.length >= 6) { showAlert('😬','¡Ups!','Groups can have a maximum of 6 students.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   if (!_groupStudents.includes(val)) _groupStudents.push(val);
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -3109,7 +3109,7 @@ function removeGroupStudent(name) {
 function renderGroupStudentChips() {
   document.getElementById('group-student-chips').innerHTML =
     _groupStudents.map(s => `<span class="student-chip">${escHtml(s)}<button onclick="removeGroupStudent('${escJsAttr(s)}')">×</button></span>`).join('') ||
-    '<span style="color:#aaa;font-size:0.82rem;padding:4px;">No students yet</span>';
+    '<span style="color:#aaa;font-size:0.82rem;padding:4px;">Aún no hay alumnos</span>';
 }
 
 async function saveGroup() {
@@ -3119,9 +3119,9 @@ async function saveGroup() {
   const classType = document.getElementById('group-type').value;
   const room = document.getElementById('group-room').value;
   const time = document.getElementById('group-time').value;
-  if (!name) { showAlert('😬','Oh No! Woops!','Group name is required.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
-  if (room && !time) { showAlert('😬','Oh No! Woops!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
-  if (time && !room) { showAlert('😬','Oh No! Woops!','Pick a teacher for this group, or clear the class time.',[{label:'Got it',fn:'closeAlert()',primary:true}]); return; }
+  if (!name) { showAlert('😬','¡Ups!','Group name is required.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
+  if (room && !time) { showAlert('😬','¡Ups!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
+  if (time && !room) { showAlert('😬','¡Ups!','Pick a teacher for this group, or clear the class time.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
   const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents });
   if (id) {
@@ -3161,7 +3161,7 @@ function openResetModal() {
 async function confirmReset() {
   const pw = document.getElementById('reset-password').value;
   const errEl = document.getElementById('reset-error');
-  if (!pw) { errEl.textContent = 'Please enter your password.'; errEl.style.display = 'block'; return; }
+  if (!pw) { errEl.textContent = 'Escribe tu contraseña.'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/admin/reset-all`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ confirmPassword: pw })
@@ -3217,7 +3217,7 @@ async function loadTrialBookings() {
           <select id="trial-room-${b._id}" style="flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;font-family:Nunito;font-size:0.8rem;">
             ${rooms.map(r=>`<option value="${r.room}">Teacher ${r.teacherName} · Room ${r.room}</option>`).join('')}
           </select>
-          <button onclick="assignTrial('${b._id}')" style="padding:5px 10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">Assign</button>
+          <button onclick="assignTrial('${b._id}')" style="padding:5px 10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">Asignar</button>
         </div>
       </div>
     `).join('');
@@ -3259,7 +3259,7 @@ async function loadPayroll() {
   const from = document.getElementById('pay-from').value;
   const to   = document.getElementById('pay-to').value;
   const room = document.getElementById('pay-teacher').value;
-  if (!from || !to) { showAlert('😬','Oh No!','Please select a date range.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
+  if (!from || !to) { showAlert('😬','¡Ups!','Elige un rango de fechas.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
 
   const results = document.getElementById('payroll-results');
   const url = `${SERVER_URL}/payroll?from=${from}&to=${to}${room?'&room='+room:''}`;
@@ -3271,10 +3271,10 @@ async function loadPayroll() {
     console.log('Payroll response:', data);
 
   if (!Array.isArray(data)) { results.innerHTML = `<div class="card" style="color:#e53935;text-align:center;padding:20px;">Error: ${data.error || JSON.stringify(data)}</div>`; return; }
-  if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No payroll data found.</div>'; return; }
+  if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No hay datos de nómina.</div>'; return; }
   // Filter to only teachers with classes
   const withClasses = data.filter(t => t.classes.length > 0);
-  if (!withClasses.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No completed classes found in this period.</div>'; return; }
+  if (!withClasses.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No hay clases completadas en este periodo.</div>'; return; }
 
   const totalAll = withClasses.reduce((sum, t) => sum + t.netPay, 0);
 
@@ -3310,12 +3310,12 @@ async function loadPayroll() {
         </div>
         ${t.classes.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
           <thead><tr style="background:#f0f4f8;">
-            <th style="padding:6px 10px;text-align:left;color:#888;">Date</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Fecha</th>
             <th style="padding:6px 10px;text-align:left;color:#888;">Grupo</th>
             <th style="padding:6px 10px;text-align:left;color:#888;">Tipo</th>
             <th style="padding:6px 10px;text-align:left;color:#888;">Alumnos</th>
-            <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
-            <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Nota</th>
+            <th style="padding:6px 10px;text-align:right;color:#888;">Pagar</th>
           </tr></thead>
           <tbody>${t.classes.map(c => `<tr style="border-bottom:1px solid #f0f0f0;${c.flagEarly ? 'background:#ffebee;' : c.teacherNoShow ? 'background:#f3e5f5;' : c.isIncomplete ? 'background:#fff8f8;' : c.debtPayoffMins > 0 ? 'background:#fffde7;' : ''}">
             <td style="padding:6px 10px;">${c.date}</td>
@@ -3326,7 +3326,7 @@ async function loadPayroll() {
             <td style="padding:6px 10px;">${buildPayrollTags(c)}</td>
             <td style="padding:6px 10px;text-align:right;font-weight:900;color:${c.isIncomplete ? '#b71c1c' : '#2e7d32'};">${c.isIncomplete ? '⚠️ ' : ''}$${c.classPay.toFixed(2)}</td>
           </tr>`).join('')}</tbody>
-        </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No classes this period</div>'}
+        </table>` : '<div style="color:#aaa;font-size:0.85rem;text-align:center;padding:8px;">No hay clases en este periodo</div>'}
       </div>
     `).join('')}`;
   } catch(e) {
@@ -3386,7 +3386,7 @@ function buildStatusTags(r) {
   // No show
   if (!r.teacherLoginAt && !r.teacherOpenedAt) tags.push(tag('white', '#b71c1c', '🔴 NO SHOW'));
 
-  return tags.join('') || tag('#555', '#f0f0f0', 'No status');
+  return tags.join('') || tag('#555', '#f0f0f0', 'Sin estatus');
 }
 
 function buildPayrollTags(c) {
@@ -3409,7 +3409,7 @@ async function loadAttendance() {
   const toDate      = document.getElementById('att-to').value;
   const roomFilter  = document.getElementById('att-room').value.trim();
   const cards       = document.getElementById('attendance-cards');
-  cards.innerHTML   = '<div style="color:#aaa;text-align:center;padding:20px;">Searching...</div>';
+  cards.innerHTML   = '<div style="color:#aaa;text-align:center;padding:20px;">Buscando...</div>';
 
   // Determine which rooms to search
   let roomsToSearch = rooms.map(r => r.room);
@@ -3437,7 +3437,7 @@ async function loadAttendance() {
   allRecords.sort((a,b) => b.date.localeCompare(a.date) || a._room.localeCompare(b._room));
 
   if (!allRecords.length) {
-    cards.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No records found.</div>';
+    cards.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No se encontraron registros.</div>';
     return;
   }
 
@@ -3519,7 +3519,7 @@ function openAttDetail(idx) {
         <td style="font-weight:700;">${escHtml(name)}</td>
         <td colspan="4" style="font-weight:900;color:#e65100;letter-spacing:0.5px;">LOGGED IN — NEVER ENTERED CLASS</td>
       </tr>
-      <tr style="background:#fff8e1;"><td colspan="5" style="padding:4px 12px 8px;font-size:0.75rem;color:#555;">${lobbyLine(l)}<br><b style="color:#b71c1c;">The classroom never received this student.</b></td></tr>`;
+      <tr style="background:#fff8e1;"><td colspan="5" style="padding:4px 12px 8px;font-size:0.75rem;color:#555;">${lobbyLine(l)}<br><b style="color:#b71c1c;">El salón nunca recibió a este alumno.</b></td></tr>`;
       return `<tr>
       <td style="font-weight:700;">${escHtml(name)}</td>
       <td style="font-weight:900;color:#e53935;letter-spacing:1px;">NO SHOW</td>
@@ -3541,7 +3541,7 @@ function openAttDetail(idx) {
       <tr style="background:#fff8f8;">
         <td colspan="5" style="padding:4px 12px 8px;">
           <table style="width:100%;font-size:0.75rem;border-collapse:collapse;">
-            <tr><th style="color:#888;text-align:left;padding:2px 6px;">#</th><th style="color:#888;text-align:left;padding:2px 6px;">Disconnected</th><th style="color:#888;text-align:left;padding:2px 6px;">Reconnected</th><th style="color:#888;text-align:right;padding:2px 6px;">Gap</th></tr>
+            <tr><th style="color:#888;text-align:left;padding:2px 6px;">#</th><th style="color:#888;text-align:left;padding:2px 6px;">Desconectado</th><th style="color:#888;text-align:left;padding:2px 6px;">Reconectado</th><th style="color:#888;text-align:right;padding:2px 6px;">Hueco</th></tr>
             ${disconnects.map((d,i) => `<tr>
               <td style="padding:2px 6px;color:#888;">${i+1}</td>
               <td style="padding:2px 6px;color:#b71c1c;font-weight:700;">${fmtT(d.disconnectedAt)}</td>
@@ -3580,9 +3580,9 @@ function openAttDetail(idx) {
           ${r.networkTest.quality==='good'?'🟢':'🟡'} Red al entrar: ${r.networkTest.avgPing}ms ping · ${r.networkTest.jitter||'—'}ms jitter · ${r.networkTest.packetLoss}% pérdida — ${r.networkTest.quality.toUpperCase()}
         </div>` : ''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px;">
-          <div><div style="font-size:0.75rem;color:#888;">Greeting Window</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
-          <div><div style="font-size:0.75rem;color:#888;">Opened Class</div><div style="font-weight:900;color:#2e7d32;">${fmtT(r.teacherOpenedAt)}</div></div>
-          <div><div style="font-size:0.75rem;color:#888;">Closed Class</div><div style="font-weight:900;color:#e53935;">${fmtT(r.classEndedAt)}</div></div>
+          <div><div style="font-size:0.75rem;color:#888;">Ventana de bienvenida</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
+          <div><div style="font-size:0.75rem;color:#888;">Clase abierta</div><div style="font-weight:900;color:#2e7d32;">${fmtT(r.teacherOpenedAt)}</div></div>
+          <div><div style="font-size:0.75rem;color:#888;">Clase cerrada</div><div style="font-weight:900;color:#e53935;">${fmtT(r.classEndedAt)}</div></div>
         </div>
         ${r.manualEntry ? `<span style="background:#9c27b0;color:white;padding:3px 10px;border-radius:10px;font-size:0.78rem;font-weight:900;">🛠️ MANUAL ENTRY</span>` : ''}
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${r.disconnects?.length ? '10px' : '0'};">
@@ -3595,9 +3595,9 @@ function openAttDetail(idx) {
           <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
             <tr style="background:#fff8f8;">
               <th style="padding:4px 8px;text-align:left;color:#888;font-weight:700;">#</th>
-              <th style="padding:4px 8px;text-align:left;color:#888;font-weight:700;">Disconnected</th>
-              <th style="padding:4px 8px;text-align:left;color:#888;font-weight:700;">Reconnected</th>
-              <th style="padding:4px 8px;text-align:right;color:#888;font-weight:700;">Gap</th>
+              <th style="padding:4px 8px;text-align:left;color:#888;font-weight:700;">Desconectado</th>
+              <th style="padding:4px 8px;text-align:left;color:#888;font-weight:700;">Reconectado</th>
+              <th style="padding:4px 8px;text-align:right;color:#888;font-weight:700;">Hueco</th>
             </tr>
             ${r.disconnects.map((d,i) => `
             <tr style="border-top:1px solid #ffebee;">
@@ -3618,7 +3618,7 @@ function openAttDetail(idx) {
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#b71c1c;font-weight:900;">DISCONNECT</th>
           <th style="padding:8px 12px;text-align:left;font-size:0.8rem;color:#1a73e8;font-weight:900;">NETWORK</th>
         </tr></thead>
-        <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No students recorded</td></tr>'}</tbody>
+        <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No hay alumnos registrados</td></tr>'}</tbody>
       </table>
     </div>`;
 }
@@ -3632,7 +3632,7 @@ function printAttDetail() {
   const content = document.getElementById('print-area')?.innerHTML;
   if (!content) return;
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Reporte de asistencia</title>
     <style>body{font-family:Nunito,sans-serif;padding:24px;color:#1a1a2e;}table{width:100%;border-collapse:collapse;}th,td{padding:8px 12px;border-bottom:1px solid #eee;text-align:left;}th{background:#f0f4f8;font-size:0.8rem;color:#888;font-weight:900;}@media print{body{padding:16px;}}</style>
     </head><body>${content}
 <!-- Billing Edit Modal -->
@@ -3705,10 +3705,10 @@ async function generateRegCode() {
     modal.innerHTML = `
       <div style="background:white;border-radius:16px;padding:26px;width:100%;max-width:440px;">
         <div style="text-align:center;font-size:1.5rem;">🔗</div>
-        <div style="text-align:center;font-weight:900;font-size:1.1rem;margin-bottom:4px;">Registration Link Ready</div>
+        <div style="text-align:center;font-weight:900;font-size:1.1rem;margin-bottom:4px;">Enlace de registro listo</div>
         <div style="text-align:center;color:#e53935;font-size:0.8rem;font-weight:700;margin-bottom:18px;">⏰ Expires in 48 hours — single use only</div>
 
-        <label style="font-size:0.78rem;font-weight:900;color:#555;">Message to send the parent</label>
+        <label style="font-size:0.78rem;font-weight:900;color:#555;">Mensaje para enviar al padre</label>
         <textarea id="reg-msg" readonly style="width:100%;height:110px;margin-top:5px;padding:10px;border:2px solid #ddd;border-radius:10px;font-family:Nunito;font-size:0.85rem;resize:none;">${msg}</textarea>
         <button onclick="
           const t=document.getElementById('reg-msg'); t.select(); document.execCommand('copy');
@@ -3724,7 +3724,7 @@ async function generateRegCode() {
               this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500);
             " style="padding:10px 14px;background:#1a73e8;color:white;border:none;border-radius:10px;cursor:pointer;">📋</button>
           </div>
-          <div style="font-size:0.75rem;color:#888;margin-top:6px;">The parent can type this on the registration screen instead.</div>
+          <div style="font-size:0.75rem;color:#888;margin-top:6px;">El padre también puede escribir esto en la pantalla de registro.</div>
         </details>
 
         <button onclick="this.closest('div[style]').remove()" style="width:100%;margin-top:16px;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cerrar</button>
@@ -3755,7 +3755,7 @@ async function showStudentRequests() {
     .sort((a, b) => (statusRank[a.student.status] ?? 2) - (statusRank[b.student.status] ?? 2));
 
   if (!requests.length) {
-    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No pending requests</div>';
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No hay solicitudes pendientes</div>';
   } else {
     list.innerHTML = requests.map(r => `
       <div style="background:#f8f9ff;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:10px;">
@@ -3872,8 +3872,8 @@ async function showStudentRequests() {
       document.getElementById('absence-reports-list').innerHTML = pendingAb.map(x => {
         const b = (res, label, bg) => `<button onclick="resolveAbsence('${escJsAttr(x.id)}','${res}')" style="flex:1;min-width:120px;padding:8px;background:${bg};color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">${label}</button>`;
         const buttons = x.kind === '1v1'
-          ? b('cancelled', '✔ Confirm cancel', '#d32f2f') + `<button onclick="undoCancelClass('${escJsAttr(x.id)}', null)" style="flex:1;min-width:120px;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">↩ Undo cancel</button>`
-          : b('discount', `🎟️ Discount (proof received) · ${x.durationMins || 40} min`, '#2e7d32') + b('no-credit', 'No credit', '#757575');
+          ? b('cancelled', '✔ Confirm cancel', '#d32f2f') + `<button onclick="undoCancelClass('${escJsAttr(x.id)}', null)" style="flex:1;min-width:120px;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;font-size:0.8rem;">↩ Deshacer cancelación</button>`
+          : b('discount', `🎟️ Discount (proof received) · ${x.durationMins || 40} min`, '#2e7d32') + b('no-credit', 'Sin crédito', '#757575');
         return `<div style="background:#fff8e1;border-radius:12px;padding:12px;margin-bottom:10px;">
           <div style="font-weight:900;">${escHtml(x.fullName || x.studentName)} <span style="font-weight:400;color:#888;font-size:0.8rem;">· ${x.kind === '1v1' ? '1v1' : 'Group ' + escHtml(x.groupName || '')}</span></div>
           ${x.emergency ? `<div style="font-size:0.8rem;font-weight:800;color:#e65100;margin-top:4px;">🚨 Emergency reschedule (${x.emergencyCount} of ${x.emergencyLimit} this month) — schedule a new class in the Calendar</div>` : ''}
@@ -3967,7 +3967,7 @@ async function handleRescheduleRequest(id, action) {
 }
 
 async function deleteStudentRequest(parentId, studentName) {
-  if (!confirm(`Delete denied request for ${studentName}?`)) return;
+  if (!confirm(`¿Borrar solicitud de ${studentName}?`)) return;
   await fetch(`${SERVER_URL}/admin/student-request/delete`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ parentId, studentName })
@@ -4082,7 +4082,7 @@ function fmtDate(iso) {
 function renderBillingTable(students) {
   const tbody = document.getElementById('billing-tbody');
   if (!tbody) return;
-  if (!students.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#aaa;padding:20px;">No students found</td></tr>'; return; }
+  if (!students.length) { tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#aaa;padding:20px;">No se encontraron alumnos</td></tr>'; return; }
   tbody.innerHTML = students.map(s => {
     const typeColor = s.enrolledType === '1v1' ? '#1a73e8' : s.enrolledType === 'group' ? '#00897b' : '#aaa';
     const paidColor = s.paid ? '#00c853' : '#e53935';
@@ -4116,20 +4116,20 @@ function renderBillingTable(students) {
       <td style="text-align:center;">${escHtml(s.classesPerWeek || '—')}</td>
       <td style="text-align:center;">${escHtml(s.minutesPerClass || '—')}</td>
       <td style="font-size:0.82rem;">${schedueDisplay}</td>
-      <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${escJsAttr(s.name)}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Mark Done</button>`}</td>
+      <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${escJsAttr(s.name)}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Marcar como hecho</button>`}</td>
       <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Paid' : '❌ Unpaid'}</span>${overdueFlag}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.lastPaidAt)}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.nextPaymentDue)}</td>
       <td style="white-space:nowrap;">
         <button onclick="openBillingEdit('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Edit</button>
         <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Paid</button>
-        ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Undo this payment confirmation — wrong click, or the transfer turned out to be fake/cancelled" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Unpaid</button>` : ''}
+        ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Revertir esta confirmación de pago — clic equivocado, o la transferencia resultó falsa/cancelada" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Sin pagar</button>` : ''}
         <button onclick="togglePaymentExempt('${escJsAttr(s.name)}',${!s.paymentExempt})"
           title="${s.paymentExempt ? 'Quitar exención — el alumno SÍ será suspendido por falta de pago' : 'Marcar como exento — el alumno NO será suspendido por falta de pago'}"
           style="padding:4px 8px;background:${s.paymentExempt?'#e3f2fd':'#f5f5f5'};border:1px solid ${s.paymentExempt?'#1a73e8':'#ddd'};border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${s.paymentExempt?'#1a73e8':'#aaa'};margin-right:4px;">
           ${s.paymentExempt ? '🛡 Exempt' : '🔓'}
         </button>
-        <button onclick="toggleSuspend('${escJsAttr(s.name)}',${s.manuallySuspended ? 'false' : 'true'})" style="padding:4px 10px;background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">${s.manuallySuspended ? '✅ Restore' : '🚫 Disable'}</button>
+        <button onclick="toggleSuspend('${escJsAttr(s.name)}',${s.manuallySuspended ? 'false' : 'true'})" style="padding:4px 10px;background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">${s.manuallySuspended ? '✅ Restaurar' : '🚫 Disable'}</button>
       </td>
     </tr>`;
   }).join('');
@@ -4158,7 +4158,7 @@ async function confirmPayment(name) {
 }
 
 async function markUnpaid(name) {
-  if (!confirm(`Undo the payment confirmation for ${name}? This reverts their paid status, due date, and removes the matching ledger entry.`)) return;
+  if (!confirm(`¿Revertir la confirmación de pago de ${name}? Esto regresa su estatus a sin pagar, su fecha de pago y quita el registro correspondiente.`)) return;
   await fetch(`${SERVER_URL}/billing/mark-unpaid/${encodeURIComponent(name)}`, {
     method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
@@ -4238,9 +4238,9 @@ function openBillingEdit(name) {
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">BILLING CYCLE</label>
           <select id="be-cycle" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
             <option value="">— Select —</option>
-            <option value="weekly" ${s.billingCycle==='weekly'?'selected':''}>Weekly</option>
-            <option value="biweekly" ${s.billingCycle==='biweekly'?'selected':''}>Biweekly</option>
-            <option value="monthly" ${s.billingCycle==='monthly'?'selected':''}>Monthly</option>
+            <option value="weekly" ${s.billingCycle==='weekly'?'selected':''}>Semanal</option>
+            <option value="biweekly" ${s.billingCycle==='biweekly'?'selected':''}>Quincenal</option>
+            <option value="monthly" ${s.billingCycle==='monthly'?'selected':''}>Mensual</option>
           </select>
         </div>
         <div>
@@ -4356,13 +4356,13 @@ function _parentAssignDropdown(par, assignedNames) {
   return '<div style="display:flex;gap:8px;margin-top:8px;">'
     + '<select id="assign-sel-' + escHtml(pid) + '" style="flex:1;padding:7px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.85rem;">'
     + '<option value="">+ Assign a student...</option>' + opts + '</select>'
-    + '<button data-pid="' + escHtml(pid) + '" onclick="assignStudent(this.dataset.pid)" style="padding:7px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Assign</button>'
+    + '<button data-pid="' + escHtml(pid) + '" onclick="assignStudent(this.dataset.pid)" style="padding:7px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Asignar</button>'
     + '</div>';
 }
 
 function renderParentsList(parents) {
   const wrap = document.getElementById('parents-list');
-  if (!parents.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No parents found</div>'; return; }
+  if (!parents.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No se encontraron padres</div>'; return; }
   wrap.innerHTML = parents.map(par => {
     const students = par.students || [];
     const assignedNames = students.map(s => s.name);
@@ -4375,7 +4375,7 @@ function renderParentsList(parents) {
     const pid = par._id; const pname = par.name || ''; const pphone = par.phone||''; const pemail = par.email||'';
     const studentRows = students.length
       ? students.map(s => _parentStudentRow(par, s)).join('')
-      : '<div style="color:#aaa;font-size:0.85rem;padding:6px 0;">No students linked</div>';
+      : '<div style="color:#aaa;font-size:0.85rem;padding:6px 0;">Sin alumnos vinculados</div>';
     return '<div style="background:white;border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">'
       + '<div><div style="font-size:1rem;font-weight:900;color:#1a1a2e;">' + relIcon + ' ' + escHtml(par.name||'—') + '</div>'
@@ -4393,7 +4393,7 @@ function renderParentsList(parents) {
 }
 
 function confirmSendCredentials(pid, email) {
-  if (!email) { showAlert('😬','No Email','This parent has no email address on file.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
+  if (!email) { showAlert('😬','Sin correo','This parent has no email address on file.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
   showAlert('📧','¿Enviar datos de acceso?','Se enviará por correo una contraseña temporal nueva a ' + email + '. La contraseña que usen ahora dejará de funcionar, y se les pedirá crear su propia contraseña al entrar.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Send',fn:`doSendCredentials('${pid}')`,primary:true}]);
 }
@@ -4434,7 +4434,7 @@ async function unassignStudent(parentId, studentName) {
   });
   const data = await res.json();
   if (data.success) { showToast('✅ Student unassigned'); await renderParentsPanel(); await loadAll(); renderAllStudents(); }
-  else showToast('❌ Failed');
+  else showToast('❌ Falló');
 }
 
 function openCreateParentModal() {
@@ -4450,16 +4450,16 @@ function openCreateParentModal() {
         <input type="text" id="cp-name" placeholder="e.g. María González"/></div>
       <div class="field-group"><label>Email *</label>
         <input type="email" id="cp-email" placeholder="e.g. maria@email.com"/></div>
-      <div class="field-group"><label>WhatsApp / Phone</label>
+      <div class="field-group"><label>WhatsApp / Teléfono</label>
         <input type="tel" id="cp-phone" placeholder="e.g. +52 33 1234 5678"/></div>
       <div class="field-group"><label>Password * (min 6 characters)</label>
         <input type="text" id="cp-password" placeholder="Dásela al padre"/></div>
-      <div class="field-group"><label>Relationship</label>
+      <div class="field-group"><label>Parentesco</label>
         <select id="cp-relationship" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
           <option value="mother">Mother / Mamá</option>
           <option value="father">Father / Papá</option>
-          <option value="guardian">Guardian / Tutor</option>
-          <option value="self">Adult student</option>
+          <option value="guardian">Tutor</option>
+          <option value="self">Alumno adulto</option>
         </select></div>
 
       <div id="cp-status" style="font-size:0.85rem;font-weight:700;min-height:18px;margin-top:6px;"></div>
@@ -4468,7 +4468,7 @@ function openCreateParentModal() {
         <button onclick="document.getElementById('create-parent-modal').style.display='none'"
           style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancelar</button>
         <button onclick="saveNewParent()"
-          style="flex:1;padding:11px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Create</button>
+          style="flex:1;padding:11px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Crear</button>
       </div>
     </div>`;
   modal.style.display = 'flex';
@@ -4486,7 +4486,7 @@ async function saveNewParent() {
     status.textContent = '⚠️ Name, email and password are required'; status.style.color = '#e53935'; return;
   }
   if (password.length < 6) {
-    status.textContent = '⚠️ Password must be at least 6 characters'; status.style.color = '#e53935'; return;
+    status.textContent = '⚠️ La contraseña debe tener al menos 6 caracteres'; status.style.color = '#e53935'; return;
   }
 
   status.textContent = 'Creating...'; status.style.color = '#888';
@@ -4497,15 +4497,15 @@ async function saveNewParent() {
       body: JSON.stringify({ parentName, email, phone, password, relationship })
     });
     const d = await res.json();
-    if (!d.success) { status.textContent = '❌ ' + (d.error || 'Could not create'); status.style.color = '#e53935'; return; }
+    if (!d.success) { status.textContent = '❌ ' + (d.error || 'No se pudo crear'); status.style.color = '#e53935'; return; }
 
     document.getElementById('create-parent-modal').style.display = 'none';
     await renderParentsPanel();
     showAlert('✅','Parent Created',
       `${parentName} ya puede entrar con:\n\nEmail: ${email}\nPassword: ${password}\n\nAsigna alumnos a esta familia desde la lista de abajo.`,
-      [{label:'Got it',fn:'closeAlert()',primary:true}]);
+      [{label:'Entendido',fn:'closeAlert()',primary:true}]);
   } catch(e) {
-    status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
+    status.textContent = '❌ No se pudo conectar con el servidor'; status.style.color = '#e53935';
   }
 }
 
@@ -4545,7 +4545,7 @@ function openEditParentModal(id, name, phone, email) {
           </div>
         </div>
         <div>
-          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">REASON (internal note)</label>
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">MOTIVO (nota interna)</label>
           <input id="pe-discount-note" value="${(_p?.familyDiscountNote || '').replace(/"/g,'&quot;')}" placeholder="p. ej. 2 hermanos — acordado con la mamá"
             style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
         </div>
@@ -4602,7 +4602,7 @@ async function renderTickets(keepSettings) {
     const r = await fetch(`${SERVER_URL}/admin/tickets?status=${_tkFilter}`, { headers: tkAuth() }); const d = await r.json();
     _tickets = d.tickets || [];
     const b = document.getElementById('ticket-open-badge'); if (b && _tkFilter === 'open') { b.textContent = d.openCount || ''; b.style.display = d.openCount ? 'inline-block' : 'none'; }
-  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load tickets. Try again.</div>'; return; }
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">No se pudieron cargar los tickets. Intenta de nuevo.</div>'; return; }
   if (!_tickets.length) { box.innerHTML = `<div class="card" style="color:#aaa;text-align:center;padding:24px;">No ${_tkFilter} tickets.</div>`; return; }
   box.innerHTML = _tickets.map(t => {
     const when = t.createdAt ? new Date(t.createdAt).toLocaleString() : '';
@@ -4613,8 +4613,8 @@ async function renderTickets(keepSettings) {
       ${t.status === 'resolved' ? `<div style="font-size:0.8rem;color:#2e7d32;margin-top:4px;">✔ Resolved${t.resolutionNote ? ': ' + specEsc(t.resolutionNote) : ''}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
         ${t.status === 'open'
-          ? `<input id="tk-note-${t.id}" type="text" maxlength="500" placeholder="Note (optional)" style="flex:1;min-width:140px;padding:6px;border:2px solid #ddd;border-radius:8px;"><button onclick="resolveTicket('${t.id}')" style="padding:6px 14px;border:none;border-radius:8px;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">Resolve</button>`
-          : `<button onclick="reopenTicket('${t.id}')" style="padding:6px 14px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-weight:700;">Reopen</button>`}
+          ? `<input id="tk-note-${t.id}" type="text" maxlength="500" placeholder="Note (optional)" style="flex:1;min-width:140px;padding:6px;border:2px solid #ddd;border-radius:8px;"><button onclick="resolveTicket('${t.id}')" style="padding:6px 14px;border:none;border-radius:8px;background:#2e7d32;color:#fff;font-weight:700;cursor:pointer;">Resolver</button>`
+          : `<button onclick="reopenTicket('${t.id}')" style="padding:6px 14px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-weight:700;">Reabrir</button>`}
       </div></div>`;
   }).join('');
 }
@@ -4638,7 +4638,7 @@ async function saveTicketSettings() {
   const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, adminEmailsEn: document.getElementById('tk-admin-en').value, billingEmails: document.getElementById('tk-billing').value };
   try {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
-    st.textContent = d.success ? 'Saved ✓' : (d.message || 'No se pudo guardar'); st.style.color = d.success ? '#2e7d32' : '#e53935';
+    st.textContent = d.success ? 'Guardado ✓' : (d.message || 'No se pudo guardar'); st.style.color = d.success ? '#2e7d32' : '#e53935';
     if (d.success) loadTicketSettings();
   } catch (e) { st.textContent = 'No se pudo guardar'; st.style.color = '#e53935'; }
 }
@@ -4651,18 +4651,18 @@ async function loadHelpVideos() {
     const r = await fetch(`${SERVER_URL}/admin/help-videos`, { headers: tkAuth() }); const d = await r.json();
     const vids = d.videos || [];
     _hvVideos = vids;
-    if (!vids.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No help videos yet.</div>'; return; }
+    if (!vids.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">Aún no hay videos de ayuda.</div>'; return; }
     box.innerHTML = vids.map(v => `<div class="card" style="margin-bottom:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
       <img src="https://img.youtube.com/vi/${specEsc(v.youtubeId)}/default.jpg" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;">
       <div style="flex:1;min-width:160px;">
         <b>${specEsc(v.title)}</b>
         <div style="font-size:0.8rem;margin-top:4px;color:#555;">Visible to: ${(v.audience || []).map(a => HV_LABEL[a] || specEsc(a)).join(', ')}</div>
-        <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Open on YouTube</a>
+        <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Abrir en YouTube</a>
       </div>
       <div style="display:flex;gap:8px;"><button onclick="hvStartEdit('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:8px;background:#fff;color:#1a73e8;font-weight:700;cursor:pointer;">Editar</button>
       <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Borrar</button></div>
     </div>`).join('');
-  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load help videos.</div>'; }
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">No se pudieron cargar los videos de ayuda.</div>'; }
 }
 let _hvVideos = [], _hvEditId = null;
 function hvResetForm() {
@@ -4695,7 +4695,7 @@ async function addHelpVideo() {
       : await fetch(`${SERVER_URL}/admin/help-videos`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     const d = await r.json();
     const ok = !!(d.success);
-    st.textContent = ok ? (editing ? 'Saved ✓' : 'Added ✓') : (d.message || 'No se pudo guardar'); st.style.color = ok ? '#2e7d32' : '#e53935';
+    st.textContent = ok ? (editing ? 'Guardado ✓' : 'Added ✓') : (d.message || 'No se pudo guardar'); st.style.color = ok ? '#2e7d32' : '#e53935';
     if (ok) { hvResetForm(); loadHelpVideos(); }
   } catch (e) { st.textContent = 'No se pudo guardar'; st.style.color = '#e53935'; }
 }
@@ -4712,7 +4712,7 @@ function specRoomOptions(selected) {
   const list = (typeof rooms !== 'undefined' && Array.isArray(rooms)) ? [...rooms].sort((a, b) => String(a.room).localeCompare(String(b.room), undefined, { numeric: true })) : [];
   const hasSel = list.some(r => String(selected || '') === String(r.room));
   // No "any room": a spectator always belongs to one room. The placeholder can't be picked again.
-  return `<option value="" disabled${hasSel ? '' : ' selected'}>Choose a room…</option>` + list.map(r => `<option value="${specEsc(r.room)}"${String(selected || '') === String(r.room) ? ' selected' : ''}>Room ${specEsc(r.room)}${r.teacherName ? ' — ' + specEsc(r.teacherName) : ''}</option>`).join('');
+  return `<option value="" disabled${hasSel ? '' : ' selected'}>Elige un salón…</option>` + list.map(r => `<option value="${specEsc(r.room)}"${String(selected || '') === String(r.room) ? ' selected' : ''}>Room ${specEsc(r.room)}${r.teacherName ? ' — ' + specEsc(r.teacherName) : ''}</option>`).join('');
 }
 async function renderSpectators() {
   const sel = document.getElementById('spec-room'); if (sel) { const cur = sel.value; sel.innerHTML = specRoomOptions(cur); }
@@ -4721,13 +4721,13 @@ async function renderSpectators() {
     const res = await fetch(`${SERVER_URL}/admin/spectators`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const data = await res.json();
     _spectators = Array.isArray(data) ? data : [];
-  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load spectators. Try again.</div>'; return; }
+  } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">No se pudieron cargar los espectadores. Intenta de nuevo.</div>'; return; }
   renderSpectatorsList();
 }
 function renderSpectatorsList() {
   const box = document.getElementById('spectators-list'); if (!box) return;
-  if (!_spectators.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No spectators yet. Create one above.</div>'; return; }
-  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Access</th><th>Contraseña</th><th>Tipo</th><th>Salón</th><th></th></tr></thead><tbody>` +
+  if (!_spectators.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">Aún no hay espectadores. Crea uno arriba.</div>'; return; }
+  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Etiqueta</th><th>Acceso</th><th>Contraseña</th><th>Tipo</th><th>Salón</th><th></th></tr></thead><tbody>` +
     _spectators.map(s => `<tr id="spec-row-${s.id}" style="${s.enabled ? '' : 'opacity:0.55;'}">
       <td style="font-weight:800;">${specEsc(s.label) || '<span style="color:#aaa;">—</span>'}</td>
       <td><button onclick="updateSpectator('${s.id}', { enabled: ${!s.enabled} })" title="${s.enabled ? 'Turn this access off (it keeps the password and room)' : 'Turn this access back on'}" style="padding:6px 12px;border:none;border-radius:14px;font-family:Nunito;font-weight:900;font-size:0.78rem;cursor:pointer;color:#fff;background:${s.enabled ? '#2e7d32' : '#757575'};white-space:nowrap;">${s.enabled ? 'ON · turn off' : 'OFF · turn on'}</button></td>
@@ -4747,12 +4747,12 @@ async function createSpectator() {
   const assignedRoom = document.getElementById('spec-room').value || null;
   if (password.length < 8) { specStatus('⚠️ Password needs at least 8 characters', false); return; }
   if (/\s/.test(password)) { specStatus('⚠️ Password cannot contain spaces', false); return; }
-  if (!assignedRoom) { specStatus('⚠️ Choose a room for this spectator', false); return; }
+  if (!assignedRoom) { specStatus('⚠️ Elige un salón para este espectador', false); return; }
   specStatus('Saving...', true);
   try {
     const res = await fetch(`${SERVER_URL}/admin/spectators`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ label, password, type, assignedRoom }) });
     const d = await res.json();
-    if (!d.success) { specStatus('⚠️ ' + (d.message || 'Could not create'), false); return; }
+    if (!d.success) { specStatus('⚠️ ' + (d.message || 'No se pudo crear'), false); return; }
     document.getElementById('spec-label').value = ''; document.getElementById('spec-password').value = '';
     specStatus('✅ Spectator created', true);
     renderSpectators();
@@ -4763,7 +4763,7 @@ async function updateSpectator(id, fields) {
     const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(fields) });
     const d = await res.json();
     if (!d.success) { specStatus('⚠️ ' + (d.message || 'No se pudo guardar'), false); }
-    else specStatus('✅ Saved', true);
+    else specStatus('✅ Guardado', true);
   } catch (e) { specStatus('⚠️ No se pudo conectar con el servidor', false); }
   renderSpectators();
 }
@@ -4782,7 +4782,7 @@ function saveSpectatorPassword(id) {
 }
 async function deleteSpectator(id) {
   const s = _spectators.find(x => x.id === id); if (!s) return;
-  if (!confirm(`Delete spectator "${s.label || s.password}"? They will be unable to log in, and will be removed from any class they are watching the next time they reconnect.`)) return;
+  if (!confirm(`¿Borrar espectador "${s.label || s.password}"? No podrá entrar, y se quitará de cualquier clase que esté viendo la próxima vez que se reconecte.`)) return;
   try {
     const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
     const d = await res.json();
@@ -4839,13 +4839,13 @@ async function saveSchoolInfo() {
     const d = await res.json();
     if (d.success) {
       document.getElementById('school-whatsapp').value = d.whatsapp || '';
-      status.textContent = '✅ Saved'; status.style.color = '#2e7d32';
+      status.textContent = '✅ Guardado'; status.style.color = '#2e7d32';
       setTimeout(() => { status.textContent = ''; }, 3000);
     } else {
       status.textContent = '❌ ' + (d.error || 'No se pudo guardar'); status.style.color = '#e53935';
     }
   } catch(e) {
-    status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
+    status.textContent = '❌ No se pudo conectar con el servidor'; status.style.color = '#e53935';
   }
 }
 
@@ -4887,7 +4887,7 @@ async function previewClosure() {
 async function applyClosure(start, end) {
   const reason = document.getElementById('closure-reason').value.trim();
   const box = document.getElementById('closure-preview');
-  box.innerHTML = '<div style="color:#888;font-size:0.85rem;">Applying...</div>';
+  box.innerHTML = '<div style="color:#888;font-size:0.85rem;">Aplicando...</div>';
 
   const res = await fetch(`${SERVER_URL}/admin/closure/apply`, {
     method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
@@ -4906,7 +4906,7 @@ async function applyClosure(start, end) {
 
 function renderStaffList() {
   const wrap = document.getElementById('staff-list');
-  if (!_allStaff.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">No staff members yet.</div>'; return; }
+  if (!_allStaff.length) { wrap.innerHTML = '<div style="text-align:center;color:#aaa;padding:32px;">Aún no hay personal.</div>'; return; }
   const roles = ['accountant','techsupport','admin'];
   wrap.innerHTML = roles.map(role => {
     const members = _allStaff.filter(s => s.role === role && s.active !== false);
@@ -4967,8 +4967,8 @@ function openStaffModal(s) {
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SALARY TYPE</label>
           <select id="sm-saltype" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-            <option value="hourly" ${s?.salaryType==='hourly'?'selected':''}>Hourly / Por Hora</option>
-            <option value="monthly" ${s?.salaryType==='monthly'||!s?.salaryType?'selected':''}>Monthly / Mensual</option>
+            <option value="hourly" ${s?.salaryType==='hourly'?'selected':''}>Por hora</option>
+            <option value="monthly" ${s?.salaryType==='monthly'||!s?.salaryType?'selected':''}>Mensual</option>
           </select>
         </div>
         <div>
@@ -5079,7 +5079,7 @@ function renderPendingTransfers(students) {
       ? `${s.enrolledMinutesPerClass} min ${s.enrolledDaysPerWeek}x/week` 
       : '—';
     const amount = s.transferPendingAmount ? `$${s.transferPendingAmount.toLocaleString('es-MX')}` : '—';
-    return `<tr><td>${escHtml(s.name)}</td><td>${escHtml(s.parentEmail || '—')}</td><td>${escHtml(type)}<br><span style="font-size:0.75rem;color:#888;">${escHtml(details)}</span></td><td>${amount}</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pending</span></td><td><button onclick="confirmBankTransfer('${escJsAttr(s.name)}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
+    return `<tr><td>${escHtml(s.name)}</td><td>${escHtml(s.parentEmail || '—')}</td><td>${escHtml(type)}<br><span style="font-size:0.75rem;color:#888;">${escHtml(details)}</span></td><td>${amount}</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pendiente</span></td><td><button onclick="confirmBankTransfer('${escJsAttr(s.name)}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
   }).join('');
   tbody.innerHTML = html;
 }
@@ -5274,7 +5274,7 @@ function flushDelete() {
   modal.innerHTML = `
     <div style="background:white;border-radius:16px;padding:26px;width:100%;max-width:420px;">
       <div style="text-align:center;font-size:1.6rem;">⚠️</div>
-      <div style="text-align:center;font-weight:900;font-size:1.05rem;margin-bottom:4px;color:#c62828;">Permanent Delete</div>
+      <div style="text-align:center;font-weight:900;font-size:1.05rem;margin-bottom:4px;color:#c62828;">Borrado permanente</div>
       <div style="font-size:0.85rem;color:#555;margin-bottom:16px;line-height:1.5;">
         Esto borra TODOS los registros de asistencia, asientos de contabilidad y asignaciones de clase — permanentemente, sin forma de deshacer.
         Asegúrate de haber descargado los registros primero.
@@ -5284,7 +5284,7 @@ function flushDelete() {
       <div id="flush-confirm-error" style="color:#c62828;font-size:0.8rem;font-weight:700;min-height:18px;margin-top:6px;"></div>
       <div style="display:flex;gap:10px;margin-top:10px;">
         <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancelar</button>
-        <button onclick="doFlushDelete()" style="flex:1;padding:11px;background:#c62828;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Delete Permanently</button>
+        <button onclick="doFlushDelete()" style="flex:1;padding:11px;background:#c62828;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Borrar permanentemente</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -5295,7 +5295,7 @@ async function doFlushDelete() {
   const input = document.getElementById('flush-confirm-input');
   const err = document.getElementById('flush-confirm-error');
   if (input.value !== 'DELETE ALL DATA') {
-    err.textContent = 'Phrase does not match — please type it exactly.';
+    err.textContent = 'La frase no coincide — escríbela exactamente.';
     return;
   }
   const modal = input.closest('div[style*="fixed"]');
@@ -5313,7 +5313,7 @@ async function doFlushDelete() {
     const data = await res.json();
     if (data.success) {
       status.style.color = '#00897b';
-      status.textContent = `✅ Deleted: ${data.deleted.attendance} attendance · ${data.deleted.ledger} ledger · ${data.deleted.assignments} assignments`;
+      status.textContent = `✅ Borrado: ${data.deleted.attendance} asistencia · ${data.deleted.ledger} contabilidad · ${data.deleted.assignments} asignaciones`;
     } else {
       status.style.color = '#e53935';
       status.textContent = '❌ ' + (data.error || 'Delete failed');
