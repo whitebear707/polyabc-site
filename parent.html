@@ -638,7 +638,7 @@ async function doForcePassword() {
   const conf = document.getElementById('force-confirm').value;
   const errEl = document.getElementById('force-error');
   errEl.style.display = 'none';
-  if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres / At least 6 characters'; errEl.style.display = 'block'; return; }
+  if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
   if (pwd !== conf) { errEl.textContent = 'Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/change-password`, {
     method: 'POST',
@@ -696,7 +696,7 @@ function renderPaymentBanner(students) {
   let bg, border, icon, heading;
   if (worst.daysLeft < 0) {
     bg = '#ffebee'; border = '#c62828'; icon = '⚠️';
-    heading = 'Pago vencido / Payment overdue';
+    heading = 'Pago vencido';
   } else if (worst.daysLeft === 0) {
     bg = '#fff3e0'; border = '#e65100'; icon = '💳';
     heading = 'Tu pago vence hoy';
@@ -719,7 +719,7 @@ function renderPaymentBanner(students) {
       <div style="font-weight:900;color:${border};font-size:0.95rem;">${icon} ${heading}</div>
       ${lines}
       <button class="btn btn-primary" style="margin-top:12px;padding:9px 18px;font-size:0.9rem;"
-        onclick="showTab('payment')">Ir a pagar / Go to payment</button>
+        onclick="showTab('payment')">Ir a pagar</button>
     </div>`;
   el.style.display = 'block';
 }
@@ -741,7 +741,7 @@ async function loadDashboard() {
   // Render students
   const list = document.getElementById('students-list');
   if (!data.students?.length) {
-    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students yet / Sin estudiantes aún</div>';
+    list.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Sin estudiantes aún</div>';
   } else {
     // Show schedule tab whenever parent has students
     const calTab = document.getElementById('tab-calendar');
@@ -752,7 +752,7 @@ async function loadDashboard() {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
             <span class="student-name">${s.displayName || s.name}</span>
-            <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Paid / Pagado' : '❌ Unpaid / Sin pagar'}</span>
+            <span class="paid-badge ${s.paid ? 'paid-yes' : 'paid-no'}">${s.paid ? '✅ Pagado' : '❌ Sin pagar'}</span>
           </div>
           <span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:700;background:${s.status==='approved'?'#e8f5e9':s.status==='pending'?'#fff3e0':'#ffebee'};color:${s.status==='approved'?'#2e7d32':s.status==='pending'?'#e65100':'#c62828'};">
             ${s.status==='approved'?'✅ Active':s.status==='pending'?'⏳ Pending Review':'❌ Denied'}
@@ -761,9 +761,9 @@ async function loadDashboard() {
         ${s.trialPassword && !s.trialBooked ? `
           ${s.classType === 'group' && s.trialLevel ? `
             <div style="background:linear-gradient(135deg,#00c853,#00701a);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
-              <div style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:12px;">📚 Group Trial Class</div>
-              <div style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-bottom:12px;">The school will contact you to schedule your trial class.<br>La escuela te contactará para agendar tu clase de prueba.</div>
-              <button onclick="requestTrialContact('${s.name}')" style="display:block;width:100%;padding:10px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">📞 Contact School</button>
+              <div style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:12px;">📚 Clase de prueba grupal</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-bottom:12px;">La escuela te contactará para agendar tu clase de prueba.</div>
+              <button onclick="requestTrialContact('${s.name}')" style="display:block;width:100%;padding:10px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;">📞 Contactar a la escuela</button>
             </div>
           ` : (s.classType === '1v1' || (s.classType === 'group' && !s.trialLevel)) ? `
             <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
@@ -784,27 +784,27 @@ async function loadDashboard() {
         ` : ''}
         ${s.trialBooked && !s.trialCompleted ? `
           <div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-top:10px;font-size:0.85rem;">
-            <div style="color:#2e7d32;font-weight:700;">✅ Trial class scheduled! / ¡Clase de prueba programada!</div>
+            <div style="color:#2e7d32;font-weight:700;">✅ ¡Clase de prueba programada!</div>
             <button onclick="openRescheduleRequest('${s.name}')" style="display:block;width:100%;margin-top:10px;padding:8px;background:#ff9800;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.85rem;">
-              📅 Reschedule / Reagendar
+              📅 Reagendar
             </button>
             ${s.trialDate ? `<div style="color:#555;margin-top:2px;">📅 ${s.trialDate} ${s.trialLevel ? '· Level: ' + s.trialLevel : ''}</div>` : ''}
             ${s.studentRoom && s.studentPassword ? `
               <div style="margin-top:10px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
-                <div style="color:rgba(255,255,255,0.8);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎓 How to join / Cómo entrar</div>
+                <div style="color:rgba(255,255,255,0.8);font-size:0.72rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🎓 Cómo entrar</div>
                 <div style="display:flex;gap:10px;justify-content:center;">
                   <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
-                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Room / Salón</div>
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Salón</div>
                     <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;">${s.studentRoom}</div>
                   </div>
                   <div style="background:rgba(255,255,255,0.15);border-radius:8px;padding:8px 16px;">
-                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Password / Contraseña</div>
+                    <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:700;text-transform:uppercase;">Contraseña</div>
                     <div style="color:white;font-size:1.6rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${s.studentPassword}</div>
                   </div>
                 </div>
               </div>` : ''}
           </div>` : ''}
-        ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Please contact billing / Por favor contacte a facturación</div>' : ''}
+        ${!s.paid && s.status === 'approved' ? '<div style="font-size:0.8rem;color:#c62828;margin-top:6px;font-weight:700;">⚠️ Por favor contacta a facturación</div>' : ''}
       </div>
     `).join('');
 
@@ -832,7 +832,7 @@ async function loadDashboard() {
 
 async function renderAvailableClasses() {
   const wrap = document.getElementById('classes-available-list');
-  wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Cargando... / Loading...</div>';
+  wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Cargando...</div>';
   try {
     const [classesRes, infoRes] = await Promise.all([
       fetch(`${SERVER_URL}/parent/available-classes`, { headers: { Authorization: `Bearer ${_parentToken}` } }),
@@ -852,7 +852,7 @@ async function renderAvailableClasses() {
         </div>
         <div style="text-align:right;">
           ${c.full
-            ? '<span style="background:#e0e0e0;color:#666;padding:4px 10px;border-radius:10px;font-size:0.8rem;font-weight:900;">Lleno / Full</span>'
+            ? '<span style="background:#e0e0e0;color:#666;padding:4px 10px;border-radius:10px;font-size:0.8rem;font-weight:900;">Lleno</span>'
             : `<span style="background:#1a1a2e;color:white;padding:4px 10px;border-radius:10px;font-size:0.8rem;font-weight:900;">${c.seatsAvailable} lugar${c.seatsAvailable===1?'':'es'} / seat${c.seatsAvailable===1?'':'s'}</span>`}
           <div style="font-size:0.72rem;color:#aaa;margin-top:2px;">${c.seatsTaken}/6</div>
         </div>
@@ -861,14 +861,12 @@ async function renderAvailableClasses() {
     wrap.innerHTML = `
       <div style="font-size:0.85rem;color:#555;margin-bottom:14px;line-height:1.5;">
         Estos son los horarios de clases grupales disponibles ahora mismo. Si un horario nuevo te conviene más,
-        contáctanos — el cambio se hace por WhatsApp, no desde aquí.<br>
-        <span style="color:#888;">These are the group class schedules currently available. If a new time suits you better,
-        contact us — switching is done via WhatsApp, not from this page.</span>
+        contáctanos — el cambio se hace por WhatsApp, no desde aquí.
       </div>
-      ${rows || '<div style="text-align:center;color:#aaa;padding:20px;">No hay clases grupales configuradas todavía / No group classes set up yet.</div>'}
+      ${rows || '<div style="text-align:center;color:#aaa;padding:20px;">No hay clases grupales configuradas todavía.</div>'}
       <div style="margin-top:18px;padding:16px;background:#fff8e1;border-radius:12px;">
         <div style="font-weight:900;color:#e65100;margin-bottom:4px;">🎓 ¿Buscas clases 1v1?</div>
-        <div style="font-size:0.85rem;color:#666;margin-bottom:10px;">Los horarios 1v1 son personalizados — contáctanos directamente.<br>1v1 schedules are personalized — contact us directly.</div>
+        <div style="font-size:0.85rem;color:#666;margin-bottom:10px;">Los horarios 1v1 son personalizados — contáctanos directamente.</div>
         ${waLink
           ? `<a href="${waLink}" target="_blank" style="display:inline-block;padding:10px 20px;background:#25d366;color:white;border-radius:10px;text-decoration:none;font-weight:900;font-size:0.9rem;">💬 Contactar por WhatsApp</a>`
           : ''}
@@ -911,11 +909,11 @@ async function renderAvailableClasses() {
     try {
       const r = await fetch(`${SERVER_URL}/help-videos`, { headers: { Authorization: `Bearer ${_parentToken}` } });
       const d = await r.json(); HV_LIST = d.videos || [];
-      if (!HV_LIST.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">Aún no hay videos de ayuda. / No help videos yet.</div>'; return; }
+      if (!HV_LIST.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">Aún no hay videos de ayuda.</div>'; return; }
       box.innerHTML = HV_LIST.map((v, i) => `<button onclick="hvOpen(${i})" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid #e2e6ee;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;font-size:0.95rem;font-weight:700;color:#1a1a2e;">` +
         `<span style="flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#e8f0fe;color:#1a73e8;display:flex;align-items:center;justify-content:center;font-size:0.75rem;">▶</span>` +
         `<span style="flex:1;min-width:0;">${esc(v.title)}</span></button>`).join('');
-    } catch (e) { box.innerHTML = '<div style="color:#e53935;">No se pudieron cargar los videos. / Could not load videos.</div>'; }
+    } catch (e) { box.innerHTML = '<div style="color:#e53935;">No se pudieron cargar los videos.</div>'; }
   }
 
 function showTab(tab) {
@@ -1012,8 +1010,8 @@ async function submitAddStudent() {
   const errEl = document.getElementById('add-error');
   const sucEl = document.getElementById('add-success');
   errEl.style.display = 'none'; if(sucEl) sucEl.style.display = 'none';
-  if (!name) { errEl.textContent = 'Please enter first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
-  if (name.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre'; errEl.style.display = 'block'; return; }
+  if (!name) { errEl.textContent = 'Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
+  if (name.includes(' ')) { errEl.textContent = 'Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
   const capName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   const classType = document.getElementById('add-classtype')?.value || '1v1';
   const res = await fetch(`${SERVER_URL}/parent/add-student`, {
@@ -1189,7 +1187,7 @@ async function renderCalendarMonth() {
       ${payBadge}
       <div class="p-cal-grid">${dayLabels}${cells.join('')}</div>
       <div style="display:flex;gap:12px;margin-top:12px;font-size:0.78rem;color:#888;">
-        <span>⭐ = Class day</span>
+        <span>⭐ = Día de clase</span>
         <span>🚫 = Absence reported</span>
         <span style="background:#1a1a2e;color:white;padding:1px 6px;border-radius:4px;">■</span><span>= Scheduled</span>
       </div>
@@ -1244,14 +1242,13 @@ async function renderPaymentTab() {
         <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${s.name}</div>
         <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse</div>
         <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;margin-top:12px;">
-          Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
+          Esto puede tardar de 24 a 48 horas hábiles.
         </div>
       </div>`;
     if (!s.trialCompleted) return `
       <div style="background:#fff3e0;border-radius:12px;padding:16px;margin-bottom:12px;text-align:center;">
         <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">${s.name}</div>
-        <div style="font-size:0.85rem;color:#888;">⏳ Trial class pending — payment options will appear once the trial is complete.<br>
-        Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
+        <div style="font-size:0.85rem;color:#888;">⏳ Clase de prueba pendiente — las opciones de pago aparecerán cuando se complete la prueba.</div>
       </div>`;
 
     // Not due yet — hide the payment form to prevent double payments, show status instead.
@@ -1265,7 +1262,7 @@ async function renderPaymentTab() {
         <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">${s.name}</div>
         <div style="font-size:0.95rem;font-weight:700;color:#2e7d32;">¡Estás al corriente!</div>
         <div style="background:#fff3e0;border-radius:10px;padding:12px;font-size:0.9rem;color:#e65100;margin-top:12px;font-weight:900;">
-          Next payment due: ${fmtDateP(s.nextPaymentDue)}
+          Próximo pago: ${fmtDateP(s.nextPaymentDue)}
         </div>
       </div>`;
 
@@ -1311,24 +1308,24 @@ async function renderPaymentTab() {
         </div>
 
         <!-- Schedule mode toggle -->
-        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📅 ¿Cómo prefieres agendar? / How would you like to schedule?</div>
+        <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📅 ¿Cómo prefieres agendar?</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
           <button type="button" onclick="setScheduleMode('${s.name}','choose')" id="mode-${s.name.replace(/\s/g,'_')}-choose"
             class="pay-opt-btn" style="padding:10px 6px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.82rem;cursor:pointer;">
-            🗓️ Elegir mi horario<br><span style="font-weight:400;font-size:0.75rem;">Choose my schedule</span>
+            🗓️ Elegir mi horario
           </button>
           <button type="button" onclick="setScheduleMode('${s.name}','contact')" id="mode-${s.name.replace(/\s/g,'_')}-contact"
             class="pay-opt-btn" style="padding:10px 6px;border:2px solid #ddd;border-radius:10px;background:white;font-family:Nunito;font-weight:700;font-size:0.82rem;cursor:pointer;">
-            📞 Contáctenme<br><span style="font-weight:400;font-size:0.75rem;">Contact me instead</span>
+            📞 Contáctenme
           </button>
         </div>
 
         <!-- CHOOSE MODE: time picker + real availability calendar -->
         <div id="choose-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
-          <div style="font-size:0.82rem;color:#888;text-align:center;margin-bottom:8px;">Si todos tus días son a la misma hora. Para horarios distintos por día, usa "Contáctenme".<br>Only if all your days share the same time. For different times per day, use "Contact me".</div>
+          <div style="font-size:0.82rem;color:#888;text-align:center;margin-bottom:8px;">Si todos tus días son a la misma hora. Para horarios distintos por día, usa "Contáctenme".</div>
           <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
             <input type="time" id="sched-time-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
-            <button onclick="searchScheduleAvailability('${s.name}')" style="padding:8px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">Buscar / Search</button>
+            <button onclick="searchScheduleAvailability('${s.name}')" style="padding:8px 14px;background:#1a73e8;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;font-size:0.85rem;cursor:pointer;">Buscar</button>
           </div>
           <div id="sched-cal-${s.name.replace(/\s/g,'_')}"></div>
           <div id="sched-hint-${s.name.replace(/\s/g,'_')}" style="font-size:0.78rem;color:#888;text-align:center;margin-top:6px;"></div>
@@ -1346,20 +1343,20 @@ async function renderPaymentTab() {
 
         <!-- CONTACT MODE: time range + contact method -->
         <div id="contact-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
-          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible? / What hours are you available?</div>
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible?</div>
           <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;">
             <input type="time" id="range-from-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
             <span style="color:#888;font-weight:700;">—</span>
             <input type="time" id="range-to-${s.name.replace(/\s/g,'_')}" style="padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
           </div>
-          <div style="font-size:0.78rem;color:#888;text-align:center;margin-top:-10px;margin-bottom:14px;">El admin confirmará un horario exacto dentro de esta ventana.<br>Admin will confirm an exact time within this window.</div>
+          <div style="font-size:0.78rem;color:#888;text-align:center;margin-top:-10px;margin-bottom:14px;">El admin confirmará un horario exacto dentro de esta ventana.</div>
 
-          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📞 ¿Cómo prefieres que te contactemos? / How should we contact you?</div>
+          <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📞 ¿Cómo prefieres que te contactemos?</div>
           <div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:14px;">
-            <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Call / Llamada</label>
+            <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="call" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;">  Llamada</label>
             <label style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="whatsapp" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> WhatsApp</label>
-            <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="email" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Email / Correo</label>
-            <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Phone / Teléfono" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:10px;">
+            <label style="display:flex;align-items:center;cursor:pointer;"><input type="radio" name="contact-method-${s.name.replace(/\s/g,'_')}" value="email" onchange="toggleContactPhoneField('${s.name}')" style="margin-right:8px;"> Correo</label>
+            <input type="tel" id="contact-phone-${s.name.replace(/\s/g,'_')}" placeholder="Teléfono" style="display:none;width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;margin-top:10px;">
           </div>
         </div>
 
@@ -1396,11 +1393,11 @@ async function renderPaymentTab() {
           <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, presiona el botón de abajo. El pago será verificado en 24-48 horas hábiles.</div>
           <button onclick="confirmTransfer('${s.name}')"
             style="width:100%;margin-top:12px;padding:12px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.95rem;font-weight:900;cursor:pointer;">
-            ✅ Ya realicé la transferencia / I made the transfer
+            ✅ Ya realicé la transferencia
           </button>
         </div>
 
-        <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro / Secure payment</div>
+        <div style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:8px;">🔒 Pago seguro</div>
       </div>`;
   }).join('');
 
@@ -1409,10 +1406,9 @@ async function renderPaymentTab() {
   if (payableStudents.length >= 2) {
     wrap.innerHTML += `
       <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:14px;padding:18px;margin-top:8px;">
-        <div style="color:white;font-size:1rem;font-weight:900;margin-bottom:6px;text-align:center;">👨‍👩‍👧‍👦 Pagar Todos Juntos / Pay All Together</div>
+        <div style="color:white;font-size:1rem;font-weight:900;margin-bottom:6px;text-align:center;">👨‍👩‍👧‍👦 Pagar todos juntos</div>
         <div style="color:rgba(255,255,255,0.85);font-size:0.8rem;text-align:center;margin-bottom:14px;">
-          Configura el plan de cada alumno arriba, luego paga todo en una sola transacción.<br>
-          Set each student's plan above, then pay everything in one transaction.
+          Configura el plan de cada alumno arriba, luego paga todo en una sola transacción.
         </div>
         <div id="combined-summary" style="background:rgba(255,255,255,0.12);border-radius:10px;padding:12px;margin-bottom:14px;display:none;"></div>
         <button onclick="transferCombined()" style="width:100%;padding:13px;background:rgba(255,255,255,0.2);color:white;border:2px solid white;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">
@@ -1638,7 +1634,7 @@ async function searchScheduleAvailability(studentName) {
   </div>`;
 
   if (!anyAvailable) {
-    hint.innerHTML = `<span style="color:#e65100;">No hay maestros disponibles a esa hora la próxima semana. Usa "Contáctenme" para que te ayudemos.<br>No teachers available at that time next week. Use "Contact me" so we can help.</span>`;
+    hint.innerHTML = `<span style="color:#e65100;">No hay maestros disponibles a esa hora la próxima semana. Usa "Contáctenme" para que te ayudemos.</span>`;
   } else {
     const limit = (_payState[studentName] || {}).days || 1;
     hint.textContent = `0 / ${limit} días elegidos · 0/${limit} days picked`;
@@ -1658,7 +1654,7 @@ function toggleScheduleDate(studentName, dateStr) {
     if (btn) { btn.style.borderColor = '#ddd'; btn.style.background = 'white'; btn.style.color = '#1a1a2e'; }
   } else {
     if (st.selectedSchedDates.length >= limit) {
-      alert(`Ya elegiste ${limit} día${limit===1?'':'s'}. Cambia "días por semana" para elegir más.\nYou already picked ${limit} day${limit===1?'':'s'}. Change "days per week" to pick more.`);
+      alert(`Ya elegiste ${limit} día${limit===1?'':'s'}. Cambia "días por semana" para elegir más.`);
       return;
     }
     st.selectedSchedDates.push(dateStr);
@@ -1864,7 +1860,7 @@ async function confirmTransfer(studentName) {
             <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:4px;">Tu pago está por verificarse</div>
             <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:12px;">Tu pago está por verificarse</div>
             <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;">
-              Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
+              Esto puede tardar de 24 a 48 horas hábiles.
             </div>
           </div>`;
       }
@@ -1882,9 +1878,9 @@ async function confirmTransfer(studentName) {
   const params = new URLSearchParams(window.location.search);
   const status = params.get('payment');
   if (!status) return;
-  if (status === 'success') setTimeout(() => alert('✅ ¡Pago exitoso!\nThank you — your payment has been received.'), 500);
-  else if (status === 'failure') setTimeout(() => alert('❌ Payment failed. Please try again or contact the school.'), 500);
-  else if (status === 'pending') setTimeout(() => alert('⏳ Payment pending — we will confirm once processed.'), 500);
+  if (status === 'success') setTimeout(() => alert('✅ ¡Pago exitoso! Recibimos tu pago.'), 500);
+  else if (status === 'failure') setTimeout(() => alert('❌ El pago no se completó. Intenta de nuevo o contacta a la escuela.'), 500);
+  else if (status === 'pending') setTimeout(() => alert('⏳ Pago pendiente — confirmaremos cuando se procese.'), 500);
   window.history.replaceState({}, '', window.location.pathname);
 })();
 
@@ -1922,7 +1918,7 @@ async function renderScheduleTab() {
     wrap.innerHTML = `<div style="background:white;border-radius:14px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
       <div style="font-size:2rem;margin-bottom:8px;">📅</div>
       <div style="font-weight:700;color:#1a1a2e;margin-bottom:4px;">Aún no hay clases programadas</div>
-      <div style="font-size:0.85rem;color:#888;">Your class schedule will appear here once the school assigns classes.<br>Tu horario aparecerá aquí cuando la escuela asigne clases.</div>
+      <div style="font-size:0.85rem;color:#888;">Tu horario aparecerá aquí cuando la escuela asigne clases.</div>
     </div>`;
     return;
   }
@@ -2010,11 +2006,11 @@ function showClassPopup(dateStr) {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:10px;padding:12px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Room / Salón</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Salón</div>
           <div style="color:white;font-size:2rem;font-weight:900;line-height:1.2;">${classRoom}</div>
         </div>
         <div style="background:linear-gradient(135deg,#6a1b9a,#4a148c);border-radius:10px;padding:12px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Password / Contraseña</div>
+          <div style="color:rgba(255,255,255,0.7);font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">Contraseña</div>
           <div style="color:white;font-size:1.5rem;font-weight:900;line-height:1.2;letter-spacing:2px;">${studentPassword}</div>
         </div>
       </div>
@@ -2067,35 +2063,35 @@ function absenceBlock(c) {
   const btnCss = 'margin-top:6px;padding:8px 12px;border:none;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;';
   if (ab) {
     const one = ab.kind === '1v1';
-    const label = one && ab.emergency ? '🚨 Reprogramación de emergencia registrada<br><small>Emergency reschedule — la escuela le contactará para programar la nueva clase / the school will contact you to schedule the new class</small>'
-                : one ? '🚫 Clase cancelada<br><small>Class cancelled — para deshacerla contacte a la escuela / to undo, contact the school</small>'
-                : ab.status === 'resolved' ? '✅ Ausencia avisada — la escuela ya la atendió<br><small>Absence reported — handled by the school</small>'
+    const label = one && ab.emergency ? '🚨 Reprogramación de emergencia registrada<br><small>La escuela le contactará para programar la nueva clase</small>'
+                : one ? '🚫 Clase cancelada<br><small>Para deshacerla, contacte a la escuela</small>'
+                : ab.status === 'resolved' ? '✅ Ausencia avisada — la escuela ya la atendió<br><small>Aviso recibido — la escuela ya lo atendió</small>'
                                            : '🚫 Ausencia avisada<br><small>Absence reported</small>';
     const undo = !one && ab.status === 'reported' && hoursLeft > 0
-      ? `<br><button onclick="cancelAbsence('${safe(ab.id)}')" style="${btnCss}background:#eceff1;color:#455a64;">Deshacer / Undo</button>` : '';
+      ? `<br><button onclick="cancelAbsence('${safe(ab.id)}')" style="${btnCss}background:#eceff1;color:#455a64;">Deshacer</button>` : '';
     return box(`<b>${label}</b>${undo}`);
   }
   if (hoursLeft >= notice) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}', ${isGroup ? 'false' : 'true'})" style="${btnCss}background:#e53935;color:white;">🚫 Mi hijo/a no asistirá<br><small>My child will be absent</small></button>
     <div style="color:#888;font-size:0.72rem;margin-top:4px;">Se requieren ${notice} horas de anticipación / ${notice} hours' notice required</div>`);
   if (hoursLeft > 0) {
-    if (isGroup) return box(`<span style="color:#888;">Las clases de grupo deben cancelarse con ${notice} horas de anticipación y no se pueden reponer.<br>Group classes need ${notice} hours' notice and cannot be made up.</span>`);
+    if (isGroup) return box(`<span style="color:#888;">Las clases de grupo deben cancelarse con ${notice} horas de anticipación y no se pueden reponer.</span>`);
     const limit = window._absenceData?.emergencyLimit || 2;
     const month = String(c.date).slice(0, 7);
     const used = (window._absenceData?.absences || []).filter(x => x.studentName === _calStudentName && x.emergency && String(x.date).slice(0, 7) === month).length;
     const left = limit - used;
     if (left > 0) return box(`<button onclick="reportAbsence('${safe(c.sessionId)}', true, true)" style="${btnCss}background:#ef6c00;color:white;">🚨 Reprogramación de emergencia<br><small>Emergency reschedule · quedan ${left} de ${limit} este mes / ${left} of ${limit} left this month</small></button>
       <div style="color:#888;font-size:0.72rem;margin-top:4px;">La escuela le contactará para programar la nueva clase.</div>`);
-    return box(`<span style="color:#888;">Ya usó sus ${limit} reprogramaciones de emergencia de este mes. Contacte a la escuela.<br>You used your ${limit} emergency reschedules this month. Please contact the school.</span>`);
+    return box(`<span style="color:#888;">Ya usó sus ${limit} reprogramaciones de emergencia de este mes. Contacte a la escuela.</span>`);
   }
   return '';
 }
 async function reportAbsence(sessionId, is1v1, isEmergency) {
   const name = _calStudentName;
   const msg = isEmergency
-    ? `🚨 ¿Usar una reprogramación de emergencia para la clase de ${name}?\nLa clase se cancela y la escuela le contactará para programar una nueva.\n\nUse an emergency reschedule for ${name}'s class? The school will contact you to schedule a new one.`
+    ? `🚨 ¿Usar una reprogramación de emergencia para la clase de ${name}?\nLa clase se cancela y la escuela le contactará para programar una nueva.`
     : is1v1
-    ? `¿Confirmas que quieres CANCELAR esta clase de ${name}?\nSolo la escuela podrá restablecerla.\n\nCancel this class for ${name}? Only the school can bring it back.`
-    : `¿Confirmas que ${name} no asistirá a esta clase?\nLas clases de grupo no se pueden reponer.\n\nConfirm that ${name} will miss this class? Group classes cannot be made up.`;
+    ? `¿Confirmas que quieres CANCELAR esta clase de ${name}?\nSolo la escuela podrá restablecerla.`
+    : `¿Confirmas que ${name} no asistirá a esta clase?\nLas clases de grupo no se pueden reponer.`;
   if (!confirm(msg)) return;
   try {
     const r = await fetch(`${SERVER_URL}/parent/report-absence`, { method: 'POST',
@@ -2103,13 +2099,13 @@ async function reportAbsence(sessionId, is1v1, isEmergency) {
       body: JSON.stringify({ studentName: name, sessionId }) });
     const d = await r.json();
     if (!d.success) { alert(d.error || 'Error'); return; }
-    alert('Listo. Avisamos al maestro y a la escuela, y le enviamos un correo de confirmación.\nDone — the teacher and the school were notified, and we emailed you a confirmation.');
+    alert('Listo. Avisamos al maestro y a la escuela, y le enviamos un correo de confirmación.');
   } catch(e) { alert('Error, intenta de nuevo'); return; }
   document.getElementById('class-popup').style.display = 'none';
   await renderCalendarMonth();
 }
 async function cancelAbsence(id) {
-  if (!confirm('¿Deshacer el aviso de ausencia?\nUndo the absence report?')) return;
+  if (!confirm('¿Deshacer el aviso de ausencia?')) return;
   try {
     const r = await fetch(`${SERVER_URL}/parent/cancel-absence`, { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
