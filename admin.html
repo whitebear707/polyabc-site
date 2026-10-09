@@ -395,17 +395,17 @@
       <div style="overflow-x:auto;">
         <table class="data-table" id="pending-transfers-table" style="width:100%;">
           <thead><tr>
-            <th>Student</th>
-            <th>Parent Email</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>Alumno</th>
+            <th>Correo del padre</th>
+            <th>Tipo</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th>Acciones</th>
           </tr></thead>
           <tbody id="pending-transfers-tbody"></tbody>
         </table>
       </div>
-      <div id="pending-transfers-empty" style="text-align:center;color:#888;padding:20px;font-size:0.9rem;">No pending transfers</div>
+      <div id="pending-transfers-empty" style="text-align:center;color:#888;padding:20px;font-size:0.9rem;">No hay transferencias pendientes</div>
     </div>
 
     <!-- Students Billing Table -->
@@ -417,17 +417,17 @@
       <div style="overflow-x:auto;">
         <table class="data-table" id="billing-table">
           <thead><tr>
-            <th>Student</th>
-            <th>Type</th>
-            <th>Cycle</th>
-            <th>Days/Week</th>
-            <th>Min/Class</th>
-            <th>Schedule</th>
-            <th>Trial</th>
-            <th>Paid</th>
-            <th>Last Paid</th>
-            <th>Next Due</th>
-            <th>Actions</th>
+            <th>Alumno</th>
+            <th>Tipo</th>
+            <th>Ciclo</th>
+            <th>Días/semana</th>
+            <th>Min/clase</th>
+            <th>Horario</th>
+            <th>Prueba</th>
+            <th>Pagado</th>
+            <th>Último pago</th>
+            <th>Próximo pago</th>
+            <th>Acciones</th>
           </tr></thead>
           <tbody id="billing-tbody"></tbody>
         </table>
@@ -449,9 +449,9 @@
     <div style="background:#f6f2ff;border:2px solid #7e57c2;border-radius:14px;padding:20px;margin-top:20px;">
       <div style="font-size:0.95rem;font-weight:900;color:#4527a0;margin-bottom:6px;">🔐 Encrypt Stored Passwords</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
-        Converts student and teacher passwords from plain text to encrypted storage.
-        Logins keep working, passwords stay unique, and you can still see them in the tables above.
-        Run this <strong>once</strong> after deploying. Safe to run again — already-encrypted records are skipped.
+        Convierte las contraseñas de alumnos y maestros de texto plano a almacenamiento cifrado.
+        Los inicios de sesión siguen funcionando, las contraseñas siguen siendo únicas y puedes verlas en las tablas de arriba.
+        Ejecútalo <strong>una vez</strong> después de desplegar. Es seguro repetirlo: los registros ya cifrados se omiten.
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button onclick="migratePasswords()" style="padding:10px 20px;background:#7e57c2;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔐 Encrypt Now</button>
@@ -463,9 +463,9 @@
     <div style="background:#f3f8ff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-top:20px;">
       <div style="font-size:0.95rem;font-weight:900;color:#0b47a1;margin-bottom:6px;">📦 Full Data Export</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
-        A complete portable copy of the school's data &mdash; students, parents, staff, groups, classes,
-        attendance, reviews, billing, accounting and settings &mdash; as an Excel workbook plus CSV files.
-        <strong>Nothing is deleted.</strong> Passwords are never included.
+        Una copia completa de los datos de la escuela &mdash; alumnos, padres, personal, grupos, clases,
+        asistencia, reseñas, cobranza, contabilidad y configuración &mdash; en un libro de Excel más archivos CSV.
+        <strong>No se borra nada.</strong> Las contraseñas nunca se incluyen.
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button onclick="fullExport()" style="padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">⬇️ Download Everything</button>
@@ -477,8 +477,8 @@
     <div style="background:#fff8f0;border:2px solid #ff9800;border-radius:14px;padding:20px;margin-top:20px;">
       <div style="font-size:0.95rem;font-weight:900;color:#e65100;margin-bottom:6px;">🗑 Database Flush</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
-        Downloads all attendance, accounting, and class records as an Excel file, then permanently deletes them from the database.
-        Students, parents, teachers, staff, groups and prices are <strong>not</strong> affected.
+        Descarga toda la asistencia, contabilidad y registros de clases en Excel, y luego los borra permanentemente de la base de datos.
+        Alumnos, padres, maestros, personal, grupos y precios <strong>no</strong> se afectan.
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button onclick="flushDownload()" style="padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">⬇️ Download Records</button>
@@ -501,21 +501,21 @@
         <span style="background:#e8f0fe;color:#1a73e8;font-size:0.7rem;font-weight:900;padding:2px 8px;border-radius:10px;">PERMANENT</span>
       </div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:16px;">
-        Admin notification emails go to this address, and the website's WhatsApp button uses this number.
+        Los correos de notificación del admin llegan a esta dirección, y el botón de WhatsApp del sitio usa este número.
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Name</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Nombre</label>
           <input type="text" id="school-name" placeholder="Admin"
             style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Notification Email</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Correo de notificaciones</label>
           <input type="email" id="school-email" placeholder="admin@polyabc.academy"
             style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">WhatsApp (with country code)</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">WhatsApp (con código de país)</label>
           <input type="tel" id="school-whatsapp" placeholder="523313208792"
             style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
@@ -530,22 +530,22 @@
     <div style="background:#fff;border:2px solid #e65100;border-radius:14px;padding:20px;margin-bottom:22px;">
       <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">📅 School Closure / Holiday</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:16px;">
-        No class this week? Shift affected parents' due dates forward so they're not billed for it —
-        and the automatic payment reminders won't nag them either, since those follow the due date.
+        ¿No hay clases esta semana? Mueve las fechas de pago de los padres afectados para que no se les cobre —
+        y los recordatorios automáticos de pago tampoco les llegarán, porque siguen la fecha de pago.
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Start Date</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Fecha de inicio</label>
           <input type="date" id="closure-start" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">End Date</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Fecha de fin</label>
           <input type="date" id="closure-end" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
       </div>
       <div style="margin-top:12px;">
-        <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Reason (optional, for the record)</label>
-        <input type="text" id="closure-reason" placeholder="e.g. Día de la Independencia"
+        <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Motivo (opcional, para el registro)</label>
+        <input type="text" id="closure-reason" placeholder="p. ej. Día de la Independencia"
           style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
       </div>
       <button onclick="previewClosure()" style="margin-top:14px;padding:10px 22px;background:#e65100;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔍 Preview Who's Affected</button>
@@ -563,22 +563,22 @@
     <div class="panel-title">🛠 Tech Support</div>
     <div style="font-size:0.85rem;color:#666;margin-bottom:14px;line-height:1.5;">Reports sent by teachers from the classroom Help menu. Only admin and tech support are notified — teachers see nothing further.</div>
     <div class="card" style="margin-bottom:14px;">
-      <b style="font-size:0.9rem;">Who gets the emails</b>
+      <b style="font-size:0.9rem;">Quién recibe los correos</b>
       <div style="display:grid;gap:8px;margin-top:8px;">
-        <label style="font-size:0.8rem;font-weight:700;">Tech support <input id="tk-tech" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="techsupport@polyabc.academy"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Soporte técnico<input id="tk-tech" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="techsupport@polyabc.academy"></label>
         <label style="font-size:0.8rem;font-weight:700;">Admin — Spanish student reports (commas) <input id="tk-admin" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
         <label style="font-size:0.8rem;font-weight:700;">Admin — English student reports (commas) <input id="tk-admin-en" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
         <label style="font-size:0.8rem;font-weight:700;">Billing (pending transfers) — separate with commas <input id="tk-billing" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
       </div>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button onclick="saveTicketSettings()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Save</button>
-        <span style="font-size:0.78rem;color:#888;">Leave a box empty to use the built-in address.</span>
+        <button onclick="saveTicketSettings()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Guardar</button>
+        <span style="font-size:0.78rem;color:#888;">Deja un campo vacío para usar la dirección predeterminada.</span>
         <span id="tk-status" style="font-size:0.85rem;font-weight:700;"></span>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button id="tk-f-open" onclick="setTicketFilter('open')" style="padding:7px 14px;border:2px solid #1a73e8;border-radius:8px;cursor:pointer;font-weight:700;">Open</button>
-      <button id="tk-f-resolved" onclick="setTicketFilter('resolved')" style="padding:7px 14px;border:2px solid #ddd;border-radius:8px;cursor:pointer;font-weight:700;">Resolved</button>
+      <button id="tk-f-open" onclick="setTicketFilter('open')" style="padding:7px 14px;border:2px solid #1a73e8;border-radius:8px;cursor:pointer;font-weight:700;">Abiertos</button>
+      <button id="tk-f-resolved" onclick="setTicketFilter('resolved')" style="padding:7px 14px;border:2px solid #ddd;border-radius:8px;cursor:pointer;font-weight:700;">Resueltos</button>
     </div>
     <div id="tickets-list"></div>
 
@@ -586,19 +586,19 @@
     <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Paste a YouTube link and choose who can see it. Each panel's Help section shows only the videos for its role.</div>
     <div class="card" style="margin-bottom:14px;">
       <div style="display:grid;gap:8px;">
-        <label style="font-size:0.8rem;font-weight:700;">Video title <input id="hv-title" type="text" maxlength="120" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="How to add a student"></label>
-        <label style="font-size:0.8rem;font-weight:700;">YouTube link <input id="hv-url" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="https://youtu.be/..."></label>
-        <div style="font-size:0.8rem;font-weight:700;">Who can see it</div>
+        <label style="font-size:0.8rem;font-weight:700;">Título del video<input id="hv-title" type="text" maxlength="120" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="How to add a student"></label>
+        <label style="font-size:0.8rem;font-weight:700;">Enlace de YouTube<input id="hv-url" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="https://youtu.be/..."></label>
+        <div style="font-size:0.8rem;font-weight:700;">Quién puede verlo</div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.9rem;">
-          <label><input type="checkbox" class="hv-aud" value="admin"> Admin</label>
-          <label><input type="checkbox" class="hv-aud" value="student"> Student</label>
-          <label><input type="checkbox" class="hv-aud" value="teacher"> Teacher</label>
-          <label><input type="checkbox" class="hv-aud" value="parent"> Parent</label>
+          <label><input type="checkbox" class="hv-aud" value="admin">Admin</label>
+          <label><input type="checkbox" class="hv-aud" value="student">Alumno</label>
+          <label><input type="checkbox" class="hv-aud" value="teacher">Maestro</label>
+          <label><input type="checkbox" class="hv-aud" value="parent">Padre</label>
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button id="hv-save-btn" onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Add video</button>
-        <button id="hv-cancel-btn" onclick="hvCancelEdit()" style="display:none;padding:8px 16px;border:2px solid #ddd;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancel</button>
+        <button id="hv-save-btn" onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Agregar video</button>
+        <button id="hv-cancel-btn" onclick="hvCancelEdit()" style="display:none;padding:8px 16px;border:2px solid #ddd;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>
         <span id="hv-status" style="font-size:0.85rem;font-weight:700;"></span>
       </div>
     </div>
@@ -608,9 +608,9 @@
   <div id="panel-spectators" class="panel">
     <div class="panel-title">👁 Espectadores</div>
     <div style="font-size:0.85rem;color:#666;margin-bottom:16px;line-height:1.5;">
-      A spectator logs in on the normal login page with a <b>room number + the password you give them</b>, and watches the class without being seen or heard.
-      They never appear in attendance and never take a student seat. <b>Normal</b> = watch only (parents, teachers, QA).
-      <b>IT</b> = tech support (watch, and chat with the class — chat is coming next).
+      Un espectador entra por la página de inicio de sesión normal con un <b>número de salón + la contraseña que le des</b>, y ve la clase sin ser visto ni escuchado.
+      Nunca aparecen en asistencia ni ocupan un lugar de alumno. <b>Normal</b> = solo ver (padres, maestros, QA).
+      <b>IT</b> = soporte técnico (ver, y chatear con la clase — el chat llega pronto).
     </div>
 
     <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
@@ -627,19 +627,19 @@
             style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Type</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Tipo</label>
           <select id="spec-type" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;background:#fff;">
             <option value="normal">Normal — watch only</option>
             <option value="IT">IT — tech support</option>
           </select>
         </div>
         <div>
-          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room (required)</label>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Salón (obligatorio)</label>
           <select id="spec-room" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;background:#fff;"></select>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
-        <button onclick="createSpectator()" style="padding:10px 22px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Create spectator</button>
+        <button onclick="createSpectator()" style="padding:10px 22px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Crear espectador</button>
         <span id="spec-status" style="font-size:0.85rem;font-weight:700;"></span>
       </div>
     </div>
@@ -654,7 +654,7 @@
   <div id="panel-parents" class="panel">
     <div class="panel-title">👪 Padres</div>
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <input id="parents-search" placeholder="Search parent or student..." oninput="filterParents()"
+      <input id="parents-search" placeholder="Buscar padre o alumno..." oninput="filterParents()"
         style="padding:8px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;flex:1;min-width:200px;">
       <button onclick="openCreateParentModal()"
         style="padding:9px 20px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;white-space:nowrap;">+ Create Parent</button>
@@ -670,19 +670,19 @@
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
       <div class="sidebar-section">
-        <div class="sidebar-title">Filter by Day & Time</div>
+        <div class="sidebar-title">Filtrar por día y hora</div>
         <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Any Teacher --</option>
         </select>
         <select id="day-filter" onchange="renderMasterCalendar();renderExtraSlotResults();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Any Day --</option>
-          <option value="0">Sunday</option>
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
+          <option value="0">Domingo</option>
+          <option value="1">Lunes</option>
+          <option value="2">Martes</option>
+          <option value="3">Miércoles</option>
+          <option value="4">Jueves</option>
+          <option value="5">Viernes</option>
+          <option value="6">Sábado</option>
         </select>
         <input type="time" id="time-filter" oninput="renderMasterCalendar();renderExtraSlotResults();" placeholder="e.g. 18:00"/>
 
@@ -692,11 +692,11 @@
         <div id="extra-slot-results" style="margin-top:8px;"></div>
 
         <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';document.getElementById('teacher-filter').value='';clearExtraDayTimeRows();renderMasterCalendar();"
-          style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Clear Filters</button>
+          style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Limpiar filtros</button>
       </div>
 
       <div id="day-detail">
-        <div style="color:#aaa;text-align:center;padding:24px 16px;font-size:0.9rem;">Click a day to see available teachers</div>
+        <div style="color:#aaa;text-align:center;padding:24px 16px;font-size:0.9rem;">Toca un día para ver los maestros disponibles</div>
       </div>
     </div>
 
@@ -715,9 +715,9 @@
       </div>
       <div class="master-cal-grid" id="master-cal-grid"></div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;align-items:center;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div> Teachers available</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#a5d6a7;border:2px solid #2e7d32;"></div> Matches time filter</div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#f5f5f5;"></div> No availability</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#c8e6c9;"></div>Maestros disponibles</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#a5d6a7;border:2px solid #2e7d32;"></div>Coincide con el filtro de hora</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:#444;"><div style="width:14px;height:14px;border-radius:4px;background:#f5f5f5;"></div>Sin disponibilidad</div>
         <!-- Hidden reset trigger -->
         <div onclick="openResetModal()" style="width:18px;height:18px;background:#ccc;border-radius:4px;cursor:pointer;margin-left:auto;opacity:0.3;" title=""></div>
       </div>
@@ -746,12 +746,12 @@
       <button class="btn" onclick="showStudentRequests()" style="background:#1a73e8;color:white;margin-left:8px;position:relative;" id="requests-btn">📥 Requests<span id="requests-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:20px;height:20px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:20px;text-align:center;"></span></button>
     </div>
     <div style="margin-bottom:12px;">
-      <input id="student-search" placeholder="🔍 Search by name or ID (e.g. AA150)..." oninput="renderAllStudents()"
+      <input id="student-search" placeholder="🔍 Buscar por nombre o ID (p. ej. AA150)..." oninput="renderAllStudents()"
         style="width:100%;max-width:340px;padding:9px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;">
     </div>
     <div class="card">
       <table class="data-table">
-        <thead><tr><th>ID</th><th>Name</th><th>Password</th><th>Parent / Contact</th><th>Type</th><th>Room</th><th>Group</th><th>Level</th><th>Trial Date</th><th>Actions</th></tr></thead>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Contraseña</th><th>Padre / Contacto</th><th>Tipo</th><th>Salón</th><th>Grupo</th><th>Nivel</th><th>Fecha de prueba</th><th>Acciones</th></tr></thead>
         <tbody id="students-tbody"></tbody>
       </table>
     </div>
@@ -775,23 +775,23 @@
     <div class="card" style="margin-bottom:16px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
         <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Pay Period</label>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Periodo de pago</label>
           <select id="pay-period" onchange="updatePayDates()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
             <option value="current1">Current Period (1st–14th)</option>
             <option value="current2">Current Period (15th–29th)</option>
-            <option value="custom">Custom Range</option>
+            <option value="custom">Rango personalizado</option>
           </select>
         </div>
         <div id="pay-from-wrap">
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">From</label>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Desde</label>
           <input type="date" id="pay-from" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
         </div>
         <div id="pay-to-wrap">
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">To</label>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Hasta</label>
           <input type="date" id="pay-to" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
         </div>
         <div>
-          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher (optional)</label>
+          <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Maestro (opcional)</label>
           <select id="pay-teacher" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
             <option value="">-- All Teachers --</option>
           </select>
@@ -810,26 +810,26 @@
       <div class="card" style="margin-bottom:16px;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
           <div>
-            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher</label>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Maestro</label>
             <select id="att-teacher" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
               <option value="">-- All Teachers --</option>
             </select>
           </div>
           <div>
-            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">From Date</label>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Fecha inicial</label>
             <input type="date" id="att-from" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
           </div>
           <div>
-            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">To Date</label>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Fecha final</label>
             <input type="date" id="att-to" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
           </div>
           <div>
-            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Room (optional)</label>
+            <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Salón (opcional)</label>
             <input type="text" id="att-room" placeholder="e.g. 10" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;"/>
           </div>
           <div style="display:flex;gap:8px;align-items:flex-end;">
             <button class="btn btn-blue" onclick="loadAttendance()" style="flex:1;">🔍 Search</button>
-            <button class="btn btn-gray" onclick="clearAttSearch()" style="flex:1;">Clear</button>
+            <button class="btn btn-gray" onclick="clearAttSearch()" style="flex:1;">Limpiar</button>
           </div>
         </div>
       </div>
@@ -852,26 +852,26 @@
     <button onclick="closeFilterDrawer()" style="background:#f0f0f0;border:none;width:30px;height:30px;border-radius:50%;font-size:1.1rem;cursor:pointer;">×</button>
   </div>
   <div style="margin-bottom:12px;">
-    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Teacher</label>
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Maestro</label>
     <select id="teacher-filter-mobile" onchange="document.getElementById('teacher-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
       <option value="">-- Any Teacher --</option>
     </select>
   </div>
   <div style="margin-bottom:12px;">
-    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Day of Week</label>
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Día de la semana</label>
     <select id="day-filter-mobile" onchange="document.getElementById('day-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
       <option value="">-- Any Day --</option>
-      <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
-      <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+      <option value="0">Domingo</option><option value="1">Lunes</option><option value="2">Martes</option>
+      <option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option>
     </select>
   </div>
   <div style="margin-bottom:16px;">
-    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Time</label>
+    <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Hora</label>
     <input type="time" id="time-filter-mobile" oninput="document.getElementById('time-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
   </div>
   <div style="display:flex;gap:10px;">
-    <button onclick="clearMobileFilters()" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Clear</button>
-    <button onclick="closeFilterDrawer()" style="flex:1;padding:10px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Apply</button>
+    <button onclick="clearMobileFilters()" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Limpiar</button>
+    <button onclick="closeFilterDrawer()" style="flex:1;padding:10px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Aplicar</button>
   </div>
 </div>
 
@@ -879,16 +879,16 @@
 <div class="modal-overlay" id="reset-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;">
     <div style="font-size:3rem;margin-bottom:8px;">🪐</div>
-    <div class="modal-title" style="color:#e53935;">Reset All Data</div>
+    <div class="modal-title" style="color:#e53935;">Borrar todos los datos</div>
     <div style="font-size:0.9rem;color:#555;margin-bottom:20px;line-height:1.6;">
-      This will permanently delete <strong>ALL</strong> teachers, students, groups, assignments, attendance, and payroll records.<br><br>
-      <strong style="color:#e53935;">This cannot be undone.</strong><br><br>
-      Enter your admin password to confirm:
+      Esto borrará permanentemente <strong>TODOS</strong> los maestros, alumnos, grupos, asignaciones, asistencia y registros de nómina.<br><br>
+      <strong style="color:#e53935;">Esto no se puede deshacer.</strong><br><br>
+      Escribe tu contraseña de admin para confirmar:
     </div>
     <input type="password" id="reset-password" placeholder="Admin password" style="width:100%;padding:12px;border-radius:10px;border:2px solid #e53935;font-family:Nunito;font-size:1rem;margin-bottom:12px;outline:none;text-align:center;"/>
     <div id="reset-error" style="display:none;color:#e53935;font-size:0.85rem;margin-bottom:10px;"></div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('reset-modal').classList.remove('open');document.getElementById('reset-password').value='';">Cancel</button>
+      <button class="btn btn-gray" onclick="document.getElementById('reset-modal').classList.remove('open');document.getElementById('reset-password').value='';">Cancelar</button>
       <button onclick="confirmReset()" style="background:#e53935;color:white;border:none;padding:10px 20px;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">💣 Reset Everything</button>
     </div>
   </div>
@@ -903,15 +903,15 @@
 <!-- Add/Edit Teacher Modal -->
 <div class="modal-overlay" id="teacher-modal">
   <div class="modal-box">
-    <div class="modal-title" id="teacher-modal-title">Add Teacher</div>
+    <div class="modal-title" id="teacher-modal-title">Agregar maestro</div>
     <input type="hidden" id="edit-teacher-room-id"/>
-    <div class="field-group"><label>Room Number</label><input type="text" id="teacher-room" placeholder="e.g. 10"/></div>
-    <div class="field-group"><label>Teacher Name</label><input type="text" id="teacher-name-input" placeholder="e.g. Ms. Garcia"/></div>
-    <div class="field-group"><label>Teacher Email</label><input type="email" id="teacher-email-input" placeholder="e.g. ms.garcia@email.com"/></div>
-    <div class="field-group"><label>Teacher Password</label><input type="text" id="teacher-pass-input" placeholder="e.g. teach#001"/></div>
-    <div class="field-group"><label>Hourly Rate (pesos)</label><input type="number" id="teacher-rate-input" placeholder="e.g. 200" min="0"/></div>
+    <div class="field-group"><label>Número de salón</label><input type="text" id="teacher-room" placeholder="e.g. 10"/></div>
+    <div class="field-group"><label>Nombre del maestro</label><input type="text" id="teacher-name-input" placeholder="e.g. Ms. Garcia"/></div>
+    <div class="field-group"><label>Correo del maestro</label><input type="email" id="teacher-email-input" placeholder="e.g. ms.garcia@email.com"/></div>
+    <div class="field-group"><label>Contraseña del maestro</label><input type="text" id="teacher-pass-input" placeholder="e.g. teach#001"/></div>
+    <div class="field-group"><label>Tarifa por hora (pesos)</label><input type="number" id="teacher-rate-input" placeholder="e.g. 200" min="0"/></div>
     <div class="field-group">
-      <label>Profile Picture</label>
+      <label>Foto de perfil</label>
       <div style="display:flex;align-items:center;gap:14px;">
         <img id="teacher-photo-preview" src="" alt=""
           style="display:none;width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #e8eef6;"/>
@@ -921,7 +921,7 @@
           <input type="file" id="teacher-photo-input" accept="image/*" onchange="handleTeacherPhotoPick(this)"
             style="width:100%;font-family:Nunito;font-size:0.82rem;"/>
           <button type="button" onclick="clearTeacherPhoto()"
-            style="margin-top:6px;background:none;border:none;color:#e53935;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;padding:0;">Remove picture</button>
+            style="margin-top:6px;background:none;border:none;color:#e53935;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;padding:0;">Quitar foto</button>
         </div>
       </div>
       <div id="teacher-photo-status" style="font-size:0.75rem;color:#888;margin-top:4px;"></div>
@@ -934,8 +934,8 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeTeacherModal()">Cancel</button>
-      <button class="btn btn-blue" onclick="saveTeacher()">Save</button>
+      <button class="btn btn-gray" onclick="closeTeacherModal()">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveTeacher()">Guardar</button>
     </div>
   </div>
 </div>
@@ -943,67 +943,67 @@
 <!-- Students in Room Modal -->
 <div class="modal-overlay" id="room-students-modal">
   <div class="modal-box" style="max-width:520px;">
-    <div class="modal-title" id="room-students-title">Students in Room</div>
+    <div class="modal-title" id="room-students-title">Alumnos del salón</div>
     <div id="room-students-list" style="margin-bottom:16px;"></div>
     <div style="border-top:2px solid #eee;padding-top:14px;">
       <div style="background:#f0f7ff;border-radius:10px;padding:10px 14px;font-size:0.8rem;color:#1a73e8;">
-        ℹ️ To add a 1v1 student to this teacher, use <strong>Edit Billing</strong> for that student in Accounting — that's the one place teacher assignment happens now.
+        ℹ️ Para agregar un alumno 1 a 1 a este maestro, usa <strong>Editar cobranza</strong> de ese alumno en Contabilidad — ahí es el único lugar donde se asigna el maestro ahora.
       </div>
     </div>
-    <div class="modal-actions"><button class="btn btn-gray" onclick="closeRoomStudentsModal()">Close</button></div>
+    <div class="modal-actions"><button class="btn btn-gray" onclick="closeRoomStudentsModal()">Cerrar</button></div>
   </div>
 </div>
 
 <!-- Add Student (all students panel) Modal -->
 <div class="modal-overlay" id="add-student-modal">
   <div class="modal-box">
-    <div class="modal-title">Add Student</div>
+    <div class="modal-title">Agregar alumno</div>
     <div class="field-group">
-      <label>Student Type</label>
+      <label>Tipo de alumno</label>
       <select id="global-student-type" onchange="onStudentTypeChange()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-        <option value="">Regular Student</option>
-        <option value="Trial">🎓 Trial (takes placement test on login)</option>
+        <option value="">Alumno regular</option>
+        <option value="Trial">🎓 Prueba (hace examen de nivel al entrar)</option>
       </select>
     </div>
-    <div class="field-group"><label>Student Name</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
-    <div class="field-group"><label>Last Name <span style="color:#aaa;font-weight:400;">(optional)</span></label><input type="text" id="global-student-lastname" placeholder="e.g. Garcia"/></div>
-    <div class="field-group"><label>Date of Birth <span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="global-student-dob"/></div>
+    <div class="field-group"><label>Nombre del alumno</label><input type="text" id="global-student-name" placeholder="e.g. Juan"/></div>
+    <div class="field-group"><label>Apellido<span style="color:#aaa;font-weight:400;">(optional)</span></label><input type="text" id="global-student-lastname" placeholder="e.g. Garcia"/></div>
+    <div class="field-group"><label>Fecha de nacimiento<span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="global-student-dob"/></div>
     <div class="field-group">
-      <label>Password</label>
+      <label>Contraseña</label>
       <input type="text" id="global-student-pass" placeholder="e.g. juan123"/>
       <div id="trial-pass-hint" style="display:none;font-size:0.75rem;color:#888;margin-top:3px;">🔒 Auto-generated for trial students</div>
     </div>
     <div class="field-group">
-      <label>Assign to Group <span style="color:#aaa;font-weight:400;">(optional)</span></label>
+      <label>Asignar a grupo<span style="color:#aaa;font-weight:400;">(optional)</span></label>
       <select id="global-student-group" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;" onchange="toggleNewGroupFields()">
         <option value="">-- No group --</option>
-        <option value="__new__">➕ Create new group...</option>
+        <option value="__new__">➕ Crear grupo nuevo...</option>
       </select>
     </div>
     <!-- New group fields (shown when "Create new group" is selected) -->
     <div id="new-group-fields" style="display:none;background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:8px;">
-      <div style="font-size:0.85rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">New Group Details</div>
+      <div style="font-size:0.85rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">Datos del grupo nuevo</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="field-group"><label>Group Name</label><input type="text" id="quick-group-name" placeholder="e.g. 5PM A1 Juan"/></div>
-        <div class="field-group"><label>Level</label>
+        <div class="field-group"><label>Nombre del grupo</label><input type="text" id="quick-group-name" placeholder="e.g. 5PM A1 Juan"/></div>
+        <div class="field-group"><label>Nivel</label>
           <select id="quick-group-level">
             <option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
           </select>
         </div>
-        <div class="field-group"><label>Class Type</label>
+        <div class="field-group"><label>Tipo de clase</label>
           <select id="quick-group-type">
-            <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 40 Min</option>
+            <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 40 Min</option>
           </select>
         </div>
       </div>
     </div>
     <div style="background:#f0f7ff;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:0.8rem;color:#1a73e8;">
-      ℹ️ To assign a 1v1 teacher, save this student first, then use <strong>Edit Billing</strong> in Accounting — that's the one place teacher assignment happens now.
+      ℹ️ Para asignar un maestro 1 a 1, guarda primero este alumno y luego usa <strong>Editar cobranza</strong> en Contabilidad — ahí es el único lugar donde se asigna el maestro ahora.
     </div>
     <div id="global-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('add-student-modal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-green" onclick="saveGlobalStudent()">Add Student</button>
+      <button class="btn btn-gray" onclick="document.getElementById('add-student-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveGlobalStudent()">Agregar alumno</button>
     </div>
   </div>
 </div>
@@ -1011,25 +1011,25 @@
 <!-- Edit Student Modal -->
 <div class="modal-overlay" id="edit-student-modal">
   <div class="modal-box">
-    <div class="modal-title">Edit Student</div>
+    <div class="modal-title">Editar alumno</div>
     <input type="hidden" id="edit-student-original-name"/>
-    <div class="field-group"><label>Student Name</label><input type="text" id="edit-student-name"/></div>
-    <div class="field-group"><label>Last Name <span style="color:#aaa;font-weight:400;">(optional)</span></label><input type="text" id="edit-student-lastname" placeholder="Garcia"/></div>
-    <div class="field-group"><label>Password</label><input type="text" id="edit-student-pass"/></div>
-    <div class="field-group"><label>Date of Birth <span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="edit-student-dob"/></div>
+    <div class="field-group"><label>Nombre del alumno</label><input type="text" id="edit-student-name"/></div>
+    <div class="field-group"><label>Apellido<span style="color:#aaa;font-weight:400;">(optional)</span></label><input type="text" id="edit-student-lastname" placeholder="Garcia"/></div>
+    <div class="field-group"><label>Contraseña</label><input type="text" id="edit-student-pass"/></div>
+    <div class="field-group"><label>Fecha de nacimiento<span style="color:#aaa;font-weight:400;">(optional — for birthday theme 🎂)</span></label><input type="date" id="edit-student-dob"/></div>
     <div style="border-top:1px solid #eee;margin:14px 0 10px;"></div>
     <div class="field-group">
-      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Class Type</label>
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Tipo de clase</label>
       <select id="edit-student-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
         <option value="">— Not set —</option>
         <option value="1v1">1v1 Private</option>
-        <option value="group">Group</option>
+        <option value="group">Grupo</option>
       </select>
     </div>
     <div class="field-group">
-      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Linked Parent</label>
+      <label style="color:#888;font-size:0.78rem;text-transform:uppercase;font-weight:900;">Padre vinculado</label>
       <select id="edit-student-parent-id" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.95rem;">
-        <option value="">— No parent linked —</option>
+        <option value="">— Sin padre vinculado —</option>
       </select>
       <div id="edit-student-parent-info" style="margin-top:6px;font-size:0.78rem;color:#888;display:none;"></div>
     </div>
@@ -1061,8 +1061,8 @@
     </div>
     <div id="edit-student-error" style="display:none;color:#e53935;font-size:0.82rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-blue" onclick="saveEditStudent()">Save</button>
+      <button class="btn btn-gray" onclick="document.getElementById('edit-student-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveEditStudent()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1075,7 +1075,7 @@
     <textarea id="trial-copy-text" readonly style="width:100%;height:180px;padding:12px;border-radius:10px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;line-height:1.6;resize:none;background:#f8f9fa;color:#1a1a2e;"></textarea>
     <div id="trial-copy-confirm" style="display:none;color:#2e7d32;font-size:0.85rem;font-weight:700;margin-top:6px;">✅ Copied to clipboard!</div>
     <div class="modal-actions" style="margin-top:12px;">
-      <button class="btn btn-gray" onclick="document.getElementById('trial-copy-modal').classList.remove('open')">Close</button>
+      <button class="btn btn-gray" onclick="document.getElementById('trial-copy-modal').classList.remove('open')">Cerrar</button>
       <button class="btn btn-blue" onclick="copyTrialMessage()">📋 Copy Message</button>
     </div>
   </div>
@@ -1083,23 +1083,23 @@
 
 <div class="modal-overlay" id="review-req-modal">
   <div class="modal-box" style="max-width:460px;">
-    <div class="modal-title" id="review-req-title">Request Review</div>
+    <div class="modal-title" id="review-req-title">Pedir reseña</div>
     <div style="font-size:0.83rem;color:#666;margin-bottom:12px;">The teacher gets an email and a flashing alert on their schedule until the review is submitted.</div>
-    <div class="field-group"><label>Student</label>
+    <div class="field-group"><label>Alumno</label>
       <select id="review-req-student"><option value="">Loading…</option></select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="field-group"><label>Evaluation from</label><input type="date" id="review-req-from"/></div>
-      <div class="field-group"><label>Evaluation to</label><input type="date" id="review-req-to"/></div>
+      <div class="field-group"><label>Evaluación desde</label><input type="date" id="review-req-from"/></div>
+      <div class="field-group"><label>Evaluación hasta</label><input type="date" id="review-req-to"/></div>
     </div>
     <div style="font-size:0.76rem;color:#888;margin:-6px 0 10px;">Defaults to the current month. The teacher sees these dates at the top of the report.</div>
-    <div class="field-group"><label>Note for the teacher (optional)</label>
-      <input type="text" id="review-req-note" placeholder="e.g. Parent asked for an update on reading"/>
+    <div class="field-group"><label>Nota para el maestro (opcional)</label>
+      <input type="text" id="review-req-note" placeholder="p. ej. El padre pidió un avance de lectura"/>
     </div>
     <div id="review-req-pending"></div>
     <div id="review-req-error" style="color:#c62828;font-weight:700;font-size:0.84rem;margin-top:8px;display:none;"></div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeReviewRequestModal()">Cancel</button>
+      <button class="btn btn-gray" onclick="closeReviewRequestModal()">Cancelar</button>
       <button class="btn btn-green" onclick="sendReviewRequest()">📨 Send Request</button>
     </div>
   </div>
@@ -1107,33 +1107,33 @@
 
 <div class="modal-overlay" id="group-modal">
   <div class="modal-box" style="max-width:540px;">
-    <div class="modal-title" id="group-modal-title">Create Group</div>
+    <div class="modal-title" id="group-modal-title">Crear grupo</div>
     <input type="hidden" id="edit-group-id"/>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="field-group"><label>Group Name</label><input type="text" id="group-name" placeholder="e.g. 8PM A1 #1"/></div>
-      <div class="field-group"><label>Level</label>
+      <div class="field-group"><label>Nombre del grupo</label><input type="text" id="group-name" placeholder="e.g. 8PM A1 #1"/></div>
+      <div class="field-group"><label>Nivel</label>
         <select id="group-level">
           <option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
         </select>
       </div>
-      <div class="field-group"><label>Class Type</label>
+      <div class="field-group"><label>Tipo de clase</label>
         <select id="group-type">
           <option>Group - 40 Min</option>
         </select>
         <div style="font-size:0.75rem;color:#888;margin-top:3px;">Group classes are always 40 min, Mon–Thu.</div>
       </div>
-      <div class="field-group"><label>Teacher</label>
+      <div class="field-group"><label>Maestro</label>
         <select id="group-room">
           <option value="">-- Not assigned --</option>
         </select>
       </div>
-      <div class="field-group"><label>Class Time</label>
+      <div class="field-group"><label>Hora de clase</label>
         <input type="time" id="group-time"/>
         <div style="font-size:0.75rem;color:#888;margin-top:3px;">Guadalajara time. Classes are created Mon–Thu automatically.</div>
       </div>
     </div>
     <div class="field-group" style="margin-top:4px;">
-      <label>Students in Group</label>
+      <label>Alumnos del grupo</label>
       <div id="group-student-chips" style="min-height:40px;border:2px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px;"></div>
       <select id="group-add-student-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:6px;">
         <option value="">-- Add student --</option>
@@ -1157,8 +1157,8 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gray" onclick="closeGroupModal()">Cancel</button>
-      <button class="btn btn-green" onclick="saveGroup()">Save Group</button>
+      <button class="btn btn-gray" onclick="closeGroupModal()">Cancelar</button>
+      <button class="btn btn-green" onclick="saveGroup()">Guardar grupo</button>
     </div>
   </div>
 </div>
@@ -1244,7 +1244,7 @@ async function doLogin() {
     setInterval(refreshTicketBadge, 30000);
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
-    showAlert('😬','Connection Error','Could not reach the server.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+    showAlert('😬','Error de conexión','No se pudo conectar con el servidor.',[{label:'OK',fn:'closeAlert()',primary:true}]);
   }
 }
 
@@ -1606,7 +1606,7 @@ function renderDayDetail(dateStr) {
   }
 
   if (teachers.length === 0) {
-    html += `<div style="color:#aaa;text-align:center;padding:20px;font-size:0.9rem;">No teachers available on this day.</div>`;
+    html += `<div style="color:#aaa;text-align:center;padding:20px;font-size:0.9rem;">No hay maestros disponibles este día.</div>`;
   } else {
     const filtered = filterTime ? teachers.filter(t => t.hours && filterTime >= t.hours.start && filterTime <= t.hours.end) : teachers;
     const display = filtered.length > 0 ? filtered : teachers;
@@ -1672,7 +1672,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
 
   const roomOptions = availableTeachers.length > 0
     ? availableTeachers.map(t => `<option value="${t.room}">Teacher ${t.teacherName||'—'} · Room ${t.room}</option>`).join('')
-    : `<option value="">No teachers available at this time</option>`;
+    : `<option value="">No hay maestros disponibles a esta hora</option>`;
 
   const canAssign = availableTeachers.length > 0;
   panel.innerHTML = `
@@ -1682,13 +1682,13 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
       <div style="font-size:0.85rem;color:#555;margin-top:4px;">📅 ${dateStr} · 🕐 ${fmt12(time)}</div>
     </div>
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Time (Guadalajara)</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Hora (Guadalajara)</label>
       <input type="time" value="${time}" disabled style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;background:#f5f5f5;color:#888;cursor:not-allowed;"/>
       <div style="font-size:0.72rem;color:#e65100;margin-top:3px;">🔒 Time locked — set by student</div>
     </div>
     <div class="field-group">
       <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">
-        Available Teachers at ${fmt12(time)}
+        Maestros disponibles a las ${fmt12(time)}
         <span style="color:#888;font-weight:400;">(${availableTeachers.length} free)</span>
       </label>
       <select id="trial-assign-room" ${!canAssign?'disabled':''} style="width:100%;padding:10px;border-radius:8px;border:2px solid ${canAssign?'#ddd':'#ffcdd2'};font-family:Nunito;font-size:0.9rem;${!canAssign?'background:#fff8f8;':''}">
@@ -1696,13 +1696,13 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
       </select>
     </div>
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">New Student Password</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Nueva contraseña del alumno</label>
       <input type="text" id="trial-assign-password" placeholder="Set a unique password" oninput="checkTrialPasswordAvailable(document.getElementById('assign-day-panel')._trialStudentName)"
         style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
       <div id="trial-password-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancelar</button>
       <button id="trial-assign-confirm-btn" onclick="saveTrialAssignment('${bookingId}','${dateStr}','${time}')" ${!canAssign?'disabled':''} style="flex:1;padding:10px;background:${canAssign?'#6a1b9a':'#ccc'};color:${canAssign?'white':'#888'};border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:${canAssign?'pointer':'not-allowed'};">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
@@ -1729,13 +1729,13 @@ function _showGroupTrialAssignModal(bookingId, studentName, level) {
     </div>
 
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Add to an Existing Class</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Agregar a una clase existente</label>
       <select id="trial-existing-assignment" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
-        <option value="">${upcoming.length ? '-- Choose a class --' : 'No upcoming group classes yet'}</option>
+        <option value="">${upcoming.length ? '-- Elige una clase --' : 'Aún no hay clases grupales próximas'}</option>
         ${existingOptions}
       </select>
       <div class="field-group" style="margin-top:8px;">
-        <input type="text" id="trial-existing-password" placeholder="Set a unique password for this student"
+        <input type="text" id="trial-existing-password" placeholder="Pon una contraseña única para este alumno"
           style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"/>
       </div>
       <div id="trial-existing-status" style="font-size:0.75rem;margin-top:4px;min-height:16px;"></div>
@@ -1745,7 +1745,7 @@ function _showGroupTrialAssignModal(bookingId, studentName, level) {
     <div style="text-align:center;color:#888;font-size:0.8rem;margin:16px 0;">— or —</div>
 
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Create a New Trial Slot</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Crear un nuevo horario de prueba</label>
       <input type="date" id="trial-new-date" min="${today}" onchange="refreshNewTrialTeachers()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:8px;"/>
       <input type="time" id="trial-new-time" onchange="refreshNewTrialTeachers()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:8px;"/>
       <select id="trial-assign-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
@@ -1757,7 +1757,7 @@ function _showGroupTrialAssignModal(bookingId, studentName, level) {
       <button onclick="saveNewTrialSlot('${bookingId}')" style="width:100%;margin-top:6px;padding:10px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Create New Slot</button>
     </div>
 
-    <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="width:100%;margin-top:16px;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+    <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="width:100%;margin-top:16px;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancelar</button>
   `;
   document.getElementById('assign-day-overlay').style.display = 'flex';
 }
@@ -1781,7 +1781,7 @@ function refreshNewTrialTeachers() {
 
   sel.innerHTML = availableTeachers.length > 0
     ? availableTeachers.map(t => `<option value="${t.room}">Teacher ${t.teacherName||'—'} · Room ${t.room}</option>`).join('')
-    : `<option value="">No teachers available at this time</option>`;
+    : `<option value="">No hay maestros disponibles a esta hora</option>`;
 }
 
 async function saveNewTrialSlot(bookingId) {
@@ -1833,16 +1833,16 @@ function openAssignSubModal(assignmentId, room, dateStr, time) {
       📅 ${dateStr} · 🕐 ${fmt12(time)} · Room ${room}
     </div>
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Substitute Teacher</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Maestro suplente</label>
       <select id="sub-teacher-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
-        <option value="">${options ? '-- Choose a teacher --' : 'No other teachers available'}</option>
+        <option value="">${options ? '-- Elige un maestro --' : 'No hay otros maestros disponibles'}</option>
         ${options}
       </select>
     </div>
     <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">The substitute logs in with their own password as usual — they'll be taken to this class automatically. The original teacher will not be paid for this class; the substitute is paid instead.</div>
     <div id="assign-sub-status" style="font-size:0.8rem;margin-bottom:10px;min-height:16px;"></div>
     <div style="display:flex;gap:10px;">
-      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="saveAssignSub('${assignmentId}','${dateStr}')" style="flex:1;padding:10px;background:#6a1b9a;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
@@ -1983,7 +1983,7 @@ function _showAssignGroupModal(dateStr, room) {
   panel.innerHTML = `
     <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">➕ Assign Class</div>
     <div style="font-size:0.85rem;color:#888;margin-bottom:14px;">${teacherName} · ${dateStr}</div>
-    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Select Group or Student</label>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Elige grupo o alumno</label>
       <select id="modal-group-select" onchange="onAssignSelectionChange()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
         <option value="">-- Choose --</option>
         ${groupOptions ? `<optgroup label="👥 Groups">${groupOptions}</optgroup>` : ''}
@@ -1991,21 +1991,21 @@ function _showAssignGroupModal(dateStr, room) {
       </select>
     </div>
     <div class="field-group">
-      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Class Type</label>
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Tipo de clase</label>
       <select id="modal-class-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
         <option value="">-- Select type --</option>
-        <option>Trial</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
+        <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
         <option>Group - 40 Min</option>
       </select>
     </div>
-    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Time <span style="color:#e53935;">*</span></label>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Hora<span style="color:#e53935;">*</span></label>
       <select id="modal-assign-time" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;">
-        <option value="">⏳ Loading Guadalajara times...</option>
+        <option value="">⏳ Cargando horarios de Guadalajara...</option>
       </select>
       <div style="font-size:0.72rem;color:#2e7d32;margin-top:3px;">🌎 All times are Guadalajara time (pulled from server)</div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancel</button>
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="saveAssignGroup('${dateStr}','${room}')" style="flex:1;padding:10px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Assign</button>
     </div>`;
   document.getElementById('assign-day-overlay').style.display = 'flex';
@@ -2129,7 +2129,7 @@ async function saveAssignGroup(dateStr, room) {
   if (hours?.start && hours?.end) {
     if (time < hours.start || time > hours.end) {
       showAlert('😬','Oh No! Woops!',
-        `${teacherName} is available on ${dayName}s from ${fmt12(hours.start)} to ${fmt12(hours.end)}.\n\n${fmt12(time)} is outside their hours.`,
+        `${teacherName} está disponible los ${dayName}s de ${fmt12(hours.start)} a ${fmt12(hours.end)}.\n\n${fmt12(time)} está fuera de su horario.`,
         [{label:'Got it',fn:'closeAlert()',primary:true}]); return;
     }
   }
@@ -2179,7 +2179,7 @@ function getClassDuration(ct) {
 // ── TEACHERS PANEL ──
 function renderTeachers() {
   const grid = document.getElementById('teachers-grid');
-  if (!rooms.length) { grid.innerHTML = '<div style="color:#aaa;padding:20px;">No rooms yet.</div>'; return; }
+  if (!rooms.length) { grid.innerHTML = '<div style="color:#aaa;padding:20px;">Aún no hay salones.</div>'; return; }
   grid.innerHTML = rooms.map(r => {
     const initials = (r.teacherName || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
     const avatar = r.photo
@@ -2236,14 +2236,14 @@ async function openReviewRequestModal(room) {
     const openNames = new Set((open || []).map(o => o.studentName));
     sel.innerHTML = names.length
       ? '<option value="">-- Select student --</option>' + names.map(n =>
-          `<option value="${n}"${openNames.has(n) ? ' disabled' : ''}>${n}${openNames.has(n) ? ' (request already open)' : ''}</option>`).join('')
-      : '<option value="">No students assigned to this teacher</option>';
+          `<option value="${n}"${openNames.has(n) ? ' disabled' : ''}>${n}${openNames.has(n) ? ' (solicitud ya abierta)' : ''}</option>`).join('')
+      : '<option value="">Ningún alumno asignado a este maestro</option>';
     const pend = document.getElementById('review-req-pending');
     pend.innerHTML = (open || []).length
       ? '<div style="font-size:0.8rem;color:#e65100;font-weight:700;margin-top:10px;">⏳ Open requests: ' + open.map(o => o.studentName).join(', ') + '</div>'
       : '';
   } catch(e) {
-    sel.innerHTML = '<option value="">Could not load students</option>';
+    sel.innerHTML = '<option value="">No se pudieron cargar los alumnos</option>';
   }
 }
 
@@ -2315,10 +2315,10 @@ let _teacherPhotoPending = null;
 function shrinkImage(file, maxSize = 400, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Could not read that file'));
+    reader.onerror = () => reject(new Error('No se pudo leer ese archivo'));
     reader.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('That file is not a valid image'));
+      img.onerror = () => reject(new Error('Ese archivo no es una imagen válida'));
       img.onload = () => {
         const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
         const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
@@ -2400,7 +2400,7 @@ async function saveTeacher() {
 }
 
 function confirmDeleteRoom(roomId) {
-  showAlert('🗑️','Delete Room '+roomId+'?','This will wipe all attendance, availability and assignments for this room.',
+  showAlert('🗑️','¿Borrar el salón '+roomId+'?','Esto borrará toda la asistencia, disponibilidad y asignaciones de este salón.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteRoom('${roomId}')`,primary:true}]);
 }
 
@@ -2424,8 +2424,8 @@ async function renderRoomStudentsList(roomId) {
   const r = rooms.find(r => r.room === roomId);
   const students = r?.students || [];
   const list = document.getElementById('room-students-list');
-  if (!students.length) { list.innerHTML = '<div style="color:#aaa;font-size:0.9rem;padding:8px 0;">No students yet.</div>'; return; }
-  list.innerHTML = `<table class="data-table"><thead><tr><th>Name</th><th>Password</th><th></th></tr></thead><tbody>
+  if (!students.length) { list.innerHTML = '<div style="color:#aaa;font-size:0.9rem;padding:8px 0;">Aún no hay alumnos.</div>'; return; }
+  list.innerHTML = `<table class="data-table"><thead><tr><th>Nombre</th><th>Contraseña</th><th></th></tr></thead><tbody>
     ${students.map((s,i) => `<tr>
       <td style="font-weight:700;">${escHtml(s.name)}</td>
       <td class="notranslate" translate="no" style="color:#888;">${escHtml(s.password)}</td>
@@ -2496,7 +2496,7 @@ function renderAllStudents() {
   // Search filter (by name or ID)
   const q = (document.getElementById('student-search')?.value || '').trim().toLowerCase();
   if (q) all = all.filter(s => s.name.toLowerCase().includes(q) || (s.studentId||'').toLowerCase().includes(q));
-  if (!all.length) { tbody.innerHTML = '<tr><td colspan="11" style="color:#aaa;text-align:center;padding:20px;">No students found.</td></tr>'; return; }
+  if (!all.length) { tbody.innerHTML = '<tr><td colspan="11" style="color:#aaa;text-align:center;padding:20px;">No se encontraron alumnos.</td></tr>'; return; }
   tbody.innerHTML = all.map(s => {
     // Find group — check all groups for this student's name
     const group = allGroups.find(g => (g.students||[]).includes(s.name));
@@ -2510,7 +2510,7 @@ function renderAllStudents() {
         roomText = `Room ${assignment.room}${room ? ' · Teacher '+escHtml(room.teacherName) : ''}`;
       }
     }
-    const roomCell = roomText || '<span style="color:#aaa;">No room</span>';
+    const roomCell = roomText || '<span style="color:#aaa;">Sin salón</span>';
     const groupCell = group
       ? `<span style="background:#e3f2fd;color:#1a73e8;padding:3px 8px;border-radius:10px;font-size:0.8rem;font-weight:700;">${escHtml(group.name)}</span>`
       : '<span style="color:#aaa;">—</span>';
@@ -2556,7 +2556,7 @@ function renderAllStudents() {
 // migrated in by hand never went through a trial, so they need marking once.
 function confirmBackfillEnrollment() {
   showAlert('🔓','Unlock payments?',
-    'This marks every student who has a real class type (not Trial) as enrolled, so their parents can see the payment tab. Trial students are left alone, and students already marked enrolled are not changed.',
+    'Esto marca como inscritos a todos los alumnos con un tipo de clase real (no Prueba), para que sus padres vean la pestaña de pagos. Los alumnos de prueba no se tocan, y los que ya están inscritos no cambian.',
     [{label:'Cancel',fn:'closeAlert()'},{label:'Unlock',fn:'doBackfillEnrollment()',primary:true}]);
 }
 
@@ -2570,26 +2570,26 @@ async function doBackfillEnrollment() {
     if (data.success) {
       showAlert('✅','Done', data.updated
         ? `${data.updated} student(s) unlocked: ${data.names.join(', ')}`
-        : 'No students needed changing — everyone with a class type is already enrolled.',
+        : 'No hubo alumnos que cambiar — todos con tipo de clase ya están inscritos.',
         [{label:'OK',fn:'closeAlert()',primary:true}]);
       await loadAll(); renderAllStudents();
     } else {
-      showAlert('😬','Could not update', data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+      showAlert('😬','No se pudo actualizar', data.error || 'Algo salió mal.',[{label:'OK',fn:'closeAlert()',primary:true}]);
     }
   } catch(e) {
-    showAlert('😬','Could not update', e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+    showAlert('😬','No se pudo actualizar', e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
   }
 }
 
 // ── MANUAL ACCOUNT SUSPENSION (fake or reversed payment) ──
 function toggleSuspend(name, suspend) {
   if (!suspend) {
-    showAlert('✅','Restore access?', `${name} will be able to enter class again.`,
+    showAlert('✅','¿Restaurar acceso?', `${name} podrá volver a entrar a clase.`,
       [{label:'Cancel',fn:'closeAlert()'},{label:'Restore',fn:`doSuspend('${name.replace(/'/g,"\\'")}',false,'')`,primary:true}]);
     return;
   }
-  showAlert('🚫','Disable this account?',
-    `${name} will be blocked from entering any class until you restore access. The parent can still sign in to the parent portal so they can pay.`,
+  showAlert('🚫','¿Desactivar esta cuenta?',
+    `${name} no podrá entrar a ninguna clase hasta que restaures el acceso. El padre todavía puede entrar al portal de padres para pagar.`,
     [{label:'Cancel',fn:'closeAlert()'},{label:'Disable',fn:`doSuspend('${name.replace(/'/g,"\\'")}',true,'Non-payment')`,primary:true}]);
 }
 
@@ -2603,9 +2603,9 @@ async function doSuspend(name, suspended, reason) {
     });
     const data = await res.json();
     if (data.success) { showToast(suspended ? '🚫 Account disabled' : '✅ Access restored'); await loadAll(); renderAllStudents(); loadBillingStudents(); }
-    else showAlert('😬','Could not update',data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+    else showAlert('😬','No se pudo actualizar',data.error || 'Algo salió mal.',[{label:'OK',fn:'closeAlert()',primary:true}]);
   } catch(e) {
-    showAlert('😬','Could not update',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+    showAlert('😬','No se pudo actualizar',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
   }
 }
 
@@ -2630,7 +2630,7 @@ function openEditStudentModal(name, password, room, dob) {
   // Format time preferences for display
   let timePrefText = '—';
   if (s.timePreference) {
-    if (s.timePreference === 'flexible') timePrefText = '✅ Flexible — admin will decide';
+    if (s.timePreference === 'flexible') timePrefText = '✅ Flexible — el admin decidirá';
     else if (s.timePreference === 'range' && s.preferredTimeRange) 
       timePrefText = `📅 Range: ${s.preferredTimeRange.start} to ${s.preferredTimeRange.end}`;
     else if (s.timePreference === 'specific' && s.specificTimes)
@@ -2642,7 +2642,7 @@ function openEditStudentModal(name, password, room, dob) {
   // Load parents dropdown
   const parentSel = document.getElementById('edit-student-parent-id');
   if (parentSel) {
-    parentSel.innerHTML = '<option value="">— No parent linked —</option>';
+    parentSel.innerHTML = '<option value="">— Sin padre vinculado —</option>';
     (_allParents || []).forEach(par => {
       const opt = document.createElement('option');
       opt.value = par._id;
@@ -2711,7 +2711,7 @@ async function adjustStudentOwed(mode, forcedAmount) {
       body: JSON.stringify({ mode, amount, reason })
     });
     const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Failed');
+    if (!data.success) throw new Error(data.message || 'Falló');
     setOwedDisplay('edit-student', data.debtMins ?? data.makeUpMinutesOwed);
     document.getElementById('edit-student-owed-amount').value = '';
     document.getElementById('edit-student-owed-reason').value = '';
@@ -2742,7 +2742,7 @@ async function adjustGroupOwed(mode, forcedAmount) {
       body: JSON.stringify({ mode, amount, reason })
     });
     const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Failed');
+    if (!data.success) throw new Error(data.message || 'Falló');
     setOwedDisplay('edit-group', data.debtMins ?? data.makeUpMinutesOwed);
     document.getElementById('edit-group-owed-amount').value = '';
     document.getElementById('edit-group-owed-reason').value = '';
@@ -2845,7 +2845,7 @@ async function saveEditStudent() {
 }
 
 function confirmDeleteStudent(name) {
-  showAlert('🗑️', `Delete ${name}?`, 'This removes the student from all rooms and groups.',
+  showAlert('🗑️', `¿Borrar a ${name}?`, 'Esto quita al alumno de todos los salones y grupos.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteStudent('${name}')`,primary:true}]);
 }
 
@@ -2864,7 +2864,7 @@ async function doDeleteStudent(name) {
     await loadAll();
     renderAllStudents();
     renderGroups();
-  } catch(e) { showAlert('😬','Error','Could not delete student.',[{label:'OK',fn:'closeAlert()',primary:true}]); }
+  } catch(e) { showAlert('😬','Error','No se pudo borrar el alumno.',[{label:'OK',fn:'closeAlert()',primary:true}]); }
 }
 
 function toggleNewGroupFields() {
@@ -2904,7 +2904,7 @@ function openAddStudentModal() {
   const passInput = document.getElementById('global-student-pass');
   passInput.style.background = ''; passInput.style.color = ''; passInput.readOnly = false;
   const groupSel = document.getElementById('global-student-group');
-  groupSel.innerHTML = '<option value="">-- No group --</option><option value="__new__">➕ Create new group...</option>' +
+  groupSel.innerHTML = '<option value="">-- No group --</option><option value="__new__">➕ Crear grupo nuevo...</option>' +
     allGroups.map(g => `<option value="${escHtml(g._id)}">${escHtml(g.name)} · ${escHtml(g.level)} · ${escHtml(g.classType)}</option>`).join('');
   document.getElementById('add-student-modal').classList.add('open');
 }
@@ -3141,7 +3141,7 @@ async function saveGroup() {
 }
 
 function confirmDeleteGroup(id, name) {
-  showAlert('🗑️',`Delete "${name}"?`,'This group will be removed.',
+  showAlert('🗑️',`¿Borrar "${name}"?`,'Este grupo se va a borrar.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Delete',fn:`doDeleteGroup('${id}')`,primary:true}]);
 }
 
@@ -3169,7 +3169,7 @@ async function confirmReset() {
   const data = await res.json();
   if (!data.success) { errEl.textContent = data.message || 'Wrong password.'; errEl.style.display = 'block'; return; }
   document.getElementById('reset-modal').classList.remove('open');
-  showAlert('🪐', 'Reset Complete', 'All data has been wiped. The platform is now blank and ready to go live!', [{ label: 'OK', fn: 'closeAlert();logout()', primary: true }]);
+  showAlert('🪐', 'Reinicio completo', 'Todos los datos fueron borrados. La plataforma está vacía y lista para salir al público.', [{ label: 'OK', fn: 'closeAlert();logout()', primary: true }]);
 }
 
 // ── TRIAL NOTIFICATIONS ──
@@ -3288,7 +3288,7 @@ async function loadPayroll() {
       </div>`).join('')}
     </div>` : `
     <div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:12px;padding:12px 18px;margin-bottom:16px;font-weight:900;color:#2e7d32;">
-      ✅ All monthly student reviews are complete for this period
+      ✅ Todas las reseñas mensuales de alumnos están completas para este periodo
     </div>`;
 
   results.innerHTML = reviewBanner + `
@@ -3311,9 +3311,9 @@ async function loadPayroll() {
         ${t.classes.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
           <thead><tr style="background:#f0f4f8;">
             <th style="padding:6px 10px;text-align:left;color:#888;">Date</th>
-            <th style="padding:6px 10px;text-align:left;color:#888;">Group</th>
-            <th style="padding:6px 10px;text-align:left;color:#888;">Type</th>
-            <th style="padding:6px 10px;text-align:left;color:#888;">Students</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Grupo</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Tipo</th>
+            <th style="padding:6px 10px;text-align:left;color:#888;">Alumnos</th>
             <th style="padding:6px 10px;text-align:left;color:#888;">Note</th>
             <th style="padding:6px 10px;text-align:right;color:#888;">Pay</th>
           </tr></thead>
@@ -3357,7 +3357,7 @@ function buildStatusTags(r) {
 
   // Completed
   const ee = r.earlyEnd;
-  if (ee && ee.flag) tags.push(tag('white', '#b71c1c', ee.by === 'students' ? `🔴 NO STUDENTS FOR THE LAST ${Math.round(ee.earlyMins)} MIN — ASK THE TEACHER` : `🔴 ENDED EARLY BY TEACHER −${Math.round(ee.earlyMins)} MIN — ASK THE TEACHER`));
+  if (ee && ee.flag) tags.push(tag('white', '#b71c1c', ee.by === 'students' ? `🔴 SIN ALUMNOS LOS ÚLTIMOS ${Math.round(ee.earlyMins)} MIN — PREGUNTAR AL MAESTRO` : `🔴 TERMINÓ ANTES EL MAESTRO −${Math.round(ee.earlyMins)} MIN — PREGUNTAR AL MAESTRO`));
   else if (r.endType === 'completed' || (r.endType === 'ended_early' && ee)) tags.push(tag('white', '#2e7d32', '✅ COMPLETED'));
   else if (r.endType === 'ended_early') tags.push(tag('white', '#e65100', '⚠️ ENDED EARLY'));
   if (r.endType === 'invalid_termination') tags.push(tag('white', '#b71c1c', '⚠️ INVALID TERMINATION'));
@@ -3577,7 +3577,7 @@ function openAttDetail(idx) {
           background:${r.networkTest.quality==='good'?'rgba(0,230,118,0.08)':r.networkTest.quality==='fair'?'rgba(255,215,64,0.08)':'rgba(255,82,82,0.08)'};
           color:${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};
           border:1px solid ${r.networkTest.quality==='good'?'#00c853':r.networkTest.quality==='fair'?'#f9a825':'#e53935'};">
-          ${r.networkTest.quality==='good'?'🟢':'🟡'} Network at join: ${r.networkTest.avgPing}ms ping · ${r.networkTest.jitter||'—'}ms jitter · ${r.networkTest.packetLoss}% loss — ${r.networkTest.quality.toUpperCase()}
+          ${r.networkTest.quality==='good'?'🟢':'🟡'} Red al entrar: ${r.networkTest.avgPing}ms ping · ${r.networkTest.jitter||'—'}ms jitter · ${r.networkTest.packetLoss}% pérdida — ${r.networkTest.quality.toUpperCase()}
         </div>` : ''}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:10px;">
           <div><div style="font-size:0.75rem;color:#888;">Greeting Window</div><div style="font-weight:900;color:#1a1a2e;">${fmtT(r.teacherLoginAt||r.teacherOpenedAt)}</div></div>
@@ -3727,7 +3727,7 @@ async function generateRegCode() {
           <div style="font-size:0.75rem;color:#888;margin-top:6px;">The parent can type this on the registration screen instead.</div>
         </details>
 
-        <button onclick="this.closest('div[style]').remove()" style="width:100%;margin-top:16px;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Close</button>
+        <button onclick="this.closest('div[style]').remove()" style="width:100%;margin-top:16px;padding:10px;background:#f0f4f8;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cerrar</button>
       </div>
     `;
     document.body.appendChild(modal);
@@ -3900,8 +3900,8 @@ async function confirmCancelClass(id, dateStr) {
     const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/resolve`, { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ resolution: 'cancelled' }) });
     const d = await r.json();
-    if (!d.success) alert(d.error || 'Could not save'); else showToast('✅ Class cancelled and removed', 5000);
-  } catch (e) { alert('Could not save'); }
+    if (!d.success) alert(d.error || 'No se pudo guardar'); else showToast('✅ Clase cancelada y borrada', 5000);
+  } catch (e) { alert('No se pudo guardar'); }
   _refreshAfterCancel(dateStr);
 }
 async function undoCancelClass(id, dateStr) {
@@ -3911,23 +3911,23 @@ async function undoCancelClass(id, dateStr) {
     const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/undo-cancel`, { method: 'POST',
       headers: { Authorization: `Bearer ${currentToken}` } });
     const d = await r.json();
-    if (!d.success) alert(d.error || 'Could not undo'); else showToast('✅ Class restored — teacher and parent emailed', 5000);
-  } catch (e) { alert('Could not undo'); }
+    if (!d.success) alert(d.error || 'No se pudo deshacer'); else showToast('✅ Clase restaurada — se envió correo al maestro y al padre', 5000);
+  } catch (e) { alert('No se pudo deshacer'); }
   _refreshAfterCancel(dateStr);
 }
 
 async function resolveAbsence(id, resolution) {
   const what = { 'cancelled': 'CANCELLED for good (the class is removed from the calendar)',
-                 'discount': 'turned into a CLASS CREDIT that comes off their next payment', 'no-credit': 'closed with NO CREDIT' }[resolution];
+                 'discount': 'convertido en CRÉDITO DE CLASE que se descuenta de su próximo pago', 'no-credit': 'cerrado SIN CRÉDITO' }[resolution];
   if (resolution === 'discount' && !confirm('Did you receive the doctor\'s note or proof for these absences?\n\nOK = yes, I have it.')) return;
   if (!confirm(`This absence will be ${what}. Continue?`)) return;
   try {
     const r = await fetch(`${SERVER_URL}/admin/absences/${encodeURIComponent(id)}/resolve`, { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ resolution, proofReceived: resolution === 'discount' }) });
     const d = await r.json();
-    if (!d.success) alert(d.error || 'Could not save');
-    else showToast(resolution === 'discount' ? '✅ Credit added — it comes off their next payment' : resolution === 'rescheduled' ? '✅ Marked rescheduled — move the class in the Calendar' : '✅ Absence resolved', 6000);
-  } catch(e) { alert('Could not save'); }
+    if (!d.success) alert(d.error || 'No se pudo guardar');
+    else showToast(resolution === 'discount' ? '✅ Crédito agregado — se descuenta de su próximo pago' : resolution === 'rescheduled' ? '✅ Marcada como reprogramada — mueve la clase en el Calendario' : '✅ Ausencia resuelta', 6000);
+  } catch(e) { alert('No se pudo guardar'); }
   showStudentRequests();
   try { pollPendingRequests(); } catch(e) {}
   if (resolution === 'discount' && typeof loadBillingStudents === 'function') loadBillingStudents();
@@ -4058,7 +4058,7 @@ async function savePrices() {
     });
     _billingPrices = prices;
     showToast('✅ Prices saved!');
-  } catch(e) { showToast('❌ Failed to save prices'); }
+  } catch(e) { showToast('❌ No se pudieron guardar los precios'); }
 }
 
 async function loadBillingStudents() {
@@ -4125,7 +4125,7 @@ function renderBillingTable(students) {
         <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Paid</button>
         ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Undo this payment confirmation — wrong click, or the transfer turned out to be fake/cancelled" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Unpaid</button>` : ''}
         <button onclick="togglePaymentExempt('${escJsAttr(s.name)}',${!s.paymentExempt})"
-          title="${s.paymentExempt ? 'Remove exempt — student WILL be suspended for non-payment' : 'Mark exempt — student will NOT be suspended for non-payment'}"
+          title="${s.paymentExempt ? 'Quitar exención — el alumno SÍ será suspendido por falta de pago' : 'Marcar como exento — el alumno NO será suspendido por falta de pago'}"
           style="padding:4px 8px;background:${s.paymentExempt?'#e3f2fd':'#f5f5f5'};border:1px solid ${s.paymentExempt?'#1a73e8':'#ddd'};border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${s.paymentExempt?'#1a73e8':'#aaa'};margin-right:4px;">
           ${s.paymentExempt ? '🛡 Exempt' : '🔓'}
         </button>
@@ -4139,7 +4139,7 @@ async function completeTrial(name) {
   await fetch(`${SERVER_URL}/billing/complete-trial/${encodeURIComponent(name)}`, {
     method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
-  showToast(`✅ Trial marked complete for ${name}`);
+  showToast(`✅ Prueba marcada como completa para ${name}`);
   loadBillingStudents();
 }
 
@@ -4153,7 +4153,7 @@ async function confirmPayment(name) {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
   });
-  showToast(`✅ Payment confirmed for ${name}`);
+  showToast(`✅ Pago confirmado para ${name}`);
   loadBillingStudents();
 }
 
@@ -4162,7 +4162,7 @@ async function markUnpaid(name) {
   await fetch(`${SERVER_URL}/billing/mark-unpaid/${encodeURIComponent(name)}`, {
     method: 'POST', headers: { Authorization: `Bearer ${currentToken}` }
   });
-  showToast(`↩️ Payment undone for ${name}`);
+  showToast(`↩️ Pago revertido para ${name}`);
   loadBillingStudents();
 }
 
@@ -4195,11 +4195,11 @@ function updateCpwField() {
 function roomFieldHTML(type, currentRoom) {
   if (type !== '1v1') {
     return `<div style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f0f4f8;color:#888;font-family:Nunito;font-size:0.85rem;">
-      Group students get their teacher from the group they're in, not set here.
+      Los alumnos de grupo reciben su maestro del grupo en el que están; no se configura aquí.
     </div>`;
   }
   return `<select id="be-room" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
-    <option value="">-- Not assigned yet --</option>
+    <option value="">-- Aún no asignado --</option>
     ${rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room)===String(currentRoom)?' selected':''}>Teacher ${escHtml(r.teacherName||'—')} (Room ${escHtml(r.room)})</option>`).join('')}
   </select>
   <div style="font-size:0.78rem;color:#888;margin-top:4px;">Once assigned, their recurring classes generate automatically from the days/time/duration set above.</div>`;
@@ -4231,7 +4231,7 @@ function openBillingEdit(name) {
           <select id="be-type" onchange="updateCpwField()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
             <option value="">— Select —</option>
             <option value="1v1" ${s.enrolledType==='1v1'?'selected':''}>1v1</option>
-            <option value="group" ${s.enrolledType==='group'?'selected':''}>Group</option>
+            <option value="group" ${s.enrolledType==='group'?'selected':''}>Grupo</option>
           </select>
         </div>
         <div>
@@ -4295,7 +4295,7 @@ async function saveBillingEdit(name) {
     body: JSON.stringify(body)
   });
   document.getElementById('billing-edit-modal').style.display = 'none';
-  showToast('✅ Billing info saved');
+  showToast('✅ Información de cobranza guardada');
   loadBillingStudents();
 }
 
@@ -4385,7 +4385,7 @@ function renderParentsList(parents) {
       + '<button data-pid="' + escHtml(pid) + '" data-pname="' + escHtml(pname) + '" data-pphone="' + escHtml(pphone) + '" data-pemail="' + escHtml(pemail) + '" onclick="openEditParentModal(this.dataset.pid,this.dataset.pname,this.dataset.pphone,this.dataset.pemail)" style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Edit</button>'
       + '<button data-pid="' + escHtml(pid) + '" data-pemail="' + escHtml(pemail) + '" onclick="confirmSendCredentials(this.dataset.pid,this.dataset.pemail)" style="padding:4px 10px;background:#1a73e8;border:none;color:white;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">📧 Send Login</button>'
       + '</div></div>'
-      + '<div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Students</div>'
+      + '<div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Alumnos</div>'
       + studentRows
       + _parentAssignDropdown(par, assignedNames)
       + '</div>';
@@ -4394,7 +4394,7 @@ function renderParentsList(parents) {
 
 function confirmSendCredentials(pid, email) {
   if (!email) { showAlert('😬','No Email','This parent has no email address on file.',[{label:'OK',fn:'closeAlert()',primary:true}]); return; }
-  showAlert('📧','Send login details?','A new temporary password will be emailed to ' + email + '. Any password they are using now will stop working, and they will be asked to create their own password when they log in.',
+  showAlert('📧','¿Enviar datos de acceso?','Se enviará por correo una contraseña temporal nueva a ' + email + '. La contraseña que usen ahora dejará de funcionar, y se les pedirá crear su propia contraseña al entrar.',
     [{label:'Cancel',fn:'closeAlert()',primary:false},{label:'Send',fn:`doSendCredentials('${pid}')`,primary:true}]);
 }
 
@@ -4406,9 +4406,9 @@ async function doSendCredentials(pid) {
     });
     const data = await res.json();
     if (data.success) { showToast('✅ Login details sent!'); await renderParentsPanel(); }
-    else showAlert('😬','Could not send',data.error || 'Something went wrong.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+    else showAlert('😬','No se pudo enviar',data.error || 'Algo salió mal.',[{label:'OK',fn:'closeAlert()',primary:true}]);
   } catch(e) {
-    showAlert('😬','Could not send',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
+    showAlert('😬','No se pudo enviar',e.message,[{label:'OK',fn:'closeAlert()',primary:true}]);
   }
 }
 
@@ -4423,7 +4423,7 @@ async function assignStudent(parentId) {
   });
   const data = await res.json();
   if (data.success) { showToast('✅ Student assigned!'); await renderParentsPanel(); await loadAll(); renderAllStudents(); }
-  else showToast('❌ ' + (data.error || 'Failed'));
+  else showToast('❌ ' + (data.error || 'Falló'));
 }
 
 async function unassignStudent(parentId, studentName) {
@@ -4443,7 +4443,7 @@ function openCreateParentModal() {
     <div style="background:white;border-radius:16px;padding:26px;max-width:440px;width:100%;">
       <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">👪 Create Parent Account</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">
-        For parents who'd rather not register themselves. No registration code needed — they can log in right away with the password you set here.
+        Para padres que prefieren no registrarse solos. No necesitan código de registro — pueden entrar de inmediato con la contraseña que pongas aquí.
       </div>
 
       <div class="field-group"><label>Parent Name *</label>
@@ -4453,7 +4453,7 @@ function openCreateParentModal() {
       <div class="field-group"><label>WhatsApp / Phone</label>
         <input type="tel" id="cp-phone" placeholder="e.g. +52 33 1234 5678"/></div>
       <div class="field-group"><label>Password * (min 6 characters)</label>
-        <input type="text" id="cp-password" placeholder="Give this to the parent"/></div>
+        <input type="text" id="cp-password" placeholder="Dásela al padre"/></div>
       <div class="field-group"><label>Relationship</label>
         <select id="cp-relationship" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
           <option value="mother">Mother / Mamá</option>
@@ -4466,7 +4466,7 @@ function openCreateParentModal() {
 
       <div style="display:flex;gap:10px;margin-top:14px;">
         <button onclick="document.getElementById('create-parent-modal').style.display='none'"
-          style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancel</button>
+          style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancelar</button>
         <button onclick="saveNewParent()"
           style="flex:1;padding:11px;background:#2e7d32;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Create</button>
       </div>
@@ -4502,7 +4502,7 @@ async function saveNewParent() {
     document.getElementById('create-parent-modal').style.display = 'none';
     await renderParentsPanel();
     showAlert('✅','Parent Created',
-      `${parentName} can now log in with:\n\nEmail: ${email}\nPassword: ${password}\n\nAssign students to them from the list below.`,
+      `${parentName} ya puede entrar con:\n\nEmail: ${email}\nPassword: ${password}\n\nAsigna alumnos a esta familia desde la lista de abajo.`,
       [{label:'Got it',fn:'closeAlert()',primary:true}]);
   } catch(e) {
     status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
@@ -4540,13 +4540,13 @@ function openEditParentModal(id, name, phone, email) {
           <input id="pe-discount" type="number" min="0" max="100" step="1" value="${_p?.familyDiscount || 0}"
             style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
           <div style="font-size:0.75rem;color:#888;margin-top:4px;">
-            Applies to this family's whole payment total. Leave 0 for none.
-            Only this family ever sees it — it's not advertised anywhere.
+            Se aplica al total de pagos de esta familia. Déjalo en 0 si no aplica.
+            Solo esta familia lo ve — no se anuncia en ningún lado.
           </div>
         </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">REASON (internal note)</label>
-          <input id="pe-discount-note" value="${(_p?.familyDiscountNote || '').replace(/"/g,'&quot;')}" placeholder="e.g. 2 hermanos — acordado con la mamá"
+          <input id="pe-discount-note" value="${(_p?.familyDiscountNote || '').replace(/"/g,'&quot;')}" placeholder="p. ej. 2 hermanos — acordado con la mamá"
             style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
         </div>
 
@@ -4609,7 +4609,7 @@ async function renderTickets(keepSettings) {
     const who = t.studentFullName || t.studentName;
     return `<div class="card" style="margin-bottom:10px;padding:12px;${t.status === 'open' ? 'border-left:5px solid #e53935;' : 'opacity:0.8;border-left:5px solid #2e7d32;'}">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><b>${TK_LABEL[t.kind] || specEsc(t.kind)}</b><span style="font-size:0.78rem;color:#888;">${specEsc(when)}</span></div>
-      <div style="font-size:0.88rem;margin-top:4px;">Room <b>${specEsc(t.room)}</b> · Teacher <b>${specEsc(t.teacherName)}</b>${who ? ' · Student <b>' + specEsc(who) + '</b>' : ''}${t.scheduledTime ? ' · ' + specEsc(t.scheduledTime) : ''}</div>
+      <div style="font-size:0.88rem;margin-top:4px;">Salón<b>${specEsc(t.room)}</b> · Teacher <b>${specEsc(t.teacherName)}</b>${who ? ' · Student <b>' + specEsc(who) + '</b>' : ''}${t.scheduledTime ? ' · ' + specEsc(t.scheduledTime) : ''}</div>
       ${t.status === 'resolved' ? `<div style="font-size:0.8rem;color:#2e7d32;margin-top:4px;">✔ Resolved${t.resolutionNote ? ': ' + specEsc(t.resolutionNote) : ''}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
         ${t.status === 'open'
@@ -4638,9 +4638,9 @@ async function saveTicketSettings() {
   const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, adminEmailsEn: document.getElementById('tk-admin-en').value, billingEmails: document.getElementById('tk-billing').value };
   try {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
-    st.textContent = d.success ? 'Saved ✓' : (d.message || 'Could not save'); st.style.color = d.success ? '#2e7d32' : '#e53935';
+    st.textContent = d.success ? 'Saved ✓' : (d.message || 'No se pudo guardar'); st.style.color = d.success ? '#2e7d32' : '#e53935';
     if (d.success) loadTicketSettings();
-  } catch (e) { st.textContent = 'Could not save'; st.style.color = '#e53935'; }
+  } catch (e) { st.textContent = 'No se pudo guardar'; st.style.color = '#e53935'; }
 }
 
 // ── HELP VIDEOS ──
@@ -4659,8 +4659,8 @@ async function loadHelpVideos() {
         <div style="font-size:0.8rem;margin-top:4px;color:#555;">Visible to: ${(v.audience || []).map(a => HV_LABEL[a] || specEsc(a)).join(', ')}</div>
         <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Open on YouTube</a>
       </div>
-      <div style="display:flex;gap:8px;"><button onclick="hvStartEdit('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:8px;background:#fff;color:#1a73e8;font-weight:700;cursor:pointer;">Edit</button>
-      <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Delete</button></div>
+      <div style="display:flex;gap:8px;"><button onclick="hvStartEdit('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:8px;background:#fff;color:#1a73e8;font-weight:700;cursor:pointer;">Editar</button>
+      <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Borrar</button></div>
     </div>`).join('');
   } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load help videos.</div>'; }
 }
@@ -4695,9 +4695,9 @@ async function addHelpVideo() {
       : await fetch(`${SERVER_URL}/admin/help-videos`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     const d = await r.json();
     const ok = !!(d.success);
-    st.textContent = ok ? (editing ? 'Saved ✓' : 'Added ✓') : (d.message || 'Could not save'); st.style.color = ok ? '#2e7d32' : '#e53935';
+    st.textContent = ok ? (editing ? 'Saved ✓' : 'Added ✓') : (d.message || 'No se pudo guardar'); st.style.color = ok ? '#2e7d32' : '#e53935';
     if (ok) { hvResetForm(); loadHelpVideos(); }
-  } catch (e) { st.textContent = 'Could not save'; st.style.color = '#e53935'; }
+  } catch (e) { st.textContent = 'No se pudo guardar'; st.style.color = '#e53935'; }
 }
 async function deleteHelpVideo(id) {
   if (!confirm('Delete this help video?')) return;
@@ -4727,7 +4727,7 @@ async function renderSpectators() {
 function renderSpectatorsList() {
   const box = document.getElementById('spectators-list'); if (!box) return;
   if (!_spectators.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No spectators yet. Create one above.</div>'; return; }
-  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Access</th><th>Password</th><th>Type</th><th>Room</th><th></th></tr></thead><tbody>` +
+  box.innerHTML = `<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Label</th><th>Access</th><th>Contraseña</th><th>Tipo</th><th>Salón</th><th></th></tr></thead><tbody>` +
     _spectators.map(s => `<tr id="spec-row-${s.id}" style="${s.enabled ? '' : 'opacity:0.55;'}">
       <td style="font-weight:800;">${specEsc(s.label) || '<span style="color:#aaa;">—</span>'}</td>
       <td><button onclick="updateSpectator('${s.id}', { enabled: ${!s.enabled} })" title="${s.enabled ? 'Turn this access off (it keeps the password and room)' : 'Turn this access back on'}" style="padding:6px 12px;border:none;border-radius:14px;font-family:Nunito;font-weight:900;font-size:0.78rem;cursor:pointer;color:#fff;background:${s.enabled ? '#2e7d32' : '#757575'};white-space:nowrap;">${s.enabled ? 'ON · turn off' : 'OFF · turn on'}</button></td>
@@ -4756,21 +4756,21 @@ async function createSpectator() {
     document.getElementById('spec-label').value = ''; document.getElementById('spec-password').value = '';
     specStatus('✅ Spectator created', true);
     renderSpectators();
-  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+  } catch (e) { specStatus('⚠️ No se pudo conectar con el servidor', false); }
 }
 async function updateSpectator(id, fields) {
   try {
     const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(fields) });
     const d = await res.json();
-    if (!d.success) { specStatus('⚠️ ' + (d.message || 'Could not save'), false); }
+    if (!d.success) { specStatus('⚠️ ' + (d.message || 'No se pudo guardar'), false); }
     else specStatus('✅ Saved', true);
-  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+  } catch (e) { specStatus('⚠️ No se pudo conectar con el servidor', false); }
   renderSpectators();
 }
 function editSpectatorPassword(id) {
   const cell = document.getElementById(`spec-pw-${id}`); if (!cell) return;
   cell.innerHTML = `<input type="text" id="spec-pw-input-${id}" placeholder="New password" autocomplete="off" style="width:130px;padding:5px;border:2px solid #1a73e8;border-radius:8px;font-family:Nunito;font-size:0.85rem;"/>
-    <button onclick="saveSpectatorPassword('${id}')" style="padding:5px 9px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:900;cursor:pointer;font-size:0.78rem;">Save</button>
+    <button onclick="saveSpectatorPassword('${id}')" style="padding:5px 9px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:900;cursor:pointer;font-size:0.78rem;">Guardar</button>
     <button onclick="renderSpectatorsList()" style="padding:5px 9px;border:2px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:0.78rem;">✕</button>`;
   const inp = document.getElementById(`spec-pw-input-${id}`); if (inp) inp.focus();
 }
@@ -4786,15 +4786,15 @@ async function deleteSpectator(id) {
   try {
     const res = await fetch(`${SERVER_URL}/admin/spectators/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
     const d = await res.json();
-    specStatus(d.success ? '🗑 Deleted' : '⚠️ Could not delete', !!d.success);
-  } catch (e) { specStatus('⚠️ Could not reach the server', false); }
+    specStatus(d.success ? '🗑 Borrado' : '⚠️ No se pudo borrar', !!d.success);
+  } catch (e) { specStatus('⚠️ No se pudo conectar con el servidor', false); }
   renderSpectators();
 }
 function copySpectatorInfo(id) {
   const s = _spectators.find(x => x.id === id); if (!s) return;
   const text = `PolyABC — Acceso para observar clase / Spectator access\nhttps://polyabc.academy\nSala / Room: ${s.assignedRoom || '(te lo indicaremos / we will tell you)'}\nContraseña / Password: ${s.password}`;
   const done = () => specStatus('📋 Login info copied', true);
-  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => specStatus('⚠️ Could not copy', false)); else specStatus('⚠️ Could not copy', false);
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => specStatus('⚠️ No se pudo copiar', false)); else specStatus('⚠️ No se pudo copiar', false);
 }
 
 async function renderStaff() {
@@ -4842,7 +4842,7 @@ async function saveSchoolInfo() {
       status.textContent = '✅ Saved'; status.style.color = '#2e7d32';
       setTimeout(() => { status.textContent = ''; }, 3000);
     } else {
-      status.textContent = '❌ ' + (d.error || 'Could not save'); status.style.color = '#e53935';
+      status.textContent = '❌ ' + (d.error || 'No se pudo guardar'); status.style.color = '#e53935';
     }
   } catch(e) {
     status.textContent = '❌ Could not reach server'; status.style.color = '#e53935';
@@ -4866,7 +4866,7 @@ async function previewClosure() {
   const fmt = iso => new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric' });
   if (!d.students.length) {
     box.innerHTML = `<div style="background:#f0f4f8;border-radius:10px;padding:14px;font-size:0.85rem;color:#555;">
-      No one currently has a payment due in that ${d.days}-day window — nothing to shift.
+      Nadie tiene un pago por vencer en esa ventana de ${d.days} días — nada que mover.
     </div>`;
     return;
   }
@@ -4874,7 +4874,7 @@ async function previewClosure() {
   box.innerHTML = `
     <div style="background:#fff3e0;border-radius:10px;padding:14px;margin-bottom:10px;">
       <div style="font-weight:900;font-size:0.9rem;color:#e65100;margin-bottom:8px;">
-        ${d.students.length} student${d.students.length>1?'s':''} affected — due dates will move forward ${d.days} day${d.days>1?'s':''}
+        ${d.students.length} student${d.students.length>1?'s':''} afectado(s) — las fechas de pago se mueven ${d.days} día${d.days>1?'s':''}
       </div>
       ${d.students.map(s => `<div style="font-size:0.82rem;color:#555;padding:2px 0;">
         <strong>${escHtml(s.name)}</strong>: ${fmt(s.oldDue)} → <strong style="color:#2e7d32;">${fmt(s.newDue)}</strong>
@@ -5206,7 +5206,7 @@ async function migratePasswords() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }
     });
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Migration failed');
+    if (!data.success) throw new Error(data.error || 'La migración falló');
     status.style.color = '#00897b';
     status.textContent = `\u2705 Done \u2014 ${data.students} students, ${data.teachers} teachers, ${data.roomStudents} room rosters encrypted. ${data.alreadyDone} already done.`
       + (data.skipped?.length ? ` Skipped (no password): ${data.skipped.join(', ')}` : '');
@@ -5225,7 +5225,7 @@ async function fullExport() {
       headers: { Authorization: `Bearer ${currentToken}` }
     });
     if (!res.ok) {
-      let msg = 'Export failed';
+      let msg = 'La exportación falló';
       try { msg = (await res.json()).error || msg; } catch(_) {}
       throw new Error(msg);
     }
@@ -5252,7 +5252,7 @@ async function flushDownload() {
     const res = await fetch(`${SERVER_URL}/admin/flush/export`, {
       headers: { Authorization: `Bearer ${currentToken}` }
     });
-    if (!res.ok) throw new Error('Export failed');
+    if (!res.ok) throw new Error('La exportación falló');
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -5276,14 +5276,14 @@ function flushDelete() {
       <div style="text-align:center;font-size:1.6rem;">⚠️</div>
       <div style="text-align:center;font-weight:900;font-size:1.05rem;margin-bottom:4px;color:#c62828;">Permanent Delete</div>
       <div style="font-size:0.85rem;color:#555;margin-bottom:16px;line-height:1.5;">
-        This deletes ALL attendance records, accounting entries, and class assignments — permanently, with no undo.
-        Make sure you've downloaded the records first.
+        Esto borra TODOS los registros de asistencia, asientos de contabilidad y asignaciones de clase — permanentemente, sin forma de deshacer.
+        Asegúrate de haber descargado los registros primero.
       </div>
-      <label style="font-size:0.8rem;font-weight:900;color:#555;">Type <span style="font-family:monospace;background:#f0f0f0;padding:2px 6px;border-radius:4px;">DELETE ALL DATA</span> to confirm</label>
+      <label style="font-size:0.8rem;font-weight:900;color:#555;">Tipo<span style="font-family:monospace;background:#f0f0f0;padding:2px 6px;border-radius:4px;">DELETE ALL DATA</span> to confirm</label>
       <input id="flush-confirm-input" type="text" autocomplete="off" style="width:100%;padding:10px;margin-top:6px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.95rem;">
       <div id="flush-confirm-error" style="color:#c62828;font-size:0.8rem;font-weight:700;min-height:18px;margin-top:6px;"></div>
       <div style="display:flex;gap:10px;margin-top:10px;">
-        <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancel</button>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;padding:11px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Cancelar</button>
         <button onclick="doFlushDelete()" style="flex:1;padding:11px;background:#c62828;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;cursor:pointer;">Delete Permanently</button>
       </div>
     </div>`;
