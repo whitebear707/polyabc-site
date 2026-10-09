@@ -597,7 +597,8 @@
         </div>
       </div>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Add video</button>
+        <button id="hv-save-btn" onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Add video</button>
+        <button id="hv-cancel-btn" onclick="hvCancelEdit()" style="display:none;padding:8px 16px;border:2px solid #ddd;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancel</button>
         <span id="hv-status" style="font-size:0.85rem;font-weight:700;"></span>
       </div>
     </div>
@@ -4687,6 +4688,7 @@ async function loadHelpVideos() {
   try {
     const r = await fetch(`${SERVER_URL}/admin/help-videos`, { headers: tkAuth() }); const d = await r.json();
     const vids = d.videos || [];
+    _hvVideos = vids;
     if (!vids.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">No help videos yet.</div>'; return; }
     box.innerHTML = vids.map(v => `<div class="card" style="margin-bottom:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
       <img src="https://img.youtube.com/vi/${specEsc(v.youtubeId)}/default.jpg" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;">
@@ -4695,19 +4697,45 @@ async function loadHelpVideos() {
         <div style="font-size:0.8rem;margin-top:4px;color:#555;">Visible to: ${(v.audience || []).map(a => HV_LABEL[a] || specEsc(a)).join(', ')}</div>
         <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Open on YouTube</a>
       </div>
-      <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Delete</button>
+      <div style="display:flex;gap:8px;"><button onclick="hvStartEdit('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #1a73e8;border-radius:8px;background:#fff;color:#1a73e8;font-weight:700;cursor:pointer;">Edit</button>
+      <button onclick="deleteHelpVideo('${specEsc(v.id)}')" style="padding:6px 14px;border:2px solid #e53935;border-radius:8px;background:#fff;color:#e53935;font-weight:700;cursor:pointer;">Delete</button></div>
     </div>`).join('');
   } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">Could not load help videos.</div>'; }
 }
+let _hvVideos = [], _hvEditId = null;
+function hvResetForm() {
+  _hvEditId = null;
+  document.getElementById('hv-title').value = ''; document.getElementById('hv-url').value = '';
+  document.querySelectorAll('.hv-aud').forEach(c => c.checked = false);
+  document.getElementById('hv-save-btn').textContent = 'Add video';
+  document.getElementById('hv-cancel-btn').style.display = 'none';
+}
+function hvStartEdit(id) {
+  const v = _hvVideos.find(x => x.id === id); if (!v) return;
+  _hvEditId = id;
+  document.getElementById('hv-title').value = v.title;
+  document.getElementById('hv-url').value = 'https://youtu.be/' + v.youtubeId;
+  document.querySelectorAll('.hv-aud').forEach(c => c.checked = (v.audience || []).includes(c.value));
+  document.getElementById('hv-save-btn').textContent = 'Save changes';
+  document.getElementById('hv-cancel-btn').style.display = 'inline-block';
+  document.getElementById('hv-status').textContent = '';
+  document.getElementById('hv-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hvCancelEdit() { hvResetForm(); document.getElementById('hv-status').textContent = ''; }
 async function addHelpVideo() {
   const st = document.getElementById('hv-status');
   const audience = [...document.querySelectorAll('.hv-aud:checked')].map(c => c.value);
   const body = { title: document.getElementById('hv-title').value.trim(), url: document.getElementById('hv-url').value.trim(), audience };
+  const editing = _hvEditId;
   try {
-    const r = await fetch(`${SERVER_URL}/admin/help-videos`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
-    st.textContent = d.success ? 'Added ✓' : (d.message || 'Could not add'); st.style.color = d.success ? '#2e7d32' : '#e53935';
-    if (d.success) { document.getElementById('hv-title').value = ''; document.getElementById('hv-url').value = ''; document.querySelectorAll('.hv-aud').forEach(c => c.checked = false); loadHelpVideos(); }
-  } catch (e) { st.textContent = 'Could not add'; st.style.color = '#e53935'; }
+    const r = editing
+      ? await fetch(`${SERVER_URL}/admin/help-videos/${editing}`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) })
+      : await fetch(`${SERVER_URL}/admin/help-videos`, { method: 'POST', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
+    const d = await r.json();
+    const ok = !!(d.success);
+    st.textContent = ok ? (editing ? 'Saved ✓' : 'Added ✓') : (d.message || 'Could not save'); st.style.color = ok ? '#2e7d32' : '#e53935';
+    if (ok) { hvResetForm(); loadHelpVideos(); }
+  } catch (e) { st.textContent = 'Could not save'; st.style.color = '#e53935'; }
 }
 async function deleteHelpVideo(id) {
   if (!confirm('Delete this help video?')) return;
