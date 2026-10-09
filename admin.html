@@ -239,7 +239,12 @@
 
     /* assign modal day panel */
     #assign-day-panel { background:white; border-radius:16px; padding:20px; max-width:500px; width:95%; max-height:80vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
-  </style>
+  
+    /* Hide Google Translate's top banner ("Translated to… Show original") — translation still works */
+    .goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe[class*="goog-te"] { display: none !important; }
+    body { top: 0 !important; }
+    .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip { display: none !important; }
+</style>
 </head>
 <body>
 

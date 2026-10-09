@@ -82,7 +82,12 @@
     .resched-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
     .resched-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: #555; }
     .resched-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
-  </style>
+  
+    /* Hide Google Translate's top banner ("Translated to… Show original") — translation still works */
+    .goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe[class*="goog-te"] { display: none !important; }
+    body { top: 0 !important; }
+    .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip { display: none !important; }
+</style>
 </head>
 <body>
 

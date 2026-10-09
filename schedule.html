@@ -250,7 +250,12 @@
       .day-hour-label { font-size: 0.62rem; }
       .time-display { font-size: 0.58rem; padding: 4px 1px; min-height: 24px; }
     }
-  </style>
+  
+    /* Hide Google Translate's top banner ("Translated to… Show original") — translation still works */
+    .goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe[class*="goog-te"] { display: none !important; }
+    body { top: 0 !important; }
+    .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip { display: none !important; }
+</style>
 </head>
 <body>
 
