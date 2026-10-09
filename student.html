@@ -132,17 +132,42 @@
 
   // ---- Help videos (admin chooses which ones show here) ----
   function helpEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+    // ---- Help video popup (title list → small centered player) ----
+  let HV_LIST = [];
+  function hvOpen(i) {
+    const v = HV_LIST[i]; if (!v) return;
+    let m = document.getElementById('hv-modal');
+    if (!m) {
+      m = document.createElement('div'); m.id = 'hv-modal';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(10,15,30,0.72);display:none;align-items:center;justify-content:center;padding:20px;z-index:20000;';
+      m.innerHTML = '<div style="background:#fff;border-radius:16px;width:100%;max-width:780px;padding:14px 14px 16px;box-shadow:0 24px 60px rgba(0,0,0,.35);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">' +
+        '<div id="hv-modal-title" style="font-weight:800;font-size:1rem;color:#1a1a2e;"></div>' +
+        '<button id="hv-modal-x" aria-label="Close" style="border:none;background:#eef0f4;border-radius:50%;width:32px;height:32px;font-size:0.95rem;cursor:pointer;color:#333;">✕</button></div>' +
+        '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;background:#000;">' +
+        '<iframe id="hv-modal-frame" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', e => { if (e.target === m || e.target.id === 'hv-modal-x' || e.target.closest('#hv-modal-x')) hvClose(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') hvClose(); });
+    }
+    document.getElementById('hv-modal-title').textContent = v.title;
+    document.getElementById('hv-modal-frame').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtubeId) + '?autoplay=1&rel=0';
+    m.style.display = 'flex';
+  }
+  function hvClose() {
+    const m = document.getElementById('hv-modal'); if (!m || m.style.display === 'none') return;
+    m.style.display = 'none'; document.getElementById('hv-modal-frame').src = 'about:blank';
+  }
+
   async function loadHelpVideos() {
     const box = document.getElementById('help-videos-box'); if (!box || !token) return;
     try {
       const r = await fetch(`${SERVER_URL}/help-videos`, { headers: { Authorization: `Bearer ${token}` } });
-      const d = await r.json(); const vids = d.videos || [];
-      if (!vids.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">No help videos yet. / Aún no hay videos de ayuda.</div>'; return; }
-      box.innerHTML = vids.map(v => `<div style="margin-bottom:20px;">
-        <div style="font-weight:700;margin-bottom:6px;">${helpEsc(v.title)}</div>
-        <div style="position:relative;padding-bottom:56.25%;height:0;">
-          <iframe src="https://www.youtube-nocookie.com/embed/${helpEsc(v.youtubeId)}" title="${helpEsc(v.title)}" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-        </div></div>`).join('');
+      const d = await r.json(); HV_LIST = d.videos || [];
+      if (!HV_LIST.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">No help videos yet. / Aún no hay videos de ayuda.</div>'; return; }
+      box.innerHTML = HV_LIST.map((v, i) => `<button onclick="hvOpen(${i})" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;border:1px solid #e2e6ee;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;font-size:0.95rem;font-weight:700;color:#1a1a2e;">` +
+        `<span style="flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#e8f0fe;color:#1a73e8;display:flex;align-items:center;justify-content:center;font-size:0.75rem;">▶</span>` +
+        `<span style="flex:1;min-width:0;">${helpEsc(v.title)}</span></button>`).join('');
     } catch (e) { box.innerHTML = '<div style="color:#e53935;">Could not load help videos.</div>'; }
   }
 
