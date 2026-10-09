@@ -171,7 +171,7 @@
         <div id="self-name-warning" style="display:none;color:#e65100;font-size:0.8rem;margin-top:4px;">⚠️ Solo el nombre aquí — el apellido va abajo.</div>
       </div>
       <div class="field"><label>Apellido (opcional)</label><input type="text" id="self-lastname" placeholder="Garcia"/></div>
-      <div class="field"><label>Apodo (opcional)</label><input type="text" id="self-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Apodo (opcional)</label><input type="text" id="self-nickname" placeholder="Pedrito (opcional)"/></div>
       <div class="field"><label>Fecha de nacimiento (opcional)</label><input type="date" id="self-dob"/></div>
       <div class="field"><label>WhatsApp / Teléfono</label><input type="tel" id="self-phone" placeholder="+52 333 000 0000"/></div>
       <div class="field"><label>Correo electrónico</label><input type="email" id="self-email" placeholder="your@email.com"/></div>
@@ -219,7 +219,7 @@
       </div>
       <div class="field"><label>Apellido (opcional)</label><input type="text" id="reg-student-lastname" placeholder="Garcia"/></div>
       <div class="field"><label>Fecha de nacimiento (opcional)</label><input type="date" id="reg-student-dob"/></div>
-      <div class="field"><label>Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (optional)"/></div>
+      <div class="field"><label>Apodo (opcional)</label><input type="text" id="reg-student-nickname" placeholder="Pedrito (opcional)"/></div>
       <div id="student-error" class="error"></div>
       <button class="btn btn-primary" onclick="doRegister()">Enviar</button>
       <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('register-parent')">← Atrás</button></div>
@@ -258,8 +258,8 @@
   <!-- SELECT GROUP OPENING -->
   <div id="screen-select-group-opening" style="display:none;">
     <div class="card">
-      <h2>Choose Your Class</h2>
-      <p class="subtitle">Select an available opening</p>
+      <h2>Elige tu clase</h2>
+      <p class="subtitle">Selecciona un horario disponible</p>
       <div id="group-openings-list" style="margin:20px 0;"></div>
       <div id="group-opening-error" class="error"></div>
       <div style="text-align:center;margin-top:16px;">
@@ -271,8 +271,8 @@
   <!-- DASHBOARD -->
   <div id="screen-dashboard" style="display:none;">
     <div class="card" style="padding:16px 20px;text-align:center;">
-      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="dash-welcome">Welcome!</div>
-      <div style="font-size:0.8rem;color:#888;">PolyABC Parent Panel</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;" id="dash-welcome">¡Bienvenido!</div>
+      <div style="font-size:0.8rem;color:#888;">Panel de padres PolyABC</div>
     </div>
 
     <!-- Payment reminder banner — filled in by renderPaymentBanner() -->
@@ -280,13 +280,13 @@
 
     <div class="card">
       <div class="dashboard-nav">
-        <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Students</button>
+        <button class="nav-tab active" onclick="showTab('students')" id="tab-students">👨‍🎓 Alumnos</button>
         <button class="nav-tab" onclick="showTab('classes')" id="tab-classes">📚 Clases Disponibles</button>
-        <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Attendance</button>
+        <button class="nav-tab" onclick="showTab('attendance')" id="tab-attendance">📋 Asistencia</button>
         <button class="nav-tab" onclick="showTab('reports')" id="tab-reports">📝 Reportes</button>
-        <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendar</button>
-        <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Pay</button>
-        <button class="nav-tab" onclick="showTab('help')" id="tab-help">❓ Ayuda / Help</button>
+        <button class="nav-tab" onclick="showTab('calendar')" id="tab-calendar" style="display:none;">🗓 Calendario</button>
+        <button class="nav-tab" onclick="showTab('payment')" id="tab-payment" style="display:none;">💳 Pagar</button>
+        <button class="nav-tab" onclick="showTab('help')" id="tab-help">❓ Ayuda</button>
       </div>
 
       <!-- Help tab — videos chosen by admin for parents -->
@@ -297,7 +297,7 @@
       <!-- Students tab -->
       <div id="panel-students">
         <div id="students-list"></div>
-        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Add Student</button>
+        <button class="btn btn-secondary" onclick="showAddStudent()" style="margin-top:12px;">+ Agregar alumno</button>
       </div>
 
       <!-- Classes Available tab -->
@@ -333,7 +333,7 @@
     <!-- Add student modal -->
     <div id="add-student-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:420px;">
-        <h2 style="margin-bottom:16px;">Add Student</h2>
+        <h2 style="margin-bottom:16px;">Agregar alumno</h2>
         <div class="field">
           <label>Solo el nombre</label>
           <input type="text" id="add-name" placeholder="Pedro" oninput="validateFirstNameOnly(this)"/>
@@ -341,9 +341,9 @@
         </div>
         <div class="field"><label>Apellido (opcional)</label><input type="text" id="add-lastname" placeholder="Garcia"/></div>
         <div class="field"><label>Fecha de nacimiento (opcional)</label><input type="date" id="add-dob"/></div>
-        <div class="field"><label>Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (optional)"/></div>
+        <div class="field"><label>Apodo (opcional)</label><input type="text" id="add-nickname" placeholder="Pedrito (opcional)"/></div>
         <div class="field">
-          <label>Class Type</label>
+          <label>Tipo de clase</label>
           <select id="add-classtype" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;">
             <option value="1v1">🎓 Privada 1 a 1</option>
             <option value="group">👥 Clase grupal</option>
@@ -353,7 +353,7 @@
         <div id="add-success" class="success notranslate" translate="no"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
           <button class="btn btn-primary" onclick="submitAddStudent()" style="flex:1;">Enviar</button>
-          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancel</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('add-student-modal').style.display='none'" style="flex:1;">Cancelar</button>
         </div>
       </div>
     </div>
@@ -362,17 +362,16 @@
     <div id="reschedule-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto;">
         <div id="reschedule-pick-view">
-          <h2 style="margin-bottom:8px;">📅 Request New Time</h2>
-          <p style="color:#888;font-size:0.9rem;margin-bottom:16px;">Choose a preferred time and pick an available day. An admin will need to approve the change before it's final.<br>
-          <span style="color:#aaa;">Elige una hora y un día disponible. Un administrador debe aprobar el cambio antes de que sea definitivo.</span></p>
+          <h2 style="margin-bottom:8px;">📅 Pedir nuevo horario</h2>
+          <p style="color:#888;font-size:0.9rem;margin-bottom:16px;">Elige una hora preferida y un día disponible. Un administrador debe aprobar el cambio antes de que sea definitivo.</p>
           <div class="resched-time-row">
             <div>
-              <label>Preferred time: / Hora preferida:</label>
+              <label>Hora preferida:</label>
               <select id="resched-time-select">
-                <option value="">-- Select --</option>
+                <option value="">-- Selecciona --</option>
               </select>
             </div>
-            <button class="resched-search-btn" onclick="searchRescheduleSlots()">🔍 Search</button>
+            <button class="resched-search-btn" onclick="searchRescheduleSlots()">🔍 Buscar</button>
           </div>
           <div id="resched-calendar-wrap" style="display:none;">
             <div class="resched-cal-nav">
@@ -382,19 +381,18 @@
             </div>
             <div class="resched-cal-grid" id="resched-cal-grid"></div>
             <div class="resched-legend">
-              <div class="resched-legend-item"><div class="resched-legend-dot" style="background:#c8e6c9;"></div>Available</div>
-              <div class="resched-legend-item"><div class="resched-legend-dot" style="background:#ffcdd2;"></div>Not available</div>
+              <div class="resched-legend-item"><div class="resched-legend-dot" style="background:#c8e6c9;"></div>Disponible</div>
+              <div class="resched-legend-item"><div class="resched-legend-dot" style="background:#ffcdd2;"></div>No disponible</div>
             </div>
           </div>
           <div id="reschedule-error" class="error"></div>
         </div>
         <div id="reschedule-pending-view" style="display:none;text-align:center;padding:20px 0;">
           <div style="font-size:2.5rem;margin-bottom:12px;">⏳</div>
-          <h2 style="margin-bottom:8px;">Request Sent!</h2>
-          <p style="color:#666;font-size:0.92rem;">An admin will review and confirm your new time shortly.<br>
-          <span style="color:#aaa;">Un administrador revisará y confirmará tu nuevo horario pronto.</span></p>
+          <h2 style="margin-bottom:8px;">¡Solicitud enviada!</h2>
+          <p style="color:#666;font-size:0.92rem;">Un administrador revisará y confirmará tu nuevo horario pronto.</p>
         </div>
-        <button class="btn btn-secondary" onclick="document.getElementById('reschedule-modal').style.display='none'" style="width:100%;margin-top:16px;">Cancel / Cerrar</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('reschedule-modal').style.display='none'" style="width:100%;margin-top:16px;">Cerrar</button>
       </div>
     </div>
 
@@ -403,8 +401,8 @@
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:360px;text-align:center;">
         <p id="resched-confirm-text" style="font-size:1rem;margin-bottom:20px;"></p>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('resched-confirm-popup').style.display='none'">Cancel</button>
-          <button class="btn btn-primary" style="flex:1;" onclick="confirmRescheduleRequest()">Confirm</button>
+          <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('resched-confirm-popup').style.display='none'">Cancelar</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="confirmRescheduleRequest()">Confirmar</button>
         </div>
       </div>
     </div>
@@ -413,13 +411,13 @@
   <!-- FORGOT PASSWORD -->
   <div id="screen-forgot" style="display:none;">
     <div class="card">
-      <h2>Forgot Password</h2>
-      <p class="subtitle">Enter your email and we'll send you a reset link.</p>
+      <h2>Olvidé mi contraseña</h2>
+      <p class="subtitle">Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
       <div class="field"><label>Correo electrónico</label><input type="email" id="forgot-email" placeholder="your@email.com"/></div>
       <div id="forgot-success" class="success"></div>
       <div id="forgot-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doForgotPassword()">Send Reset Link</button>
-      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Back to Login</button></div>
+      <button class="btn btn-primary" onclick="doForgotPassword()">Enviar enlace</button>
+      <div style="text-align:center;margin-top:12px;"><button class="btn-link" onclick="showScreen('login')">← Volver a iniciar sesión</button></div>
     </div>
   </div>
 
@@ -427,25 +425,25 @@
   <div id="screen-force-password" style="display:none;">
     <div class="card">
       <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔐</div>
-      <h2>Crea tu contraseña / Create your password</h2>
-      <p class="subtitle">Por seguridad, cambia la contraseña temporal antes de continuar.<br>For security, replace your temporary password before continuing.</p>
-      <div class="field"><label>Nueva contraseña / New Password</label><input type="password" id="force-password" placeholder="Mínimo 6 caracteres"/></div>
-      <div class="field"><label>Confirmar / Confirm</label><input type="password" id="force-confirm" placeholder="Repite la contraseña"/></div>
+      <h2>Crea tu contraseña</h2>
+      <p class="subtitle">Por seguridad, cambia la contraseña temporal antes de continuar.</p>
+      <div class="field"><label>Nueva contraseña</label><input type="password" id="force-password" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Confirmar contraseña</label><input type="password" id="force-confirm" placeholder="Repite la contraseña"/></div>
       <div id="force-error" class="error"></div>
-      <button class="btn btn-primary" onclick="doForcePassword()">Guardar / Save</button>
+      <button class="btn btn-primary" onclick="doForcePassword()">Guardar</button>
     </div>
   </div>
 
   <div id="screen-reset" style="display:none;">
     <div class="card">
       <div style="text-align:center;font-size:2rem;margin-bottom:12px;">🔑</div>
-      <h2>New Password</h2>
-      <p class="subtitle">Enter your new password below.</p>
-      <div class="field"><label>New Password</label><input type="password" id="reset-password" placeholder="Mínimo 6 caracteres"/></div>
-      <div class="field"><label>Confirm</label><input type="password" id="reset-confirm" placeholder="Repeat password"/></div>
+      <h2>Nueva contraseña</h2>
+      <p class="subtitle">Ingresa tu nueva contraseña abajo.</p>
+      <div class="field"><label>Nueva contraseña</label><input type="password" id="reset-password" placeholder="Mínimo 6 caracteres"/></div>
+      <div class="field"><label>Confirmar</label><input type="password" id="reset-confirm" placeholder="Repite la contraseña"/></div>
       <div id="reset-error" class="error"></div>
       <div id="reset-success" class="success"></div>
-      <button class="btn btn-primary" onclick="doResetPassword()">Save New Password</button>
+      <button class="btn btn-primary" onclick="doResetPassword()">Guardar nueva contraseña</button>
     </div>
   </div>
 
@@ -522,10 +520,10 @@ async function doSelfRegister() {
   const phone = document.getElementById('self-phone').value.trim();
   const email = document.getElementById('self-email').value.trim();
   const password = document.getElementById('self-password').value;
-  if (!name) { errEl.textContent = 'Please enter your first name / Ingresa tu primer nombre'; errEl.style.display = 'block'; return; }
-  if (name.includes(' ')) { errEl.textContent = 'First name only / Solo primer nombre'; errEl.style.display = 'block'; return; }
-  if (!phone || !email || !password) { errEl.textContent = 'Please fill all fields / Llena todos los campos'; errEl.style.display = 'block'; return; }
-  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (!name) { errEl.textContent = 'Ingresa tu primer nombre'; errEl.style.display = 'block'; return; }
+  if (name.includes(' ')) { errEl.textContent = 'Solo el primer nombre'; errEl.style.display = 'block'; return; }
+  if (!phone || !email || !password) { errEl.textContent = 'Llena todos los campos'; errEl.style.display = 'block'; return; }
+  if (password.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
 
   // Ask for class type before submitting
   if (!_selectedClassType) { showScreen('register-class-type'); return; }
@@ -543,18 +541,18 @@ async function doSelfRegister() {
   const data = await res.json();
   if (data.success) {
     showScreen('email-sent');
-  } else { errEl.textContent = data.error || 'Registration failed'; errEl.style.display = 'block'; }
+  } else { errEl.textContent = data.error || 'No se pudo completar el registro'; errEl.style.display = 'block'; }
 }
 
 async function validateCode() {
   const code = document.getElementById('reg-code').value.trim().toUpperCase();
   const errEl = document.getElementById('code-error');
   errEl.style.display = 'none';
-  if (!code) { errEl.textContent = 'Please enter a code / Por favor ingresa un código'; errEl.style.display = 'block'; return; }
+  if (!code) { errEl.textContent = 'Ingresa un código'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/validate-code`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
   const data = await res.json();
   if (data.valid) { _validCode = code; _selectedClassType = null; showScreen('register-type'); }
-  else { errEl.textContent = 'Invalid or already used code / Código inválido o ya usado'; errEl.style.display = 'block'; }
+  else { errEl.textContent = 'Código inválido o ya usado'; errEl.style.display = 'block'; }
 }
 
 function goToStudentInfo() {
@@ -563,8 +561,8 @@ function goToStudentInfo() {
   const email = document.getElementById('reg-email').value.trim();
   const pwd = document.getElementById('reg-password').value;
   const phone = document.getElementById('reg-phone').value.trim();
-  if (!name || !email || !pwd || !phone) { errEl.textContent = 'Please fill all fields / Por favor llena todos los campos'; errEl.style.display = 'block'; return; }
-  if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (!name || !email || !pwd || !phone) { errEl.textContent = 'Por favor llena todos los campos'; errEl.style.display = 'block'; return; }
+  if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
   errEl.style.display = 'none';
   showScreen('register-student');
 }
@@ -589,8 +587,8 @@ async function doRegister() {
   const studentLastname = document.getElementById('reg-student-lastname').value.trim();
   const dob = document.getElementById('reg-student-dob').value;
   const nickname = document.getElementById('reg-student-nickname').value.trim();
-  if (!studentName) { errEl.textContent = 'Please enter student first name / Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
-  if (studentName.includes(' ')) { errEl.textContent = 'First name only, no spaces / Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
+  if (!studentName) { errEl.textContent = 'Por favor ingresa el nombre'; errEl.style.display = 'block'; return; }
+  if (studentName.includes(' ')) { errEl.textContent = 'Solo primer nombre, sin espacios'; errEl.style.display = 'block'; return; }
 
   // Ask for class type before submitting
   if (!_selectedClassType) { showScreen('register-class-type'); return; }
@@ -619,7 +617,7 @@ async function doRegister() {
     // Show trial class screen
     showScreen('email-sent');
   } else {
-    errEl.textContent = data.error || 'Registration failed / Error en registro';
+    errEl.textContent = data.error || 'Error en registro';
     errEl.style.display = 'block';
   }
 }
@@ -641,7 +639,7 @@ async function doForcePassword() {
   const errEl = document.getElementById('force-error');
   errEl.style.display = 'none';
   if (pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres / At least 6 characters'; errEl.style.display = 'block'; return; }
-  if (pwd !== conf) { errEl.textContent = 'Las contraseñas no coinciden / Passwords do not match'; errEl.style.display = 'block'; return; }
+  if (pwd !== conf) { errEl.textContent = 'Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/change-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
@@ -649,7 +647,7 @@ async function doForcePassword() {
   });
   const data = await res.json();
   if (data.success) { loadDashboard(); }
-  else { errEl.textContent = data.error || 'No se pudo guardar / Could not save'; errEl.style.display = 'block'; }
+  else { errEl.textContent = data.error || 'No se pudo guardar'; errEl.style.display = 'block'; }
 }
 
 async function doLogin() {
@@ -667,7 +665,7 @@ async function doLogin() {
     if (data.mustChangePassword) { showScreen('force-password'); return; }
     loadDashboard();
   } else {
-    errEl.textContent = data.error || 'Login failed / Error al iniciar sesión';
+    errEl.textContent = data.error || 'Error al iniciar sesión';
     errEl.style.display = 'block';
   }
 }
@@ -701,10 +699,10 @@ function renderPaymentBanner(students) {
     heading = 'Pago vencido / Payment overdue';
   } else if (worst.daysLeft === 0) {
     bg = '#fff3e0'; border = '#e65100'; icon = '💳';
-    heading = 'Tu pago vence hoy / Payment due today';
+    heading = 'Tu pago vence hoy';
   } else {
     bg = '#fffde7'; border = '#f9a825'; icon = '📅';
-    heading = 'Tu pago vence pronto / Payment due soon';
+    heading = 'Tu pago vence pronto';
   }
 
   const lines = relevant.map(s => {
@@ -815,7 +813,7 @@ async function loadDashboard() {
     const allAtt = data.students.flatMap(s => (s.attendance || []).map(a => ({...a, studentName: s.name})));
     allAtt.sort((a,b) => b.date.localeCompare(a.date));
     if (!allAtt.length) {
-      attList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No attendance records yet</div>';
+      attList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Aún no hay registros de asistencia</div>';
     } else {
       attList.innerHTML = allAtt.map(a => `
         <div class="att-row">
@@ -1034,11 +1032,11 @@ async function doForgotPassword() {
   const errEl = document.getElementById('forgot-error');
   const sucEl = document.getElementById('forgot-success');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Please enter your email / Por favor ingresa tu correo'; errEl.style.display = 'block'; return; }
+  if (!email) { errEl.textContent = 'Por favor ingresa tu correo'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/forgot-password`, {
     method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email })
   });
-  sucEl.textContent = '✅ If that email is registered, you will receive a reset link shortly. / Si ese correo está registrado, recibirás un enlace pronto.';
+  sucEl.textContent = '✅ Si ese correo está registrado, recibirás un enlace pronto.';
   sucEl.style.display = 'block';
 }
 
@@ -1048,18 +1046,18 @@ async function doResetPassword() {
   const errEl = document.getElementById('reset-error');
   const sucEl = document.getElementById('reset-success');
   errEl.style.display = 'none'; sucEl.style.display = 'none';
-  if (!pwd || pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters / Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
-  if (pwd !== confirm) { errEl.textContent = 'Passwords do not match / Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
+  if (!pwd || pwd.length < 6) { errEl.textContent = 'Mínimo 6 caracteres'; errEl.style.display = 'block'; return; }
+  if (pwd !== confirm) { errEl.textContent = 'Las contraseñas no coinciden'; errEl.style.display = 'block'; return; }
   const res = await fetch(`${SERVER_URL}/parent/reset-password`, {
     method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token: resetToken, password: pwd })
   });
   const data = await res.json();
   if (data.success) {
-    sucEl.textContent = '✅ Password updated! You can now log in. / Contraseña actualizada, ya puedes iniciar sesión.';
+    sucEl.textContent = '✅ Contraseña actualizada, ya puedes iniciar sesión.';
     sucEl.style.display = 'block';
     setTimeout(() => showScreen('login'), 2500);
   } else {
-    errEl.textContent = data.error || 'Failed to reset password'; errEl.style.display = 'block';
+    errEl.textContent = data.error || 'No se pudo restablecer la contraseña'; errEl.style.display = 'block';
   }
 }
 
@@ -1244,7 +1242,7 @@ async function renderPaymentTab() {
       <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
         <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
         <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${s.name}</div>
-        <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse / Your payment is being verified</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;">Tu pago está por verificarse</div>
         <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;margin-top:12px;">
           Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
         </div>
@@ -1265,7 +1263,7 @@ async function renderPaymentTab() {
       <div style="background:white;border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);text-align:center;">
         <div style="font-size:2.5rem;margin-bottom:10px;">✅</div>
         <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:6px;">${s.name}</div>
-        <div style="font-size:0.95rem;font-weight:700;color:#2e7d32;">You're all paid up!</div>
+        <div style="font-size:0.95rem;font-weight:700;color:#2e7d32;">¡Estás al corriente!</div>
         <div style="background:#fff3e0;border-radius:10px;padding:12px;font-size:0.9rem;color:#e65100;margin-top:12px;font-weight:900;">
           Next payment due: ${fmtDateP(s.nextPaymentDue)}
         </div>
@@ -1499,8 +1497,8 @@ async function transferCombined() {
     });
     const data = await res.json();
     if (data.success) { renderPaymentTab(); }
-    else alert('Error — intente de nuevo');
-  } catch(e) { alert('Error — intente de nuevo'); }
+    else alert('Error, intenta de nuevo');
+  } catch(e) { alert('Error, intenta de nuevo'); }
 }
 
 // State for payment options per student
@@ -1610,7 +1608,7 @@ async function searchScheduleAvailability(studentName) {
   const time = document.getElementById(`sched-time-${key}`)?.value;
   const hint = document.getElementById(`sched-hint-${key}`);
   const calDiv = document.getElementById(`sched-cal-${key}`);
-  if (!time) { if (hint) hint.textContent = 'Elige una hora primero / Pick a time first'; return; }
+  if (!time) { if (hint) hint.textContent = 'Elige una hora primero'; return; }
 
   if (!_payState[studentName]) _payState[studentName] = {};
   _payState[studentName].schedTime = time;
@@ -1864,7 +1862,7 @@ async function confirmTransfer(studentName) {
             <div style="font-size:2.5rem;margin-bottom:10px;">⏳</div>
             <div style="font-size:1.1rem;font-weight:900;color:#00695c;margin-bottom:6px;">${studentName}</div>
             <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:4px;">Tu pago está por verificarse</div>
-            <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:12px;">Your payment is being verified</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#1a1a2e;margin-bottom:12px;">Tu pago está por verificarse</div>
             <div style="background:#e0f2f1;border-radius:10px;padding:12px;font-size:0.85rem;color:#00695c;">
               Esto puede tardar de 24 a 48 horas hábiles.<br>This can take 24 to 48 business hours.
             </div>
@@ -1923,7 +1921,7 @@ async function renderScheduleTab() {
   if (allResults.every(r => r.classes.length === 0)) {
     wrap.innerHTML = `<div style="background:white;border-radius:14px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
       <div style="font-size:2rem;margin-bottom:8px;">📅</div>
-      <div style="font-weight:700;color:#1a1a2e;margin-bottom:4px;">No classes scheduled yet</div>
+      <div style="font-weight:700;color:#1a1a2e;margin-bottom:4px;">Aún no hay clases programadas</div>
       <div style="font-size:0.85rem;color:#888;">Your class schedule will appear here once the school assigns classes.<br>Tu horario aparecerá aquí cuando la escuela asigne clases.</div>
     </div>`;
     return;
@@ -2045,7 +2043,7 @@ function showClassPopup(dateStr) {
           style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">✕</button>
       </div>
       ${classRows}
-      <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:8px;">Go to <strong>polyabc.academy</strong> to join your class</div>
+      <div style="font-size:0.72rem;color:#aaa;text-align:center;margin-top:8px;">Entra a <strong>polyabc.academy</strong> para unirte a tu clase</div>
     </div>`;
 
   popup.style.display = 'flex';
@@ -2106,7 +2104,7 @@ async function reportAbsence(sessionId, is1v1, isEmergency) {
     const d = await r.json();
     if (!d.success) { alert(d.error || 'Error'); return; }
     alert('Listo. Avisamos al maestro y a la escuela, y le enviamos un correo de confirmación.\nDone — the teacher and the school were notified, and we emailed you a confirmation.');
-  } catch(e) { alert('Error — intente de nuevo'); return; }
+  } catch(e) { alert('Error, intenta de nuevo'); return; }
   document.getElementById('class-popup').style.display = 'none';
   await renderCalendarMonth();
 }
@@ -2118,7 +2116,7 @@ async function cancelAbsence(id) {
       body: JSON.stringify({ id }) });
     const d = await r.json();
     if (!d.success) { alert(d.error || 'Error'); return; }
-  } catch(e) { alert('Error — intente de nuevo'); return; }
+  } catch(e) { alert('Error, intenta de nuevo'); return; }
   document.getElementById('class-popup').style.display = 'none';
   await renderCalendarMonth();
 }
@@ -2139,11 +2137,11 @@ async function requestTrialContact(studentName) {
     if (data.success) {
       alert('✅ ¡Gracias! La escuela te contactará pronto para agendar tu clase de prueba.');
     } else {
-      alert('Error: ' + (data.error || 'Something went wrong'));
+      alert('Error: ' + (data.error || 'Algo salió mal'));
     }
   } catch(e) {
     console.error('Error requesting trial contact:', e);
-    alert('Failed to send request');
+    alert('No se pudo enviar la solicitud');
   }
 }
 
@@ -2219,7 +2217,7 @@ function pickRescheduleDate(date) {
   if (!_reschedHasOverride) {
     const selected = new Date(`${date}T${_reschedTime}:00`);
     const diffHrs = (selected - new Date()) / 3600000;
-    if (diffHrs < 24) { alert('Please select a date at least 24 hours from now.'); return; }
+    if (diffHrs < 24) { alert('Selecciona una fecha con al menos 24 horas de anticipación.'); return; }
   }
   _reschedDate = date;
   const timeDisp = new Date(`2000-01-01T${_reschedTime}`).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
@@ -2243,10 +2241,10 @@ async function confirmRescheduleRequest() {
       document.getElementById('reschedule-pick-view').style.display = 'none';
       document.getElementById('reschedule-pending-view').style.display = 'block';
     } else {
-      errEl.textContent = data.error || 'Something went wrong';
+      errEl.textContent = data.error || 'Algo salió mal';
     }
   } catch(e) {
-    errEl.textContent = 'Failed to send request';
+    errEl.textContent = 'No se pudo enviar la solicitud';
   }
 }
 
