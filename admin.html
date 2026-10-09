@@ -4183,10 +4183,11 @@ async function completeTrial(name) {
 }
 
 async function confirmPayment(name) {
+  // Paid uses the frequency and amount saved on the student. Changing them is done in Edit.
   const s = _billingStudents.find(x => x.name === name);
-  const cycle = s?.billingCycle || prompt('Billing cycle? (weekly / biweekly / monthly)', 'monthly');
-  if (!cycle) return;
-  const amount = prompt(`Amount paid (MXN)?`, s?.amountDue || '');
+  const cycle = s?.billingCycle;
+  const amount = s?.amountDue;
+  if (!cycle || !amount) { showToast(`Set the billing cycle and amount for ${name} in Edit first`); return; }
   await fetch(`${SERVER_URL}/billing/confirm-payment/${encodeURIComponent(name)}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ billingCycle: cycle, amountPaid: amount })
