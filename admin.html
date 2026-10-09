@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-MX">
 <head>
   <meta name="google" content="notranslate">
   <meta charset="UTF-8"/>
@@ -241,10 +241,6 @@
     /* assign modal day panel */
     #assign-day-panel { background:white; border-radius:16px; padding:20px; max-width:500px; width:95%; max-height:80vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
   
-    /* Hide Google Translate's top banner ("Translated to… Show original") — translation still works */
-    .goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe[class*="goog-te"] { display: none !important; }
-    body { top: 0 !important; }
-    .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip { display: none !important; }
 </style>
 </head>
 <body>
@@ -261,14 +257,14 @@
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <a href="login.html" title="Go to class login"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a>
+  <a href="login.html" title="Ir al login de clase"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a>
   <h1>PolyABC Admin</h1>
-  <p>Sign in to manage your school</p>
+  <p>Inicia sesión para administrar tu escuela</p>
   <div class="login-card">
-    <div class="error-msg" id="login-error">Invalid password. Please try again.</div>
-    <input type="password" id="login-pass" placeholder="Enter password"
+    <div class="error-msg" id="login-error">Contraseña incorrecta. Intenta de nuevo.</div>
+    <input type="password" id="login-pass" placeholder="Escribe la contraseña"
       onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button onclick="doLogin()">Sign In</button>
+    <button onclick="doLogin()">Iniciar sesión</button>
   </div>
 </div>
 
@@ -277,11 +273,11 @@
 <div id="admin-pwa-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
   <div style="background:white;border-radius:24px;padding:28px 24px;max-width:320px;width:90%;text-align:center;font-family:Nunito,sans-serif;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
     <img src="icon.png" style="width:72px;height:72px;border-radius:16px;margin-bottom:14px;"/>
-    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Install PolyABC Admin</div>
-    <div style="font-size:0.9rem;color:#666;margin-bottom:20px;line-height:1.5;">Install the app for quick access to the admin panel in portrait mode!</div>
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:8px;">Instalar PolyABC Admin</div>
+    <div style="font-size:0.9rem;color:#666;margin-bottom:20px;line-height:1.5;">Instala la app para entrar rápido al panel de administración en modo vertical.</div>
     <div style="display:flex;gap:10px;">
-      <button onclick="dismissAdminInstall()" style="flex:1;padding:11px;background:#f0f0f0;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:#555;">Not now</button>
-      <button onclick="installAdminApp()" style="flex:1;padding:11px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:white;">📲 Install!</button>
+      <button onclick="dismissAdminInstall()" style="flex:1;padding:11px;background:#f0f0f0;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:#555;">Ahora no</button>
+      <button onclick="installAdminApp()" style="flex:1;padding:11px;background:#1a73e8;border:none;border-radius:12px;font-family:Nunito;font-size:0.95rem;font-weight:700;cursor:pointer;color:white;">📲 ¡Instalar!</button>
     </div>
   </div>
 </div>
@@ -290,7 +286,7 @@
 <div id="admin-ios-popup" onclick="closeAdminIosPopup()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-end;justify-content:center;padding-bottom:20px;">
   <div onclick="event.stopPropagation()" style="background:white;border-radius:20px;padding:24px;max-width:340px;width:90%;text-align:center;font-family:Nunito,sans-serif;">
     <div style="font-size:2rem;margin-bottom:8px;">📲</div>
-    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Install PolyABC Admin</div>
+    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:12px;">Instalar PolyABC Admin</div>
     <div style="font-size:0.9rem;color:#555;line-height:1.6;margin-bottom:16px;">
       Tap the <strong>Share button</strong> <span style="font-size:1.2rem;">⬆️</span> at the bottom of your screen, then tap <strong>"Add to Home Screen"</strong>
     </div>
@@ -304,7 +300,7 @@
   <div id="mobile-header">
     <button id="mobile-hamburger" onclick="toggleMenu()">☰</button>
     <div id="mobile-logo"><img src="icon.png" alt="PolyABC"/></div>
-    <button id="mobile-power" onclick="logout()" title="Sign Out">
+    <button id="mobile-power" onclick="logout()" title="Cerrar sesión">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
         <line x1="12" y1="2" x2="12" y2="12"/>
@@ -319,40 +315,38 @@
       <img src="icon.png" style="height:24px;"/>
       <span style="color:white;font-weight:900;font-size:0.9rem;">PolyABC Admin</span>
     </div>
-    <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 New Trial!</div>
-    <div class="menu-item" onclick="openLanguageModal();closeMenu();">🌐 Español / English</div>
+    <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 ¡Nueva prueba!</div>
 
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operations</div>
-    <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Schedule</div>
-    <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Students</div>
-    <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Groups</div>
-    <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Parents</div>
-    <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Attendance</div>
+    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operaciones</div>
+    <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Horario</div>
+    <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Alumnos</div>
+    <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Grupos</div>
+    <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Padres</div>
+    <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Asistencia</div>
 
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Staff & Pay</div>
-    <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Teachers</div>
-    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Admin Staff</div>
-    <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Payroll</div>
+    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Personal y pagos</div>
+    <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Maestros</div>
+    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Personal administrativo</div>
+    <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Nómina</div>
 
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Finance</div>
-    <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Accounting</div>
+    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Finanzas</div>
+    <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Contabilidad</div>
 
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">System</div>
-    <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Spectators</div>
-    <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">🛠 Tech Support <span id="ticket-open-badge" style="display:none;background:#e53935;color:#fff;border-radius:10px;padding:1px 7px;font-size:0.72rem;margin-left:4px;"></span></div>
-    <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generate Student Code</div>
+    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
+    <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
+    <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">🛠 Soporte técnico <span id="ticket-open-badge" style="display:none;background:#e53935;color:#fff;border-radius:10px;padding:1px 7px;font-size:0.72rem;margin-left:4px;"></span></div>
+    <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
   </div>
 
   <!-- HEADER -->
   <div id="header">
     <div id="header-left">
-      <button id="desktop-hamburger" onclick="toggleMenu()" title="Menu">☰</button>
+      <button id="desktop-hamburger" onclick="toggleMenu()" title="Menú">☰</button>
     </div>
-    <div id="header-center"><a href="login.html" title="Go to class login"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
+    <div id="header-center"><a href="login.html" title="Ir al login de clase"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a></div>
     <div id="header-right">
-      <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 New Trial!</button>
-      <div id="google_translate_element" style="transform:scale(0.75);transform-origin:left center;"></div>
-      <button id="logout-btn" onclick="logout()">Sign Out</button>
+      <button id="new-trial-btn" onclick="goToTrialStudents()" style="display:none;background:#9c27b0;color:white;border:none;padding:7px 16px;border-radius:20px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;animation:pulse-glow-purple 1s infinite;">🎓 ¡Nueva prueba!</button>
+      <button id="logout-btn" onclick="logout()">Cerrar sesión</button>
     </div>
   </div>
 
@@ -360,7 +354,7 @@
   <!-- PANEL: BILLING -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-accounting" class="panel">
-    <div class="panel-title">🧾 Accounting</div>
+    <div class="panel-title">🧾 Contabilidad</div>
 
     <!-- Month selector + summary -->
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
@@ -498,7 +492,7 @@
   <!-- PANEL: STAFF -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-staff" class="panel">
-    <div class="panel-title">👔 Admin Staff</div>
+    <div class="panel-title">👔 Personal administrativo</div>
 
     <!-- Permanent school contact record — cannot be deleted, only edited -->
     <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
@@ -612,7 +606,7 @@
   </div>
 
   <div id="panel-spectators" class="panel">
-    <div class="panel-title">👁 Spectators</div>
+    <div class="panel-title">👁 Espectadores</div>
     <div style="font-size:0.85rem;color:#666;margin-bottom:16px;line-height:1.5;">
       A spectator logs in on the normal login page with a <b>room number + the password you give them</b>, and watches the class without being seen or heard.
       They never appear in attendance and never take a student seat. <b>Normal</b> = watch only (parents, teachers, QA).
@@ -658,7 +652,7 @@
   <!-- PANEL: PARENTS -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-parents" class="panel">
-    <div class="panel-title">👪 Parents</div>
+    <div class="panel-title">👪 Padres</div>
     <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
       <input id="parents-search" placeholder="Search parent or student..." oninput="filterParents()"
         style="padding:8px 14px;border-radius:10px;border:1px solid #ddd;font-family:Nunito;font-size:0.9rem;flex:1;min-width:200px;">
@@ -768,7 +762,7 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-groups" class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <div class="panel-title">👥 Groups</div>
+      <div class="panel-title">👥 Grupos</div>
       <button class="btn btn-green" onclick="openAddGroupModal()">+ Create Group</button>
     </div>
     <div id="groups-list"></div>
@@ -777,7 +771,7 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: PAYROLL -->
   <div id="panel-payroll" class="panel">
-    <div class="panel-title">💰 Payroll</div>
+    <div class="panel-title">💰 Nómina</div>
     <div class="card" style="margin-bottom:16px;">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
         <div>
@@ -1352,45 +1346,6 @@ function closeMenu() {
   document.getElementById('menu-overlay').classList.remove('open');
 }
 
-// Drives Google's translate engine directly without showing its own default
-// widget UI - applies a language, remembers the choice, and only touches
-// the page if Spanish is picked (English is the page's native language).
-function applyLang(lang, attempt) {
-  attempt = attempt || 0;
-  localStorage.setItem('polyabc_lang', lang);
-  const selectField = document.querySelector('.goog-te-combo');
-  if (!selectField) {
-    // Widget may still be initializing - retry for a few seconds rather
-    // than silently giving up, which is what made this look like it did
-    // nothing at all.
-    if (attempt < 15) setTimeout(() => applyLang(lang, attempt + 1), 300);
-    return;
-  }
-  if (selectField.value !== lang) {
-    selectField.value = lang;
-    selectField.dispatchEvent(new Event('change'));
-  }
-}
-
-function openLanguageModal() {
-  document.getElementById('language-modal').style.display = 'flex';
-}
-
-function chooseLang(lang) {
-  applyLang(lang);
-  document.getElementById('language-modal').style.display = 'none';
-}
-
-function checkLanguageOnLoad() {
-  const saved = localStorage.getItem('polyabc_lang');
-  if (saved) { applyLang(saved); return; }
-  // No saved choice yet - if the browser is clearly set to Spanish, just
-  // apply it directly rather than making them answer a question with an
-  // obvious answer. Anything else (including English) still asks, since an
-  // English-set browser doesn't guarantee an English speaker.
-  const browserLang = navigator.language || navigator.userLanguage || '';
-  if (browserLang.toLowerCase().startsWith('es')) { applyLang('es'); return; }
-}
 
 function menuNav(name) {
   closeMenu();
@@ -5405,21 +5360,6 @@ async function doFlushDelete() {
 
 <!-- Create Parent Modal -->
 <div id="create-parent-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px;"></div>
-  <div id="language-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;padding:20px;">
-    <div style="background:white;border-radius:18px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
-      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">Choose your language</div>
-      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:18px;">Elige tu idioma</div>
-      <button onclick="chooseLang('en')" style="width:100%;padding:12px;margin-bottom:10px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇺🇸 English</button>
-      <button onclick="chooseLang('es')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇲🇽 Español</button>
-    </div>
-  </div>
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-      setTimeout(checkLanguageOnLoad, 1000);
-    }
-  </script>
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
 
