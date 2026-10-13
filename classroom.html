@@ -463,6 +463,7 @@
   <button id="it-chat-toggle" onclick="itToggle()" style="background:#6a1b9a;color:#fff;border:none;border-radius:22px;padding:10px 16px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4);position:relative;">🛠 Tech Support<span id="it-chat-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#e53935;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:.68rem;align-items:center;justify-content:center;"></span></button>
   <div id="it-chat-box" style="display:none;width:min(88vw,320px);height:340px;background:#16213e;border:2px solid #6a1b9a;border-radius:14px;margin-bottom:8px;flex-direction:column;overflow:hidden;">
     <div style="padding:8px 12px;background:#6a1b9a;color:#fff;font-weight:800;font-size:.9rem;">🛠 Tech Support chat</div>
+    <div id="it-media-list" style="display:none;max-height:150px;overflow:auto;padding:8px;border-bottom:1px solid #0f3460;font-size:.8rem;color:#eee;"></div>
     <div id="it-chat-msgs" style="flex:1;overflow:auto;padding:8px;font-size:.85rem;color:#eee;"></div>
     <div style="display:flex;gap:6px;padding:8px;border-top:1px solid #0f3460;">
       <input id="it-chat-input" maxlength="500" placeholder="Type a message…" onkeydown="if(event.key==='Enter')itSend()" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:none;font-size:.9rem;">
@@ -594,6 +595,7 @@ async function startMedia() {
   try {
     document.getElementById('connect-msg').textContent = 'Starting camera...';
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    reportMedia('ok');
     document.getElementById('device-error') && (document.getElementById('device-error').style.display = 'none');
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
@@ -615,6 +617,7 @@ async function requestDevices() {
   document.getElementById('enter-btn').style.display = 'none';
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    reportMedia('ok');
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
       document.getElementById('left-video').muted = true;
@@ -625,6 +628,7 @@ async function requestDevices() {
 }
 
 function showDeviceError(e) {
+  reportMedia(mediaStatusFromError(e), getFriendlyError(e));
   const errDiv = document.getElementById('device-error');
   const errMsg = document.getElementById('device-error-msg');
   if (!errDiv || !errMsg) { alert(getFriendlyError(e)); return; }
@@ -645,9 +649,89 @@ function getFriendlyError(e) {
   return `❌ Could not access camera/mic: ${e.message || 'Unknown error'}. Please refresh and try again.`;
 }
 
+// ── Camera/mic status for tech support ──
+// Students only. Uses its own light connection so it works even when the camera is blocked
+// and the student has not joined the class.
+let _mediaStatus = null;
+function mediaStatusFromError(e) {
+  const name = (e && e.name) || '';
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') return 'blocked';
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return 'no-device';
+  if (name === 'NotReadableError' || name === 'TrackStartError') return 'in-use';
+  return 'error';
+}
+function reportMedia(status, message) {
+  if (IS_TEACHER || IS_SPECTATOR || !MY_TOKEN) return;
+  _mediaStatus = { room: ROOM, token: MY_TOKEN, status, message: message || '' };
+  if (!window._mediaSock) {
+    const ms = io(SERVER_URL, { timeout: 10000, reconnectionAttempts: 20, reconnectionDelay: 2000 });
+    window._mediaSock = ms;
+    ms.on('connect', () => { if (_mediaStatus) ms.emit('media-report', _mediaStatus); });
+    ms.on('request-media-again', showMediaRetry);
+  }
+  if (window._mediaSock.connected) window._mediaSock.emit('media-report', _mediaStatus);
+}
+function showMediaRetry() {
+  let b = document.getElementById('media-retry-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'media-retry-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9500;background:#1a73e8;color:#fff;padding:12px 16px;font-family:Nunito,sans-serif;font-weight:700;text-align:center;';
+    b.innerHTML = '<div style="margin-bottom:8px">🛠 Tech Support asks you to allow your camera &amp; mic.</div>' +
+      '<button id="media-retry-btn" style="background:#fff;color:#1a73e8;border:none;padding:8px 18px;border-radius:10px;font-weight:800;cursor:pointer;">Allow camera &amp; mic</button>';
+    document.body.appendChild(b);
+    document.getElementById('media-retry-btn').onclick = () => { b.style.display = 'none'; requestDevices(); };
+  }
+  b.style.display = 'block';
+}
+
+// Tech support list of students (IT spectators only)
+const _mediaRows = new Map();
+const MEDIA_LABEL = { ok: '✅ Camera & mic on', blocked: '🚫 Blocked', 'no-device': '📷 No camera/mic found', 'in-use': '⚠️ In use by another app', error: '❌ Error' };
+const MEDIA_TIP = { blocked: 'Tell them: click the camera icon in the address bar, Allow, then Ask again.', 'no-device': 'Tell them: plug in the camera/mic, then Ask again.', 'in-use': 'Tell them: close the other app using it, then Ask again.', error: 'Tell them: refresh the page, then Ask again.' };
+function renderMediaList() {
+  const list = document.getElementById('it-media-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!_mediaRows.size) { list.style.display = 'none'; return; }
+  list.style.display = 'block';
+  const hdr = document.createElement('div');
+  hdr.textContent = 'Student camera & mic';
+  hdr.style.cssText = 'font-weight:800;margin-bottom:4px;color:#ce93d8;';
+  list.appendChild(hdr);
+  _mediaRows.forEach((e, id) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin:6px 0;';
+    const txt = document.createElement('div');
+    txt.style.cssText = 'flex:1;min-width:0;';
+    const nm = document.createElement('div');
+    nm.textContent = e.name;
+    nm.style.cssText = 'font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    const st = document.createElement('div');
+    st.textContent = MEDIA_LABEL[e.status] || e.status;
+    txt.appendChild(nm); txt.appendChild(st);
+    if (MEDIA_TIP[e.status]) {
+      const tip = document.createElement('div');
+      tip.textContent = MEDIA_TIP[e.status];
+      tip.style.cssText = 'font-size:.72rem;color:#ffcc80;';
+      txt.appendChild(tip);
+    }
+    const btn = document.createElement('button');
+    btn.textContent = 'Ask again';
+    btn.style.cssText = 'background:#6a1b9a;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer;flex-shrink:0;';
+    btn.onclick = () => { if (window._socket) window._socket.emit('it-request-media', { id }); btn.textContent = 'Sent ✓'; setTimeout(() => { btn.textContent = 'Ask again'; }, 4000); };
+    row.appendChild(txt); row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
 function connectSocket() {
   const socket = io(SERVER_URL, { timeout: 10000, reconnectionAttempts: 10, reconnectionDelay: 2000 });
   window._socket = socket;
+  if (IS_IT) {
+    socket.on('media-status', e => { _mediaRows.set(e.id, e); renderMediaList(); });
+    socket.on('media-gone', ({ id }) => { _mediaRows.delete(id); renderMediaList(); });
+  }
 
   // Keepalive heartbeat — prevents idle disconnect from browser/proxy/network
   // Fires every 25 seconds so the connection never goes idle
