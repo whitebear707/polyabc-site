@@ -4628,10 +4628,10 @@ async function loadHelpVideos() {
     const vids = d.videos || [];
     _hvVideos = vids;
     if (!vids.length) { box.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:24px;">Aún no hay videos de ayuda.</div>'; return; }
-    box.innerHTML = vids.map(v => `<div class="card" style="margin-bottom:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    box.innerHTML = vids.map((v, i) => `<div class="card" style="margin-bottom:10px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
       <img src="https://img.youtube.com/vi/${specEsc(v.youtubeId)}/default.jpg" alt="" style="width:96px;height:72px;object-fit:cover;border-radius:6px;">
-      <div style="flex:1;min-width:160px;">
-        <b>${specEsc(v.title)}</b>
+      <div onclick="hvPlay(${i})" title="Ver video" style="flex:1;min-width:160px;cursor:pointer;">
+        <b>${specEsc(v.title)}</b> <span style="color:#1a73e8;font-size:0.8rem;font-weight:700;">▶ Ver</span>
         <div style="font-size:0.8rem;margin-top:4px;color:#555;">Visible to: ${(v.audience || []).map(a => HV_LABEL[a] || specEsc(a)).join(', ')}</div>
         <a href="https://www.youtube.com/watch?v=${specEsc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#1a73e8;">Abrir en YouTube</a>
       </div>
@@ -4640,6 +4640,31 @@ async function loadHelpVideos() {
   } catch (e) { box.innerHTML = '<div class="card" style="color:#e53935;padding:16px;">No se pudieron cargar los videos de ayuda.</div>'; }
 }
 let _hvVideos = [], _hvEditId = null;
+// Same small popup player the teachers and students get
+function hvPlay(i) {
+  const v = _hvVideos[i]; if (!v) return;
+  let m = document.getElementById('hv-modal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'hv-modal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(10,15,30,0.72);display:none;align-items:center;justify-content:center;padding:20px;z-index:20000;';
+    m.innerHTML = '<div style="background:#fff;border-radius:16px;width:100%;max-width:780px;padding:14px 14px 16px;box-shadow:0 24px 60px rgba(0,0,0,.35);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">' +
+      '<div id="hv-modal-title" style="font-weight:800;font-size:1rem;color:#1a1a2e;"></div>' +
+      '<button id="hv-modal-x" aria-label="Cerrar" style="border:none;background:#eef0f4;border-radius:50%;width:32px;height:32px;font-size:0.95rem;cursor:pointer;color:#333;">✕</button></div>' +
+      '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;background:#000;">' +
+      '<iframe id="hv-modal-frame" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m || e.target.closest('#hv-modal-x')) hvClosePlayer(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') hvClosePlayer(); });
+  }
+  document.getElementById('hv-modal-title').textContent = v.title;
+  document.getElementById('hv-modal-frame').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtubeId) + '?autoplay=1&rel=0';
+  m.style.display = 'flex';
+}
+function hvClosePlayer() {
+  const m = document.getElementById('hv-modal'); if (!m || m.style.display === 'none') return;
+  m.style.display = 'none'; document.getElementById('hv-modal-frame').src = 'about:blank';
+}
 function hvResetForm() {
   _hvEditId = null;
   document.getElementById('hv-title').value = ''; document.getElementById('hv-url').value = '';
