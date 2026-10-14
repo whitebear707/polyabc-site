@@ -506,13 +506,15 @@ const params       = new URLSearchParams(window.location.search);
 const ROOM         = params.get('room') || '001';
 const SESSION_ID   = params.get('sessionId') || null; // Unique ID for this class session — used to stamp attendance records
 const NET_TEST     = SESSION_ID ? (() => { try { const c = localStorage.getItem(`nettest_${SESSION_ID}`); return c ? JSON.parse(c) : null; } catch(e) { return null; } })() : null;
-const IS_TEACHER   = !!localStorage.getItem('adminToken');
-const MY_TOKEN     = localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '';
+// Tech support opens a class with ?it=1 using its own login (techToken), so it is never treated as admin/teacher
+const TECH_MODE    = params.get('it') === '1' && !!localStorage.getItem('techToken');
+const IS_TEACHER   = !TECH_MODE && !!localStorage.getItem('adminToken');
+const MY_TOKEN     = TECH_MODE ? (localStorage.getItem('techToken') || '') : (localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '');
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
 // SPECTATOR: watch-only login (admin-created). The server decides what it may do; this only shapes the page.
 const MY_TOKEN_ROLE = (() => { try { return JSON.parse(atob(MY_TOKEN.split('.')[0])).role; } catch (e) { return null; } })();
-const IS_SPECTATOR = !IS_TEACHER && (MY_TOKEN_ROLE === 'spectator' || MY_TOKEN_ROLE === 'spectator_it');
-const IS_IT        = IS_SPECTATOR && MY_TOKEN_ROLE === 'spectator_it';
+const IS_SPECTATOR = !IS_TEACHER && (MY_TOKEN_ROLE === 'spectator' || MY_TOKEN_ROLE === 'spectator_it' || MY_TOKEN_ROLE === 'techsupport');
+const IS_IT        = IS_SPECTATOR && (MY_TOKEN_ROLE === 'spectator_it' || MY_TOKEN_ROLE === 'techsupport');
 if (IS_SPECTATOR) { document.body.classList.add('spectator'); window._canDraw = false; }
 const studentSlots = {};
 
@@ -2277,7 +2279,7 @@ function enterClass() {
     b.id = 'spectator-exit';
     b.textContent = IS_IT ? '👁 Tech Support · Exit' : '👁 Spectator · Exit / Salir';
     b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;background:rgba(15,52,96,0.92);color:#fff;border:1px solid #a0c4ff;border-radius:12px;padding:8px 14px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.8rem;cursor:pointer;';
-    b.onclick = () => { try { if (window._socket) window._socket.disconnect(); } catch (e) {} window.location.href = 'login.html'; };
+    b.onclick = () => { try { if (window._socket) window._socket.disconnect(); } catch (e) {} window.location.href = TECH_MODE ? 'techsupport.html' : 'login.html'; };
     document.body.appendChild(b);
   }
   if (IS_TEACHER) {
