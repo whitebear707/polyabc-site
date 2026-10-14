@@ -585,6 +585,51 @@ function updateSelfMonkey() {
   }
 }
 
+// Students: if the camera is blocked/missing but the mic works, join with mic only.
+// The camera error is kept so tech support still sees it.
+async function acquireMedia() {
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  } catch (e) {
+    if (IS_TEACHER) throw e;
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      s._camError = e;
+      return s;
+    } catch (e2) { throw e; }
+  }
+}
+function reportAcquired(stream) {
+  if (stream._camError) {
+    reportMedia(mediaStatusFromError(stream._camError), getFriendlyError(stream._camError));
+    showCamOffNotice();
+  } else {
+    reportMedia('ok');
+    const n = document.getElementById('cam-off-banner'); if (n) n.style.display = 'none';
+  }
+}
+function showCamOffNotice() {
+  let b = document.getElementById('cam-off-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'cam-off-banner';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9400;background:#b26a00;color:#fff;padding:10px 16px;font-family:Nunito,sans-serif;font-weight:700;text-align:center;font-size:.9rem;';
+    b.innerHTML = '<span>📷 Camera is off. You can still hear and talk. Tech Support is helping.</span> ' +
+      '<button id="cam-retry-btn" style="margin-left:10px;background:#fff;color:#b26a00;border:none;padding:6px 12px;border-radius:8px;font-weight:800;cursor:pointer;">Turn on camera</button>';
+    document.body.appendChild(b);
+    document.getElementById('cam-retry-btn').onclick = async () => {
+      try {
+        const v = await navigator.mediaDevices.getUserMedia({ video: true });
+        v.getVideoTracks().forEach(t => localStream && localStream.addTrack(t));
+        reportMedia('ok');
+        b.style.display = 'none';
+        document.getElementById('connect-msg').textContent = 'Camera on. Refresh the page (F5) to show your camera to the class.';
+      } catch (e) { reportMedia(mediaStatusFromError(e), getFriendlyError(e)); }
+    };
+  }
+  b.style.display = 'block';
+}
+
 async function startMedia() {
   if (IS_SPECTATOR) {
     document.getElementById('left-label').textContent = 'Waiting for teacher...';
@@ -594,8 +639,8 @@ async function startMedia() {
   }
   try {
     document.getElementById('connect-msg').textContent = 'Starting camera...';
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    reportMedia('ok');
+    localStream = await acquireMedia();
+    reportAcquired(localStream);
     document.getElementById('device-error') && (document.getElementById('device-error').style.display = 'none');
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
@@ -616,8 +661,8 @@ async function requestDevices() {
   document.getElementById('spinner').style.display = 'block';
   document.getElementById('enter-btn').style.display = 'none';
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    reportMedia('ok');
+    localStream = await acquireMedia();
+    reportAcquired(localStream);
     if (IS_TEACHER) {
       document.getElementById('left-video').srcObject = localStream;
       document.getElementById('left-video').muted = true;
