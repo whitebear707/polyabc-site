@@ -334,7 +334,7 @@
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
-        <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">🎬 Videos y correos</div>
+        <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
   </div>
 
@@ -560,8 +560,8 @@
   <!-- PANEL: SPECTATORS -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-tickets" class="panel">
-    <div class="panel-title">🎬 Videos y correos</div>
-    <div style="font-size:0.85rem;color:#666;margin-bottom:14px;line-height:1.5;">Tickets de soporte ahora están en el acceso de Tech Support (techsupport.html).</div>
+    <div class="panel-title">✉ Correos de soporte</div>
+    <div style="font-size:0.85rem;color:#666;margin-bottom:14px;line-height:1.5;">Tickets y videos de ayuda ahora están en el acceso de Tech Support (techsupport.html).</div>
     <div class="card" style="margin-bottom:14px;">
       <b style="font-size:0.9rem;">Quién recibe los correos</b>
       <div style="display:grid;gap:8px;margin-top:8px;">
@@ -577,27 +577,7 @@
       </div>
     </div>
 
-    <div class="panel-title" style="margin-top:28px;font-size:1.05rem;">🎬 Help Videos</div>
-    <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Paste a YouTube link and choose who can see it. Each panel's Help section shows only the videos for its role.</div>
-    <div class="card" style="margin-bottom:14px;">
-      <div style="display:grid;gap:8px;">
-        <label style="font-size:0.8rem;font-weight:700;">Título del video<input id="hv-title" type="text" maxlength="120" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="How to add a student"></label>
-        <label style="font-size:0.8rem;font-weight:700;">Enlace de YouTube<input id="hv-url" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="https://youtu.be/..."></label>
-        <div style="font-size:0.8rem;font-weight:700;">Quién puede verlo</div>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.9rem;">
-          <label><input type="checkbox" class="hv-aud" value="admin">Admin</label>
-          <label><input type="checkbox" class="hv-aud" value="student">Alumno</label>
-          <label><input type="checkbox" class="hv-aud" value="teacher">Maestro</label>
-          <label><input type="checkbox" class="hv-aud" value="parent">Padre</label>
-        </div>
-      </div>
-      <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <button id="hv-save-btn" onclick="addHelpVideo()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Agregar video</button>
-        <button id="hv-cancel-btn" onclick="hvCancelEdit()" style="display:none;padding:8px 16px;border:2px solid #ddd;border-radius:8px;background:#fff;font-weight:700;cursor:pointer;">Cancelar</button>
-        <span id="hv-status" style="font-size:0.85rem;font-weight:700;"></span>
-      </div>
-    </div>
-    <div id="hv-list"></div>
+    
   </div>
 
   <div id="panel-spectators" class="panel">
@@ -1371,7 +1351,7 @@ function showPanel(name) {
   if (name === 'parents')    renderParentsPanel();
   if (name === 'staff')      renderStaff();
   if (name === 'spectators') renderSpectators();
-  if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
+  if (name === 'tickets')    { loadTicketSettings(); }
 }
 
 // ── MASTER CALENDAR ──

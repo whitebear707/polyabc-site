@@ -58,6 +58,7 @@
   <div class="tabs">
     <button class="tab on" id="tab-classes" data-tab="classes">Classes now</button>
     <button class="tab" id="tab-tickets" data-tab="tickets">Tickets <span id="tk-badge" class="badge hidden"></span></button>
+    <button class="tab" id="tab-videos" data-tab="videos">Help videos</button>
   </div>
 
   <!-- Classes -->
@@ -79,6 +80,28 @@
       <button class="btn-ghost" id="tk-refresh">Refresh</button>
     </div>
     <div id="tickets-list"></div>
+  </section>
+
+  <!-- Help videos -->
+  <section id="sec-videos" class="hidden">
+    <div class="card">
+      <b id="hv-form-title">Add a help video</b>
+      <div class="muted" style="margin:4px 0 10px;">Paste a YouTube link and choose who can see it. Each panel's Help section shows only the videos for its role.</div>
+      <input id="hv-title" type="text" maxlength="120" placeholder="Video title, e.g. How to add a student">
+      <input id="hv-url" type="text" placeholder="https://youtu.be/..." style="margin-top:8px;">
+      <div class="row" style="justify-content:flex-start;gap:12px;margin-top:10px;font-weight:700;">
+        <label><input type="checkbox" class="hv-aud" value="admin"> Admin</label>
+        <label><input type="checkbox" class="hv-aud" value="student"> Student</label>
+        <label><input type="checkbox" class="hv-aud" value="teacher"> Teacher</label>
+        <label><input type="checkbox" class="hv-aud" value="parent"> Parent</label>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn-primary" id="hv-save">Add video</button>
+        <button class="btn-ghost hidden" id="hv-cancel">Cancel</button>
+        <span id="hv-status" class="muted"></span>
+      </div>
+    </div>
+    <div id="hv-list"></div>
   </section>
 </div>
 
@@ -186,8 +209,11 @@ function showTab(name) {
   document.getElementById('sec-classes').classList.toggle('hidden', name !== 'classes');
   document.getElementById('sec-tickets').classList.toggle('hidden', name !== 'tickets');
   document.getElementById('tab-classes').classList.toggle('on', name === 'classes');
+  document.getElementById('sec-videos').classList.toggle('hidden', name !== 'videos');
   document.getElementById('tab-tickets').classList.toggle('on', name === 'tickets');
+  document.getElementById('tab-videos').classList.toggle('on', name === 'videos');
   if (name === 'tickets') loadTickets();
+  if (name === 'videos') loadVideos();
 }
 function setFilter(f) {
   tkFilter = f;
@@ -196,6 +222,73 @@ function setFilter(f) {
   loadTickets();
 }
 
+// ── Help videos (tech support manages them) ──
+let _hvEditId = null;
+const HV_AUD = { admin: 'Admin', student: 'Student', teacher: 'Teacher', parent: 'Parent' };
+async function loadVideos() {
+  const box = document.getElementById('hv-list');
+  try {
+    const r = await api('/admin/help-videos'); const d = await r.json();
+    const vids = d.videos || [];
+    window._hvList = vids;
+    if (!vids.length) { box.innerHTML = '<div class="card muted" style="text-align:center;padding:18px;">No help videos yet.</div>'; return; }
+    box.innerHTML = vids.map(v => `
+      <div class="card row">
+        <div style="flex:1;min-width:0;">
+          <b>${esc(v.title)}</b>
+          <div class="muted">Visible to: ${esc((v.audience || []).map(a => HV_AUD[a] || a).join(', ') || '—')}</div>
+          <a href="https://www.youtube.com/watch?v=${esc(v.youtubeId)}" target="_blank" rel="noopener" style="font-size:.85rem;color:var(--blue);">Open on YouTube</a>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-ghost" onclick="hvStartEdit('${esc(v.id)}')">Edit</button>
+          <button class="btn-ghost" style="color:var(--red);" onclick="hvDelete('${esc(v.id)}')">Delete</button>
+        </div>
+      </div>`).join('');
+  } catch (e) { if (e.message !== 'auth') box.innerHTML = '<div class="card" style="color:var(--red);">Could not load videos. Try again.</div>'; }
+}
+function hvReset() {
+  _hvEditId = null;
+  document.getElementById('hv-title').value = ''; document.getElementById('hv-url').value = '';
+  document.querySelectorAll('.hv-aud').forEach(c => c.checked = false);
+  document.getElementById('hv-save').textContent = 'Add video';
+  document.getElementById('hv-form-title').textContent = 'Add a help video';
+  document.getElementById('hv-cancel').classList.add('hidden');
+}
+function hvStartEdit(id) {
+  const v = (window._hvList || []).find(x => x.id === id); if (!v) return;
+  _hvEditId = id;
+  document.getElementById('hv-title').value = v.title;
+  document.getElementById('hv-url').value = 'https://youtu.be/' + v.youtubeId;
+  document.querySelectorAll('.hv-aud').forEach(c => c.checked = (v.audience || []).includes(c.value));
+  document.getElementById('hv-save').textContent = 'Save changes';
+  document.getElementById('hv-form-title').textContent = 'Edit help video';
+  document.getElementById('hv-cancel').classList.remove('hidden');
+  document.getElementById('hv-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+async function hvSave() {
+  const st = document.getElementById('hv-status');
+  const audience = [...document.querySelectorAll('.hv-aud:checked')].map(c => c.value);
+  const body = { title: document.getElementById('hv-title').value.trim(), url: document.getElementById('hv-url').value.trim(), audience };
+  st.textContent = 'Saving…';
+  try {
+    const r = _hvEditId
+      ? await api('/admin/help-videos/' + _hvEditId, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, auth()), body: JSON.stringify(body) })
+      : await api('/admin/help-videos', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, auth()), body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.success) { st.textContent = _hvEditId ? 'Saved.' : 'Added.'; hvReset(); loadVideos(); }
+    else st.textContent = d.message || 'Could not save. Check the link and choose at least one audience.';
+  } catch (e) { if (e.message !== 'auth') st.textContent = 'Could not save. Try again.'; }
+}
+async function hvDelete(id) {
+  if (!confirm('Delete this video?')) return;
+  await api('/admin/help-videos/' + id, { method: 'DELETE', headers: auth() });
+  if (_hvEditId === id) hvReset();
+  loadVideos();
+}
+
+document.getElementById('hv-save').onclick = hvSave;
+document.getElementById('hv-cancel').onclick = () => { hvReset(); document.getElementById('hv-status').textContent = ''; };
+document.getElementById('tab-videos').onclick = () => showTab('videos');
 document.getElementById('login-btn').onclick = doLogin;
 document.getElementById('tech-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('logout-btn').onclick = () => showLogin('');
