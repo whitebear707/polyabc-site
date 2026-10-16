@@ -241,6 +241,16 @@
     /* assign modal day panel */
     #assign-day-panel { background:white; border-radius:16px; padding:20px; max-width:500px; width:95%; max-height:80vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.2); }
   
+
+  /* Email lists: type an address, press Agregar, remove with ✕ */
+  .em-list { width:100%; }
+  .em-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+  .em-chip { display:inline-flex; align-items:center; gap:6px; background:#e8f0fe; color:#1a56b0; border-radius:16px; padding:5px 6px 5px 12px; font-size:0.82rem; font-weight:700; max-width:100%; word-break:break-all; }
+  .em-chip button { border:none; background:#c9dafc; color:#1a56b0; width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:0.75rem; line-height:1; flex-shrink:0; }
+  .em-add { display:flex; gap:8px; }
+  .em-add input { flex:1; min-width:0; padding:9px; border:2px solid #ddd; border-radius:8px; font-family:Nunito; font-size:0.9rem; }
+  .em-add button { padding:9px 14px; border:none; border-radius:8px; background:#1a73e8; color:#fff; font-weight:800; cursor:pointer; font-family:Nunito; white-space:nowrap; }
+  .em-err { color:#e53935; font-size:0.75rem; font-weight:700; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -511,8 +521,7 @@
         </div>
         <div>
           <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Correo de notificaciones</label>
-          <input type="email" id="school-email" placeholder="admin@polyabc.academy"
-            style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+          <div id="school-emails" class="em-list"></div>
         </div>
         <div>
           <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">WhatsApp (con código de país)</label>
@@ -565,10 +574,10 @@
     <div class="card" style="margin-bottom:14px;">
       <b style="font-size:0.9rem;">Quién recibe los correos</b>
       <div style="display:grid;gap:8px;margin-top:8px;">
-        <label style="font-size:0.8rem;font-weight:700;">Soporte técnico<input id="tk-tech" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;" placeholder="techsupport@polyabc.academy"></label>
-        <label style="font-size:0.8rem;font-weight:700;">Admin — Spanish student reports (commas) <input id="tk-admin" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
-        <label style="font-size:0.8rem;font-weight:700;">Admin — English student reports (commas) <input id="tk-admin-en" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
-        <label style="font-size:0.8rem;font-weight:700;">Billing (pending transfers) — separate with commas <input id="tk-billing" type="text" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;"></label>
+        <div style="font-size:0.8rem;font-weight:700;"><div style="margin-bottom:4px;">Soporte técnico</div><div id="tk-tech" class="em-list"></div></div>
+        <div style="font-size:0.8rem;font-weight:700;"><div style="margin-bottom:4px;">Admin — reportes de alumnos en español </div><div id="tk-admin" class="em-list"></div></div>
+        <div style="font-size:0.8rem;font-weight:700;"><div style="margin-bottom:4px;">Admin — reportes de alumnos en inglés </div><div id="tk-admin-en" class="em-list"></div></div>
+        <div style="font-size:0.8rem;font-weight:700;"><div style="margin-bottom:4px;">Cobranza (transferencias pendientes) </div><div id="tk-billing" class="em-list"></div></div>
       </div>
       <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <button onclick="saveTicketSettings()" style="padding:8px 16px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer;">Guardar</button>
@@ -4600,18 +4609,66 @@ async function resolveTicket(id) {
   renderTickets(true);
 }
 async function reopenTicket(id) { await fetch(`${SERVER_URL}/admin/tickets/${id}/reopen`, { method: 'POST', headers: tkAuth() }); renderTickets(true); }
+// ── Email lists ("Agregar otro correo"): type an address, press Agregar, remove with ✕ ──
+const EM_RE = /^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/;
+const _emLists = {};
+function emSet(id, emails) { _emLists[id] = [...new Set((emails || []).map(e => String(e).trim().toLowerCase()).filter(Boolean))]; emRender(id); }
+function emPendingInvalid(id) {
+  const box = document.getElementById(id), inp = box && box.querySelector('input');
+  const v = inp ? inp.value.trim().toLowerCase() : '';
+  return !!v && !EM_RE.test(v);
+}
+function emGet(id) { // also takes an address that was typed but not added yet
+  const box = document.getElementById(id), inp = box && box.querySelector('input');
+  const list = [...(_emLists[id] || [])];
+  const v = inp ? inp.value.trim().toLowerCase() : '';
+  if (v && EM_RE.test(v) && !list.includes(v)) list.push(v);
+  return list;
+}
+function emRender(id) {
+  const box = document.getElementById(id); if (!box) return;
+  const keep = box.querySelector('input') ? box.querySelector('input').value : '';
+  box.innerHTML = '';
+  const chips = document.createElement('div'); chips.className = 'em-chips';
+  (_emLists[id] || []).forEach((e, i) => {
+    const c = document.createElement('span'); c.className = 'em-chip';
+    const t = document.createElement('span'); t.textContent = e;
+    const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.title = 'Quitar'; x.setAttribute('aria-label', 'Quitar ' + e);
+    x.onclick = () => { _emLists[id].splice(i, 1); emRender(id); };
+    c.appendChild(t); c.appendChild(x); chips.appendChild(c);
+  });
+  box.appendChild(chips);
+  const row = document.createElement('div'); row.className = 'em-add';
+  const inp = document.createElement('input'); inp.type = 'email'; inp.placeholder = 'Agregar otro correo…'; inp.value = keep; inp.autocomplete = 'off';
+  const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = '＋ Agregar';
+  const err = document.createElement('div'); err.className = 'em-err';
+  const add = () => {
+    const v = inp.value.trim().toLowerCase(); if (!v) return;
+    if (!EM_RE.test(v)) { err.textContent = 'Ese correo no es válido.'; return; }
+    if (!_emLists[id].includes(v)) _emLists[id].push(v);
+    inp.value = ''; emRender(id);
+    const n = document.getElementById(id).querySelector('input'); if (n) n.focus();
+  };
+  btn.onclick = add;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+  inp.addEventListener('input', () => { err.textContent = ''; });
+  row.appendChild(inp); row.appendChild(btn);
+  box.appendChild(row); box.appendChild(err);
+}
+
 async function loadTicketSettings() {
   try {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { headers: tkAuth() }); const d = await r.json();
-    document.getElementById('tk-tech').value = d.techEmail || '';
-    document.getElementById('tk-admin').value = (d.adminEmails || []).join(', ');
-    document.getElementById('tk-admin-en').value = (d.adminEmailsEn || []).join(', ');
-    document.getElementById('tk-billing').value = (d.billingEmails || []).join(', ');
+    emSet('tk-tech', d.techEmails || (d.techEmail ? [d.techEmail] : []));
+    emSet('tk-admin', d.adminEmails || []);
+    emSet('tk-admin-en', d.adminEmailsEn || []);
+    emSet('tk-billing', d.billingEmails || []);
   } catch (e) {}
 }
 async function saveTicketSettings() {
   const st = document.getElementById('tk-status');
-  const body = { techEmail: document.getElementById('tk-tech').value.trim(), adminEmails: document.getElementById('tk-admin').value, adminEmailsEn: document.getElementById('tk-admin-en').value, billingEmails: document.getElementById('tk-billing').value };
+  if (['tk-tech', 'tk-admin', 'tk-admin-en', 'tk-billing'].some(emPendingInvalid)) { st.textContent = 'Revisa el correo que escribiste: no es válido'; st.style.color = '#e53935'; return; }
+  const body = { techEmails: emGet('tk-tech'), adminEmails: emGet('tk-admin'), adminEmailsEn: emGet('tk-admin-en'), billingEmails: emGet('tk-billing') };
   try {
     const r = await fetch(`${SERVER_URL}/admin/support-settings`, { method: 'PUT', headers: tkAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }); const d = await r.json();
     st.textContent = d.success ? 'Guardado ✓' : (d.message || 'No se pudo guardar'); st.style.color = d.success ? '#2e7d32' : '#e53935';
@@ -4809,19 +4866,17 @@ async function loadSchoolInfo() {
     const res = await fetch(`${SERVER_URL}/school-info`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const info = await res.json();
     document.getElementById('school-name').value     = info.name     || '';
-    document.getElementById('school-email').value    = info.email    || '';
+    emSet('school-emails', info.emails || (info.email ? [info.email] : []));
     document.getElementById('school-whatsapp').value = info.whatsapp || '';
   } catch(e) { console.error('Could not load school info:', e); }
 }
 
 async function saveSchoolInfo() {
   const status = document.getElementById('school-info-status');
-  const email  = document.getElementById('school-email').value.trim();
+  if (emPendingInvalid('school-emails')) { status.textContent = '⚠️ Ese correo no es válido'; status.style.color = '#e53935'; return; }
+  const emails = emGet('school-emails');
   const wa     = document.getElementById('school-whatsapp').value.replace(/\D/g, '');
 
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    status.textContent = '⚠️ That email doesn\'t look valid'; status.style.color = '#e53935'; return;
-  }
   if (wa && (wa.length < 10 || wa.length > 15)) {
     status.textContent = '⚠️ WhatsApp number should include country code (e.g. 523313208792)'; status.style.color = '#e53935'; return;
   }
@@ -4833,11 +4888,12 @@ async function saveSchoolInfo() {
       headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
       body: JSON.stringify({
         name: document.getElementById('school-name').value.trim(),
-        email, whatsapp: wa
+        emails, whatsapp: wa
       })
     });
     const d = await res.json();
     if (d.success) {
+      emSet('school-emails', d.emails || []);
       document.getElementById('school-whatsapp').value = d.whatsapp || '';
       status.textContent = '✅ Guardado'; status.style.color = '#2e7d32';
       setTimeout(() => { status.textContent = ''; }, 3000);
