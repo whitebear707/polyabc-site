@@ -3123,7 +3123,6 @@ async function saveGroup() {
   const time = document.getElementById('group-time').value;
   if (!name) { showAlert('😬','¡Ups!','Group name is required.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   if (room && !time) { showAlert('😬','¡Ups!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
-  if (time && !room) { showAlert('😬','¡Ups!','Pick a teacher for this group, or clear the class time.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
   const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents });
   if (id) {
