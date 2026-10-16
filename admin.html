@@ -130,6 +130,23 @@
       }
       #filter-overlay.open { display: block; }
     }
+        /* ── MOBILE ADMIN (phone) ── */
+    @media (max-width: 768px) {
+      html, body { overflow-x: hidden; }
+      .panel-head { flex-wrap: wrap; gap: 8px; }
+      .panel-head .btn { margin-left: 0 !important; }
+      .panel-head .panel-title { width: 100%; margin-bottom: 4px; }
+      .card, .panel > div[style*="overflow"] { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .data-table th, .data-table td { padding: 8px 8px; white-space: nowrap; }
+      div[style*="grid-template-columns:repeat(3,1fr)"], div[style*="grid-template-columns:repeat(2,1fr)"], div[style*="grid-template-columns: repeat(3"], div[style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
+      .modal-box { width: 94%; padding: 20px 16px; max-height: 90vh; }
+      .modal-actions { flex-wrap: wrap; }
+      input, select, textarea { font-size: 16px !important; }
+      .btn, .menu-item { min-height: 40px; }
+      .em-add { flex-wrap: wrap; }
+      .em-add input { min-width: 0; flex: 1 1 140px; }
+      #hamburger-menu { width: 80%; max-width: 300px; }
+    }
     #attendance-btn-top { background: #0f3460; color: #a0c4ff; border: none; padding: 7px 16px; border-radius: 20px; font-family: Nunito; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     #attendance-btn-top:hover { background: #1a73e8; color: white; }
 
@@ -726,7 +743,7 @@
   <!-- PANEL: STUDENTS -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-students" class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div class="panel-title">🎓 All Students</div>
       <button class="btn btn-green" onclick="openAddStudentModal()">+ Add Student</button>
       <button class="btn" onclick="confirmBackfillEnrollment()" style="background:#6a1b9a;color:white;margin-left:8px;">🔓 Unlock Payments</button>
