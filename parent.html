@@ -758,7 +758,7 @@ async function loadDashboard() {
             ${s.status==='approved'?'✅ Active':s.status==='pending'?'⏳ Pending Review':'❌ Denied'}
           </span>
         </div>
-        ${s.trialPassword && !s.trialBooked ? `
+        ${s.trialPassword && !s.trialBooked && !s.trialCompleted ? `
           ${s.classType === 'group' && s.trialLevel ? `
             <div style="background:linear-gradient(135deg,#00c853,#00701a);border-radius:12px;padding:16px;margin-top:12px;text-align:center;">
               <div style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:12px;">📚 Clase de prueba grupal</div>
@@ -1212,8 +1212,8 @@ async function renderPaymentTab() {
   if (!students.length) { wrap.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No students found</div>'; return; }
 
   // Pricing constants
-  const CLABE = '722969010749531074';
-  const BANK_NAME = 'STP';
+  const CLABE = _billingData?.bankInfo?.clabe || '722969010749531074';
+  const BANK_NAME = _billingData?.bankInfo?.bankName || 'STP';
 
   // Calculate weekly price based on type/length/days
   function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {

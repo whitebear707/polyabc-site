@@ -414,6 +414,24 @@
       </div>
     </div>
 
+    <!-- Bank transfer details (CLABE) -->
+    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">🏦 Datos para transferencia</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">Esta es la CLABE que ven los padres cuando eligen pagar por transferencia.</div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Banco</label>
+          <input type="text" id="bank-name" maxlength="60" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">CLABE interbancaria (18 dígitos)</label>
+          <input type="text" id="bank-clabe" inputmode="numeric" maxlength="22" autocomplete="off" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:monospace;font-size:0.95rem;letter-spacing:1px;"/>
+        </div>
+      </div>
+      <button class="btn btn-blue" style="margin-top:12px;" onclick="saveBankInfo()">💾 Guardar</button>
+      <span id="bank-status" style="margin-left:10px;font-size:0.85rem;font-weight:700;"></span>
+    </div>
+
     <!-- Price Editor -->
     <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
       <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">📊 Tabla de precios</div>
@@ -5100,8 +5118,32 @@ async function deleteStaff(id, name) {
 }
 
 // ── ACCOUNTING LEDGER ──
+// ── Bank transfer details (CLABE) ──
+async function loadBankInfo() {
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/bank-info`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const d = await r.json();
+    if (d.success) { document.getElementById('bank-name').value = d.bankName; document.getElementById('bank-clabe').value = d.clabe; }
+  } catch (e) {}
+}
+async function saveBankInfo() {
+  const st = document.getElementById('bank-status');
+  const bankName = document.getElementById('bank-name').value.trim();
+  const clabe = document.getElementById('bank-clabe').value.replace(/[\s-]/g, '');
+  if (!/^\d{18}$/.test(clabe)) { st.textContent = '⚠️ La CLABE debe tener 18 dígitos'; st.style.color = '#e53935'; return; }
+  if (!bankName) { st.textContent = '⚠️ Escribe el nombre del banco'; st.style.color = '#e53935'; return; }
+  st.textContent = 'Guardando...'; st.style.color = '#888';
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/bank-info`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ bankName, clabe }) });
+    const d = await r.json();
+    if (d.success) { st.textContent = '✅ Guardado — los padres ya ven esta CLABE'; st.style.color = '#2e7d32'; setTimeout(() => { st.textContent = ''; }, 4000); }
+    else { st.textContent = '❌ ' + (d.error || 'No se pudo guardar'); st.style.color = '#e53935'; }
+  } catch (e) { st.textContent = '❌ No se pudo conectar con el servidor'; st.style.color = '#e53935'; }
+}
+
 async function renderAccounting() {
   console.log('[ACCOUNTING] renderAccounting() called');
+  loadBankInfo();
   // Set month/year selectors to current if empty
   const monthSel = document.getElementById('acc-month');
   const yearSel  = document.getElementById('acc-year');
