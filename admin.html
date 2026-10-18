@@ -937,6 +937,19 @@
     <div class="field-group"><label>Correo del maestro</label><input type="email" id="teacher-email-input" placeholder="p. ej. srita.garcia@correo.com"/></div>
     <div class="field-group"><label>Contraseña del maestro</label><input type="text" id="teacher-pass-input" placeholder="p. ej. maestro#001"/></div>
     <div class="field-group"><label>Tarifa por hora (pesos)</label><input type="number" id="teacher-rate-input" placeholder="p. ej. 200" min="0"/></div>
+    <div class="field-group" id="rate-when-wrap" style="display:none;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;">
+        <input type="checkbox" id="rate-when-check" onchange="toggleRateWhen()" style="width:auto;margin:0;"/> 📅 La nueva tarifa empieza en una fecha y hora específicas
+      </label>
+      <div id="rate-when-fields" style="display:none;margin-top:8px;">
+        <div style="display:flex;gap:8px;">
+          <input type="date" id="rate-when-date" style="flex:1;"/>
+          <input type="time" id="rate-when-time" value="00:00" style="flex:1;"/>
+        </div>
+        <div style="font-size:0.75rem;color:#888;margin-top:4px;">Hora de Guadalajara. Las clases anteriores se pagan con la tarifa anterior; desde esta fecha y hora, con la nueva. Si no marcas esto, la nueva tarifa aplica desde ahora.</div>
+      </div>
+      <div id="rate-history-box" style="margin-top:10px;"></div>
+    </div>
     <div class="field-group">
       <label>Foto de perfil</label>
       <div style="display:flex;align-items:center;gap:14px;">
@@ -2303,6 +2316,7 @@ function openAddTeacherModal() {
   document.getElementById('teacher-email-input').value = '';
   document.getElementById('teacher-pass-input').value = '';
   document.getElementById('teacher-rate-input').value = '';
+  document.getElementById('rate-when-wrap').style.display = 'none';
   document.getElementById('teacher-emergency').checked = false;
   _teacherPhotoPending = null;
   document.getElementById('teacher-photo-input').value = '';
@@ -2322,12 +2336,46 @@ function openEditTeacherModal(roomId) {
   document.getElementById('teacher-email-input').value = r.teacherEmail || '';
   document.getElementById('teacher-pass-input').value = r.teacherPassword || '';
   document.getElementById('teacher-rate-input').value = r.hourlyRate || '';
+  document.getElementById('rate-when-wrap').style.display = 'block';
+  document.getElementById('rate-when-check').checked = false;
+  document.getElementById('rate-when-date').value = '';
+  document.getElementById('rate-when-time').value = '00:00';
+  document.getElementById('rate-when-fields').style.display = 'none';
+  renderRateHistory(r);
   document.getElementById('teacher-emergency').checked = !!r.timeOverride;
   _teacherPhotoPending = null;         // null = leave existing photo untouched
   document.getElementById('teacher-photo-input').value = '';
   document.getElementById('teacher-photo-status').textContent = '';
   _showTeacherPhoto(r.photo || null);
   document.getElementById('teacher-modal').classList.add('open');
+}
+
+// ── Teacher rate history ──
+function toggleRateWhen() {
+  document.getElementById('rate-when-fields').style.display = document.getElementById('rate-when-check').checked ? 'block' : 'none';
+}
+function renderRateHistory(r) {
+  const box = document.getElementById('rate-history-box');
+  const hist = (r.rateHistory || []).slice().sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
+  if (!hist.length) { box.innerHTML = `<div style="font-size:0.8rem;color:#888;">Historial de tarifa: $${r.hourlyRate || 0} por hora (sin cambios registrados).</div>`; return; }
+  const now = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }) + 'T' + new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
+  let currentKey = hist.find(h => h.effectiveFrom <= now)?.effectiveFrom;
+  const fmt = k => { if (k.startsWith('0000')) return 'Tarifa inicial'; const [d, t] = k.split('T'); const [y, m, dd] = d.split('-'); return `Desde ${dd}/${m}/${y} ${t}`; };
+  box.innerHTML = '<div style="font-size:0.8rem;font-weight:900;color:#555;margin-bottom:4px;">📈 Historial de tarifa</div>' + hist.map(h => {
+    const tag = h.effectiveFrom === currentKey ? ' <span style="color:#2e7d32;font-weight:900;">· vigente</span>' : (h.effectiveFrom > now ? ' <span style="color:#e65100;font-weight:900;">· programada</span>' : '');
+    const del = h.effectiveFrom.startsWith('0000') ? '' : ` <button type="button" onclick="deleteRateChange('${escJsAttr(r.room)}','${h.effectiveFrom}')" title="Quitar este cambio" style="border:none;background:none;color:#c62828;cursor:pointer;font-weight:900;">✕</button>`;
+    return `<div style="font-size:0.82rem;padding:3px 0;border-bottom:1px solid #f0f0f0;">$${h.rate}/h — ${fmt(h.effectiveFrom)}${tag}${del}</div>`;
+  }).join('');
+}
+async function deleteRateChange(roomId, eff) {
+  if (!confirm('¿Quitar este cambio de tarifa? Las clases de ese periodo se pagarán con la tarifa anterior.')) return;
+  const res = await fetch(`${SERVER_URL}/admin/rooms/${encodeURIComponent(roomId)}/rate-history?effectiveFrom=${encodeURIComponent(eff)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  const d = await res.json();
+  if (d.success === false) { alert(d.message || 'No se pudo quitar.'); return; }
+  await loadRooms();
+  const r = rooms.find(x => x.room === roomId);
+  if (r) { document.getElementById('teacher-rate-input').value = r.hourlyRate || ''; renderRateHistory(r); }
+  renderTeachers();
 }
 
 function closeTeacherModal() { document.getElementById('teacher-modal').classList.remove('open'); }
@@ -2403,6 +2451,12 @@ async function saveTeacher() {
 
   const body = { teacherName: name, teacherEmail: email, teacherPassword: pass, hourlyRate: parseFloat(rate)||0, timeOverride };
   if (_teacherPhotoPending !== null) body.photo = _teacherPhotoPending;
+  if (editId && document.getElementById('rate-when-check').checked) {
+    const rd = document.getElementById('rate-when-date').value;
+    const rt = document.getElementById('rate-when-time').value || '00:00';
+    if (!rd) { showAlert('😬','¡Ups!','Elige la fecha en que empieza la nueva tarifa.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
+    body.rateEffectiveFrom = `${rd}T${rt}`;
+  }
 
   if (editId) {
     const res = await fetch(`${SERVER_URL}/rooms/${editId}`, {
