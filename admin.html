@@ -832,7 +832,10 @@
   <!-- PANEL: ATTENDANCE -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-attendance" class="panel">
-    <div class="panel-title">📋 Registros de asistencia</div>
+    <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      <div class="panel-title" style="margin-bottom:0;">📋 Registros de asistencia</div>
+      <button class="btn btn-green" onclick="openManualAttendance()">✍️ Agregar / corregir asistencia</button>
+    </div>
     <div id="att-search-section">
       <div class="card" style="margin-bottom:16px;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;">
@@ -903,6 +906,55 @@
 </div>
 
 <!-- Reset All Modal -->
+<!-- Manual attendance modal -->
+<div class="modal-overlay" id="manual-att-modal">
+  <div class="modal-box">
+    <div class="modal-title">✍️ Agregar / corregir asistencia</div>
+    <div style="font-size:0.82rem;color:#888;margin-bottom:12px;">Para cuando el sistema no registró una clase y el maestro muestra evidencia. La clase queda como completada y marcada como manual. Si ya existe un registro de esa clase, se guarda una copia y se reemplaza.</div>
+    <div class="field-group"><label>Maestro</label><select id="ma-room"></select></div>
+    <div style="display:flex;gap:8px;">
+      <div class="field-group" style="flex:1;"><label>Fecha</label><input type="date" id="ma-date"/></div>
+      <div class="field-group" style="flex:1;"><label>Hora de inicio (Guadalajara)</label><input type="time" id="ma-time"/></div>
+    </div>
+    <div class="field-group"><label>Tipo de clase</label>
+      <select id="ma-type" onchange="maTypeChanged()">
+        <option value="1v1 - 30 Min">1v1 - 30 Min</option><option value="1v1 - 40 Min">1v1 - 40 Min</option><option value="1v1 - 50 Min">1v1 - 50 Min</option>
+        <option value="Group - 40 Min">Grupo - 40 Min</option><option value="Trial">Prueba (15 min)</option>
+      </select></div>
+    <div class="field-group" id="ma-student-wrap"><label>Alumno (opcional)</label><input type="text" id="ma-student" placeholder="p. ej. Juan"/></div>
+    <div id="ma-group-wrap" style="display:none;">
+      <div class="field-group"><label>Nombre del grupo</label><input type="text" id="ma-group" placeholder="p. ej. 5PM A1"/></div>
+      <div class="field-group"><label>Alumnos que asistieron (1–6)</label><input type="number" id="ma-count" min="1" max="6" value="2"/></div>
+    </div>
+    <div class="field-group"><label>Motivo / evidencia *</label><input type="text" id="ma-reason" maxlength="300" placeholder="p. ej. El maestro mostró captura de pantalla"/></div>
+    <div id="ma-status" style="font-size:0.85rem;font-weight:700;min-height:18px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="document.getElementById('manual-att-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveManualAttendance()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payroll adjustment modal -->
+<div class="modal-overlay" id="pay-adj-modal">
+  <div class="modal-box">
+    <div class="modal-title">± Ajuste de nómina</div>
+    <div id="pa-teacher" style="font-weight:800;margin-bottom:10px;"></div>
+    <input type="hidden" id="pa-room"/>
+    <div style="display:flex;gap:8px;">
+      <div class="field-group" style="flex:1;"><label>Fecha</label><input type="date" id="pa-date"/></div>
+      <div class="field-group" style="flex:1;"><label>Monto (pesos)</label><input type="number" id="pa-amount" step="0.01" placeholder="p. ej. 150 o -50"/></div>
+    </div>
+    <div style="font-size:0.75rem;color:#888;margin:-4px 0 8px;">Número positivo suma al pago; con signo menos (−) descuenta.</div>
+    <div class="field-group"><label>Motivo *</label><input type="text" id="pa-reason" maxlength="300" placeholder="p. ej. Clase extra autorizada"/></div>
+    <div id="pa-status" style="font-size:0.85rem;font-weight:700;min-height:18px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="document.getElementById('pay-adj-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-blue" onclick="savePayAdjustment()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="reset-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;">
     <div style="font-size:3rem;margin-bottom:8px;">🪐</div>
@@ -3333,6 +3385,66 @@ function populatePayTeacherFilter() {
   updatePayDates();
 }
 
+// ── Manual attendance & payroll adjustments ──
+function openManualAttendance() {
+  document.getElementById('ma-room').innerHTML = rooms.map(r => `<option value="${escHtml(r.room)}">Maestro ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
+  ['ma-date','ma-time','ma-student','ma-group','ma-reason'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ma-count').value = 2;
+  document.getElementById('ma-type').value = '1v1 - 30 Min'; maTypeChanged();
+  document.getElementById('ma-status').textContent = '';
+  document.getElementById('manual-att-modal').classList.add('open');
+}
+function maTypeChanged() {
+  const g = document.getElementById('ma-type').value.startsWith('Group');
+  document.getElementById('ma-group-wrap').style.display = g ? 'block' : 'none';
+  document.getElementById('ma-student-wrap').style.display = g ? 'none' : 'block';
+}
+async function saveManualAttendance() {
+  const st = document.getElementById('ma-status');
+  const body = {
+    room: document.getElementById('ma-room').value, date: document.getElementById('ma-date').value, time: document.getElementById('ma-time').value,
+    classType: document.getElementById('ma-type').value, studentName: document.getElementById('ma-student').value.trim(),
+    groupName: document.getElementById('ma-group').value.trim(), studentsCount: document.getElementById('ma-count').value,
+    reason: document.getElementById('ma-reason').value.trim()
+  };
+  if (!body.room || !body.date || !body.time) { st.textContent = '⚠️ Elige maestro, fecha y hora'; st.style.color = '#e53935'; return; }
+  if (body.reason.length < 3) { st.textContent = '⚠️ Escribe el motivo o evidencia'; st.style.color = '#e53935'; return; }
+  st.textContent = 'Guardando...'; st.style.color = '#888';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/attendance/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+    const d = await res.json();
+    if (!d.success) { st.textContent = '❌ ' + (d.error || 'No se pudo guardar'); st.style.color = '#e53935'; return; }
+    document.getElementById('manual-att-modal').classList.remove('open');
+    showToast(d.replaced ? '✅ Asistencia corregida (se guardó copia del registro anterior)' : '✅ Asistencia agregada', 4000);
+  } catch (e) { st.textContent = '❌ No se pudo conectar con el servidor'; st.style.color = '#e53935'; }
+}
+function openPayAdjustment(room, name, defaultDate) {
+  document.getElementById('pa-room').value = room;
+  document.getElementById('pa-teacher').textContent = `Maestro ${name || '—'} · Salón ${room}`;
+  document.getElementById('pa-date').value = defaultDate || '';
+  document.getElementById('pa-amount').value = ''; document.getElementById('pa-reason').value = '';
+  document.getElementById('pa-status').textContent = '';
+  document.getElementById('pay-adj-modal').classList.add('open');
+}
+async function savePayAdjustment() {
+  const st = document.getElementById('pa-status');
+  const body = { room: document.getElementById('pa-room').value, date: document.getElementById('pa-date').value, amount: document.getElementById('pa-amount').value, reason: document.getElementById('pa-reason').value.trim() };
+  if (!body.date || !parseFloat(body.amount)) { st.textContent = '⚠️ Escribe fecha y un monto distinto de cero'; st.style.color = '#e53935'; return; }
+  if (body.reason.length < 3) { st.textContent = '⚠️ Escribe el motivo'; st.style.color = '#e53935'; return; }
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/payroll-adjustments`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+    const d = await res.json();
+    if (!d.success) { st.textContent = '❌ ' + (d.error || 'No se pudo guardar'); st.style.color = '#e53935'; return; }
+    document.getElementById('pay-adj-modal').classList.remove('open');
+    loadPayroll();
+  } catch (e) { st.textContent = '❌ No se pudo conectar con el servidor'; st.style.color = '#e53935'; }
+}
+async function deletePayAdjustment(id) {
+  if (!confirm('¿Quitar este ajuste?')) return;
+  await fetch(`${SERVER_URL}/admin/payroll-adjustments/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  loadPayroll();
+}
+
 async function loadPayroll() {
   const from = document.getElementById('pay-from').value;
   const to   = document.getElementById('pay-to').value;
@@ -3351,7 +3463,7 @@ async function loadPayroll() {
   if (!Array.isArray(data)) { results.innerHTML = `<div class="card" style="color:#e53935;text-align:center;padding:20px;">Error: ${data.error || JSON.stringify(data)}</div>`; return; }
   if (!data.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No hay datos de nómina.</div>'; return; }
   // Filter to only teachers with classes
-  const withClasses = data.filter(t => t.classes.length > 0);
+  const withClasses = data.filter(t => t.classes.length > 0 || (t.adjustments && t.adjustments.length));
   if (!withClasses.length) { results.innerHTML = '<div class="card" style="color:#aaa;text-align:center;padding:20px;">No hay clases completadas en este periodo.</div>'; return; }
 
   const totalAll = withClasses.reduce((sum, t) => sum + t.netPay, 0);
@@ -3371,7 +3483,7 @@ async function loadPayroll() {
 
   results.innerHTML = reviewBanner + `
     <div style="background:#1a73e8;color:white;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-weight:900;font-size:1rem;">Total Payroll ${from} → ${to}</div>
+      <div style="font-weight:900;font-size:1rem;">Nómina total ${from} → ${to}</div>
       <div style="font-size:1.4rem;font-weight:900;">$${totalAll.toFixed(2)} pesos</div>
     </div>
     ${withClasses.map(t => `
@@ -3379,13 +3491,18 @@ async function loadPayroll() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
           <div>
             <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">Maestro ${t.teacherName||'—'} · Salón ${t.room}</div>
-            <div style="font-size:0.82rem;color:#888;margin-top:2px;">Rate: $${t.hourlyRate}/hr · ${t.classes.length} class${t.classes.length!==1?'es':''}</div>
+            <div style="font-size:0.82rem;color:#888;margin-top:2px;">Tarifa actual: $${t.hourlyRate}/h · ${t.classes.length} clase${t.classes.length!==1?'s':''}</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:1.2rem;font-weight:900;color:#2e7d32;">$${t.netPay.toFixed(2)}</div>
             <div style="font-size:0.75rem;color:#aaa;">pesos</div>
+            <button class="btn btn-gray btn-sm" style="margin-top:6px;" onclick="openPayAdjustment('${escJsAttr(t.room)}','${escJsAttr(t.teacherName||'')}','${to}')">± Ajuste</button>
           </div>
         </div>
+        ${(t.adjustments && t.adjustments.length) ? `<div style="background:#fffde7;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:0.82rem;">
+          <div style="font-weight:900;color:#f57f17;margin-bottom:4px;">± Ajustes manuales</div>
+          ${t.adjustments.map(a => `<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;"><span>${a.date} — ${escHtml(a.reason)}</span><span style="font-weight:900;color:${a.amount < 0 ? '#c62828' : '#2e7d32'};white-space:nowrap;">${a.amount < 0 ? '−' : '+'}$${Math.abs(a.amount).toFixed(2)} <button onclick="deletePayAdjustment('${escJsAttr(a.id)}')" title="Quitar ajuste" style="border:none;background:none;color:#c62828;cursor:pointer;font-weight:900;">✕</button></span></div>`).join('')}
+        </div>` : ''}
         ${t.classes.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
           <thead><tr style="background:#f0f4f8;">
             <th style="padding:6px 10px;text-align:left;color:#888;">Fecha</th>
@@ -3432,6 +3549,7 @@ function clearAttSearch() {
 function buildStatusTags(r) {
   const tags = [];
   const tag = (color, bg, text) => `<span style="background:${bg};color:${color};padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:900;">${text}</span>`;
+  if (r.manualEntry) tags.push(tag('#4a148c', '#f3e5f5', '✍️ MANUAL'));
 
   // Completed
   const ee = r.earlyEnd;
@@ -3470,6 +3588,7 @@ function buildStatusTags(r) {
 function buildPayrollTags(c) {
   if (!c.endType && !c.late && !c.openedLate && !c.flagEarly) return '';
   const tags = [];
+  if (c.manualEntry) tags.push(`<span style="background:#f3e5f5;color:#4a148c;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">✍️ MANUAL</span>`);
   if (c.teacherNoShow) tags.push(`<span style="background:#4a148c;color:white;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">⛔ MAESTRO NO SE PRESENTÓ</span>`);
   else if (c.endType === 'completed' && !c.flagEarly) tags.push(`<span style="background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">✅ COMPLETADA</span>`);
   if (c.flagEarly) tags.push(`<span style="background:#b71c1c;color:white;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:900;">${c.earlyBy === 'students' ? `🔴 SIN ALUMNOS LOS ÚLTIMOS ${Math.round(c.earlyMins)} MIN` : `🔴 ENDED EARLY −${Math.round(c.earlyMins)} MIN`}</span>`);
