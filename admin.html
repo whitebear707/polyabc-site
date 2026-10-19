@@ -454,6 +454,25 @@
       <div id="pr-history" style="margin-top:14px;"></div>
     </div>
 
+    <!-- Coupons -->
+    <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">🎟 Cupones</div>
+      <div style="font-size:0.8rem;color:#888;margin-bottom:14px;">El padre escribe el código antes de pagar. Cada alumno cuenta como un uso cuando confirmas su pago.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">CÓDIGO</label>
+          <div style="display:flex;gap:4px;"><input id="cp-code" maxlength="24" placeholder="JUNIO20" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:monospace;font-weight:900;text-transform:uppercase;"><button type="button" onclick="cpRandom()" title="Generar" style="padding:0 10px;border:none;border-radius:8px;background:#e8f0fe;cursor:pointer;">🎲</button></div></div>
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">DESCUENTO (%)</label><input id="cp-pct" type="number" min="1" max="100" placeholder="20" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;"></div>
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">VÁLIDO HASTA (opcional)</label><input id="cp-until" type="date" style="width:100%;padding:7px;border:1px solid #ddd;border-radius:8px;"></div>
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">USOS MÁXIMOS (alumnos)</label><input id="cp-max" type="number" min="1" placeholder="30 (vacío = sin límite)" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;"></div>
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">CUÁNTO DURA EL DESCUENTO</label>
+          <select id="cp-dur" onchange="document.getElementById('cp-cycles').style.display=this.value==='cycles'?'block':'none'" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;"><option value="once">Solo el primer pago</option><option value="cycles">Varios pagos…</option><option value="forever">Para siempre</option></select>
+          <input id="cp-cycles" type="number" min="2" placeholder="¿Cuántos pagos? (ej. 6)" style="display:none;width:100%;margin-top:4px;padding:8px;border:1px solid #ddd;border-radius:8px;"></div>
+        <div><label style="font-size:0.75rem;font-weight:900;color:#888;">NOTA (solo para ti)</label><input id="cp-note" maxlength="200" placeholder="Promo de junio" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;"></div>
+      </div>
+      <button onclick="createCoupon()" style="margin-top:12px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">➕ Crear cupón</button>
+      <div id="cp-list" style="margin-top:14px;"></div>
+    </div>
+
     <!-- Pending Bank Transfers -->
     <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;border-left:4px solid #ff9800;">
       <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">💳 Transferencias bancarias pendientes</div>
@@ -4244,7 +4263,43 @@ let _billingStudents = [];
 let _pendingTransferStudents = [];
 
 async function renderBilling() {
-  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing()]);
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing(), loadCoupons()]);
+}
+
+function cpRandom() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 6; i++) c += a[Math.floor(Math.random() * a.length)]; document.getElementById('cp-code').value = c; }
+async function loadCoupons() {
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/coupons`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const list = await r.json(); const box = document.getElementById('cp-list'); if (!box || !Array.isArray(list)) return;
+    const dur = c => c.duration === 'forever' ? 'para siempre' : c.duration === 'cycles' ? `${c.cycles} pagos` : 'solo el primer pago';
+    box.innerHTML = list.length ? list.map(c => {
+      const state = !c.active ? '<span style="color:#888;">⏸ Desactivado</span>' : c.expired ? '<span style="color:#c62828;">⌛ Vencido</span>' : (c.maxRedemptions && c.redeemed >= c.maxRedemptions) ? '<span style="color:#e65100;">🈵 Agotado</span>' : '<span style="color:#2e7d32;">✅ Activo</span>';
+      const hold = c.holders.length ? `<div style="font-size:0.78rem;color:#555;margin-top:4px;">Lo usan: ${c.holders.map(h => escHtml(h.name) + (h.cyclesLeft === null ? ' (siempre)' : ' (' + h.cyclesLeft + ' pagos restantes)')).join(', ')}</div>` : '';
+      return `<div style="border-top:1px solid #eee;padding:10px 0;"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div><b style="font-family:monospace;font-size:1.05rem;">${escHtml(c.code)}</b> · <b>${c.percent}%</b> · ${dur(c)} ${state}</div>
+        <div style="font-size:0.85rem;">Usos: <b>${c.redeemed}${c.maxRedemptions ? ' / ' + c.maxRedemptions : ''}</b>${c.validUntil ? ' · hasta ' + escHtml(c.validUntil) : ''}</div></div>
+        ${c.note ? `<div style="font-size:0.78rem;color:#888;">${escHtml(c.note)}</div>` : ''}${hold}
+        <div style="margin-top:6px;display:flex;gap:6px;"><button onclick="toggleCoupon('${c.id}',${!c.active})" style="padding:4px 10px;border:none;border-radius:6px;background:#eceff1;cursor:pointer;font-weight:700;">${c.active ? 'Desactivar' : 'Activar'}</button>
+        <button onclick="deleteCoupon('${c.id}')" style="padding:4px 10px;border:none;border-radius:6px;background:#ffebee;color:#c62828;cursor:pointer;font-weight:700;">Eliminar</button></div></div>`;
+    }).join('') : '<div style="color:#aaa;font-size:0.85rem;">Aún no hay cupones.</div>';
+  } catch (e) {}
+}
+async function createCoupon() {
+  const g = id => document.getElementById(id).value;
+  const body = { code: g('cp-code'), percent: g('cp-pct'), validUntil: g('cp-until') || null, maxRedemptions: g('cp-max') || null, duration: g('cp-dur'), cycles: g('cp-cycles'), note: g('cp-note') };
+  const r = await fetch(`${SERVER_URL}/admin/coupons`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+  const d = await r.json();
+  if (d.success) { showToast('✅ Cupón creado: ' + d.code); ['cp-code','cp-pct','cp-until','cp-max','cp-cycles','cp-note'].forEach(i => document.getElementById(i).value = ''); loadCoupons(); }
+  else showToast('⚠️ ' + (d.error || 'No se pudo crear'));
+}
+async function toggleCoupon(id, active) {
+  await fetch(`${SERVER_URL}/admin/coupons/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ active }) });
+  loadCoupons();
+}
+async function deleteCoupon(id) {
+  const r = await fetch(`${SERVER_URL}/admin/coupons/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  const d = await r.json(); if (!d.success) showToast('⚠️ ' + (d.error || 'No se pudo eliminar'));
+  loadCoupons();
 }
 
 let _pricingCur = null;
@@ -5483,7 +5538,7 @@ async function renderAccounting() {
   const year  = yearSel.value;
 
   // Load billing (price table + student billing) and ledger in parallel
-  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing(), loadLedger(month, year)]);
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing(), loadCoupons(), loadLedger(month, year)]);
   // Load pending transfers after main data loads (depends on currentToken)
   await loadPendingTransfers();
 }

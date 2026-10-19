@@ -1364,6 +1364,15 @@ async function renderPaymentTab() {
           </div>
         </div>
 
+ <!-- Coupon -->
+        <div style="margin-bottom:14px;text-align:center;">
+          ${(() => { const a = s.activeCoupon; return a ? `<div style="background:#e8f5e9;border-radius:10px;padding:10px;font-size:0.85rem;color:#2e7d32;font-weight:700;">🎟 Cupón ${a.code} aplicado: −${a.percent}%${a.cyclesLeft ? ' (te quedan ' + a.cyclesLeft + ' pagos con descuento)' : ''}</div>` : `
+          <div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:6px;">🎟 ¿Tienes un cupón?</div>
+          <div style="display:flex;gap:6px;justify-content:center;"><input id="coupon-input-${s.name.replace(/\s/g,'_')}" placeholder="Código" autocomplete="off" style="width:150px;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:monospace;font-weight:900;text-transform:uppercase;text-align:center;">
+          <button type="button" onclick="applyCoupon('${s.name}')" style="padding:9px 16px;border:none;border-radius:8px;background:#1a73e8;color:white;font-family:Nunito;font-weight:900;cursor:pointer;">Aplicar</button></div>
+          <div id="coupon-msg-${s.name.replace(/\s/g,'_')}" style="font-size:0.82rem;font-weight:700;margin-top:6px;min-height:1em;"></div>`; })()}
+        </div>
+
         <!-- Price summary -->
         <div id="price-summary-${s.name.replace(/\s/g,'_')}" style="display:none;margin-bottom:14px;">
           <div style="background:#f8f9fa;border-radius:12px;padding:14px;text-align:center;">
@@ -1456,7 +1465,7 @@ function getCombinedItems() {
   // calculation the single-child payment and the on-screen price use (finalAmountFor).
   items.forEach(item => {
     const f = finalAmountFor(item.name);
-    if (f.pct > 0 || f.credit.value > 0) { item.fullAmount = f.full; item.discount = true; }
+    if (f.pct > 0 || f.couponPct > 0 || f.credit.value > 0) { item.fullAmount = f.full; item.discount = true; }
     item.transferAmount = f.amount;
     item.creditMins = f.credit.mins;
     item.creditValue = f.credit.value;
@@ -1495,7 +1504,8 @@ async function transferCombined() {
       enrolledCycle: _payState[item.name].cycle,
       enrolledDaysPerWeek: _payState[item.name].days || 4,
       enrolledMinutesPerClass: _payState[item.name].mins || 40,
-      creditMinsApplied: item.creditMins || 0
+      creditMinsApplied: item.creditMins || 0,
+      couponCode: _payState[item.name].coupon ? _payState[item.name].coupon.code : undefined
     }));
     
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
@@ -1505,7 +1515,7 @@ async function transferCombined() {
     });
     const data = await res.json();
     if (data.success) { renderPaymentTab(); }
-    else alert('Error, intenta de nuevo');
+    else alert(data.error && /cup[oó]n|alumno ya tiene/i.test(data.error) ? data.error : 'Error, intenta de nuevo');
   } catch(e) { alert('Error, intenta de nuevo'); }
 }
 
@@ -1567,6 +1577,7 @@ function selectPayOption(studentName, field, value) {
   const fullTransfer = f.full, pct = f.pct, totalTransfer = f.amount;
   const priceNotes = [];
   if (pct > 0) priceNotes.push(`Descuento familiar aplicado (−${pct}%)`);
+  if (f.couponPct > 0) priceNotes.push(`Cupón ${f.couponCode} (−${f.couponPct}%)`);
   if (f.credit.value > 0) priceNotes.push(`Crédito por ausencia: −$${f.credit.value.toLocaleString('es-MX')} (${f.credit.mins} min)`);
   document.getElementById(`price-transfer-${key}`).innerHTML = priceNotes.length
     ? `<span style="text-decoration:line-through;color:#aaa;font-size:0.7em;">$${fullTransfer.toLocaleString('es-MX')}</span>
@@ -1792,6 +1803,32 @@ function creditFor(name, st, amount) {
 }
 // Prices come from the server (admin edits them); these are only a fallback
 function _priceCfg() { return Object.assign({ rateUpTo60: 350, rateOver60: 300, groupWeekly: 445 }, (_billingData && _billingData.pricing) || {}); }
+// Coupon: a code the parent just typed, or one this student already holds (applies automatically)
+function couponFor(name) {
+  const st = _payState[name] || {};
+  if (st.coupon) return st.coupon;
+  const a = ((_billingData && _billingData.students) || []).find(x => x.name === name)?.activeCoupon;
+  return a ? { code: a.code, percent: a.percent } : null;
+}
+async function applyCoupon(name) {
+  const key = name.replace(/\s/g,'_');
+  const input = document.getElementById('coupon-input-' + key), msg = document.getElementById('coupon-msg-' + key);
+  const code = (input.value || '').trim();
+  if (!code) { msg.style.color = '#c62828'; msg.textContent = 'Escribe tu código.'; return; }
+  msg.style.color = '#888'; msg.textContent = 'Revisando…';
+  try {
+    const r = await fetch(SERVER_URL + '/parent/coupon/check', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken }, body: JSON.stringify({ code, studentName: name }) });
+    const d = await r.json();
+    if (!_payState[name]) _payState[name] = {};
+    if (d.valid) {
+      _payState[name].coupon = { code: d.code, percent: d.percent };
+      msg.style.color = '#2e7d32'; msg.textContent = `✅ Cupón ${d.code}: −${d.percent}% (${d.label})`;
+    } else { delete _payState[name].coupon; msg.style.color = '#c62828'; msg.textContent = d.error || 'Cupón no válido.'; }
+  } catch (e) { msg.style.color = '#c62828'; msg.textContent = 'No se pudo revisar el cupón. Intenta de nuevo.'; }
+  const st = _payState[name];
+  if (st.type && st.cycle) selectPayOption(name, 'cycle', st.cycle);
+  if (typeof updateCombinedSummary === 'function') updateCombinedSummary();
+}
 // Special plan: admin set an odd weekly schedule (different minutes per day) with a fixed weekly price
 function specialFor(name) { return ((_billingData && _billingData.students) || []).find(x => x.name === name)?.specialPlan || null; }
 function weeklyBaseFor(name, st) {
@@ -1804,8 +1841,10 @@ function finalAmountFor(name) {
   const full = weeklyBaseFor(name, st) * cycleMultiplier(st.cycle);
   const pct = Number(_familyDiscount) || 0;
   const afterFamily = pct > 0 ? Math.round(full * (1 - pct / 100)) : full;
-  const credit = creditFor(name, st, afterFamily);
-  return { full, pct, afterFamily, credit, amount: afterFamily - credit.value };
+  const cp = couponFor(name);
+  const afterCoupon = cp ? Math.round(afterFamily * (1 - cp.percent / 100)) : afterFamily;
+  const credit = creditFor(name, st, afterCoupon);
+  return { full, pct, afterFamily, couponPct: cp ? cp.percent : 0, couponCode: cp ? cp.code : null, afterCoupon, credit, amount: afterCoupon - credit.value };
 }
 
 function cycleMultiplier(cycle) {
@@ -1859,7 +1898,8 @@ async function confirmTransfer(studentName) {
         enrolledCycle: st.cycle,
         enrolledDaysPerWeek: st.days || 4,
         enrolledMinutesPerClass: st.mins || 40,
-        creditMinsApplied: f.credit.mins
+        creditMinsApplied: f.credit.mins,
+        couponCode: st.coupon ? st.coupon.code : undefined
       }]
     };
     console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));
@@ -1887,6 +1927,7 @@ async function confirmTransfer(studentName) {
     } else {
       btn.textContent = '❌ Error — Intente de nuevo';
       btn.disabled = false;
+      if (data.error && /cup[oó]n|alumno ya tiene/i.test(data.error)) alert(data.error);
     }
   } catch(e) {
     btn.textContent = '❌ Error — Intente de nuevo';
