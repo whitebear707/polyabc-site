@@ -4295,6 +4295,7 @@ function renderBillingTable(students) {
     const timeLabel = s.scheduledTime || '—';
     // If admin hasn't assigned an actual day/time yet, fall back to what the parent asked for
     let schedueDisplay = `${escHtml(daysLabel)}<br><span style="color:#888;">${escHtml(timeLabel)}</span>`;
+    if (s.slots?.length) schedueDisplay = s.slots.map(x => `${escHtml(x.day.slice(0,3))} ${escHtml(x.time)} · ${x.minutes}m`).join('<br>');
     if (!s.scheduledDays?.length && !s.scheduledTime) {
       if (s.timePreference === 'flexible') schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Flexible</span>`;
       else if (s.timePreference === 'range' && s.preferredTimeRange) {
@@ -4316,7 +4317,7 @@ function renderBillingTable(students) {
       <td><span style="color:${typeColor};font-weight:900;">${escHtml(s.enrolledType || '—')}</span></td>
       <td>${escHtml(s.billingCycle || '—')}</td>
       <td style="text-align:center;">${escHtml(s.classesPerWeek || '—')}</td>
-      <td style="text-align:center;">${escHtml(s.minutesPerClass || '—')}</td>
+      <td style="text-align:center;">${s.slots?.length > 1 && new Set(s.slots.map(x => x.minutes)).size > 1 ? 'varía' : escHtml(s.minutesPerClass || '—')}</td>
       <td style="font-size:0.82rem;">${schedueDisplay}</td>
       <td>${trialTag}${s.trialCompleted ? '' : `<button onclick="completeTrial('${escJsAttr(s.name)}')" style="margin-left:6px;padding:2px 8px;background:#9c27b0;color:white;border:none;border-radius:6px;font-size:0.72rem;cursor:pointer;font-weight:700;">Marcar como hecho</button>`}</td>
       <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Pagado' : '❌ Sin pagar'}</span>${overdueFlag}</td>
@@ -4387,8 +4388,38 @@ function cpwFieldHTML(type, currentValue) {
     </select>`;
 }
 
+const BE_DAYS = [['monday','Lunes'],['tuesday','Martes'],['wednesday','Miércoles'],['thursday','Jueves'],['friday','Viernes'],['saturday','Sábado'],['sunday','Domingo']];
+const BE_MINS = [30,40,50,60,90,120];
+let _beSlots = [];
+function beSlotsHTML() {
+  const rows = _beSlots.map((sl, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+      <select onchange="_beSlots[${i}].day=this.value" style="flex:1.3;min-width:0;padding:9px 4px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        ${BE_DAYS.map(([v,l]) => `<option value="${v}" ${sl.day===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <input type="time" value="${sl.time||''}" onchange="_beSlots[${i}].time=this.value" style="flex:1.2;min-width:0;padding:8px 4px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+      <select onchange="_beSlots[${i}].minutes=parseInt(this.value)" style="flex:1;min-width:0;padding:9px 4px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+        ${[...new Set([...BE_MINS, sl.minutes])].sort((a,b)=>a-b).map(m => `<option value="${m}" ${sl.minutes===m?'selected':''}>${m} min</option>`).join('')}
+      </select>
+      <button type="button" onclick="beRemoveSlot(${i})" title="Quitar" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900;">✕</button>
+    </div>`).join('');
+  const total = _beSlots.reduce((t, x) => t + (x.minutes || 0), 0);
+  return rows + `<button type="button" onclick="beAddSlot()" style="padding:9px 14px;background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">➕ Agregar clase</button>
+    <div style="font-size:0.8rem;color:#888;margin-top:6px;">${_beSlots.length} clase(s) por semana · ${total} min en total · hora de Guadalajara</div>`;
+}
+function beRenderSlots() { const w = document.getElementById('be-slots-list'); if (w) w.innerHTML = beSlotsHTML(); }
+function beAddSlot() { _beSlots.push({ day: 'monday', time: '', minutes: 40 }); beRenderSlots(); }
+function beRemoveSlot(i) { _beSlots.splice(i, 1); beRenderSlots(); }
+function beToggleMode() {
+  const is1 = document.getElementById('be-type')?.value === '1v1';
+  const a = document.getElementById('be-slots-wrap'), b = document.getElementById('be-legacy'), c = document.getElementById('be-cpw-row');
+  if (a) a.style.display = is1 ? '' : 'none';
+  if (b) b.style.display = is1 ? 'none' : '';
+  if (c) c.style.display = is1 ? 'none' : '';
+}
 function updateCpwField() {
   const type = document.getElementById('be-type')?.value;
+  beToggleMode();
   const current = document.getElementById('be-cpw')?.value;
   document.getElementById('be-cpw-wrap').innerHTML = cpwFieldHTML(type, current);
   updateRoomField();
@@ -4420,6 +4451,7 @@ function openBillingEdit(name) {
   if (!s) return;
   const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
   const daysChecked = d => (s.scheduledDays || []).includes(d) ? 'checked' : '';
+  _beSlots = (s.slots || []).map(x => ({ day: x.day, time: x.time || '', minutes: x.minutes }));
   document.getElementById('billing-edit-modal').style.display = 'flex';
   document.getElementById('billing-edit-modal').innerHTML = `
     <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
@@ -4445,10 +4477,15 @@ function openBillingEdit(name) {
             <option value="monthly" ${s.billingCycle==='monthly'?'selected':''}>Mensual</option>
           </select>
         </div>
-        <div>
+        <div id="be-cpw-row">
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">CLASSES PER WEEK</label>
           <div id="be-cpw-wrap">${cpwFieldHTML(s.enrolledType, s.classesPerWeek)}</div>
         </div>
+        <div id="be-slots-wrap">
+          <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:6px;">CLASES DE LA SEMANA (día · hora · duración)</label>
+          <div id="be-slots-list">${beSlotsHTML()}</div>
+        </div>
+        <div id="be-legacy" style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">MINUTES PER CLASS</label>
           <select id="be-mins" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
@@ -4467,6 +4504,7 @@ function openBillingEdit(name) {
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">SCHEDULED TIME (GDL)</label>
           <input type="time" id="be-time" value="${s.scheduledTime||''}" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
         </div>
+        </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">ASSIGNED TEACHER</label>
           <div id="be-room-wrap">${roomFieldHTML(s.enrolledType, s.studentRoom)}</div>
@@ -4478,6 +4516,7 @@ function openBillingEdit(name) {
         <button onclick="saveBillingEdit('${name}')" style="padding:12px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">💾 Guardar cambios</button>
       </div>
     </div>`;
+  beToggleMode();
 }
 
 async function saveBillingEdit(name) {
@@ -4492,6 +4531,14 @@ async function saveBillingEdit(name) {
     studentRoom:    document.getElementById('be-room')?.value || null,
     amountDue:      document.getElementById('be-amount')?.value || null,
   };
+  if (body.enrolledType === '1v1') {
+    const bad = _beSlots.find(x => !x.time);
+    if (bad) { showToast('⚠️ Falta la hora en una de las clases'); return; }
+    const days = _beSlots.map(x => x.day);
+    if (new Set(days).size !== days.length) { showToast('⚠️ Hay dos clases el mismo día'); return; }
+    body.slots = _beSlots.map(x => ({ day: x.day, time: x.time, minutes: x.minutes }));
+    delete body.scheduledDays; delete body.scheduledTime; delete body.minutesPerClass; delete body.classesPerWeek;
+  }
   await fetch(`${SERVER_URL}/billing/student/${encodeURIComponent(name)}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify(body)
