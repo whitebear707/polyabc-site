@@ -918,7 +918,7 @@
     </div>
     <div class="field-group"><label>Tipo de clase</label>
       <select id="ma-type" onchange="maTypeChanged()">
-        <option value="1v1 - 30 Min">1v1 - 30 Min</option><option value="1v1 - 40 Min">1v1 - 40 Min</option><option value="1v1 - 50 Min">1v1 - 50 Min</option>
+        <option value="1v1 - 30 Min">1v1 - 30 Min</option><option value="1v1 - 40 Min">1v1 - 40 Min</option><option value="1v1 - 50 Min">1v1 - 50 Min</option><option value="1v1 - 60 Min">1v1 - 60 Min</option><option value="1v1 - 90 Min">1v1 - 90 Min</option>
         <option value="Group - 40 Min">Grupo - 40 Min</option><option value="Trial">Prueba (15 min)</option>
       </select></div>
     <div class="field-group" id="ma-student-wrap"><label>Alumno (opcional)</label><input type="text" id="ma-student" placeholder="p. ej. Juan"/></div>
@@ -1084,7 +1084,7 @@
         </div>
         <div class="field-group"><label>Tipo de clase</label>
           <select id="quick-group-type">
-            <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>Group - 40 Min</option>
+            <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>1v1 - 60 Min</option><option>1v1 - 90 Min</option><option>Group - 40 Min</option>
           </select>
         </div>
       </div>
@@ -1269,6 +1269,25 @@
 <script>
 const SERVER_URL = "https://polyabc-server.onrender.com";
 let currentToken = null;
+// If the 12-hour admin session expires, send her back to login instead of showing "Forbidden"
+(function () {
+  const _f = window.fetch.bind(window); let shown = false;
+  window.fetch = async function (...a) {
+    const r = await _f(...a);
+    try {
+      const url = String(typeof a[0] === 'string' ? a[0] : (a[0] && a[0].url) || '');
+      if (currentToken && !shown && url.startsWith(SERVER_URL) && (r.status === 401 || r.status === 403)) {
+        const j = await r.clone().json().catch(() => ({}));
+        if (r.status === 401 || j.error === 'Forbidden') {
+          shown = true; logout();
+          showAlert('🔒','Tu sesión expiró','Por seguridad la sesión dura 12 horas. Vuelve a iniciar sesión para continuar.',[{label:'OK',fn:'closeAlert()',primary:true}]);
+          setTimeout(() => { shown = false; }, 3000);
+        }
+      }
+    } catch (e) {}
+    return r;
+  };
+})();
 let rooms = [];
 let allAvailability = [];
 let allAssignments = [];
@@ -2090,7 +2109,7 @@ function _showAssignGroupModal(dateStr, room) {
       <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Tipo de clase</label>
       <select id="modal-class-type" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
         <option value="">-- Elige tipo --</option>
-        <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option>
+        <option>Prueba</option><option>1v1 - 30 Min</option><option>1v1 - 40 Min</option><option>1v1 - 50 Min</option><option>1v1 - 60 Min</option><option>1v1 - 90 Min</option>
         <option>Group - 40 Min</option>
       </select>
     </div>
