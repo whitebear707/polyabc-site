@@ -1274,6 +1274,9 @@ async function renderPaymentTab() {
         </div>
         ${s.nextPaymentDue ? `<div style="text-align:center;margin-bottom:14px;"><span style="background:#ffebee;color:#c62828;padding:4px 12px;border-radius:8px;font-size:0.8rem;font-weight:900;">⏰ Payment due: ${fmtDateP(s.nextPaymentDue)}</span></div>` : ''}
 
+        ${(() => { const sp = specialFor(s.name); if (!sp) return ''; const DN = {monday:'Lunes',tuesday:'Martes',wednesday:'Miércoles',thursday:'Jueves',friday:'Viernes',saturday:'Sábado',sunday:'Domingo'}; const tm = sp.slots.reduce((t,x)=>t+x.minutes,0);
+          return `<div style="background:#fff8e1;border-radius:12px;padding:14px;margin-bottom:14px;"><div style="font-size:0.95rem;font-weight:900;color:#8d6e00;text-align:center;margin-bottom:8px;">⭐ Plan personalizado</div>${sp.slots.map(x => `<div style="display:flex;justify-content:space-between;font-size:0.9rem;padding:3px 0;"><b>${DN[x.day]||x.day}</b><span>${x.time} · ${x.minutes} min</span></div>`).join('')}<div style="border-top:1px solid #f0d98a;margin-top:8px;padding-top:8px;font-size:0.9rem;display:flex;justify-content:space-between;"><span>${tm} min por semana</span><b>$${sp.weekly.toLocaleString('es-MX')} MXN / semana</b></div></div>`; })()}
+        <div style="display:${specialFor(s.name) ? 'none' : 'block'};">
         <!-- Class Type -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Tipo de clase</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -1331,6 +1334,7 @@ async function renderPaymentTab() {
           <div id="sched-hint-${s.name.replace(/\s/g,'_')}" style="font-size:0.78rem;color:#888;text-align:center;margin-top:6px;"></div>
         </div>
 
+        </div>
         <!-- Billing cycle -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Frecuencia de pago</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -1401,6 +1405,14 @@ async function renderPaymentTab() {
       </div>`;
   }).join('');
 
+  // Students with a special plan: pre-fill the plan so the price shows right away
+  students.forEach(s => {
+    const sp = specialFor(s.name);
+    if (!sp || !document.getElementById('pay-card-' + s.name.replace(/\s/g,'_'))) return;
+    _payState[s.name] = { type: '1v1', mins: sp.slots.reduce((t, x) => t + x.minutes, 0), days: 1 };
+    selectPayOption(s.name, 'cycle', 'weekly');
+  });
+
   // Combined payment section — only if 2+ payable students
   const payableStudents = students.filter(s => s.trialCompleted && !s.transferPending && (!s.nextPaymentDue || new Date(s.nextPaymentDue) <= new Date()));
   if (payableStudents.length >= 2) {
@@ -1427,7 +1439,7 @@ function getCombinedItems() {
     const st = _payState[name];
     const complete = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
     if (!complete) return;
-    const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+    const weeklyBase = weeklyBaseFor(name, st);
     const weeks = cycleMultiplier(st.cycle);
     
     items.push({
@@ -1547,7 +1559,7 @@ function selectPayOption(studentName, field, value) {
   const hasEnoughInfo = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
   if (!hasEnoughInfo) return;
 
-  const weeklyBase = calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+  const weeklyBase = weeklyBaseFor(studentName, st);
   const advertised = calcAdvertised(weeklyBase);
   const weeks = cycleMultiplier(st.cycle);
   const totalMP = advertised * weeks;
@@ -1778,10 +1790,16 @@ function creditFor(name, st, amount) {
   const mins = Math.min(creditMins, minsInCycle);
   return { mins, value: Math.min(amount, Math.round(mins * perMin)) };
 }
+// Special plan: admin set an odd weekly schedule (different minutes per day) with a fixed weekly price
+function specialFor(name) { return ((_billingData && _billingData.students) || []).find(x => x.name === name)?.specialPlan || null; }
+function weeklyBaseFor(name, st) {
+  const sp = specialFor(name);
+  return sp ? sp.weekly : calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
+}
 // The one place a child's payment amount is worked out: plan price -> family discount -> absence credit.
 function finalAmountFor(name) {
   const st = _payState[name];
-  const full = calcWeeklyBase(st.type, st.mins || 40, st.days || 4) * cycleMultiplier(st.cycle);
+  const full = weeklyBaseFor(name, st) * cycleMultiplier(st.cycle);
   const pct = Number(_familyDiscount) || 0;
   const afterFamily = pct > 0 ? Math.round(full * (1 - pct / 100)) : full;
   const credit = creditFor(name, st, afterFamily);
