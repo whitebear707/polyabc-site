@@ -191,7 +191,7 @@
       for (const a of todayA) {
         const [hh, mm] = a.time.split(':').map(Number);
         const aMins = hh * 60 + mm;
-        const duration = a.classType?.includes('40') ? 40 : a.classType?.includes('50') ? 50 : a.classType === 'Trial' ? 15 : 30;
+        const duration = (a.classType === 'Trial' ? 15 : (parseInt((String(a.classType||'').match(/(\d+)\s*min/i)||[])[1],10) || 30));
         // Within window: 20 min before start to end of class
         if (nowMins >= aMins - 20 && nowMins < aMins + duration) {
           const diff = Math.abs(nowMins - aMins);
