@@ -1217,10 +1217,10 @@ async function renderPaymentTab() {
 
   // Calculate weekly price based on type/length/days
   function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
-    if (type === 'group') return 445;
+    if (type === 'group') return _priceCfg().groupWeekly;
     const totalMinsPerWeek = minutesPerSession * daysPerWeek;
     const totalHrsPerWeek = totalMinsPerWeek / 60;
-    const ratePerHr = totalMinsPerWeek > 60 ? 300 : 350;
+    const ratePerHr = totalMinsPerWeek > 60 ? _priceCfg().rateOver60 : _priceCfg().rateUpTo60;
     return Math.round(ratePerHr * totalHrsPerWeek);
   }
 
@@ -1768,9 +1768,9 @@ function updateCombinedSummary() {
 }
 
 function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
-  if (type === 'group') return 445;
+  if (type === 'group') return _priceCfg().groupWeekly;
   const totalMins = minutesPerSession * daysPerWeek;
-  const ratePerHr = totalMins > 60 ? 300 : 350;
+  const ratePerHr = totalMins > 60 ? _priceCfg().rateOver60 : _priceCfg().rateUpTo60;
   return Math.round(ratePerHr * (totalMins / 60));
 }
 
@@ -1790,6 +1790,8 @@ function creditFor(name, st, amount) {
   const mins = Math.min(creditMins, minsInCycle);
   return { mins, value: Math.min(amount, Math.round(mins * perMin)) };
 }
+// Prices come from the server (admin edits them); these are only a fallback
+function _priceCfg() { return Object.assign({ rateUpTo60: 350, rateOver60: 300, groupWeekly: 445 }, (_billingData && _billingData.pricing) || {}); }
 // Special plan: admin set an odd weekly schedule (different minutes per day) with a fixed weekly price
 function specialFor(name) { return ((_billingData && _billingData.students) || []).find(x => x.name === name)?.specialPlan || null; }
 function weeklyBaseFor(name, st) {

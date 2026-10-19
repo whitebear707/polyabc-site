@@ -432,11 +432,26 @@
       <span id="bank-status" style="margin-left:10px;font-size:0.85rem;font-weight:700;"></span>
     </div>
 
-    <!-- Price Editor -->
+    <!-- Pricing (per hour) -->
     <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:24px;">
-      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:16px;">📊 Tabla de precios</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;" id="price-grid"></div>
-      <button onclick="savePrices()" style="margin-top:16px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Guardar precios</button>
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">💲 Precios</div>
+      <div style="font-size:0.8rem;color:#888;margin-bottom:14px;">Son los mismos para todas las familias. Los descuentos especiales se hacen con cupones.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+        <div style="background:#f8f9fa;border-radius:12px;padding:14px;"><div style="font-size:0.78rem;font-weight:900;color:#888;margin-bottom:6px;">1v1 — por hora (semana de 60 min o menos)</div>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;">$</span><input type="number" id="pr-up60" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:1rem;font-weight:900;"><span style="font-size:0.75rem;color:#888;">MXN</span></div></div>
+        <div style="background:#f8f9fa;border-radius:12px;padding:14px;"><div style="font-size:0.78rem;font-weight:900;color:#888;margin-bottom:6px;">1v1 — por hora (semana de más de 60 min)</div>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;">$</span><input type="number" id="pr-over60" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:1rem;font-weight:900;"><span style="font-size:0.75rem;color:#888;">MXN</span></div></div>
+        <div style="background:#f8f9fa;border-radius:12px;padding:14px;"><div style="font-size:0.78rem;font-weight:900;color:#888;margin-bottom:6px;">Grupo — por semana</div>
+          <div style="display:flex;align-items:center;gap:6px;"><span style="font-weight:700;">$</span><input type="number" id="pr-group" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:1rem;font-weight:900;"><span style="font-size:0.75rem;color:#888;">MXN</span></div></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+        <label style="font-weight:700;font-size:0.9rem;"><input type="radio" name="pr-when" value="now" checked onchange="document.getElementById('pr-date').disabled=true"> Desde hoy</label>
+        <label style="font-weight:700;font-size:0.9rem;"><input type="radio" name="pr-when" value="date" onchange="document.getElementById('pr-date').disabled=false"> Desde esta fecha:</label>
+        <input type="date" id="pr-date" disabled style="padding:7px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
+      </div>
+      <button onclick="savePricing()" style="margin-top:14px;padding:10px 24px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.9rem;font-weight:900;cursor:pointer;">💾 Guardar precios</button>
+      <div style="font-size:0.78rem;color:#888;margin-top:6px;">Los cambios aplican a los pagos que se hagan a partir de esa fecha. Lo que ya se pagó no cambia.</div>
+      <div id="pr-history" style="margin-top:14px;"></div>
     </div>
 
     <!-- Pending Bank Transfers -->
@@ -4229,7 +4244,37 @@ let _billingStudents = [];
 let _pendingTransferStudents = [];
 
 async function renderBilling() {
-  await Promise.all([loadBillingPrices(), loadBillingStudents()]);
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing()]);
+}
+
+let _pricingCur = null;
+async function loadPricing() {
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/pricing`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const d = await r.json(); if (!d.current) return; _pricingCur = d.current;
+    document.getElementById('pr-up60').value = d.current.rateUpTo60;
+    document.getElementById('pr-over60').value = d.current.rateOver60;
+    document.getElementById('pr-group').value = d.current.groupWeekly;
+    const fmt = n => '$' + Number(n).toLocaleString('es-MX');
+    const rows = d.history.map(e => `<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #eee;font-size:0.85rem;">
+      <span><b>${e.upcoming ? '⏳ Desde ' : 'Desde '}${escHtml(e.effectiveFrom)}</b>${e.upcoming ? ' (aún no empieza)' : ''}</span>
+      <span>1v1 ${fmt(e.rates.rateUpTo60)} / ${fmt(e.rates.rateOver60)} por hora · Grupo ${fmt(e.rates.groupWeekly)}/sem
+      ${e.upcoming ? `<button onclick="cancelPricing('${e.effectiveFrom}')" style="margin-left:6px;padding:2px 8px;border:none;border-radius:6px;background:#ffebee;color:#c62828;cursor:pointer;font-weight:700;">Cancelar</button>` : ''}</span></div>`).join('');
+    document.getElementById('pr-history').innerHTML = rows ? `<div style="font-size:0.8rem;font-weight:900;color:#888;margin-bottom:4px;">HISTORIAL DE PRECIOS</div>${rows}` : '';
+  } catch (e) {}
+}
+async function savePricing() {
+  const when = document.querySelector('input[name="pr-when"]:checked')?.value;
+  const date = document.getElementById('pr-date').value;
+  if (when === 'date' && !date) { showToast('⚠️ Elige la fecha'); return; }
+  const body = { rateUpTo60: document.getElementById('pr-up60').value, rateOver60: document.getElementById('pr-over60').value, groupWeekly: document.getElementById('pr-group').value, effectiveFrom: when === 'date' ? date : 'now' };
+  const r = await fetch(`${SERVER_URL}/admin/pricing`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+  const d = await r.json();
+  if (d.success) { showToast(when === 'date' ? '✅ Precios programados' : '✅ Precios guardados'); loadPricing(); } else showToast('⚠️ ' + (d.error || 'No se pudo guardar'));
+}
+async function cancelPricing(eff) {
+  await fetch(`${SERVER_URL}/admin/pricing/${encodeURIComponent(eff)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  loadPricing();
 }
 
 async function loadBillingPrices() {
@@ -4428,7 +4473,8 @@ function beSlotsHTML() {
 }
 function beSuggestWeekly() {
   const t = _beSlots.reduce((a, x) => a + (x.minutes || 0), 0);
-  return t ? Math.round((t > 60 ? 300 : 350) * t / 60) : 0;
+  const c = _pricingCur || { rateUpTo60: 350, rateOver60: 300 };
+  return t ? Math.round((t > 60 ? c.rateOver60 : c.rateUpTo60) * t / 60) : 0;
 }
 function beRenderSlots() {
   const w = document.getElementById('be-slots-list'); if (w) w.innerHTML = beSlotsHTML();
@@ -5437,7 +5483,7 @@ async function renderAccounting() {
   const year  = yearSel.value;
 
   // Load billing (price table + student billing) and ledger in parallel
-  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadLedger(month, year)]);
+  await Promise.all([loadBillingPrices(), loadBillingStudents(), loadPricing(), loadLedger(month, year)]);
   // Load pending transfers after main data loads (depends on currentToken)
   await loadPendingTransfers();
 }
