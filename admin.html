@@ -1225,6 +1225,12 @@
       </div>
     </div>
     <div class="field-group" style="margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;">
+        <input type="checkbox" id="group-private" style="width:auto;margin:0;"/> 🔒 Grupo privado (no mostrar cupos disponibles a otros padres)
+      </label>
+      <div style="font-size:0.75rem;color:#888;margin-top:3px;">Para familiares o amigos que no quieren que entren personas ajenas. El grupo no aparece como lugar disponible en el panel de padres.</div>
+    </div>
+    <div class="field-group" style="margin-top:4px;">
       <label>Alumnos del grupo</label>
       <div id="group-student-chips" style="min-height:40px;border:2px solid #ddd;border-radius:8px;padding:6px;margin-bottom:8px;"></div>
       <select id="group-add-student-select" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;margin-bottom:6px;">
@@ -3153,8 +3159,8 @@ function renderGroups() {
     return `<div class="card" style="border-left:4px solid #2e7d32;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div>
-          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${escHtml(g.name)}</div>
-          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Level ${escHtml(g.level)} · ${escHtml(g.classType)} · ${fmt12(g.time)||'Sin hora'}</div>
+          <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${escHtml(g.name)}${g.privateGroup ? ' <span style="background:#ede7f6;color:#4527a0;font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:900;">🔒 PRIVADO</span>' : ''}</div>
+          <div style="font-size:0.82rem;color:#888;margin-top:2px;">Nivel ${escHtml(g.level)} · ${escHtml(g.classType)} · ${fmt12(g.time)||'Sin hora'}</div>
           <div style="font-size:0.8rem;font-weight:700;color:${g.room?'#2e7d32':'#c62828'};margin-top:3px;">${g.room ? `👩‍🏫 ${escHtml(teacherNameForRoom(g.room))} (Salón ${escHtml(g.room)}) · Mon–Thu weekly` : '⚠️ Sin maestro asignado — no se crearán clases'}</div>
         </div>
         <div style="display:flex;gap:6px;">
@@ -3177,6 +3183,7 @@ function openAddGroupModal() {
   document.getElementById('group-type').value = 'Group - 40 Min';
   populateGroupRoomSelect('');
   document.getElementById('group-time').value = '';
+  document.getElementById('group-private').checked = false;
   _groupStudents = [];
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -3199,6 +3206,7 @@ function openEditGroupModal(id) {
   document.getElementById('group-type').value = g.classType || 'Group - 40 Min';
   populateGroupRoomSelect(g.room || '');
   document.getElementById('group-time').value = g.time || '';
+  document.getElementById('group-private').checked = !!g.privateGroup;
   _groupStudents = [...(g.students || [])];
   renderGroupStudentChips();
   populateGroupStudentSelect();
@@ -3253,7 +3261,7 @@ async function saveGroup() {
   if (!name) { showAlert('😬','¡Ups!','El nombre del grupo es obligatorio.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   if (room && !time) { showAlert('😬','¡Ups!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
-  const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents });
+  const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents, privateGroup: document.getElementById('group-private').checked });
   if (id) {
     await fetch(`${SERVER_URL}/groups/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
