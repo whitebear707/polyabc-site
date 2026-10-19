@@ -4633,12 +4633,27 @@ function renderParentsList(parents) {
       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' + verifiedBadge
       + '<button data-pid="' + escHtml(pid) + '" data-pname="' + escHtml(pname) + '" data-pphone="' + escHtml(pphone) + '" data-pemail="' + escHtml(pemail) + '" onclick="openEditParentModal(this.dataset.pid,this.dataset.pname,this.dataset.pphone,this.dataset.pemail)" style="padding:4px 10px;background:#f0f4f8;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">✏️ Editar</button>'
       + '<button data-pid="' + escHtml(pid) + '" data-pemail="' + escHtml(pemail) + '" onclick="confirmSendCredentials(this.dataset.pid,this.dataset.pemail)" style="padding:4px 10px;background:#1a73e8;border:none;color:white;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:700;cursor:pointer;">📧 Send Login</button>'
+      + '<button data-pid="' + escHtml(pid) + '" data-pname="' + escHtml(pname) + '" onclick="confirmDeleteParent(this.dataset.pid,this.dataset.pname)" style="padding:4px 10px;background:#ffebee;border:none;color:#c62828;border-radius:8px;font-family:Nunito;font-size:0.78rem;font-weight:900;cursor:pointer;">🗑 Eliminar</button>'
       + '</div></div>'
       + '<div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Alumnos</div>'
       + studentRows
       + _parentAssignDropdown(par, assignedNames)
       + '</div>';
   }).join('');
+}
+
+function confirmDeleteParent(pid, name) {
+  showAlert('🗑','¿Eliminar a ' + (name || 'este padre') + '?','Se borra la cuenta del padre y ya no podrá entrar al panel de padres. Sus alumnos NO se eliminan: solo quedan sin padre asignado y se pueden vincular a otra cuenta.',
+    [{label:'Cancelar',fn:'closeAlert()',primary:false},{label:'Eliminar',fn:`doDeleteParent('${pid}')`,primary:true}]);
+}
+async function doDeleteParent(pid) {
+  closeAlert();
+  try {
+    const r = await fetch(`${SERVER_URL}/admin/parents/${encodeURIComponent(pid)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Padre eliminado'); await renderParentsPanel(); await loadAll(); renderAllStudents(); }
+    else showToast('⚠️ No se pudo eliminar');
+  } catch (e) { showToast('⚠️ Error de conexión'); }
 }
 
 function confirmSendCredentials(pid, email) {
