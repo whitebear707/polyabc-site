@@ -160,6 +160,12 @@
       #mobile-filter-btn { display: none !important; }
     }
     .panel { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
+    /* Cobranza table: use the full width and wrap instead of scrolling sideways */
+    #panel-accounting { max-width: 1700px; }
+    #billing-table th, #billing-table td { padding: 8px 6px; white-space: normal; font-size: 0.82rem; vertical-align: middle; }
+    #billing-table td:last-child { min-width: 150px; }
+    #billing-table td:last-child button { margin: 2px 3px 2px 0 !important; }
+    #billing-table td:first-child { min-width: 110px; }
     .panel.active { display: block; }
 
     .panel-title { font-size: 1.3rem; font-weight: 900; color: #1a1a2e; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
@@ -4438,7 +4444,7 @@ function renderBillingTable(students) {
     // If admin hasn't assigned an actual day/time yet, fall back to what the parent asked for
     let schedueDisplay = `${escHtml(daysLabel)}<br><span style="color:#888;">${escHtml(timeLabel)}</span>`;
     if (s.slots?.length) schedueDisplay = s.slots.map(x => `${escHtml(x.day.slice(0,3))} ${escHtml(x.time)} · ${x.minutes}m`).join('<br>');
-    if (!s.scheduledDays?.length && !s.scheduledTime) {
+    if (!s.scheduledDays?.length && !s.scheduledTime && !s.slots?.length) {
       if (s.timePreference === 'flexible') schedueDisplay = `<span style="color:#1a73e8;font-weight:700;">Flexible</span>`;
       else if (s.timePreference === 'range' && s.preferredTimeRange) {
         const daysPart = s.preferredDays?.length ? escHtml(s.preferredDays.map(d => d.slice(0,3)).join(', ')) + '<br>' : '';
@@ -4465,7 +4471,7 @@ function renderBillingTable(students) {
       <td><span style="color:${paidColor};font-weight:900;">${s.paid ? '✅ Pagado' : '❌ Sin pagar'}</span>${overdueFlag}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.lastPaidAt)}</td>
       <td style="font-size:0.82rem;">${fmtDate(s.nextPaymentDue)}</td>
-      <td style="white-space:nowrap;">
+      <td>
         <button onclick="openBillingEdit('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Editar</button>
         <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Paid</button>
         ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Revertir esta confirmación de pago — clic equivocado, o la transferencia resultó falsa/cancelada" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Sin pagar</button>` : ''}
