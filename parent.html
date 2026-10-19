@@ -1468,7 +1468,7 @@ function getCombinedItems() {
   Object.keys(_payState).forEach(name => {
     const st = _payState[name];
     const complete = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
-    if (!complete) return;
+    if (!complete || belowMinimum(name)) return;
     const weeklyBase = weeklyBaseFor(name, st);
     const weeks = cycleMultiplier(st.cycle);
     
@@ -1596,6 +1596,18 @@ function selectPayOption(studentName, field, value) {
 
   // Calculate price if we have enough info
   const st = _payState[studentName];
+  const warnId = 'min-warn-' + key;
+  let warn = document.getElementById(warnId);
+  if (belowMinimum(studentName)) {
+    if (!warn) { warn = document.createElement('div'); warn.id = warnId; warn.style.cssText = 'background:#fff3e0;color:#e65100;border-radius:10px;padding:10px;margin:10px 0;font-size:0.85rem;font-weight:700;text-align:center;'; const ps = document.getElementById('price-summary-' + key); ps.parentNode.insertBefore(warn, ps); }
+    warn.textContent = '⚠️ El mínimo para clases 1v1 es 1 hora por semana en total. Puedes dividirla (por ejemplo 30 min + 30 min en dos días), pero 30 minutos a la semana no es suficiente.';
+    warn.style.display = 'block';
+    document.getElementById('price-summary-' + key).style.display = 'none';
+    document.getElementById('pay-btns-' + key).style.display = 'none';
+    updateCombinedSummary();
+    return;
+  }
+  if (warn) warn.style.display = 'none';
   const hasEnoughInfo = st.type && st.cycle && (st.type === 'group' || (st.mins && st.days));
   if (!hasEnoughInfo) return;
 
@@ -1871,6 +1883,13 @@ function isWeekPick(name) {
   if (stu.hasRecurring || specialFor(name)) return false;
   return !(_wb[name] && _wb[name].useOld);
 }
+// 1v1 needs at least 60 minutes per week in total (30 + 30 on two days is fine; 30 alone is not)
+const MIN_WEEK_MINS = 60;
+function belowMinimum(name) {
+  const st = _payState[name]; if (!st || st.type !== '1v1' || specialFor(name)) return false;
+  const mins = isWeekPick(name) ? wbTotal(name) : (st.mins || 0) * (st.days || 0);
+  return mins > 0 && mins < MIN_WEEK_MINS;
+}
 function wbTotal(name) { return ((_wb[name] && _wb[name].classes) || []).reduce((t, c) => t + c.minutes, 0); }
 function wbBase(name) {
   const t = wbTotal(name); if (!t) return 0;
@@ -2001,6 +2020,7 @@ async function confirmTransfer(studentName) {
   const st = _payState[studentName];
   console.log('[TRANSFER] confirmTransfer called for:', studentName, 'payState:', st);
   if (!st) { console.log('[TRANSFER] No payState found'); return; }
+  if (belowMinimum(studentName)) { alert('El mínimo para clases 1v1 es 1 hora por semana en total.'); return; }
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Procesando...';
