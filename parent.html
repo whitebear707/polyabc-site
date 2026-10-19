@@ -1310,6 +1310,7 @@ async function renderPaymentTab() {
           </div>
         </div>
 
+        <div id="sched-toggle-wrap-${s.name.replace(/\s/g,'_')}">
         <!-- Schedule mode toggle -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">📅 ¿Cómo prefieres agendar?</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -1323,6 +1324,8 @@ async function renderPaymentTab() {
           </button>
         </div>
 
+        </div>
+        <div id="wb-${s.name.replace(/\s/g,'_')}" style="display:none;"></div>
         <!-- CHOOSE MODE: time picker + real availability calendar -->
         <div id="choose-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
           <div style="font-size:0.82rem;color:#888;text-align:center;margin-bottom:8px;">Si todos tus días son a la misma hora. Para horarios distintos por día, usa "Contáctenme".</div>
@@ -1335,6 +1338,7 @@ async function renderPaymentTab() {
         </div>
 
         </div>
+        <div id="cycle-wrap-${s.name.replace(/\s/g,'_')}">
         <!-- Billing cycle -->
         <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;">Frecuencia de pago</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -1345,6 +1349,7 @@ async function renderPaymentTab() {
             </button>`).join('')}
         </div>
 
+        </div>
         <!-- CONTACT MODE: time range + contact method -->
         <div id="contact-mode-${s.name.replace(/\s/g,'_')}" style="display:none;">
           <div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;text-align:center;margin-top:14px;">⏰ ¿En qué horario estás disponible?</div>
@@ -1480,6 +1485,12 @@ async function transferCombined() {
   const total = items.reduce((sum, it) => sum + it.transferAmount, 0);
   const names = items.map(i => i.name);
   
+  const planIds = {};
+  for (const item of items) {
+    const plan = await wbCreatePlan(item.name);
+    if (plan.error) { alert(item.name + ': ' + plan.error); return; }
+    if (plan.id) planIds[item.name] = plan.id;
+  }
   // Save time preferences for all students before marking transfer pending
   for (const item of items) {
     const timePrefs = getTimePreferencesForStudent(item.name);
@@ -1505,7 +1516,8 @@ async function transferCombined() {
       enrolledDaysPerWeek: _payState[item.name].days || 4,
       enrolledMinutesPerClass: _payState[item.name].mins || 40,
       creditMinsApplied: item.creditMins || 0,
-      couponCode: _payState[item.name].coupon ? _payState[item.name].coupon.code : undefined
+      couponCode: _payState[item.name].coupon ? _payState[item.name].coupon.code : undefined,
+      weekPlanId: planIds[item.name] || undefined
     }));
     
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
@@ -1551,8 +1563,10 @@ function selectPayOption(studentName, field, value) {
 
   // Show/hide 1v1 options
   const opts1v1 = document.getElementById(`1v1-opts-${key}`);
-  if (opts1v1) opts1v1.style.display = _payState[studentName].type === '1v1' ? 'block' : 'none';
+  if (opts1v1) opts1v1.style.display = (_payState[studentName].type === '1v1' && !isWeekPick(studentName)) ? 'block' : 'none';
+  wbSync(studentName);
 
+  if (isWeekPick(studentName)) _payState[studentName].cycle = 'weekly';
   // If no billing cycle has been picked yet, default to weekly so the price/button always shows
   if (field !== 'cycle' && !_payState[studentName].cycle) {
     _payState[studentName].cycle = 'weekly';
@@ -1829,10 +1843,105 @@ async function applyCoupon(name) {
   if (st.type && st.cycle) selectPayOption(name, 'cycle', st.cycle);
   if (typeof updateCombinedSummary === 'function') updateCombinedSummary();
 }
+
+// ── Weekly class builder (new 1v1 students pick each class every week) ──
+const _wb = {};          // per student: { classes:[], date, len, useOld }
+let _wbData = null;      // { dates, lengths, slots, pricing } from the server
+function wbStudent(name) { return ((_billingData && _billingData.students) || []).find(x => x.name === name) || {}; }
+function isWeekPick(name) {
+  const st = _payState[name] || {};
+  if (st.type !== '1v1') return false;
+  const stu = wbStudent(name);
+  if (stu.hasRecurring || specialFor(name)) return false;
+  return !(_wb[name] && _wb[name].useOld);
+}
+function wbTotal(name) { return ((_wb[name] && _wb[name].classes) || []).reduce((t, c) => t + c.minutes, 0); }
+function wbBase(name) {
+  const t = wbTotal(name); if (!t) return 0;
+  const c = _priceCfg(); return Math.round((t > 60 ? c.rateOver60 : c.rateUpTo60) * t / 60);
+}
+const _DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+function _t12(t) { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); }
+function _dateLabel(d) { const x = new Date(d + 'T12:00:00'); return _DOW[x.getDay()] + ' ' + d.slice(8, 10); }
+function wbSync(name) {
+  const key = name.replace(/\s/g, '_');
+  const wb = isWeekPick(name);
+  const box = document.getElementById('wb-' + key); if (!box) return;
+  const tg = document.getElementById('sched-toggle-wrap-' + key), cy = document.getElementById('cycle-wrap-' + key);
+  if (tg) tg.style.display = wb ? 'none' : '';
+  if (cy) cy.style.display = wb ? 'none' : '';
+  box.style.display = wb ? 'block' : 'none';
+  if (!wb) return;
+  if (!_wb[name]) _wb[name] = { classes: [], date: null, len: null };
+  if (!_wbData) { box.innerHTML = '<div style="text-align:center;color:#888;padding:10px;">⏳ Cargando horarios…</div>'; loadWbData().then(() => wbRender(name)); return; }
+  wbRender(name);
+}
+async function loadWbData() {
+  try { const r = await fetch(SERVER_URL + '/parent/1v1/week', { headers: { Authorization: 'Bearer ' + _parentToken } }); _wbData = await r.json(); }
+  catch (e) { _wbData = { dates: [], lengths: [30, 40, 50, 60, 90, 120], slots: {} }; }
+}
+function wbOverlaps(name, date, time, len) {
+  const [h, m] = time.split(':').map(Number), s0 = h * 60 + m;
+  return _wb[name].classes.some(c => { if (c.date !== date) return false; const [ch, cm] = c.time.split(':').map(Number), cs = ch * 60 + cm; return s0 < cs + c.minutes && cs < s0 + len; });
+}
+function wbRender(name) {
+  const key = name.replace(/\s/g, '_'), box = document.getElementById('wb-' + key); if (!box) return;
+  const st = _wb[name], d = _wbData;
+  const q = JSON.stringify(name).replace(/"/g, '&quot;');
+  const btn = (on, dis) => `padding:8px 4px;border:2px solid ${on ? '#1a73e8' : '#ddd'};border-radius:10px;background:${on ? '#e8f0fe' : dis ? '#f5f5f5' : 'white'};color:${on ? '#1a73e8' : dis ? '#bbb' : '#1a1a2e'};font-family:Nunito;font-weight:700;font-size:0.8rem;cursor:${dis ? 'default' : 'pointer'};`;
+  const anyTime = date => (d.lengths || []).some(l => ((d.slots[date] || {})[l] || []).length);
+  let html = `<div style="font-size:0.95rem;font-weight:900;color:#1a73e8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;text-align:center;">📅 Arma tu semana</div>
+    <div style="font-size:0.8rem;color:#888;text-align:center;margin-bottom:10px;">Elige cada clase de la próxima semana: día, duración y hora. Solo ves horarios con maestro disponible.</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px;">
+      ${(d.dates || []).map(dt => { const ok = anyTime(dt); return `<button type="button" ${ok ? `onclick='wbPick(${q},"date","${dt}")'` : 'disabled'} style="${btn(st.date === dt, !ok)}font-size:0.72rem;">${_dateLabel(dt).replace(' ', '<br>')}</button>`; }).join('')}
+    </div>`;
+  if (st.date) {
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+      ${(d.lengths || []).map(l => { const n = ((d.slots[st.date] || {})[l] || []).length; return `<button type="button" ${n ? `onclick='wbPick(${q},"len",${l})'` : 'disabled'} style="${btn(st.len === l, !n)}">${l} min</button>`; }).join('')}
+    </div>`;
+  }
+  if (st.date && st.len) {
+    const times = ((d.slots[st.date] || {})[st.len] || []).filter(t => !wbOverlaps(name, st.date, t, st.len));
+    html += times.length
+      ? `<div style="font-size:0.8rem;font-weight:900;color:#888;margin-bottom:6px;text-align:center;">Toca la hora para agregar la clase</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">${times.map(t => `<button type="button" onclick='wbAdd(${q},"${t}")' style="${btn(false, false)}">${_t12(t)}</button>`).join('')}</div>`
+      : `<div style="text-align:center;color:#e65100;font-size:0.85rem;margin-bottom:12px;">No hay horarios libres para ese día y duración.</div>`;
+  }
+  const list = st.classes.slice().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  html += list.length
+    ? `<div style="background:#f0f7ff;border-radius:12px;padding:10px;margin-bottom:10px;">${list.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.9rem;"><span><b>${_dateLabel(c.date)}</b> · ${_t12(c.time)} · ${c.minutes} min</span><button type="button" onclick='wbRemove(${q},"${c.date}","${c.time}")' style="border:none;background:#ffebee;color:#c62828;border-radius:6px;padding:3px 9px;cursor:pointer;font-weight:900;">✕</button></div>`).join('')}
+        <div style="border-top:1px solid #cfe0f5;margin-top:6px;padding-top:6px;font-size:0.85rem;font-weight:700;display:flex;justify-content:space-between;"><span>${list.length} clase(s) · ${wbTotal(name)} min</span><span>$${wbBase(name).toLocaleString('es-MX')} MXN</span></div></div>`
+    : `<div style="text-align:center;color:#aaa;font-size:0.85rem;margin-bottom:10px;">Aún no has agregado clases.</div>`;
+  html += `<div style="text-align:center;"><a href="#" onclick='wbUseOld(${q});return false;' style="font-size:0.78rem;color:#888;">Prefiero que me contacten para agendar</a></div>`;
+  box.innerHTML = html;
+}
+function wbPick(name, field, v) { const st = _wb[name]; st[field] = v; if (field === 'date') st.len = null; wbRender(name); }
+function wbAdd(name, time) {
+  const st = _wb[name]; if (!st.date || !st.len) return;
+  st.classes.push({ date: st.date, time, minutes: st.len }); st.len = null;
+  wbChanged(name);
+}
+function wbRemove(name, date, time) { const st = _wb[name]; st.classes = st.classes.filter(c => !(c.date === date && c.time === time)); wbChanged(name); }
+function wbChanged(name) {
+  const t = wbTotal(name);
+  _payState[name].mins = t; _payState[name].days = 1; _payState[name].cycle = 'weekly';
+  wbRender(name);
+  const key = name.replace(/\s/g, '_');
+  if (!t) { ['price-summary-', 'pay-btns-'].forEach(p => { const e = document.getElementById(p + key); if (e) e.style.display = 'none'; }); const ti = document.getElementById('transfer-info-' + key); if (ti) ti.style.display = 'none'; if (typeof updateCombinedSummary === 'function') updateCombinedSummary(); return; }
+  selectPayOption(name, 'cycle', 'weekly');
+}
+function wbUseOld(name) { _wb[name].useOld = true; const key = name.replace(/\s/g, '_'); selectPayOption(name, 'type', '1v1'); const o = document.getElementById('1v1-opts-' + key); if (o) o.style.display = 'block'; }
+// Create the weekly plan on the server just before the transfer is reported; returns the plan id (or null)
+async function wbCreatePlan(name) {
+  if (!isWeekPick(name)) return { id: null };
+  const r = await fetch(SERVER_URL + '/parent/1v1/week-plan', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken }, body: JSON.stringify({ studentName: name, classes: _wb[name].classes }) });
+  const d = await r.json();
+  return d.success ? { id: d.planId } : { error: d.error || 'No se pudo guardar tu semana. Intenta de nuevo.' };
+}
 // Special plan: admin set an odd weekly schedule (different minutes per day) with a fixed weekly price
 function specialFor(name) { return ((_billingData && _billingData.students) || []).find(x => x.name === name)?.specialPlan || null; }
 function weeklyBaseFor(name, st) {
   const sp = specialFor(name);
+  if (!sp && isWeekPick(name)) return wbBase(name);
   return sp ? sp.weekly : calcWeeklyBase(st.type, st.mins || 40, st.days || 4);
 }
 // The one place a child's payment amount is worked out: plan price -> family discount -> absence credit.
@@ -1868,7 +1977,9 @@ async function confirmTransfer(studentName) {
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = '⏳ Procesando...';
-  
+  const plan = await wbCreatePlan(studentName);
+  if (plan.error) { alert(plan.error); btn.disabled = false; btn.textContent = '✅ Ya realicé la transferencia'; return; }
+
   // Save time preferences before marking transfer pending
   const timePrefs = getTimePreferencesForStudent(studentName);
   if (timePrefs) {
@@ -1899,7 +2010,8 @@ async function confirmTransfer(studentName) {
         enrolledDaysPerWeek: st.days || 4,
         enrolledMinutesPerClass: st.mins || 40,
         creditMinsApplied: f.credit.mins,
-        couponCode: st.coupon ? st.coupon.code : undefined
+        couponCode: st.coupon ? st.coupon.code : undefined,
+        weekPlanId: plan.id || undefined
       }]
     };
     console.log('[TRANSFER] Sending payload:', JSON.stringify(payload));

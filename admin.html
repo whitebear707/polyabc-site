@@ -4079,6 +4079,28 @@ async function showStudentRequests() {
     if (srRequests.length) {
       srSection.style.display = 'block';
       srList.innerHTML = srRequests.map(r => {
+        if (r.mode === 'weekplan') {
+          const DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+          const t12 = t => { const [h, m] = t.split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
+          const rowsHtml = (r.classes || []).map(c => `<div style="display:flex;justify-content:space-between;padding:2px 0;"><b>${DOW[new Date(c.date + 'T12:00:00').getDay()]} ${escHtml(c.date)}</b><span>${t12(c.time)} · ${c.minutes} min</span></div>`).join('');
+          const cands = r.candidates || [];
+          const opts = cands.length
+            ? cands.map(c => `<option value="${escHtml(c.room)}">${escHtml(c.teacherName)} (Salón ${escHtml(c.room)})</option>`).join('')
+            : '';
+          const pay = r.paymentState === 'paid' ? '<span style="color:#2e7d32;">✅ Pago confirmado</span>' : r.paymentState === 'pending' ? '<span style="color:#e65100;">⏳ Transferencia por confirmar</span>' : '<span style="color:#c62828;">❌ Sin pago</span>';
+          return `
+            <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:12px;padding:14px;margin-bottom:10px;">
+              <div style="font-weight:900;font-size:1rem;">📅 ${escHtml(r.studentName)} — semana elegida por el padre</div>
+              <div style="font-size:0.85rem;margin-top:6px;">${rowsHtml}</div>
+              <div style="font-size:0.82rem;color:#555;margin-top:6px;">${r.totalMinutes} min en total · precio base $${Number(r.basePrice || 0).toLocaleString('es-MX')} MXN · ${pay}</div>
+              ${cands.length ? `<select id="sr-teacher-${escJsAttr(r._id)}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;font-family:Nunito;margin-top:8px;">${opts}</select>`
+                : `<div style="font-size:0.8rem;color:#e65100;margin-top:8px;">Ningún maestro está libre para todas estas clases. Habla con el padre para cambiar algún horario, o recházala.</div>`}
+              <div style="display:flex;gap:8px;margin-top:10px;">
+                ${cands.length ? `<button onclick="handleScheduleRequestApprove('${escJsAttr(r._id)}')" style="flex:1;padding:8px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">✅ Asignar maestro y programar</button>` : ''}
+                <button onclick="handleScheduleRequestDeny('${escJsAttr(r._id)}')" style="flex:1;padding:8px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:700;cursor:pointer;">❌ Rechazar</button>
+              </div>
+            </div>`;
+        }
         if (r.mode === 'contact') {
           const methodLabel = r.contactMethod === 'whatsapp' ? 'WhatsApp' : r.contactMethod === 'email' ? 'Email' : 'Call';
           return `
@@ -4191,10 +4213,11 @@ async function resolveAbsence(id, resolution) {
 async function handleScheduleRequestApprove(id) {
   const room = document.getElementById(`sr-teacher-${id}`)?.value;
   if (!room) return;
-  await fetch(`${SERVER_URL}/admin/schedule-requests/${id}/approve`, {
+  const ar = await fetch(`${SERVER_URL}/admin/schedule-requests/${id}/approve`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify({ room })
   });
+  try { const ad = await ar.json(); if (ad && ad.success === false) showToast('⚠️ ' + (ad.error || 'No se pudo programar'), 5000); else showToast('✅ Clases programadas'); } catch (e) {}
   showStudentRequests();
   loadBillingStudents();
   await loadAllAssignmentsData(); // calendar tab otherwise keeps showing stale data
