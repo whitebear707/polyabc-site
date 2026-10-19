@@ -1214,6 +1214,8 @@ async function renderPaymentTab() {
   // Pricing constants
   const CLABE = _billingData?.bankInfo?.clabe || '722969010749531074';
   const BANK_NAME = _billingData?.bankInfo?.bankName || 'STP';
+  const CARD = (_billingData?.bankInfo?.cardNumber) ? _billingData.bankInfo : null;
+  const fmtCard = n => String(n).replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
 
   // Calculate weekly price based on type/length/days
   function calcWeeklyBase(type, minutesPerSession, daysPerWeek) {
@@ -1397,6 +1399,19 @@ async function renderPaymentTab() {
 
         <!-- Transfer info (hidden until clicked) -->
         <div id="transfer-info-${s.name.replace(/\s/g,'_')}" style="display:none;margin-top:10px;background:#e0f2f1;border-radius:12px;padding:14px;">
+          ${CARD ? `<div style="font-weight:900;color:#00695c;margin-bottom:6px;text-align:center;">¿Cómo vas a pagar?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <button type="button" id="pm-clabe-${s.name.replace(/\s/g,'_')}" onclick="setPayMethod('${s.name}','clabe')" style="padding:10px 4px;border:2px solid #00897b;border-radius:10px;background:#00897b;color:white;font-family:Nunito;font-weight:900;font-size:0.82rem;cursor:pointer;">🏦 Transferencia<br><span style="font-weight:700;font-size:0.7rem;">con CLABE</span></button>
+            <button type="button" id="pm-card-${s.name.replace(/\s/g,'_')}" onclick="setPayMethod('${s.name}','card')" style="padding:10px 4px;border:2px solid #00897b;border-radius:10px;background:white;color:#00897b;font-family:Nunito;font-weight:900;font-size:0.82rem;cursor:pointer;">💳 Depósito a tarjeta<br><span style="font-weight:700;font-size:0.7rem;">(ej. OXXO)</span></button>
+          </div>` : ''}
+          <div id="pm-card-info-${s.name.replace(/\s/g,'_')}" style="display:none;font-size:0.85rem;color:#1a1a2e;line-height:1.8;margin-bottom:8px;">
+            <div style="font-weight:900;color:#00695c;margin-bottom:4px;">💳 Datos para depósito a tarjeta</div>
+            <b>Banco:</b> ${CARD ? CARD.cardBank : ''}<br>
+            <b>Número de tarjeta:</b> <span style="font-family:monospace;font-size:1rem;font-weight:900;letter-spacing:1px;">${CARD ? fmtCard(CARD.cardNumber) : ''}</span><br>
+            <b>A nombre de:</b> ${CARD ? CARD.cardHolder : ''}<br>
+            <div style="font-size:0.75rem;color:#e65100;margin-top:6px;font-weight:700;">⚠️ Guarda tu comprobante del depósito. Pon el ID del alumno (${s.studentId ? s.studentId + ' ' + s.name : s.name}) como referencia si te lo permiten.</div>
+          </div>
+          <div id="pm-clabe-info-${s.name.replace(/\s/g,'_')}">
           <div style="font-weight:900;color:#00695c;margin-bottom:8px;">📋 Datos para transferencia</div>
           <div style="font-size:0.85rem;color:#1a1a2e;line-height:1.8;">
             <b>Banco:</b> ${BANK_NAME}<br>
@@ -1408,6 +1423,7 @@ async function renderPaymentTab() {
             <div style="font-size:1.8rem;font-weight:900;font-family:monospace;letter-spacing:3px;">${s.studentId ? s.studentId + ' ' + s.name : s.name}</div>
           </div>
           <div style="font-size:0.75rem;color:#e65100;margin-top:8px;font-weight:700;">⚠️ Importante: pon el ID del alumno (${s.studentId ? s.studentId + ' ' + s.name : s.name}) como concepto de la transferencia para identificar tu pago.</div>
+          </div>
           <div style="font-size:0.75rem;color:#888;margin-top:6px;">Una vez realizada la transferencia, presiona el botón de abajo. El pago será verificado en 24-48 horas hábiles.</div>
           <button onclick="confirmTransfer('${s.name}')"
             style="width:100%;margin-top:12px;padding:12px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-size:0.95rem;font-weight:900;cursor:pointer;">
@@ -1523,7 +1539,7 @@ async function transferCombined() {
     const res = await fetch(SERVER_URL + '/parent/transfer-pending', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _parentToken },
-      body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada', studentDetails })
+      body: JSON.stringify({ studentNames: names, amount: total, description: 'Transferencia combinada', studentDetails, paymentMethod: _payMethod[names[0]] || 'clabe' })
     });
     const data = await res.json();
     if (data.success) { renderPaymentTab(); }
@@ -1970,6 +1986,17 @@ function showTransferInfo(studentName) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
+const _payMethod = {};
+function setPayMethod(name, m) {
+  _payMethod[name] = m;
+  const key = name.replace(/\s/g, '_');
+  const paint = (el, active) => { if (!el) return; el.style.background = active ? '#00897b' : 'white'; el.style.color = active ? 'white' : '#00897b'; };
+  paint(document.getElementById('pm-clabe-' + key), m === 'clabe');
+  paint(document.getElementById('pm-card-' + key), m === 'card');
+  const ci = document.getElementById('pm-clabe-info-' + key), ki = document.getElementById('pm-card-info-' + key);
+  if (ci) ci.style.display = m === 'card' ? 'none' : 'block';
+  if (ki) ki.style.display = m === 'card' ? 'block' : 'none';
+}
 async function confirmTransfer(studentName) {
   const st = _payState[studentName];
   console.log('[TRANSFER] confirmTransfer called for:', studentName, 'payState:', st);
@@ -2000,6 +2027,7 @@ async function confirmTransfer(studentName) {
 
   try {
     const payload = {
+      paymentMethod: _payMethod[studentName] || 'clabe',
       studentNames: [studentName],
       amount,
       description: 'Transferencia — ' + studentName,

@@ -434,6 +434,18 @@
           <input type="text" id="bank-clabe" inputmode="numeric" maxlength="22" autocomplete="off" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:monospace;font-size:0.95rem;letter-spacing:1px;"/>
         </div>
       </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px dashed #ddd;">
+        <div style="font-size:0.9rem;font-weight:900;color:#1a1a2e;margin-bottom:2px;">💳 Tarjeta para depósitos (opcional)</div>
+        <div style="font-size:0.8rem;color:#888;margin-bottom:10px;">Para padres que prefieren depositar a una tarjeta (por ejemplo en OXXO). Si la llenas, ellos podrán elegir entre transferencia o tarjeta. Déjala vacía para ocultar esta opción.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;">
+          <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Número de tarjeta</label>
+            <input type="text" id="card-number" inputmode="numeric" maxlength="23" autocomplete="off" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:monospace;font-size:0.95rem;"/></div>
+          <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Banco de la tarjeta</label>
+            <input type="text" id="card-bank" maxlength="60" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
+          <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Nombre en la tarjeta</label>
+            <input type="text" id="card-holder" maxlength="80" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
+        </div>
+      </div>
       <button class="btn btn-blue" style="margin-top:12px;" onclick="saveBankInfo()">💾 Guardar</button>
       <span id="bank-status" style="margin-left:10px;font-size:0.85rem;font-weight:700;"></span>
     </div>
@@ -5528,7 +5540,7 @@ async function loadBankInfo() {
   try {
     const r = await fetch(`${SERVER_URL}/admin/bank-info`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const d = await r.json();
-    if (d.success) { document.getElementById('bank-name').value = d.bankName; document.getElementById('bank-clabe').value = d.clabe; }
+    if (d.success) { document.getElementById('bank-name').value = d.bankName; document.getElementById('bank-clabe').value = d.clabe; document.getElementById('card-number').value = d.cardNumber || ''; document.getElementById('card-bank').value = d.cardBank || ''; document.getElementById('card-holder').value = d.cardHolder || ''; }
   } catch (e) {}
 }
 async function saveBankInfo() {
@@ -5537,11 +5549,18 @@ async function saveBankInfo() {
   const clabe = document.getElementById('bank-clabe').value.replace(/[\s-]/g, '');
   if (!/^\d{18}$/.test(clabe)) { st.textContent = '⚠️ La CLABE debe tener 18 dígitos'; st.style.color = '#e53935'; return; }
   if (!bankName) { st.textContent = '⚠️ Escribe el nombre del banco'; st.style.color = '#e53935'; return; }
+  const cardNumber = document.getElementById('card-number').value.replace(/[\s-]/g, '');
+  const cardBank = document.getElementById('card-bank').value.trim(), cardHolder = document.getElementById('card-holder').value.trim();
+  if (cardNumber || cardBank || cardHolder) {
+    if (!/^\d{15,19}$/.test(cardNumber)) { st.textContent = '⚠️ El número de tarjeta debe tener 15 a 19 dígitos'; st.style.color = '#e53935'; return; }
+    if (!cardBank) { st.textContent = '⚠️ Escribe el banco de la tarjeta'; st.style.color = '#e53935'; return; }
+    if (!cardHolder) { st.textContent = '⚠️ Escribe el nombre en la tarjeta'; st.style.color = '#e53935'; return; }
+  }
   st.textContent = 'Guardando...'; st.style.color = '#888';
   try {
-    const r = await fetch(`${SERVER_URL}/admin/bank-info`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ bankName, clabe }) });
+    const r = await fetch(`${SERVER_URL}/admin/bank-info`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ bankName, clabe, cardNumber, cardBank, cardHolder }) });
     const d = await r.json();
-    if (d.success) { st.textContent = '✅ Guardado — los padres ya ven esta CLABE'; st.style.color = '#2e7d32'; setTimeout(() => { st.textContent = ''; }, 4000); }
+    if (d.success) { st.textContent = '✅ Guardado — los padres ya ven estos datos'; st.style.color = '#2e7d32'; setTimeout(() => { st.textContent = ''; }, 4000); }
     else { st.textContent = '❌ ' + (d.error || 'No se pudo guardar'); st.style.color = '#e53935'; }
   } catch (e) { st.textContent = '❌ No se pudo conectar con el servidor'; st.style.color = '#e53935'; }
 }
@@ -5603,7 +5622,7 @@ function renderPendingTransfers(students) {
       ? `${s.enrolledMinutesPerClass} min ${s.enrolledDaysPerWeek}x/week` 
       : '—';
     const amount = s.transferPendingAmount ? `$${s.transferPendingAmount.toLocaleString('es-MX')}` : '—';
-    return `<tr><td>${escHtml(s.name)}</td><td>${escHtml(s.parentEmail || '—')}</td><td>${escHtml(type)}<br><span style="font-size:0.75rem;color:#888;">${escHtml(details)}</span></td><td>${amount}</td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pendiente</span></td><td><button onclick="confirmBankTransfer('${escJsAttr(s.name)}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
+    return `<tr><td>${escHtml(s.name)}</td><td>${escHtml(s.parentEmail || '—')}</td><td>${escHtml(type)}<br><span style="font-size:0.75rem;color:#888;">${escHtml(details)}</span></td><td>${amount}<br><span style="font-size:0.72rem;color:#888;">${s.transferPendingMethod === 'card' ? '💳 Tarjeta' : '🏦 CLABE'}</span></td><td><span style="background:#ffeb3b;color:#000;padding:4px 8px;border-radius:4px;font-size:0.8rem;font-weight:700;">Pendiente</span></td><td><button onclick="confirmBankTransfer('${escJsAttr(s.name)}')" style="padding:6px 12px;background:#00c853;color:white;border:none;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;">✓ Confirm</button></td></tr>`;
   }).join('');
   tbody.innerHTML = html;
 }
