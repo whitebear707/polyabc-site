@@ -522,6 +522,11 @@ const studentSlots = {};
 function getIdentity(socketId) {
   return studentSlots[socketId] || socketId;
 }
+// The student's CURRENT socket id (changes every time they reconnect). Buttons built once per
+// student must look this up when clicked, not remember the id from when the slot was first made.
+function curSid(identity) {
+  return Object.keys(studentSlots).find(k => k !== '__self__' && studentSlots[k] === identity) || identity;
+}
 
 document.getElementById('room-label').textContent = SESSION_ID
   ? `Room: ${ROOM} · #${SESSION_ID.slice(-6)}`
@@ -1067,6 +1072,7 @@ function connectSocket() {
   });
   socket.on('star-given', ({ name, emoji, type, counts }) => {
     showStarCelebration(name, emoji || '⭐');
+    if (IS_TEACHER && counts) { const sid = curSid(name); rewardCounts[sid] = { ...counts }; updateRewardCounter(sid); }
     if (!IS_TEACHER) {
       playTadaSound();
       // Update student's own star counter under their own video tile (slot-self)
@@ -1076,6 +1082,21 @@ function connectSocket() {
     }
   });
   socket.on('leaderboard-update', ({ stars }) => renderLeaderboard(stars));
+  // Student came back mid-class: their own tally is restored
+  socket.on('reward-counts', ({ counts }) => { if (!IS_TEACHER && counts) updateOwnStarCounter(counts); });
+  // Teacher: a returning student's saved state (mute, whiteboard, rewards) -> make the buttons match
+  socket.on('student-state', ({ socketId, name, muted, canDraw, counts }) => {
+    if (!IS_TEACHER) return;
+    const id = getIdentity(socketId);
+    if (counts) { rewardCounts[socketId] = { ...counts }; updateRewardCounter(socketId); }
+    const lbl = document.getElementById('lbl-' + id); if (lbl) lbl.style.background = canDraw === false ? '#e53935' : '#2e7d32';
+    const db = document.getElementById('draw-btn-' + socketId);
+    if (db) { db.style.background = canDraw === false ? '#e53935' : '#2e7d32'; db.textContent = `${canDraw === false ? '🚫' : '✏️'} ${name || 'Student'}`; }
+    if (!window._studentDrawStates) window._studentDrawStates = new Map();
+    window._studentDrawStates.set(socketId, canDraw !== false);
+    const spk = document.getElementById('spk-' + id);
+    if (spk) { spk.textContent = muted ? '🔇' : '🔊'; spk.style.background = muted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)'; }
+  });
   socket.on('student-message', ({ name, message, time }) => receiveStudentMessage(name, message, time));
 
   socket.on('break-started', ({ durationMins, breakNumber, breaksRemaining }) => {
@@ -1671,10 +1692,22 @@ function showStudentSlot(socketId, name, isBirthday) {
   if (document.getElementById(`wrap-${identity}`)) {
     // Update socketId -> identity mapping for existing slot
     // Remove old socketId key if different
+    const oldIds = [];
     Object.keys(studentSlots).forEach(k => {
-      if (studentSlots[k] === identity && k !== identity) delete studentSlots[k];
+      if (studentSlots[k] === identity && k !== identity) { oldIds.push(k); delete studentSlots[k]; }
     });
     studentSlots[socketId] = identity;
+    if (IS_TEACHER) {
+      // Carry the tally over and replace the whiteboard button that pointed at the dead connection
+      oldIds.forEach(o => {
+        if (rewardCounts[o] && !rewardCounts[socketId]) rewardCounts[socketId] = rewardCounts[o];
+        delete rewardCounts[o];
+        if (window._studentDrawStates) window._studentDrawStates.delete(o);
+        const ob = document.getElementById('draw-btn-' + o); if (ob) ob.remove();
+      });
+      addDrawControlBtn(socketId, name);
+      updateRewardCounter(socketId);
+    }
     return;
   }
 
@@ -1687,10 +1720,10 @@ function showStudentSlot(socketId, name, isBirthday) {
   if (IS_TEACHER) {
     slot.style.cursor = 'pointer';
     slot.addEventListener('click', (e) => {
-      if (!e.target.closest(`#spk-${identity}`)) toggleStudentCamClick(socketId);
+      if (!e.target.closest(`#spk-${identity}`)) toggleStudentCamClick(curSid(identity));
     });
     const spk = slot.querySelector(`#spk-${identity}`);
-    if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(socketId); });
+    if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(curSid(identity)); });
   }
   const lbl = document.createElement('div');
   lbl.className = 'student-label-below';
@@ -1699,13 +1732,13 @@ function showStudentSlot(socketId, name, isBirthday) {
   if (IS_TEACHER) {
     lbl.style.cssText = 'cursor:pointer;background:#2e7d32;color:white;border-radius:8px;padding:2px 6px;font-size:0.75rem;font-weight:700;text-align:center;margin-top:2px;';
     lbl.title = 'Click to toggle drawing permission';
-    lbl.onclick = () => toggleDrawByName(socketId, name || 'Student', lbl);
+    lbl.onclick = () => toggleDrawByName(curSid(identity), name || 'Student', lbl);
   }
   wrap.appendChild(slot); wrap.appendChild(lbl);
   if (IS_TEACHER) {
     const ctrls = document.createElement('div');
     ctrls.className = 'student-controls-row';
-    ctrls.innerHTML = `<button class="star-btn" onclick="giveStar('${socketId}','${escapeJsAttr(name||'Student')}')">⭐</button>`;
+    ctrls.innerHTML = `<button class="star-btn" onclick="giveStar(curSid('${escapeJsAttr(identity)}'),'${escapeJsAttr(name||'Student')}')">⭐</button>`;
     wrap.appendChild(ctrls);
   }
   document.getElementById('right-panel').appendChild(wrap);
