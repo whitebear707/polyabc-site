@@ -1178,6 +1178,7 @@ async function renderCalendarMonth() {
   window._calClassInfo = classInfo; // store for popup use
 
   wrap.innerHTML = `
+    <div id="makeup-card"></div>
     <div style="background:white;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <button onclick="calPrev()" style="background:#f0f4f8;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:900;font-size:1rem;">‹</button>
@@ -1192,6 +1193,74 @@ async function renderCalendarMonth() {
         <span style="background:#1a1a2e;color:white;padding:1px 6px;border-radius:4px;">■</span><span>= Scheduled</span>
       </div>
     </div>`;
+  loadMakeups();
+}
+
+// ── Make-up (reposición) of a cancelled 1v1 class ──
+let _mk = { list: [], cur: null, data: null, day: null };
+const _mkDate = d => new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+const _mkShort = d => { const x = new Date(d + 'T12:00:00'); return x.toLocaleDateString('es-MX', { weekday: 'short' }).replace('.', '') + ' ' + x.getDate(); };
+const _mkT12 = t => { const [h, m] = t.split(':').map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
+async function loadMakeups() {
+  const box = document.getElementById('makeup-card'); if (!box) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/makeups`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    _mk.list = ((await r.json()).makeups || []).filter(m => m.studentName === _calStudentName);
+  } catch (e) { _mk.list = []; }
+  if (!_mk.list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div style="background:#e8f0fe;border:2px solid #1a73e8;border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="font-weight:900;color:#1a73e8;margin-bottom:6px;">🔁 Clases por reponer</div>
+    ${_mk.list.map(m => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #c5d8f8;">
+      <div style="font-size:0.88rem;"><b>${_mkDate(m.date)}</b> · ${_mkT12(m.time)} · ${m.minutes} min<br><span style="color:#666;font-size:0.76rem;">${m.pending ? 'Cancelación pendiente de confirmar' : 'Cancelada'} · puedes reponerla hasta el ${_mkDate(m.lastDay)}</span></div>
+      <button onclick="openMakeup('${m.id}')" style="background:#1a73e8;color:white;border:none;border-radius:10px;padding:9px 14px;font-family:Nunito;font-weight:900;cursor:pointer;">📅 Reprogramar</button>
+    </div>`).join('')}
+    <div style="color:#666;font-size:0.76rem;margin-top:6px;">Si no la repones, queda como crédito en tu próximo pago.</div></div>`;
+}
+async function openMakeup(id) {
+  _mk.cur = _mk.list.find(m => m.id === id); _mk.day = null; if (!_mk.cur) return;
+  let ov = document.getElementById('makeup-modal');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'makeup-modal'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;'; document.body.appendChild(ov); }
+  ov.style.display = 'flex'; ov.innerHTML = '<div style="background:white;border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:520px;text-align:center;">Cargando horarios...</div>';
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/makeup/slots?absenceId=${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    _mk.data = await r.json();
+  } catch (e) { _mk.data = { success: false, error: 'Error de conexión' }; }
+  renderMakeup();
+}
+function closeMakeup() { const ov = document.getElementById('makeup-modal'); if (ov) ov.style.display = 'none'; }
+function renderMakeup() {
+  const ov = document.getElementById('makeup-modal'), d = _mk.data, m = _mk.cur; if (!ov) return;
+  let body;
+  if (!d || !d.success) body = `<div style="color:#c62828;font-weight:700;">${d && d.error || 'No se pudo cargar.'}</div>`;
+  else if (!d.days.length) body = '<div style="color:#e65100;font-weight:700;">No hay horarios libres con el mismo maestro. Contacta a la escuela para reponerla.</div>';
+  else {
+    const btn = (on, nw) => `padding:8px 10px;border:2px solid ${on ? '#1a73e8' : nw ? '#ffcc80' : '#ddd'};border-radius:10px;background:${on ? '#e8f0fe' : 'white'};color:${on ? '#1a73e8' : '#1a1a2e'};font-family:Nunito;font-weight:700;font-size:0.8rem;cursor:pointer;`;
+    const day = d.days.find(x => x.date === _mk.day);
+    body = `<div style="font-size:0.8rem;color:#888;margin-bottom:8px;">Mismo maestro · ${d.len} min. Los días en naranja cuentan para la próxima semana.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px;">${d.days.map(x => `<button onclick="mkPickDay('${x.date}')" style="${btn(_mk.day === x.date, x.nextWeek)}">${_mkShort(x.date)}${x.nextWeek ? ' ⚠️' : ''}</button>`).join('')}</div>
+      ${day ? `<div style="font-weight:900;margin-bottom:6px;">${_mkDate(day.date)}</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">${day.times.map(t => `<button onclick="mkBook('${day.date}','${t}')" style="${btn(false, day.nextWeek)}">${_mkT12(t)}</button>`).join('')}</div>` : '<div style="color:#aaa;font-size:0.85rem;">Elige un día</div>'}`;
+  }
+  ov.innerHTML = `<div style="background:white;border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:520px;max-height:85vh;overflow:auto;">
+    <div style="font-weight:900;font-size:1.05rem;color:#1a1a2e;margin-bottom:4px;">🔁 Reprogramar clase</div>
+    <div style="font-size:0.82rem;color:#666;margin-bottom:12px;">Clase cancelada: ${_mkDate(m.date)} · ${_mkT12(m.time)}</div>${body}
+    <button onclick="closeMakeup()" style="width:100%;margin-top:14px;padding:11px;border:none;border-radius:10px;background:#eceff1;color:#455a64;font-family:Nunito;font-weight:900;cursor:pointer;">Cerrar</button></div>`;
+}
+function mkPickDay(date) { _mk.day = date; renderMakeup(); }
+async function mkBook(date, time) {
+  const day = _mk.data.days.find(x => x.date === date);
+  const msg = day.nextWeek
+    ? `⚠️ Esta clase contará para la próxima semana.\n\n¿Estás de acuerdo en reponerla el ${_mkDate(date)} a las ${_mkT12(time)}?`
+    : `¿Reponer la clase el ${_mkDate(date)} a las ${_mkT12(time)}?`;
+  if (!confirm(msg)) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/makeup`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+      body: JSON.stringify({ absenceId: _mk.cur.id, date, time, acceptNextWeek: !!day.nextWeek }) });
+    const d = await r.json();
+    if (!d.success) { alert(d.error || 'Error'); if (!d.needsConfirm) openMakeup(_mk.cur.id); return; }
+    closeMakeup();
+    alert('✅ ¡Listo! La clase quedó reprogramada. Avisamos al maestro y a la escuela.');
+  } catch (e) { alert('Error, intenta de nuevo'); return; }
+  await renderCalendarMonth();
 }
 
 function calPrev() { _calDate = new Date(_calDate.getFullYear(), _calDate.getMonth()-1, 1); renderCalendarMonth(); }
@@ -2221,7 +2290,7 @@ function showClassPopup(dateStr) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
         <span style="font-size:1.1rem;">📚</span>
         <div>
-          <div style="font-weight:900;color:#1a1a2e;font-size:0.95rem;">${c.classType || 'Class'}${c.groupName ? ' · ' + c.groupName : ''}</div>
+          <div style="font-weight:900;color:#1a1a2e;font-size:0.95rem;">${c.classType || 'Class'}${c.groupName ? ' · ' + c.groupName : ''}${c.makeup ? ' <span style="background:#e8f0fe;color:#1a73e8;border-radius:6px;padding:1px 7px;font-size:0.7rem;font-weight:900;">🔁 Reposición</span>' : ''}</div>
           <div style="color:#888;font-size:0.8rem;">🕐 ${fmt12(c.time || c.scheduledTime)}</div>
         </div>
       </div>

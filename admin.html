@@ -1797,7 +1797,7 @@ function renderDayDetail(dateStr) {
               </div></div>` : '';
         return `<div style="background:${a.cancelPending ? '#fff0f0' : '#fff3e0'};border-radius:6px;padding:4px 8px;font-size:0.75rem;color:#e65100;font-weight:700;margin-top:4px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span>${a.cancelPending ? '❗ ' : ''}${fmt12(a.time)} · ${g ? g.name : (a.studentName ? a.studentName + ' · ' : '') + a.level+' '+a.classType}${debtBadge}</span>
+            <span>${a.cancelPending ? '❗ ' : ''}${a.makeup ? '🔁 ' : ''}${fmt12(a.time)} · ${g ? g.name : (a.studentName ? a.studentName + ' · ' : '') + a.level+' '+a.classType}${a.makeup ? ' <b style="background:#e8f0fe;color:#1a73e8;border-radius:5px;padding:0 5px;font-size:0.68rem;">Reposición</b>' : ''}${debtBadge}</span>
             <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
           </div>
           ${cancelBox}${subBadge}
