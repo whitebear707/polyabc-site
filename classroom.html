@@ -936,9 +936,14 @@ function connectSocket() {
   // ── Video WebRTC signaling ──
   socket.on('video-offer', async ({ from, offer }) => {
     try {
+      // Both sides may offer at the same moment ("glare"). The side that normally starts the call
+      // keeps its offer; the other drops its own and answers. Without this both tear down
+      // their own offer and nobody connects - the random "no video until refresh" problem.
+      const existing = videoPeers[from];
+      if (existing && existing.signalingState === 'have-local-offer' && iInitiateVideo(from)) return;
       const pc = createVideoPeer(from, socket);
-      if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') return;
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await flushVideoIce(pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('video-answer', { to: from, answer: pc.localDescription });
@@ -947,13 +952,18 @@ function connectSocket() {
   socket.on('video-answer', async ({ from, answer }) => {
     const pc = videoPeers[from];
     if (pc && pc.signalingState === 'have-local-offer') {
-      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); } catch(e) {}
+      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); await flushVideoIce(pc); } catch(e) {}
     }
   });
   socket.on('video-ice', async ({ from, candidate }) => {
     const pc = videoPeers[from];
-    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+    if (!pc) return;
+    // A candidate can arrive before the offer/answer is applied; keep it instead of losing it
+    if (!pc.remoteDescription) { (pc._iceQ = pc._iceQ || []).push(candidate); return; }
+    try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
   });
+  // The other side's video never showed up: start the call again
+  socket.on('video-retry', ({ from }) => { if (remoteRoles[from] || IS_SPECTATOR) callVideoPeer(from, socket); });
 
   socket.on('audio-chunk', ({ socketId, chunk }) => {
     try {
@@ -1541,21 +1551,51 @@ function removeAudioPeer(socketId) {
 }
 
 // ── WebRTC Video (peer-to-peer, zero server bandwidth) ──
+const videoTries = {}; // targetId -> automatic retries so far
+async function flushVideoIce(pc) {
+  const q = pc._iceQ || []; pc._iceQ = [];
+  for (const cand of q) { try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch(e) {} }
+}
+// Who starts (and restarts) the video call with this peer. Teacher and spectators always do;
+// a student never starts it with the teacher; between two students the lower id does.
+function iInitiateVideo(targetId) {
+  if (IS_TEACHER || IS_SPECTATOR) return true;
+  if (remoteRoles[targetId] === 'teacher') return false;
+  return !!(window._socket && window._socket.id < targetId);
+}
+// Self-heal: if no video arrives within a few seconds, or the link fails, redo the call
+// automatically (up to 4 times) so nobody has to refresh.
+function watchVideoPeer(targetId, pc, socket) {
+  const check = () => {
+    if (videoPeers[targetId] !== pc) return;                       // replaced or removed
+    if (!remoteRoles[targetId] && !studentSlots[targetId]) return;  // they left
+    const state = pc.connectionState;
+    if (pc._gotTrack && state !== 'failed' && state !== 'disconnected' && state !== 'closed') return;
+    if ((videoTries[targetId] = (videoTries[targetId] || 0) + 1) > 4) return;
+    if (iInitiateVideo(targetId)) callVideoPeer(targetId, socket);
+    else socket.emit('video-retry', { to: targetId });
+  };
+  setTimeout(check, 7000);
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') check(); };
+}
 function createVideoPeer(targetId, socket) {
   if (videoPeers[targetId]) { videoPeers[targetId].close(); delete videoPeers[targetId]; }
   const pc = new RTCPeerConnection(ICE_CONFIG);
+  watchVideoPeer(targetId, pc, socket);
   if (localStream) localStream.getVideoTracks().forEach(t => pc.addTrack(t, localStream));
   pc.onicecandidate = (e) => { if (e.candidate) socket.emit('video-ice', { to: targetId, candidate: e.candidate }); };
   pc.ontrack = (e) => {
+    pc._gotTrack = true; videoTries[targetId] = 0;
     const identity = getIdentity(targetId);
     const existing = document.getElementById(`vimg-${identity}`);
     if (existing) {
       const vid = document.createElement('video');
       vid.id = `vimg-${identity}`;
-      vid.autoplay = true; vid.playsInline = true; vid.muted = !!isTeacher; // teacher already hears it; students must hear the shared audio
+      vid.autoplay = true; vid.playsInline = true; vid.muted = true; // camera video only; audio comes through its own peer
       vid.style.cssText = existing.style.cssText || 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
-      vid.srcObject = e.streams[0];
+      vid.srcObject = (e.streams && e.streams[0]) || new MediaStream([e.track]);
       existing.replaceWith(vid);
+      const pp = vid.play(); if (pp && pp.catch) pp.catch(() => {});
     }
   };
   videoPeers[targetId] = pc;
@@ -2300,7 +2340,8 @@ function enterClass() {
       setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
     } else if (remoteRoles[sid] === 'teacher' || IS_SPECTATOR) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
-      setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
+      // Students don't start the video call with the teacher (the teacher does); the watchdog asks again if it never shows
+      if (IS_SPECTATOR) setTimeout(() => callVideoPeer(sid, _joinedSocket), 800);
     }
   });
   loadTodayAssignment();
