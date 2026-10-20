@@ -1552,7 +1552,7 @@ function createVideoPeer(targetId, socket) {
     if (existing) {
       const vid = document.createElement('video');
       vid.id = `vimg-${identity}`;
-      vid.autoplay = true; vid.playsInline = true; vid.muted = true;
+      vid.autoplay = true; vid.playsInline = true; vid.muted = !!isTeacher; // teacher already hears it; students must hear the shared audio
       vid.style.cssText = existing.style.cssText || 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
       vid.srcObject = e.streams[0];
       existing.replaceWith(vid);
@@ -3100,8 +3100,16 @@ let screenStream = null; let isSharing = false;
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
   try {
-    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+    // audio: true lets the teacher tick "Share tab audio" (Chrome tab) / "Share system audio" so students hear the video too
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
+    } catch (err) {
+      if (err && err.name === 'NotAllowedError') throw err;
+      // Browser doesn't accept the audio options (e.g. some Safari/Firefox): share video only
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+    }
     isSharing = true;
+    if (!screenStream.getAudioTracks().length) showShareAudioTip();
 
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
@@ -3158,6 +3166,15 @@ function stopScreenShare() {
   }
 }
 
+// Shown when the teacher shared without audio: tells them how to include it
+function showShareAudioTip() {
+  const old = document.getElementById('share-audio-tip'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'share-audio-tip';
+  d.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#fff3e0;color:#e65100;border:2px solid #e65100;border-radius:12px;padding:10px 16px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.85rem;z-index:99999;max-width:90vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+  d.innerHTML = '🔇 Students can\'t hear this share. To share sound: stop, press Share Screen again, choose a <b>Chrome Tab</b> and tick <b>"Also share tab audio"</b>.<br><span style="font-weight:600;">Los alumnos no oyen el audio. Elige una <b>pestaña de Chrome</b> y marca <b>"Compartir audio de la pestaña"</b>.</span> <button onclick="this.parentNode.remove()" style="margin-left:8px;border:none;background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font-weight:900;">OK</button>';
+  document.body.appendChild(d); setTimeout(() => d.remove(), 20000);
+}
+
 function showScreenBehindCanvas(stream, isTeacher) {
   const wrap = document.getElementById('whiteboard-wrap');
   // Use a video element — no encoding/decoding, no frames, native browser rendering
@@ -3170,7 +3187,9 @@ function showScreenBehindCanvas(stream, isTeacher) {
     wrap.appendChild(vid);
     scaleCanvas();
   }
+  vid.muted = !!isTeacher;
   vid.srcObject = stream;
+  const pr = vid.play(); if (pr && pr.catch) pr.catch(() => { vid.muted = true; vid.play().catch(() => {}); });
   // Make fabric canvas transparent and raise above video
   const cc = document.querySelector('.canvas-container');
   if (cc) { cc.style.zIndex = '25'; cc.style.position = 'absolute'; }
