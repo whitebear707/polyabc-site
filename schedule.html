@@ -252,10 +252,38 @@
       .time-display { font-size: 0.58rem; padding: 4px 1px; min-height: 24px; }
     }
   
-    /* Hide Google Translate's top banner ("Translated to… Show original") — translation still works */
-    .goog-te-banner-frame, iframe.goog-te-banner-frame, .skiptranslate iframe[class*="goog-te"] { display: none !important; }
-    body { top: 0 !important; }
-    .goog-te-balloon-frame, #goog-gt-tt, .goog-tooltip { display: none !important; }
+
+    /* TABS */
+    #tabbar { position: sticky; top: 0; z-index: 90; background: #16213e; border-bottom: 2px solid #0f3460; display: flex; gap: 4px; padding: 8px 12px; overflow-x: auto; }
+    .tab-btn:first-child { margin-left: auto; } .tab-btn:last-child { margin-right: auto; }
+    .tab-btn { flex: 0 0 auto; background: transparent; border: 2px solid transparent; color: #a0c4ff; font-family: Nunito, sans-serif; font-weight: 900; font-size: 0.92rem; padding: 9px 14px; border-radius: 12px; cursor: pointer; white-space: nowrap; position: relative; }
+    .tab-btn.on { background: #1a73e8; color: #fff; }
+    .tab-btn .dot { position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px; border-radius: 9px; background: #e53935; color: #fff; font-size: 0.68rem; line-height: 18px; text-align: center; display: none; padding: 0 4px; }
+    .pane { display: none; }
+    .pane.on { display: block; }
+    .step-card { background: #16213e; border: 1px solid #1a73e8; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; text-align: left; }
+    .step-card ol { margin: 6px 0 0 20px; color: #cfe0ff; font-size: 0.9rem; line-height: 1.6; }
+    .warn-card { background: rgba(255,179,0,0.12); border: 2px solid #ffb300; color: #ffd54f; border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; font-weight: 800; font-size: 0.9rem; text-align: left; }
+    .ok-card { background: rgba(0,200,83,0.1); border: 1px solid #00c853; color: #69f0ae; border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; font-weight: 800; font-size: 0.9rem; text-align: left; }
+    .pay-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip { background: #0f3460; color: #a0c4ff; border: 2px solid #1a73e8; border-radius: 20px; padding: 6px 12px; font-family: Nunito; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
+    .chip.on { background: #1a73e8; color: #fff; }
+    .pay-dates { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 14px; }
+    .pay-dates label { font-size: 0.75rem; color: #a0c4ff; font-weight: 800; display: block; margin-bottom: 3px; }
+    .pay-dates input[type=date] { background: #0f3460; color: #fff; border: 2px solid #1a73e8; border-radius: 10px; padding: 8px 10px; font-family: Nunito; font-weight: 700; color-scheme: dark; }
+    .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .pay-card { background: #16213e; border: 1px solid #0f3460; border-radius: 14px; padding: 12px; text-align: center; }
+    .pay-card .v { font-size: 1.35rem; font-weight: 900; color: #fff; }
+    .pay-card .l { font-size: 0.74rem; color: #a0c4ff; font-weight: 800; margin-top: 2px; }
+    .pay-card.big { grid-column: 1 / -1; background: linear-gradient(135deg,#0f3460,#1a73e8); border: none; }
+    .pay-card.big .v { font-size: 2rem; color: #ffd700; }
+    .pay-card.pos .v { color: #69f0ae; } .pay-card.neg .v { color: #ff8a80; }
+    .pay-row { background: #16213e; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; text-align: left; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .pay-row .d { font-weight: 900; color: #fff; font-size: 0.9rem; }
+    .pay-row .m { font-size: 0.76rem; color: #a0c4ff; margin-top: 2px; }
+    .pay-row .n { font-size: 0.74rem; color: #ffd54f; margin-top: 2px; }
+    .pay-row .a { font-weight: 900; color: #69f0ae; white-space: nowrap; }
+    @media (max-width: 768px) { .tab-btn { font-size: 0.82rem; padding: 8px 10px; } #save-bar { padding: 10px 12px; } }
 </style>
 </head>
 <body>
@@ -265,30 +293,82 @@
   <a href="login.html"><img src="LOGO.png" alt="PolyABC" style="cursor:pointer;"/></a>
   <div id="pay-translate-wrap" style="display:flex;align-items:center;gap:10px;">
     <span id="pay-period-header" style="font-size:0.8rem;font-weight:900;color:#ffd700;white-space:nowrap;">💰 <span id="pay-period-dates">...</span> — <span id="pay-period-total">$— MXN</span></span>
-    <div id="google_translate_element" style="transform:scale(0.75);transform-origin:left center;"></div>
   </div>
 </div>
 
+<div id="tabbar">
+  <button class="tab-btn on" data-pane="home" onclick="showPane('home')">🏠 Home</button>
+  <button class="tab-btn" data-pane="avail" onclick="showPane('avail')">🕐 Availability</button>
+  <button class="tab-btn" data-pane="pay" onclick="showPane('pay')">💰 Pay</button>
+  <button class="tab-btn" data-pane="reviews" onclick="showPane('reviews')">📝 Reviews<span class="dot" id="reviews-dot"></span></button>
+  <button class="tab-btn" data-pane="profile" onclick="showPane('profile')">👤 Profile</button>
+</div>
+
 <div id="main">
-  <p class="section-title">👤 My Profile Picture</p>
-  <div style="background:rgba(255,255,255,0.05);border:1px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-    <img id="my-photo" src="" alt=""
-      style="display:none;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #1a73e8;"/>
-    <div id="my-photo-placeholder"
-      style="width:76px;height:76px;border-radius:50%;background:#0f3460;color:#a0c4ff;display:grid;place-items:center;font-size:1.9rem;">👤</div>
-    <div style="flex:1;min-width:200px;">
-      <input type="file" id="my-photo-input" accept="image/*" onchange="uploadMyPhoto(this)"
-        style="width:100%;color:#a0c4ff;font-family:Nunito;font-size:0.82rem;"/>
-      <div id="my-photo-status" style="font-size:0.78rem;color:#667;margin-top:6px;">Choose an image to update your picture.</div>
-    </div>
+  <div class="pane on" id="pane-home">
+    <div id="home-status"></div>
+  <p class="section-title">📋 My Upcoming Classes</p>
+  <div id="upcoming-classes" style="margin-bottom:24px;"></div>
+
   </div>
 
+  <div class="pane" id="pane-avail">
+    <div class="step-card">
+      <div style="font-weight:900;color:#fff;">How to set your availability</div>
+      <ol>
+        <li><b>Set your weekly hours</b> — tap a day's time box below (for example 9:00 AM to 5:00 PM).</li>
+        <li><b>Mark the days you can work</b> — scroll down to the calendar and tap each date. Green means available.</li>
+        <li><b>Press 💾 Save Schedule</b> at the bottom of the screen.</li>
+      </ol>
+    </div>
+    <div id="avail-warning"></div>
   <p class="section-title">🕐 My Available Hours (per day of week)</p>
   <div style="font-size:0.75rem;color:#a0c4ff;margin-bottom:10px;">⏰ All times in Guadalajara Time (Central Mexico)</div>
   <div id="day-hours-card">
     <div class="day-hours-grid" id="day-hours-grid"></div>
   </div>
 
+  <p class="section-title">📅 My Availability Calendar</p>
+  <div id="cal-container">
+  <div id="calendar-card">
+    <div class="cal-nav">
+      <button onclick="prevMonth()">‹</button>
+      <h2 id="cal-title"></h2>
+      <button onclick="nextMonth()">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#39ff14;"></div> Available</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8e8e8;border:1px solid #ccc;"></div> Unavailable</div>
+      <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned</div>
+    </div>
+  </div>
+  </div><!-- end cal-container -->
+
+  </div>
+
+  <div class="pane" id="pane-pay">
+    <p class="section-title" style="margin-top:8px;">💰 My Pay</p>
+    <div class="pay-chips" id="pay-chips">
+      <button class="chip on" data-p="cur" onclick="payPreset('cur')">Current period</button>
+      <button class="chip" data-p="prev" onclick="payPreset('prev')">Previous period</button>
+      <button class="chip" data-p="30" onclick="payPreset('30')">Last 30 days</button>
+      <button class="chip" data-p="month" onclick="payPreset('month')">This month</button>
+    </div>
+    <div class="pay-dates">
+      <div><label for="pay-from">From</label><input type="date" id="pay-from"/></div>
+      <div><label for="pay-to">To</label><input type="date" id="pay-to"/></div>
+      <button class="chip on" onclick="payCustom()">Show</button>
+    </div>
+    <div style="font-size:0.74rem;color:#667;margin:-6px 0 12px;">Pay periods run from the 30th to the 14th, and from the 15th to the 29th. Only classes that were actually taught are counted.</div>
+    <div id="pay-summary"></div>
+    <div id="pay-extra"></div>
+    <p class="section-title">Class by class</p>
+    <div id="pay-classes"></div>
+  </div>
+
+  <div class="pane" id="pane-reviews">
+    <div id="reviews-intro"></div>
   <p class="section-title">📝 Monthly Student Reviews</p>
   <div id="reviews-card" style="background:#fff;border-radius:14px;padding:16px;margin-bottom:24px;color:#1a1a2e;">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
@@ -318,30 +398,27 @@
     </div>
   </div>
 
-  <p class="section-title">📋 My Upcoming Classes</p>
-  <div id="upcoming-classes" style="margin-bottom:24px;"></div>
+  </div>
 
-  <p class="section-title">📅 My Availability Calendar</p>
-  <div id="cal-container">
-  <div id="calendar-card">
-    <div class="cal-nav">
-      <button onclick="prevMonth()">‹</button>
-      <h2 id="cal-title"></h2>
-      <button onclick="nextMonth()">›</button>
-    </div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#39ff14;"></div> Available</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e8e8e8;border:1px solid #ccc;"></div> Unavailable</div>
-      <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#ff8c00,#ffb347);"></div> Class Assigned</div>
+  <div class="pane" id="pane-profile">
+  <p class="section-title">👤 My Profile Picture</p>
+  <div style="background:rgba(255,255,255,0.05);border:1px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <img id="my-photo" src="" alt=""
+      style="display:none;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid #1a73e8;"/>
+    <div id="my-photo-placeholder"
+      style="width:76px;height:76px;border-radius:50%;background:#0f3460;color:#a0c4ff;display:grid;place-items:center;font-size:1.9rem;">👤</div>
+    <div style="flex:1;min-width:200px;">
+      <input type="file" id="my-photo-input" accept="image/*" onchange="uploadMyPhoto(this)"
+        style="width:100%;color:#a0c4ff;font-family:Nunito;font-size:0.82rem;"/>
+      <div id="my-photo-status" style="font-size:0.78rem;color:#667;margin-top:6px;">Choose an image to update your picture.</div>
     </div>
   </div>
-  </div><!-- end cal-container -->
 
   <p class="section-title">❓ Help Videos</p>
   <div id="help-videos-box" style="margin-bottom:24px;"></div>
+  </div>
 </div>
-<div id="save-bar">
+<div id="save-bar" style="display:none;">
   <button class="btn-save" onclick="saveAvailability()">💾 Save Schedule</button>
 </div>
 <div id="save-msg-bar" style="display:none;position:fixed;bottom:62px;left:0;right:0;text-align:center;z-index:101;">
@@ -609,6 +686,112 @@
     }
   }
 
+
+  // ───────── Tabs ─────────
+  function showPane(name) {
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.pane === name));
+    const sb = document.getElementById('save-bar'); if (sb) sb.style.display = name === 'avail' ? 'flex' : 'none';
+    const msg = document.getElementById('save-msg-bar'); if (msg && name !== 'avail') msg.style.display = 'none';
+    try { localStorage.setItem('teacherPane', name); } catch (e) {}
+    try { history.replaceState(null, '', '#' + name); } catch (e) {}
+    window.scrollTo({ top: 0 });
+    if (name === 'pay' && !window._payLoaded) payPreset('cur');
+  }
+
+  // ───────── Home status cards ─────────
+  function renderHomeStatus() {
+    const box = document.getElementById('home-status'); if (!box) return;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const future = Object.keys(dates || {}).filter(d => d >= today && dates[d] === 'available');
+    const hasHours = Object.values(dayHours || {}).some(h => h && h.start && h.end);
+    let html = '';
+    if (!future.length || !hasHours) {
+      html += `<div class="warn-card">⚠️ You haven't set your availability yet. Students can only be scheduled with you after you set your weekly hours <b>and</b> tap the days you can work.<br><button class="chip on" style="margin-top:8px;" onclick="showPane('avail')">Set my availability →</button></div>`;
+    } else {
+      html += `<div class="ok-card">✅ You are available on ${future.length} upcoming day${future.length === 1 ? '' : 's'}. <a href="#" onclick="showPane('avail');return false;" style="color:#69f0ae;">Edit</a></div>`;
+    }
+    const reqs = window._reviewRequestCount || 0;
+    if (reqs > 0) html += `<div class="warn-card">📝 ${reqs} review${reqs > 1 ? 's' : ''} requested by the school. <button class="chip on" style="margin-left:6px;" onclick="showPane('reviews')">Open reviews →</button></div>`;
+    box.innerHTML = html;
+    const dot = document.getElementById('reviews-dot'); if (dot) { dot.textContent = reqs; dot.style.display = reqs > 0 ? 'block' : 'none'; }
+    const warn = document.getElementById('avail-warning');
+    if (warn) warn.innerHTML = (!future.length || !hasHours) ? `<div class="warn-card">⚠️ ${!hasHours ? 'Step 1 not done: set your weekly hours.' : 'Step 2 not done: tap the days you can work on the calendar below.'}</div>` : '';
+  }
+
+  // ───────── Pay ─────────
+  const payMoney = n => (n < 0 ? '−' : '') + '$' + Math.abs(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const payHours = mins => { mins = Math.round(mins || 0); return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`; };
+  const payDay = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  function payPrevPeriod(p) {
+    const [fy, fm, fd] = p.fromDate.split('-').map(Number);
+    if (fd === 30) { const pm = fm === 1 ? 12 : fm - 1, py = fm === 1 ? fy - 1 : fy; return { fromDate: `${py}-${String(pm).padStart(2, '0')}-15`, toDate: `${py}-${String(pm).padStart(2, '0')}-29` }; }
+    const pm = fm === 1 ? 12 : fm - 1, py = fm === 1 ? fy - 1 : fy;
+    return { fromDate: `${py}-${String(pm).padStart(2, '0')}-30`, toDate: `${fy}-${String(fm).padStart(2, '0')}-14` };
+  }
+  function payPreset(kind) {
+    const cur = getPayPeriod(); let r;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const addD = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+    if (kind === 'prev') r = payPrevPeriod(cur);
+    else if (kind === '30') r = { fromDate: addD(today, -29), toDate: today };
+    else if (kind === 'month') r = { fromDate: today.slice(0, 8) + '01', toDate: today };
+    else r = cur;
+    document.getElementById('pay-from').value = r.fromDate; document.getElementById('pay-to').value = r.toDate;
+    document.querySelectorAll('#pay-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.p === kind));
+    loadPay(r.fromDate, r.toDate);
+  }
+  function payCustom() {
+    const f = document.getElementById('pay-from').value, t = document.getElementById('pay-to').value;
+    if (!f || !t) return;
+    if (f > t) { document.getElementById('pay-summary').innerHTML = '<div class="warn-card">The “From” date must be before the “To” date.</div>'; return; }
+    document.querySelectorAll('#pay-chips .chip').forEach(c => c.classList.remove('on'));
+    loadPay(f, t);
+  }
+  async function loadPay(from, to) {
+    window._payLoaded = true;
+    const sum = document.getElementById('pay-summary'), ext = document.getElementById('pay-extra'), list = document.getElementById('pay-classes');
+    sum.innerHTML = '<div style="color:#a0c4ff;padding:14px;">Loading…</div>'; ext.innerHTML = ''; list.innerHTML = '';
+    let mine = null;
+    try {
+      const res = await fetch(`${SERVER_URL}/payroll?from=${from}&to=${to}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      mine = (Array.isArray(data) ? data : []).find(t => t.room === room) || null;
+    } catch (e) {}
+    if (!mine) { sum.innerHTML = '<div class="warn-card">Could not load your pay. Please try again.</div>'; return; }
+    const classes = (mine.classes || []).slice().sort((a, b) => (a.date + a.scheduledTime).localeCompare(b.date + b.scheduledTime));
+    const adjs = mine.adjustments || [];
+    const paid = c => (c.coveredBySub ? 0 : (c.paidMins != null ? c.paidMins : (c.classPay > 0 ? c.durationMins : 0)));
+    const mins = classes.reduce((t, c) => t + paid(c), 0);
+    const classSum = classes.reduce((t, c) => t + (Number(c.classPay) || 0), 0);
+    const bonus = classes.reduce((t, c) => t + (Number(c.groupBonus) || 0), 0);
+    const debt = classes.reduce((t, c) => t + (Number(c.debtPay) || 0), 0);
+    const base = classSum - bonus - debt;
+    const adjPos = adjs.filter(a => a.amount > 0).reduce((t, a) => t + a.amount, 0), adjNeg = adjs.filter(a => a.amount < 0).reduce((t, a) => t + a.amount, 0);
+    const taught = classes.filter(c => paid(c) > 0).length;
+    const card = (v, l, cls) => `<div class="pay-card ${cls || ''}"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+    sum.innerHTML = `<div class="pay-grid">
+        <div class="pay-card big"><div class="v">${payMoney(mine.totalPay)} MXN</div><div class="l" style="color:#cfe0ff;">Total for ${fmtPayDate(from)} – ${fmtPayDate(to)}</div></div>
+        ${card(payHours(mins), 'Hours worked')}
+        ${card(taught, 'Classes taught')}
+        ${card(payMoney(base), 'Base pay (class time)')}
+        ${card(payMoney(bonus), 'Group bonus', bonus > 0 ? 'pos' : '')}
+        ${card(payMoney(debt), 'Make-up time paid', debt > 0 ? 'pos' : '')}
+        ${card(payMoney(adjPos), 'Extra added by the school', adjPos > 0 ? 'pos' : '')}
+        ${card(payMoney(adjNeg), 'Deductions', adjNeg < 0 ? 'neg' : '')}
+      </div>`;
+    const miss = (mine.reviewsMissing || []).length;
+    ext.innerHTML = (miss ? `<div class="warn-card">📝 ${miss} monthly review${miss > 1 ? 's are' : ' is'} still missing for this period.</div>` : '')
+      + (adjs.length ? `<p class="section-title">Adjustments from the school</p>` + adjs.map(a => `<div class="pay-row"><div><div class="d">${payDay(a.date)}</div><div class="m">${escHtml(a.reason || 'Adjustment')}</div></div><div class="a" style="color:${a.amount < 0 ? '#ff8a80' : '#69f0ae'};">${payMoney(a.amount)}</div></div>`).join('') : '');
+    list.innerHTML = classes.length ? classes.map(c => {
+      const pm = paid(c), t = c.scheduledTime ? fmt12(c.scheduledTime) : '';
+      const bits = [c.groupName && c.groupName !== '—' ? escHtml(c.groupName) : '', escHtml(c.classType || '')].filter(Boolean).join(' · ');
+      return `<div class="pay-row"><div><div class="d">${payDay(c.date)} ${t ? '· ' + t : ''}</div><div class="m">${bits} · ${pm} min paid${c.groupBonus > 0 ? ` · +${payMoney(c.groupBonus)} group bonus` : ''}</div><div class="n">${escHtml(c.payNote || '')}</div></div><div class="a" style="${c.classPay <= 0 ? 'color:#ff8a80;' : ''}">${payMoney(c.classPay)}</div></div>`;
+    }).join('') : '<div style="color:#667;padding:10px;">No classes taught in this period.</div>';
+    const known = classSum + adjPos + adjNeg;
+    if (Math.abs((mine.totalPay || 0) - known) > 0.5) ext.innerHTML += `<div style="font-size:0.74rem;color:#667;">Other adjustments: ${payMoney((mine.totalPay || 0) - known)}</div>`;
+  }
+
   async function init() {
     const res = await fetch(`${SERVER_URL}/teacher-info`, { headers: { Authorization: `Bearer ${token}` } });
     const info = await res.json();
@@ -647,6 +830,16 @@
     renderDayHours();
     renderCalendar();
     renderUpcomingClasses();
+    renderHomeStatus();
+    checkReviewRequestCount();
+    const startPane = (location.hash || '').replace('#', '') || (function(){ try { return localStorage.getItem('teacherPane'); } catch (e) { return null; } })() || 'home';
+    showPane(['home','avail','pay','reviews','profile'].includes(startPane) ? startPane : 'home');
+  }
+  async function checkReviewRequestCount() {
+    try {
+      const r = await fetch(`${SERVER_URL}/reviews/requests`, { headers: { Authorization: `Bearer ${token}` } });
+      const q = await r.json(); window._reviewRequestCount = Array.isArray(q) ? q.length : 0; renderHomeStatus();
+    } catch (e) {}
   }
 
   function renderUpcomingClasses() {
@@ -972,6 +1165,7 @@
     const msg = document.getElementById('save-msg-bar');
     msg.style.display = 'block';
     setTimeout(() => msg.style.display = 'none', 2500);
+    renderHomeStatus();
   }
 
   function prevMonth() {
@@ -1086,46 +1280,6 @@
   loadReviews();
 </script>
 <div id="tp-popup" class="time-picker-popup" onclick="event.stopPropagation()"></div>
-
-<div id="language-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:white;border-radius:18px;padding:28px 24px;max-width:320px;width:100%;text-align:center;">
-    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">Choose your language</div>
-    <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:18px;">Elige tu idioma</div>
-    <button onclick="chooseLang('en')" style="width:100%;padding:12px;margin-bottom:10px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇺🇸 English</button>
-    <button onclick="chooseLang('es')" style="width:100%;padding:12px;background:#2e7d32;color:white;border:none;border-radius:12px;font-family:Nunito;font-weight:700;font-size:1rem;cursor:pointer;">🇲🇽 Español</button>
-  </div>
-</div>
-<script type="text/javascript">
-  // Drives Google's translate engine directly without showing its own
-  // default widget UI - applies a language, remembers the choice, and
-  // only touches the page if Spanish is picked.
-  function applyLang(lang, attempt) {
-    attempt = attempt || 0;
-    localStorage.setItem('polyabc_lang', lang);
-    const selectField = document.querySelector('.goog-te-combo');
-    if (!selectField) {
-      if (attempt < 15) setTimeout(() => applyLang(lang, attempt + 1), 300);
-      return;
-    }
-    if (selectField.value !== lang) {
-      selectField.value = lang;
-      selectField.dispatchEvent(new Event('change'));
-    }
-  }
-  function openLanguageModal() { document.getElementById('language-modal').style.display = 'flex'; }
-  function chooseLang(lang) { applyLang(lang); document.getElementById('language-modal').style.display = 'none'; }
-  function checkLanguageOnLoad() {
-    const saved = localStorage.getItem('polyabc_lang');
-    if (saved) { applyLang(saved); return; }
-    const browserLang = navigator.language || navigator.userLanguage || '';
-    if (browserLang.toLowerCase().startsWith('es')) { applyLang('es'); return; }
-  }
-  function googleTranslateElementInit() {
-    new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,es', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-    setTimeout(checkLanguageOnLoad, 1000);
-  }
-</script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </body>
 </html>
