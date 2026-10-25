@@ -835,6 +835,7 @@
       <div class="panel-title">👩‍🏫 Maestros y salones</div>
       <button class="btn btn-green" onclick="openAddTeacherModal()">+ Agregar maestro</button>
     </div>
+    <div id="makeup-req-box" style="margin-bottom:20px;"></div>
     <div id="review-status-box" style="margin-bottom:20px;"></div>
     <div id="teachers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
   </div>
@@ -1563,7 +1564,7 @@ function showPanel(name) {
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   { renderMasterCalendar(); }
-  if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); }
+  if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); loadMakeupRequests(); }
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
   if (name === 'accounting') { renderAccounting(); }
@@ -2366,6 +2367,61 @@ function getClassDuration(ct) {
 }
 
 // ── TEACHERS PANEL ──
+// Reposición requests from parents: admin approves (optionally into another room/teacher) or denies.
+async function loadMakeupRequests() {
+  const box = document.getElementById('makeup-req-box');
+  if (!box) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/makeup-requests`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const rows = await res.json();
+    if (!res.ok || !Array.isArray(rows)) throw new Error('bad');
+    if (!rows.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div style="background:#fff8e1;border:2px solid #f9a825;border-radius:14px;padding:16px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">🔁 Reposiciones por aprobar (${rows.length})</div>
+      ${rows.map(r => {
+        const opts = r.rooms.map(x => `<option value="${escHtml(x.room)}" ${x.room === r.room ? 'selected' : ''} ${x.free ? '' : 'disabled'}>Salón ${escHtml(x.room)} · ${escHtml(x.teacherName)}${x.free ? '' : ' (ocupado)'}</option>`).join('');
+        return `<div style="background:white;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #f3e0a0;">
+          <div style="font-weight:900;color:#333;">${escHtml(r.shownName || r.studentName)}</div>
+          <div style="font-size:0.85rem;color:#555;margin-top:2px;">Clase cancelada: ${escHtml(r.originalDate)} · ${escHtml(r.originalTime)} (Salón ${escHtml(r.room)})</div>
+          <div style="font-size:0.85rem;color:#1a1a2e;margin-top:2px;">Pide: <strong>${escHtml(r.date)} · ${escHtml(r.time)}</strong> · ${r.mins} min${r.nextWeek ? ' <span style="color:#e65100;">(cuenta para la próxima semana)</span>' : ''}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+            <select id="mkr-room-${escHtml(r.id)}" style="flex:1;min-width:200px;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.88rem;">${opts}</select>
+            <button onclick="approveMakeupRequest('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">✅ Aprobar</button>
+            <button onclick="denyMakeupRequest('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">✖ Negar</button>
+          </div></div>`;
+      }).join('')}
+    </div>`;
+  } catch(e) { box.innerHTML = '<div style="font-size:0.85rem;color:#e53935;">No se pudieron cargar las reposiciones.</div>'; }
+}
+
+async function approveMakeupRequest(id) {
+  const room = document.getElementById('mkr-room-' + id)?.value;
+  if (!room) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/makeup-requests/${encodeURIComponent(id)}/approve`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ room })
+    });
+    const d = await res.json();
+    if (d.success) showToast('✅ Reposición aprobada');
+    else alert(d.error || 'No se pudo aprobar');
+  } catch(e) { alert('Error de red'); }
+  loadMakeupRequests();
+}
+
+async function denyMakeupRequest(id) {
+  const reason = prompt('Motivo (se le envía al padre/madre, opcional):', '');
+  if (reason === null) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/makeup-requests/${encodeURIComponent(id)}/deny`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ reason })
+    });
+    const d = await res.json();
+    if (d.success) showToast('Reposición negada');
+    else alert(d.error || 'No se pudo negar');
+  } catch(e) { alert('Error de red'); }
+  loadMakeupRequests();
+}
+
 // Month-end review progress per teacher (admin). Pay depends on reviews, so this shows who is behind.
 async function loadReviewStatus() {
   const box = document.getElementById('review-status-box');
