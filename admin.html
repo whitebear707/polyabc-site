@@ -4550,14 +4550,14 @@ function renderBillingTable(students) {
       <td style="font-size:0.82rem;">${fmtDate(s.nextPaymentDue)}</td>
       <td>
         <button onclick="openBillingEdit('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#1a73e8;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">✏️ Editar</button>
-        <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Paid</button>
+        <button onclick="confirmPayment('${escJsAttr(s.name)}')" style="padding:4px 10px;background:#00897b;color:white;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">💰 Pagado</button>
         ${s.paid ? `<button onclick="markUnpaid('${escJsAttr(s.name)}')" title="Revertir esta confirmación de pago — clic equivocado, o la transferencia resultó falsa/cancelada" style="padding:4px 10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;margin-right:4px;">↩️ Sin pagar</button>` : ''}
         <button onclick="togglePaymentExempt('${escJsAttr(s.name)}',${!s.paymentExempt})"
           title="${s.paymentExempt ? 'Quitar exención — el alumno SÍ será suspendido por falta de pago' : 'Marcar como exento — el alumno NO será suspendido por falta de pago'}"
           style="padding:4px 8px;background:${s.paymentExempt?'#e3f2fd':'#f5f5f5'};border:1px solid ${s.paymentExempt?'#1a73e8':'#ddd'};border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${s.paymentExempt?'#1a73e8':'#aaa'};margin-right:4px;">
           ${s.paymentExempt ? '🛡 Exempt' : '🔓'}
         </button>
-        <button onclick="toggleSuspend('${escJsAttr(s.name)}',${s.manuallySuspended ? 'false' : 'true'})" style="padding:4px 10px;background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">${s.manuallySuspended ? '✅ Restaurar' : '🚫 Disable'}</button>
+        <button onclick="toggleSuspend('${escJsAttr(s.name)}',${s.manuallySuspended ? 'false' : 'true'})" style="padding:4px 10px;background:${s.manuallySuspended ? '#2e7d32' : '#e65100'};color:#fff;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-weight:700;">${s.manuallySuspended ? '✅ Restaurar' : '🚫 Desactivar'}</button>
       </td>
     </tr>`;
   }).join('');
