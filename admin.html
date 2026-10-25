@@ -2848,7 +2848,7 @@ function openEditStudentModal(name, password, room, dob) {
   const parentSel = document.getElementById('edit-student-parent-id');
   if (parentSel) {
     parentSel.innerHTML = '<option value="">— Sin padre vinculado —</option>';
-    (_allParents || []).forEach(par => {
+    [...(_allParents || [])].sort((x, y) => String(x.name || '').localeCompare(String(y.name || ''), 'es', { sensitivity: 'base' })).forEach(par => {
       const opt = document.createElement('option');
       opt.value = par._id;
       opt.textContent = par.name + (par.phone ? ' · 📱 ' + par.phone : '') + (par.email ? ' · ' + par.email : '');
@@ -4776,6 +4776,7 @@ function _parentStudentRow(par, s) {
 function _parentAssignDropdown(par, assignedNames) {
   const opts = getAllStudents()
     .filter(s => !assignedNames.includes(s.name))
+    .sort((x, y) => String(x.name || '').localeCompare(String(y.name || ''), 'es', { sensitivity: 'base' }))
     .map(s => '<option value="' + escHtml(s.name) + '">' + escHtml(s.name) + '</option>')
     .join('');
   const pid = par._id;
