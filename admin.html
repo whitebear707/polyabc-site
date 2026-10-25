@@ -596,6 +596,30 @@
   <div id="panel-staff" class="panel">
     <div class="panel-title">👔 Personal administrativo</div>
 
+    <!-- Email budget: usage counter and notification switches -->
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:1rem;font-weight:900;color:#1a1a2e;">📧 Correos enviados</span>
+        <span id="email-usage-badge" style="font-size:0.7rem;font-weight:900;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;">Normal</span>
+      </div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
+        Límite del plan gratis: 100 al día y 3,000 al mes. Los correos de cuenta (verificación y contraseña) siempre se envían.
+      </div>
+      <div id="email-usage-bars" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div style="font-size:0.85rem;color:#555;">Cargando...</div>
+      </div>
+      <div style="font-size:0.78rem;font-weight:900;color:#888;text-transform:uppercase;margin-bottom:8px;">Notificaciones activas</div>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;font-size:0.9rem;font-weight:700;color:#333;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="email-on-admin"/> Admin / contabilidad / soporte</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="email-on-teacher"/> Maestros</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="email-on-parent"/> Padres</label>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+        <button onclick="saveEmailSettings()" style="padding:10px 22px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Guardar</button>
+        <span id="email-settings-status" style="font-size:0.85rem;font-weight:700;"></span>
+      </div>
+    </div>
+
     <!-- Permanent school contact record — cannot be deleted, only edited -->
     <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:20px;margin-bottom:22px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
@@ -5313,9 +5337,57 @@ function copySpectatorInfo(id) {
 
 async function renderStaff() {
   loadSchoolInfo();
+  loadEmailUsage();
   const res = await fetch(`${SERVER_URL}/staff`, { headers: { Authorization: `Bearer ${currentToken}` } });
   _allStaff = await res.json();
   renderStaffList();
+}
+
+async function loadEmailUsage() {
+  const bars = document.getElementById('email-usage-bars');
+  const badge = document.getElementById('email-usage-badge');
+  if (!bars) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/email-usage`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const u = await res.json();
+    if (!res.ok || u.error) throw new Error(u.error || 'error');
+    const bar = (label, sent, limit) => {
+      const pct = Math.min(100, Math.round(sent / limit * 100));
+      const color = pct >= 90 ? '#e53935' : pct >= 80 ? '#f9a825' : '#1a73e8';
+      return `<div><div style="font-size:0.82rem;font-weight:700;color:#555;margin-bottom:4px;">${label}: ${sent} de ${limit}</div>
+        <div style="background:#eee;border-radius:6px;height:10px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};"></div></div></div>`;
+    };
+    bars.innerHTML = bar('Hoy', u.today.sent, u.today.limit) + bar('Este mes', u.month.sent, u.month.limit);
+    const detail = `<div style="grid-column:1/-1;font-size:0.78rem;color:#888;">Este mes: admin ${u.month.byKind.admin} · maestros ${u.month.byKind.teacher} · padres ${u.month.byKind.parent} · cuenta ${u.month.byKind.account} · omitidos ${u.month.skipped}</div>`;
+    bars.insertAdjacentHTML('beforeend', detail);
+    document.getElementById('email-on-admin').checked   = !!u.settings.admin;
+    document.getElementById('email-on-teacher').checked = !!u.settings.teacher;
+    document.getElementById('email-on-parent').checked  = !!u.settings.parent;
+    if (u.warning) {
+      badge.textContent = 'Cerca del límite'; badge.style.background = '#fff3e0'; badge.style.color = '#e65100';
+    } else {
+      badge.textContent = 'Normal'; badge.style.background = '#e8f5e9'; badge.style.color = '#2e7d32';
+    }
+  } catch(e) { bars.innerHTML = '<div style="font-size:0.85rem;color:#e53935;">No se pudo cargar el conteo.</div>'; }
+}
+
+async function saveEmailSettings() {
+  const status = document.getElementById('email-settings-status');
+  status.textContent = 'Guardando...'; status.style.color = '#888';
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/email-settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({
+        admin:   document.getElementById('email-on-admin').checked,
+        teacher: document.getElementById('email-on-teacher').checked,
+        parent:  document.getElementById('email-on-parent').checked
+      })
+    });
+    const data = await res.json();
+    status.textContent = data.success ? '✅ Guardado' : '⚠️ No se pudo guardar';
+    status.style.color = data.success ? '#2e7d32' : '#e53935';
+  } catch(e) { status.textContent = '⚠️ Error de red'; status.style.color = '#e53935'; }
 }
 
 async function loadSchoolInfo() {
