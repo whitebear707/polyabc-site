@@ -835,6 +835,7 @@
       <div class="panel-title">👩‍🏫 Maestros y salones</div>
       <button class="btn btn-green" onclick="openAddTeacherModal()">+ Agregar maestro</button>
     </div>
+    <div id="review-status-box" style="margin-bottom:20px;"></div>
     <div id="teachers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
   </div>
 
@@ -1562,7 +1563,7 @@ function showPanel(name) {
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   { renderMasterCalendar(); }
-  if (name === 'teachers')   renderTeachers();
+  if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); }
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
   if (name === 'accounting') { renderAccounting(); }
@@ -2365,6 +2366,46 @@ function getClassDuration(ct) {
 }
 
 // ── TEACHERS PANEL ──
+// Month-end review progress per teacher (admin). Pay depends on reviews, so this shows who is behind.
+async function loadReviewStatus() {
+  const box = document.getElementById('review-status-box');
+  if (!box) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/reviews/status`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const rows = await res.json();
+    if (!res.ok || !Array.isArray(rows)) throw new Error('bad');
+    const month = rows[0]?.month || '';
+    const now = new Date();
+    const y = Number(month.slice(0,4)), m = Number(month.slice(5,7));
+    const deadline = (m === 2) ? 28 : 30;
+    const today = Number(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }).slice(8,10));
+    const daysLeft = deadline - today;
+    const dueText = daysLeft > 0 ? `faltan ${daysLeft} días` : daysLeft === 0 ? 'vence hoy' : 'ya venció';
+    const behind = rows.filter(r => r.total > 0 && r.completed < r.total);
+    const done = rows.filter(r => r.total > 0 && r.completed >= r.total);
+    const rowHtml = r => {
+      const pct = r.total ? Math.round(r.completed / r.total * 100) : 0;
+      const color = pct === 100 ? '#2e7d32' : pct >= 50 ? '#f9a825' : '#e53935';
+      const missing = r.missing.length
+        ? `<div style="font-size:0.8rem;color:#b71c1c;margin-top:4px;">Falta: ${r.missing.map(n => escHtml(n)).join(', ')}</div>` : '';
+      return `<div style="padding:10px 0;border-bottom:1px solid #eee;">
+        <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:700;color:#333;">
+          <span>${escHtml(r.teacherName)} <span style="color:#888;font-weight:600;">· Salón ${escHtml(r.room)}</span></span>
+          <span>${r.completed} de ${r.total}</span></div>
+        <div style="background:#eee;border-radius:6px;height:8px;overflow:hidden;margin-top:6px;"><div style="width:${pct}%;height:100%;background:${color};"></div></div>
+        ${missing}</div>`;
+    };
+    box.innerHTML = `<div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <span style="font-size:1rem;font-weight:900;color:#1a1a2e;">📝 Reseñas de ${escHtml(month)}</span>
+        <span style="font-size:0.85rem;font-weight:700;color:${daysLeft < 0 ? '#e53935' : '#555'};">Fecha límite: ${deadline} · ${dueText}</span></div>
+      <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">${done.length} maestros completos · <strong style="color:#b71c1c;">${behind.length} pendientes</strong> (sin pago hasta terminar)</div>
+      ${behind.map(rowHtml).join('') || '<div style="color:#2e7d32;font-weight:700;">Todas las reseñas están completas ✅</div>'}
+      ${done.length ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.85rem;color:#2e7d32;font-weight:700;">Completos (${done.length})</summary>${done.map(rowHtml).join('')}</details>` : ''}
+    </div>`;
+  } catch(e) { box.innerHTML = '<div style="font-size:0.85rem;color:#e53935;">No se pudo cargar el estado de reseñas.</div>'; }
+}
+
 function renderTeachers() {
   const grid = document.getElementById('teachers-grid');
   if (!rooms.length) { grid.innerHTML = '<div style="color:#aaa;padding:20px;">Aún no hay salones.</div>'; return; }
