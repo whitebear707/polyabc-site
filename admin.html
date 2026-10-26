@@ -300,9 +300,12 @@
   <p>Inicia sesión para administrar tu escuela</p>
   <div class="login-card">
     <div class="error-msg" id="login-error">Contraseña incorrecta. Intenta de nuevo.</div>
-    <input type="password" id="login-pass" placeholder="Escribe la contraseña"
-      onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button onclick="doLogin()">Iniciar sesión</button>
+    <form id="login-form" autocomplete="on" onsubmit="event.preventDefault(); doLogin();">
+      <input type="text" id="login-user" name="username" autocomplete="username" value="Admin" aria-label="Usuario"
+        style="margin-bottom:10px;"/>
+      <input type="password" id="login-pass" name="password" autocomplete="current-password" placeholder="Escribe la contraseña"/>
+      <button type="submit">Iniciar sesión</button>
+    </form>
   </div>
 </div>
 
