@@ -397,6 +397,7 @@
         <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
+        <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
       </div>
       <div class="tool-separator"></div>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
@@ -3140,20 +3141,34 @@ let screenStream = null; let isSharing = false;
 
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
+  let raw = null;
   try {
     // audio: true lets the teacher tick "Share tab audio" (Chrome tab) / "Share system audio" so students hear the video too
     try {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
+      raw = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
     } catch (err) {
       if (err && err.name === 'NotAllowedError') throw err;
       // Browser doesn't accept the audio options (e.g. some Safari/Firefox): share video only
-      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+      raw = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+    }
+    // Share everything (same as before) or only a part of it
+    const choice = await askShareMode(raw);
+    if (!choice) { raw.getTracks().forEach(t => t.stop()); return; }
+    rawScreenStream = raw;
+    if (choice.mode === 'part') {
+      shareCrop = makeCroppedStream(raw, choice.rect);
+      screenStream = shareCrop.stream;
+    } else {
+      shareCrop = null;
+      screenStream = raw;
     }
     isSharing = true;
     if (!screenStream.getAudioTracks().length) showShareAudioTip();
 
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
+    const areaBtn = document.getElementById('sharearea-btn');
+    if (areaBtn) areaBtn.style.display = shareCrop ? '' : 'none';
 
     // Show teacher's own screen behind canvas
     showScreenBehindCanvas(screenStream, true);
@@ -3166,9 +3181,176 @@ async function toggleScreenShare() {
       (window._spectatorIds || []).forEach(sid => callSsPeer(sid));
     }
 
-    screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
-  } catch(e) { if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message); }
+    // The browser's own "Stop sharing" bar ends the original track
+    raw.getVideoTracks()[0].onended = () => stopScreenShare();
+  } catch(e) {
+    if (raw && !isSharing) raw.getTracks().forEach(t => t.stop());
+    if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message);
+  }
 }
+
+// ── Share part of the screen ──
+let rawScreenStream = null; // what the browser picker returned
+let shareCrop = null;       // { stream, state: { rect }, cleanup } while sharing only a part
+
+// Popup after the browser picker: "Share everything" or "Share part of the screen" (drag a box).
+// Resolves { mode: 'all' }, { mode: 'part', rect } (rect as fractions 0..1 of the picture), or null if cancelled.
+function askShareMode(raw, startInArea = false, initialRect = null) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.id = 'share-mode-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100000;display:flex;align-items:center;justify-content:center;font-family:Nunito,sans-serif;';
+    ov.innerHTML = `<div style="background:#fff;border-radius:16px;padding:18px;width:min(900px,94vw);max-height:94vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,0.4);">
+      <div id="smm-title" style="font-weight:900;font-size:1.2rem;color:#1a1a2e;"></div>
+      <div id="smm-stage" style="position:relative;background:#111;border-radius:10px;overflow:hidden;user-select:none;touch-action:none;">
+        <video id="smm-vid" autoplay playsinline muted style="display:block;width:100%;height:56vh;object-fit:contain;"></video>
+        <div id="smm-box" style="position:absolute;border:3px solid #00e676;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);display:none;pointer-events:none;border-radius:4px;"></div>
+      </div>
+      <div id="smm-help" style="font-size:0.95rem;color:#555;"></div>
+      <div id="smm-btns" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;"></div>
+    </div>`;
+    document.body.appendChild(ov);
+    const vid = ov.querySelector('#smm-vid'), stage = ov.querySelector('#smm-stage'), box = ov.querySelector('#smm-box');
+    const title = ov.querySelector('#smm-title'), help = ov.querySelector('#smm-help'), btns = ov.querySelector('#smm-btns');
+    vid.srcObject = new MediaStream(raw.getVideoTracks());
+    vid.play().catch(() => {});
+    const clamp = v => Math.min(1, Math.max(0, v));
+    let rect = initialRect ? { ...initialRect } : { x: 0.2, y: 0.2, w: 0.6, h: 0.6 };
+    let mode = 'choose', done = false, drag = null;
+    const track = raw.getVideoTracks()[0];
+    const finish = v => {
+      if (done) return; done = true;
+      track.removeEventListener('ended', onEnded);
+      window.removeEventListener('resize', drawBox);
+      vid.srcObject = null; ov.remove(); resolve(v);
+    };
+    const onEnded = () => finish(null); // teacher stopped from the browser bar while choosing
+    track.addEventListener('ended', onEnded);
+    // Where the picture really sits inside the preview (object-fit: contain leaves bars)
+    function picture() {
+      const vr = vid.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      const vw = vid.videoWidth || 16, vh = vid.videoHeight || 9;
+      const k = Math.min(vr.width / vw, vr.height / vh), w = vw * k, h = vh * k;
+      return { left: vr.left - sr.left + (vr.width - w) / 2, top: vr.top - sr.top + (vr.height - h) / 2, w, h, sr };
+    }
+    function drawBox() {
+      if (mode !== 'area') { box.style.display = 'none'; return; }
+      const p = picture();
+      box.style.left = (p.left + rect.x * p.w) + 'px'; box.style.top = (p.top + rect.y * p.h) + 'px';
+      box.style.width = (rect.w * p.w) + 'px'; box.style.height = (rect.h * p.h) + 'px';
+      box.style.display = 'block';
+    }
+    window.addEventListener('resize', drawBox);
+    vid.addEventListener('loadedmetadata', drawBox);
+    const at = e => { const p = picture(); return { fx: clamp((e.clientX - p.sr.left - p.left) / p.w), fy: clamp((e.clientY - p.sr.top - p.top) / p.h) }; };
+    stage.addEventListener('pointerdown', e => {
+      if (mode !== 'area') return;
+      drag = { ...at(e), before: { ...rect } };
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const q = at(e);
+      rect = { x: Math.min(drag.fx, q.fx), y: Math.min(drag.fy, q.fy), w: Math.abs(q.fx - drag.fx), h: Math.abs(q.fy - drag.fy) };
+      drawBox();
+    });
+    const endDrag = () => {
+      if (!drag) return;
+      if (rect.w < 0.05 || rect.h < 0.05) rect = drag.before; // a click or a tiny box keeps the previous one
+      drag = null; drawBox();
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+    const button = (label, bg, fn) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText = `padding:12px 18px;border:none;border-radius:10px;background:${bg};color:#fff;font-family:Nunito,sans-serif;font-weight:900;font-size:1rem;cursor:pointer;`;
+      b.onclick = fn; return b;
+    };
+    function showChoose() {
+      mode = 'choose'; drawBox();
+      title.textContent = 'What do you want to share?';
+      help.textContent = 'This is what you picked. Share all of it, or only one part.';
+      btns.innerHTML = '';
+      btns.append(button('Cancel', '#888', () => finish(null)),
+                  button('✂️ Share part of the screen', '#00897b', showArea),
+                  button('🖥️ Share everything', '#6a1b9a', () => finish({ mode: 'all' })));
+    }
+    function showArea() {
+      mode = 'area';
+      title.textContent = 'Drag a box over the part you want to share';
+      help.textContent = 'Click and drag on the picture. Students will only see what is inside the green box.';
+      btns.innerHTML = '';
+      btns.append(button(startInArea ? 'Cancel' : '⬅ Back', '#888', startInArea ? () => finish(null) : showChoose),
+                  button('✅ Share this area', '#2e7d32', () => finish({ mode: 'part', rect: { ...rect } })));
+      drawBox();
+    }
+    if (startInArea) showArea(); else showChoose();
+  });
+}
+
+// Builds a stream that only contains the chosen part of the shared picture.
+// Chrome/Edge: crops each frame directly (light, keeps running when the class tab is in the background).
+// Other browsers: copies the area onto a hidden canvas about 15 times per second.
+function makeCroppedStream(raw, rect) {
+  const state = { rect: { ...rect }, stopped: false };
+  const src = raw.getVideoTracks()[0];
+  let outTrack = null, cleanup = null;
+  const evenDown = n => Math.max(0, Math.floor(n / 2) * 2);
+  if (window.MediaStreamTrackProcessor && window.MediaStreamTrackGenerator && window.VideoFrame) {
+    try {
+      const proc = new MediaStreamTrackProcessor({ track: src });
+      const gen = new MediaStreamTrackGenerator({ kind: 'video' });
+      const reader = proc.readable.getReader(), writer = gen.writable.getWriter();
+      (async () => {
+        while (!state.stopped) {
+          let r;
+          try { r = await reader.read(); } catch (e) { break; }
+          if (r.done) break;
+          const f = r.value;
+          try {
+            const vr = f.visibleRect || { x: 0, y: 0, width: f.codedWidth, height: f.codedHeight };
+            const x = vr.x + evenDown(state.rect.x * vr.width), y = vr.y + evenDown(state.rect.y * vr.height);
+            const w = Math.max(2, Math.min(evenDown(state.rect.w * vr.width), evenDown(vr.x + vr.width - x)));
+            const h = Math.max(2, Math.min(evenDown(state.rect.h * vr.height), evenDown(vr.y + vr.height - y)));
+            const out = new VideoFrame(f, { visibleRect: { x, y, width: w, height: h }, displayWidth: w, displayHeight: h });
+            f.close();
+            await writer.write(out); // the generator takes the frame and closes it
+          } catch (e) { try { f.close(); } catch (e2) {} }
+        }
+      })();
+      outTrack = gen;
+      cleanup = () => { state.stopped = true; try { reader.cancel(); } catch (e) {} try { gen.stop(); } catch (e) {} };
+    } catch (e) { outTrack = null; }
+  }
+  if (!outTrack) {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.srcObject = new MediaStream([src]); v.play().catch(() => {});
+    const c = document.createElement('canvas'), ctx = c.getContext('2d');
+    const draw = () => {
+      const vw = v.videoWidth, vh = v.videoHeight; if (!vw || !vh) return;
+      const sx = state.rect.x * vw, sy = state.rect.y * vh, sw = Math.max(2, state.rect.w * vw), sh = Math.max(2, state.rect.h * vh);
+      const W = Math.round(sw), H = Math.round(sh);
+      if (c.width !== W) c.width = W;
+      if (c.height !== H) c.height = H;
+      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, W, H);
+    };
+    const iv = setInterval(draw, 66);
+    outTrack = c.captureStream(15).getVideoTracks()[0];
+    cleanup = () => { state.stopped = true; clearInterval(iv); try { outTrack.stop(); } catch (e) {} v.srcObject = null; };
+  }
+  try { outTrack.contentHint = 'detail'; } catch (e) {}
+  return { stream: new MediaStream([outTrack, ...raw.getAudioTracks()]), state, cleanup };
+}
+
+// While sharing a part: pick a new area without stopping the share
+async function changeShareArea() {
+  if (!isSharing || !shareCrop || !rawScreenStream) return;
+  const choice = await askShareMode(rawScreenStream, true, shareCrop.state.rect);
+  if (choice && choice.mode === 'part' && shareCrop) shareCrop.state.rect = { ...choice.rect };
+}
+// ── end share part ──
 
 async function callSsPeer(studentId) {
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
@@ -3183,7 +3365,11 @@ async function callSsPeer(studentId) {
 
 function stopScreenShare() {
   isSharing = false;
+  if (shareCrop) { try { shareCrop.cleanup(); } catch (e) {} shareCrop = null; }
+  if (rawScreenStream) { rawScreenStream.getTracks().forEach(t => t.stop()); rawScreenStream = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+  const areaBtn = document.getElementById('sharearea-btn'); if (areaBtn) areaBtn.style.display = 'none';
+  const modal = document.getElementById('share-mode-modal'); if (modal) modal.remove();
   Object.keys(ssPeers).forEach(id => { ssPeers[id].close(); delete ssPeers[id]; });
 
   // Remove screenshare display
@@ -3224,7 +3410,7 @@ function showScreenBehindCanvas(stream, isTeacher) {
     vid = document.createElement('video');
     vid.id = 'screenshare-vid';
     vid.autoplay = true; vid.playsInline = true; vid.muted = true;
-    vid.style.cssText = `position:absolute;top:0;left:0;width:${CANVAS_W}px;height:${CANVAS_H}px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;object-fit:fill;`;
+    vid.style.cssText = `position:absolute;top:0;left:0;width:${CANVAS_W}px;height:${CANVAS_H}px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;object-fit:contain;`;
     wrap.appendChild(vid);
     scaleCanvas();
   }
