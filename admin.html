@@ -2575,11 +2575,22 @@ async function openReviewRequestModal(room) {
       : '<option value="">Ningún alumno asignado a este maestro</option>';
     const pend = document.getElementById('review-req-pending');
     pend.innerHTML = (open || []).length
-      ? '<div style="font-size:0.8rem;color:#e65100;font-weight:700;margin-top:10px;">⏳ Open requests: ' + open.map(o => o.studentName).join(', ') + '</div>'
+      ? '<div style="font-size:0.8rem;color:#e65100;font-weight:700;margin-top:10px;">⏳ Solicitudes abiertas:</div>' + open.map(o =>
+          `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:0.85rem;">
+             <span>${escHtml(o.studentName)}</span>
+             <button data-id="${escHtml(String(o._id))}" data-room="${escHtml(room)}" onclick="cancelReviewRequest(this.dataset.id, this.dataset.room)" style="padding:4px 10px;background:#fff;color:#c62828;border:1px solid #c62828;border-radius:8px;font-family:Nunito;font-weight:800;font-size:0.78rem;cursor:pointer;">✖ Cancelar</button>
+           </div>`).join('')
       : '';
   } catch(e) {
     sel.innerHTML = '<option value="">No se pudieron cargar los alumnos</option>';
   }
+}
+
+// Admin cancels an open review request (for example the student left or was deleted)
+async function cancelReviewRequest(id, room) {
+  if (!confirm('¿Cancelar esta solicitud de reseña? El maestro dejará de verla.')) return;
+  try { await fetch(`${SERVER_URL}/reviews/request/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } }); } catch (e) {}
+  openReviewRequestModal(room);
 }
 
 function closeReviewRequestModal() { document.getElementById('review-req-modal').classList.remove('open'); }
