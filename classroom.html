@@ -3153,16 +3153,30 @@ async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
   let raw = null;
   try {
-    // audio: true lets the teacher tick "Share tab audio" (Chrome tab) / "Share system audio" so students hear the video too
-    try {
-      raw = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
-    } catch (err) {
-      if (err && err.name === 'NotAllowedError') throw err;
-      // Browser doesn't accept the audio options (e.g. some Safari/Firefox): share video only
-      raw = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+    // The picker opens on Chrome tabs (best for material from a website: it keeps sharing while the teacher
+    // is back on the class, and can share the tab's sound). This class tab is left out, so the picture
+    // never shows the class inside itself. Teachers can still choose a window or the entire screen.
+    const pick = async () => {
+      try {
+        return await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: 'always', displaySurface: 'browser' },
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+          systemAudio: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include', preferCurrentTab: false
+        });
+      } catch (err) {
+        if (err && err.name === 'NotAllowedError') throw err;
+        // Browser doesn't accept these options (e.g. some Safari/Firefox): share video only
+        return await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always' }, audio: false });
+      }
+    };
+    // Share everything (same as before) or only a part of it; "Pick again" opens the browser picker again
+    let choice = null;
+    for (;;) {
+      raw = await pick();
+      choice = await askShareMode(raw);
+      if (choice && choice.mode === 'again') { raw.getTracks().forEach(t => t.stop()); raw = null; continue; }
+      break;
     }
-    // Share everything (same as before) or only a part of it
-    const choice = await askShareMode(raw);
     if (!choice) { raw.getTracks().forEach(t => t.stop()); return; }
     rawScreenStream = raw;
     if (choice.mode === 'part') {
@@ -3224,6 +3238,18 @@ function askShareMode(raw, startInArea = false, initialRect = null) {
     const title = ov.querySelector('#smm-title'), help = ov.querySelector('#smm-help'), btns = ov.querySelector('#smm-btns');
     vid.srcObject = new MediaStream(raw.getVideoTracks());
     vid.play().catch(() => {});
+    // Entire screen = this class page is on it, so a live preview repeats itself forever. Show a still picture and explain.
+    let surface = '';
+    try { surface = raw.getVideoTracks()[0].getSettings().displaySurface || ''; } catch (e) {}
+    const wholeScreen = surface === 'monitor';
+    if (wholeScreen) {
+      vid.addEventListener('loadeddata', () => { try { vid.pause(); } catch (e) {} }, { once: true });
+      const warn = document.createElement('div');
+      warn.id = 'smm-warn';
+      warn.style.cssText = 'background:#fff3e0;color:#e65100;border:2px solid #e65100;border-radius:10px;padding:10px 12px;font-weight:800;font-size:0.92rem;line-height:1.4;';
+      warn.innerHTML = '⚠️ You picked your <b>entire screen</b>, so the picture shows this class page over and over.<br>To share part of a website (for example, hide the answers): press <b>🔁 Pick again</b> and choose the <b>Chrome Tab</b> (or the <b>Window</b>) with your material.';
+      stage.parentNode.insertBefore(warn, stage);
+    }
     const clamp = v => Math.min(1, Math.max(0, v));
     let rect = initialRect ? { ...initialRect } : { x: 0.2, y: 0.2, w: 0.6, h: 0.6 };
     let mode = 'choose', done = false, drag = null;
@@ -3281,10 +3307,11 @@ function askShareMode(raw, startInArea = false, initialRect = null) {
     function showChoose() {
       mode = 'choose'; drawBox();
       title.textContent = 'What do you want to share?';
-      help.textContent = 'This is what you picked. Share all of it, or only one part.';
+      help.textContent = wholeScreen ? 'Tip: sharing a Chrome Tab works best for websites and videos.' : 'This is what you picked. Share all of it, or only one part.';
       btns.innerHTML = '';
-      btns.append(button('Cancel', '#888', () => finish(null)),
-                  button('✂️ Share part of the screen', '#00897b', showArea),
+      btns.append(button('Cancel', '#888', () => finish(null)));
+      if (!startInArea) btns.append(button('🔁 Pick again', '#1a73e8', () => finish({ mode: 'again' })));
+      btns.append(button('✂️ Share part of the screen', '#00897b', showArea),
                   button('🖥️ Share everything', '#6a1b9a', () => finish({ mode: 'all' })));
     }
     function showArea() {
