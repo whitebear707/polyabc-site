@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>PolyABC - My Homework</title>
+  <link rel="icon" type="image/png" href="icon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #1a1a2e; color: #fff; font-family: Nunito, sans-serif; min-height: 100vh; }
+    .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #16213e; position: sticky; top: 0; z-index: 30; }
+    .top img { height: 34px; }
+    .top .ttl { font-weight: 900; font-size: 1.05rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn { border: none; border-radius: 12px; padding: 10px 14px; font-family: Nunito, sans-serif; font-weight: 900; font-size: 0.95rem; cursor: pointer; }
+    .btn-back { background: #0f3460; color: #a0c4ff; }
+    #wrap { max-width: 900px; margin: 0 auto; padding: 14px; }
+    .hw-card { background: #fff; color: #1a1a2e; border-radius: 16px; padding: 14px; margin-bottom: 12px; cursor: pointer; display: flex; gap: 12px; align-items: center; }
+    .hw-card .info { flex: 1; min-width: 0; }
+    .hw-card .t { font-weight: 900; font-size: 1.02rem; }
+    .hw-card .s { font-size: 0.82rem; color: #666; margin-top: 2px; }
+    .badge { font-size: 0.78rem; font-weight: 900; padding: 5px 10px; border-radius: 12px; white-space: nowrap; }
+    .b-todo { background: #fff3e0; color: #e65100; }
+    .b-in { background: #e3f2fd; color: #1565c0; }
+    .b-graded { background: #e8f5e9; color: #2e7d32; }
+    .b-closed { background: #ffebee; color: #c62828; }
+    #tools { position: sticky; top: 58px; z-index: 25; background: #16213e; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border-radius: 0 0 14px 14px; }
+    .tool { background: #0f3460; color: #fff; border: 2px solid transparent; border-radius: 10px; padding: 8px 12px; font-family: Nunito, sans-serif; font-weight: 900; font-size: 0.9rem; cursor: pointer; }
+    .tool.on { border-color: #ffd54f; background: #1a4a8a; }
+    .color { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #fff3; cursor: pointer; padding: 0; }
+    .color.on { border-color: #ffd54f; }
+    .page { position: relative; margin: 14px auto; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.4); }
+    .page img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .page .layer { position: absolute; top: 0; left: 0; }
+    .page .pno { position: absolute; top: 6px; right: 8px; background: rgba(0,0,0,0.55); color: #fff; font-size: 0.75rem; font-weight: 800; border-radius: 8px; padding: 2px 8px; z-index: 5; pointer-events: none; }
+    .info-bar { background: #0f3460; border-radius: 14px; padding: 12px 14px; margin-top: 12px; font-size: 0.9rem; }
+    .grade-box { background: #e8f5e9; color: #1b5e20; border-radius: 14px; padding: 14px; margin-top: 12px; }
+    #submit-bar { position: sticky; bottom: 0; background: #16213e; padding: 12px 14px; display: flex; gap: 10px; align-items: center; z-index: 25; }
+    #save-state { font-size: 0.8rem; color: #a0c4ff; flex: 1; }
+    .btn-submit { background: #2e7d32; color: #fff; font-size: 1.05rem; padding: 13px 18px; }
+    .empty { text-align: center; color: #a0c4ff; padding: 40px 10px; }
+  </style>
+</head>
+<body>
+<div class="top">
+  <button class="btn btn-back" id="back-btn" onclick="goBack()">⬅</button>
+  <a href="student-greeting.html"><img src="LOGO.png" alt="PolyABC"/></a>
+  <div class="ttl" id="top-title">📚 My Homework</div>
+</div>
+<div id="wrap"></div>
+
+<script>
+const SERVER_URL = "https://polyabc-server.onrender.com";
+const token = localStorage.getItem('studentToken');
+if (!token) window.location.href = 'login.html';
+const H = () => ({ Authorization: `Bearer ${token}` });
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtDue = iso => new Date(iso).toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const PEN_WIDTH = 7;               // in page pixels (pages are about 1400 wide)
+const TEXT_SIZE = 42;
+const COLORS = ['#1565c0', '#000000', '#2e7d32'];
+
+let view = 'list', cur = null, pagesState = [], tool = 'pen', color = COLORS[0];
+
+function goBack() {
+  if (view === 'work') { flushAll(); showList(); }
+  else window.location.href = 'student-greeting.html';
+}
+
+// ───────── List ─────────
+async function showList() {
+  view = 'work-leaving'; cur = null; pagesState.forEach(p => { try { p.canvas.dispose(); } catch (e) {} }); pagesState = [];
+  view = 'list';
+  document.getElementById('top-title').textContent = '📚 My Homework';
+  const wrap = document.getElementById('wrap');
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const r = await fetch(`${SERVER_URL}/student/homework`, { headers: H() });
+    if (r.status === 403) { window.location.href = 'login.html'; return; }
+    const list = await r.json();
+    if (!Array.isArray(list) || !list.length) { wrap.innerHTML = '<div class="empty">🎉 You have no homework right now.</div>'; return; }
+    wrap.innerHTML = list.map(h => {
+      let badge;
+      if (h.status === 'graded') badge = `<span class="badge b-graded">✅ ${h.grade}/10</span>`;
+      else if (h.status === 'submitted') badge = '<span class="badge b-in">📥 Handed in</span>';
+      else if (h.closed) badge = '<span class="badge b-closed">⛔ Closed</span>';
+      else badge = '<span class="badge b-todo">✏️ To do</span>';
+      return `<div class="hw-card" onclick="openHw('${esc(h.id)}')">
+        <div class="info"><div class="t">${esc(h.title)}</div>
+          <div class="s">${esc(h.teacherName)} · ${h.pageCount} page${h.pageCount === 1 ? '' : 's'}</div>
+          <div class="s" style="color:${h.closed && h.status === 'assigned' ? '#c62828' : '#555'};font-weight:800;">Due ${fmtDue(h.dueAt)}</div></div>
+        ${badge}</div>`;
+    }).join('');
+  } catch (e) { wrap.innerHTML = '<div class="empty">Could not load your homework. Check your internet and try again.</div>'; }
+}
+
+// ───────── Workspace ─────────
+async function openHw(id) {
+  view = 'work';
+  const wrap = document.getElementById('wrap');
+  wrap.innerHTML = '<div class="empty">Opening…</div>';
+  let d;
+  try { d = await (await fetch(`${SERVER_URL}/student/homework/${encodeURIComponent(id)}`, { headers: H() })).json(); }
+  catch (e) { d = { success: false, error: 'Could not open it. Check your internet.' }; }
+  if (!d.success) { wrap.innerHTML = `<div class="empty">${esc(d.error || 'Could not open it.')}</div>`; return; }
+  cur = d;
+  document.getElementById('top-title').textContent = d.title;
+  const editable = d.status === 'assigned' && !d.closed && !d.pagesDeleted;
+  let head = `<div class="info-bar"><b>${esc(d.title)}</b> · ${esc(d.teacherName)}<br>
+    <span style="color:${d.closed ? '#ffab91' : '#a0c4ff'};font-weight:800;">Due ${fmtDue(d.dueAt)}</span>
+    ${d.instructions ? `<div style="margin-top:6px;">📝 ${esc(d.instructions)}</div>` : ''}</div>`;
+  if (d.status === 'graded') head += `<div class="grade-box"><div style="font-size:1.4rem;font-weight:900;">Grade: ${d.grade}/10</div>${d.comment ? `<div style="margin-top:4px;">💬 ${esc(d.comment)}</div>` : ''}<div style="font-size:0.8rem;margin-top:4px;">Your teacher's corrections are in red.</div></div>`;
+  else if (d.status === 'submitted') head += '<div class="info-bar" style="background:#1565c0;">📥 You handed this in. Your teacher will grade it soon.</div>';
+  else if (d.closed) head += '<div class="info-bar" style="background:#b71c1c;">⛔ The due date has passed. You can no longer hand it in.</div>';
+  if (d.pagesDeleted) { wrap.innerHTML = head + '<div class="empty">The pages of this homework were removed after 7 days. Your grade is still saved.</div>'; return; }
+  const tools = editable ? `<div id="tools">
+      <button class="tool on" data-tool="pen" onclick="setTool('pen')">✏️ Pen</button>
+      <button class="tool" data-tool="text" onclick="setTool('text')">🔤 Text</button>
+      ${COLORS.map((c, i) => `<button class="color${i === 0 ? ' on' : ''}" data-color="${c}" style="background:${c};" onclick="setColor('${c}')" aria-label="color"></button>`).join('')}
+      <button class="tool" onclick="undo()">↩️ Undo</button>
+      <button class="tool" onclick="clearPage()">🗑 Clear page</button>
+    </div>` : '';
+  const pages = d.pages.map(p => `<div class="page" id="pg-${p.idx}" data-idx="${p.idx}"><span class="pno">${p.idx + 1}/${d.pages.length}</span><img id="pgimg-${p.idx}" alt=""/><canvas id="pgc-${p.idx}" class="layer"></canvas></div>`).join('');
+  const foot = editable ? `<div id="submit-bar"><div id="save-state">Your work saves by itself.</div><button class="btn btn-submit" onclick="submitHw()">📤 Hand in</button></div>` : '';
+  wrap.innerHTML = head + tools + pages + foot;
+  tool = 'pen'; color = COLORS[0];
+  pagesState = [];
+  for (const p of d.pages) {
+    const st = { idx: p.idx, w: p.w, h: p.h, canvas: null, tcanvas: null, history: [], loading: true, dirty: false, timer: null };
+    pagesState.push(st);
+    setupPage(st, editable);
+  }
+  window.addEventListener('resize', fitAll);
+}
+
+function setupPage(st, editable) {
+  const box = document.getElementById('pg-' + st.idx);
+  const fc = new fabric.Canvas('pgc-' + st.idx, { selection: false, isDrawingMode: editable, enableRetinaScaling: true });
+  st.canvas = fc;
+  fc.freeDrawingBrush = new fabric.PencilBrush(fc);
+  fc.freeDrawingBrush.width = PEN_WIDTH; fc.freeDrawingBrush.color = color;
+  fitPage(st);
+  // picture underneath
+  fetch(`${SERVER_URL}/homework/${encodeURIComponent(cur.id)}/page/${st.idx}`, { headers: H() })
+    .then(r => r.json()).then(pg => { if (pg && pg.data) document.getElementById('pgimg-' + st.idx).src = pg.data; }).catch(() => {});
+  // saved work
+  const saved = cur.marks && cur.marks[st.idx];
+  const finishLoad = () => {
+    st.loading = false;
+    fc.getObjects().forEach(o => { o.selectable = editable; o.evented = editable; });
+    fc.renderAll();
+  };
+  if (saved) { try { fc.loadFromJSON(JSON.parse(saved), finishLoad); } catch (e) { finishLoad(); } } else finishLoad();
+  // teacher's corrections (read only, on top)
+  const tm = cur.teacherMarks && cur.teacherMarks[st.idx];
+  if (tm) {
+    const el = document.createElement('canvas'); el.className = 'layer'; el.id = 'pgt-' + st.idx; el.style.pointerEvents = 'none';
+    box.appendChild(el);
+    const tc = new fabric.StaticCanvas(el, { enableRetinaScaling: true });
+    st.tcanvas = tc; fitPage(st);
+    try { tc.loadFromJSON(JSON.parse(tm), () => tc.renderAll()); } catch (e) {}
+  }
+  if (!editable) { fc.isDrawingMode = false; fc.skipTargetFind = true; return; }
+  fc.on('object:added', e => { if (!st.loading) { st.history.push(e.target); markDirty(st); } });
+  fc.on('object:modified', () => markDirty(st));
+  fc.on('text:changed', () => markDirty(st));
+  fc.on('mouse:down', opt => {
+    if (tool !== 'text' || opt.target) return;
+    const pt = fc.getPointer(opt.e);
+    const t = new fabric.IText('', { left: pt.x, top: pt.y - TEXT_SIZE / 2, fontSize: TEXT_SIZE, fill: color, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 700 });
+    fc.add(t); fc.setActiveObject(t); t.enterEditing(); t.hiddenTextarea && t.hiddenTextarea.focus();
+  });
+  fc.on('text:editing:exited', e => { if (e.target && !e.target.text.trim()) { fc.remove(e.target); st.history = st.history.filter(o => o !== e.target); markDirty(st); } });
+}
+
+// Page pictures are stored at their real size (about 1400 wide); drawing is kept in those units and zoomed to the screen
+function fitPage(st) {
+  const box = document.getElementById('pg-' + st.idx); if (!box) return;
+  const avail = Math.min(document.getElementById('wrap').clientWidth - 4, 900);
+  box.style.width = avail + 'px';
+  const k = avail / st.w;
+  for (const c of [st.canvas, st.tcanvas]) {
+    if (!c) continue;
+    c.setDimensions({ width: avail, height: Math.round(st.h * k) });
+    c.setZoom(k);
+  }
+}
+let _fitT = null;
+function fitAll() { clearTimeout(_fitT); _fitT = setTimeout(() => pagesState.forEach(fitPage), 150); }
+
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('.tool[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  pagesState.forEach(st => { st.canvas.isDrawingMode = t === 'pen'; st.canvas.discardActiveObject(); st.canvas.renderAll(); });
+}
+function setColor(c) {
+  color = c;
+  document.querySelectorAll('.color').forEach(b => b.classList.toggle('on', b.dataset.color === c));
+  pagesState.forEach(st => { st.canvas.freeDrawingBrush.color = c; });
+}
+function lastEdited() {
+  // undo works on the page that was changed most recently
+  return pagesState.filter(s => s.history.length).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0))[0];
+}
+function undo() {
+  const st = lastEdited(); if (!st) return;
+  const o = st.history.pop(); if (o) { st.canvas.remove(o); st.canvas.renderAll(); markDirty(st); }
+}
+function clearPage() {
+  const st = lastEdited() || pagesState[0]; if (!st) return;
+  if (!confirm(`Erase everything you wrote on page ${st.idx + 1}?`)) return;
+  st.canvas.getObjects().slice().forEach(o => st.canvas.remove(o)); st.history = []; st.canvas.renderAll(); markDirty(st);
+}
+
+function setSaveState(t) { const el = document.getElementById('save-state'); if (el) el.textContent = t; }
+function markDirty(st) {
+  st.dirty = true; st.lastAt = Date.now();
+  setSaveState('Saving…');
+  clearTimeout(st.timer); st.timer = setTimeout(() => savePage(st), 1200);
+}
+async function savePage(st) {
+  if (!st.dirty || !cur) return true;
+  st.dirty = false;
+  try {
+    const r = await fetch(`${SERVER_URL}/student/homework/${encodeURIComponent(cur.id)}/marks`, { method: 'PUT', headers: { ...H(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idx: st.idx, json: JSON.stringify(st.canvas.toJSON()) }) });
+    const d = await r.json();
+    if (!d.success) { st.dirty = true; setSaveState('⚠️ ' + (d.error || 'Not saved')); if (d.closed) setTimeout(() => openHw(cur.id), 1500); return false; }
+    if (!pagesState.some(s => s.dirty)) setSaveState('✅ Saved');
+    return true;
+  } catch (e) { st.dirty = true; setSaveState('⚠️ Not saved — check your internet'); return false; }
+}
+async function flushAll() {
+  let okAll = true;
+  for (const st of pagesState) { clearTimeout(st.timer); if (st.dirty) okAll = (await savePage(st)) && okAll; }
+  return okAll;
+}
+async function submitHw() {
+  if (!cur) return;
+  if (!confirm('Hand in your homework now? You will not be able to change it after.')) return;
+  setSaveState('Saving…');
+  if (!(await flushAll())) { alert('Your work could not be saved. Check your internet and try again.'); return; }
+  try {
+    const d = await (await fetch(`${SERVER_URL}/student/homework/${encodeURIComponent(cur.id)}/submit`, { method: 'POST', headers: { ...H(), 'Content-Type': 'application/json' }, body: '{}' })).json();
+    if (!d.success) { alert(d.error || 'Could not hand it in.'); openHw(cur.id); return; }
+    alert('🎉 Homework handed in!');
+    openHw(cur.id);
+  } catch (e) { alert('Could not hand it in. Check your internet and try again.'); }
+}
+window.addEventListener('beforeunload', () => { pagesState.forEach(st => { if (st.dirty && cur) {
+  try { fetch(`${SERVER_URL}/student/homework/${encodeURIComponent(cur.id)}/marks`, { method: 'PUT', keepalive: true, headers: { ...H(), 'Content-Type': 'application/json' }, body: JSON.stringify({ idx: st.idx, json: JSON.stringify(st.canvas.toJSON()) }) }); } catch (e) {}
+} }); });
+
+const startId = new URLSearchParams(location.search).get('id');
+if (startId) openHw(startId); else showList();
+</script>
+</body>
+</html>

@@ -52,6 +52,7 @@
 <div class="card">
   <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>🎓 Enter Class</button>
   <button class="greeting-btn btn-speed" id="speed-btn" onclick="openNetTest()">📶 Run Speed Test</button>
+  <button class="greeting-btn btn-schedule" id="hw-btn" onclick="window.location.href='homework.html'">📚 My Homework</button>
   <button class="greeting-btn btn-schedule" onclick="window.location.href='student.html'">🎓 Student Panel</button>
   <button class="greeting-btn btn-exit" onclick="exitToLogin()">🚪 Exit</button>
 </div>
@@ -116,6 +117,18 @@
       return best?.sessionId || null;
     } catch(e) { return null; }
   }
+
+  // How many homeworks are still to do (shown on the button)
+  async function loadHomeworkCount() {
+    try {
+      const r = await fetch(`${SERVER_URL}/student/homework`, { headers: { Authorization: `Bearer ${token}` } });
+      const list = await r.json();
+      const n = Array.isArray(list) ? list.filter(h => h.status === 'assigned' && !h.closed).length : 0;
+      const b = document.getElementById('hw-btn');
+      if (b && n) b.textContent = `📚 My Homework (${n} to do)`;
+    } catch (e) {}
+  }
+  loadHomeworkCount();
 
   async function init() {
     _sessionId = await getActiveSessionId();
