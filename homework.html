@@ -64,8 +64,9 @@ const COLORS = ['#1565c0', '#000000', '#2e7d32'];
 let view = 'list', cur = null, pagesState = [], tool = 'pen', color = COLORS[0];
 
 function goBack() {
-  if (view === 'work') { flushAll(); showList(); }
-  else window.location.href = 'student-greeting.html';
+  // Homework lives in the Student Panel (📚 Homework tab); this page is where it is worked on
+  if (view === 'work') flushAll().finally(() => { window.location.href = 'student.html#homework'; });
+  else window.location.href = 'student.html#homework';
 }
 
 // ───────── List ─────────

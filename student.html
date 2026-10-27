@@ -87,13 +87,9 @@
       <div id="day-detail"></div>
     </div>
 
-    <!-- Homework tab — scaffolded for future use, not implemented yet -->
+    <!-- Homework tab: the student's homework; tapping one opens it to work on -->
     <div id="panel-homework" style="display:none;">
-      <div class="coming-soon">
-        <div class="icon">📚</div>
-        <div class="title">Homework — Coming Soon</div>
-        <div class="desc">Your teacher will be able to assign homework here in a future update.<br>Tu maestro podrá asignar tareas aquí próximamente.</div>
-      </div>
+      <div id="hw-panel-list" style="padding:6px 0;">Loading…</div>
     </div>
 
     <!-- Tests tab — scaffolded for future use, not implemented yet -->
@@ -128,7 +124,40 @@
       document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     });
     if (tab === 'help') loadHelpVideos();
+    if (tab === 'homework') loadStudentHomework();
   }
+
+  // ---- Homework ----
+  const hwFmtDue = iso => new Date(iso).toLocaleString('en-US', { timeZone: 'America/Mexico_City', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  async function loadStudentHomework() {
+    const box = document.getElementById('hw-panel-list');
+    try {
+      const r = await fetch(`${SERVER_URL}/student/homework`, { headers: { Authorization: `Bearer ${token}` } });
+      const list = await r.json();
+      updateHomeworkTab(list);
+      if (!Array.isArray(list) || !list.length) { box.innerHTML = '<div style="text-align:center;color:#888;padding:24px 0;">🎉 You have no homework right now.<br><span style="font-size:0.85rem;">No tienes tareas por ahora.</span></div>'; return; }
+      box.innerHTML = list.map(h => {
+        let badge;
+        if (h.status === 'graded') badge = `<span style="background:#e8f5e9;color:#2e7d32;font-weight:900;font-size:0.78rem;padding:5px 10px;border-radius:12px;white-space:nowrap;">✅ ${h.grade}/10</span>`;
+        else if (h.status === 'submitted') badge = '<span style="background:#e3f2fd;color:#1565c0;font-weight:900;font-size:0.78rem;padding:5px 10px;border-radius:12px;white-space:nowrap;">📥 Handed in</span>';
+        else if (h.closed) badge = '<span style="background:#ffebee;color:#c62828;font-weight:900;font-size:0.78rem;padding:5px 10px;border-radius:12px;white-space:nowrap;">⛔ Closed</span>';
+        else badge = '<span style="background:#fff3e0;color:#e65100;font-weight:900;font-size:0.78rem;padding:5px 10px;border-radius:12px;white-space:nowrap;">✏️ To do</span>';
+        return `<div class="hw-row" data-id="${helpEsc(h.id)}" onclick="location.href='homework.html?id=' + encodeURIComponent(this.dataset.id)" style="display:flex;align-items:center;gap:10px;border:2px solid #e6ecf5;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;text-align:left;">
+          <div style="flex:1;min-width:0;"><div style="font-weight:900;color:#1a1a2e;">${helpEsc(h.title)}</div>
+            <div style="font-size:0.8rem;color:#666;">${helpEsc(h.teacherName)} · ${h.pageCount} page${h.pageCount === 1 ? '' : 's'}</div>
+            <div style="font-size:0.8rem;font-weight:800;color:${h.closed && h.status === 'assigned' ? '#c62828' : '#555'};">Due ${hwFmtDue(h.dueAt)}</div></div>
+          ${badge}</div>`;
+      }).join('');
+    } catch (e) { box.innerHTML = '<div style="text-align:center;color:#c62828;padding:20px 0;">Could not load your homework. Try again.</div>'; }
+  }
+  // "📚 Homework (2)" on the tab when there is homework to do
+  function updateHomeworkTab(list) {
+    const n = Array.isArray(list) ? list.filter(h => h.status === 'assigned' && !h.closed).length : 0;
+    const t = document.getElementById('tab-homework');
+    if (t) t.textContent = n ? `📚 Homework (${n})` : '📚 Homework';
+  }
+  fetch(`${SERVER_URL}/student/homework`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).then(updateHomeworkTab).catch(() => {});
+  if (location.hash === '#homework') setTimeout(() => showTab('homework'), 0);
 
   // ---- Help videos (admin chooses which ones show here) ----
   function helpEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
