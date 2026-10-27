@@ -138,6 +138,8 @@ function setupPage(st, editable) {
   const box = document.getElementById('pg-' + st.idx);
   const fc = new fabric.Canvas('pgc-' + st.idx, { selection: false, isDrawingMode: editable, enableRetinaScaling: true });
   st.canvas = fc;
+  // fabric wraps the canvas in its own box: lay that box exactly over the page picture
+  Object.assign(fc.wrapperEl.style, { position: 'absolute', top: '0', left: '0', zIndex: '2' });
   fc.freeDrawingBrush = new fabric.PencilBrush(fc);
   fc.freeDrawingBrush.width = PEN_WIDTH; fc.freeDrawingBrush.color = color;
   fitPage(st);
@@ -155,7 +157,7 @@ function setupPage(st, editable) {
   // teacher's corrections (read only, on top)
   const tm = cur.teacherMarks && cur.teacherMarks[st.idx];
   if (tm) {
-    const el = document.createElement('canvas'); el.className = 'layer'; el.id = 'pgt-' + st.idx; el.style.pointerEvents = 'none';
+    const el = document.createElement('canvas'); el.className = 'layer'; el.id = 'pgt-' + st.idx; el.style.pointerEvents = 'none'; el.style.zIndex = '3';
     box.appendChild(el);
     const tc = new fabric.StaticCanvas(el, { enableRetinaScaling: true });
     st.tcanvas = tc; fitPage(st);

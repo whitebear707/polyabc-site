@@ -312,6 +312,7 @@
 
       <!-- Progress reports tab -->
       <div id="panel-reports" style="display:none;">
+        <div id="hw-grades-list" style="margin-bottom:18px;"></div>
         <div id="reports-list"></div>
       </div>
 
@@ -967,7 +968,34 @@ function scoreBar(v) {
     <strong style="margin-left:6px;color:${color};">${v}/5</strong></span>`;
 }
 
+// Homework grades (parents see the grade only, not the homework itself)
+async function renderHomeworkGrades() {
+  const box = document.getElementById('hw-grades-list'); if (!box) return;
+  try {
+    const res = await fetch(`${SERVER_URL}/parent/homework-grades`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    const list = await res.json();
+    if (!Array.isArray(list) || !list.length) { box.innerHTML = ''; return; }
+    const byStudent = {};
+    list.forEach(g => { (byStudent[g.studentName] = byStudent[g.studentName] || []).push(g); });
+    const col = v => v >= 8 ? '#2e7d32' : v >= 6 ? '#f9a825' : '#c62828';
+    const fmt = iso => new Date(iso).toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: 'short' });
+    box.innerHTML = `<div style="font-weight:900;color:#1a1a2e;margin-bottom:8px;">📚 Calificaciones de tareas</div>` +
+      Object.entries(byStudent).map(([name, gs]) => {
+        const avg = Math.round(gs.reduce((n, g) => n + Number(g.grade || 0), 0) / gs.length * 10) / 10;
+        return `<div style="border:2px solid #e6ecf5;border-radius:12px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;">
+            <span style="font-weight:900;">${escHtml(name)}</span>
+            <span style="font-size:0.85rem;font-weight:800;color:${col(avg)};">Promedio: ${avg}</span></div>
+          ${gs.map(g => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #f2f2f2;font-size:0.85rem;">
+            <span>${escHtml(g.title)} <span style="color:#888;font-size:0.76rem;">· ${fmt(g.dueAt)}${g.notHandedIn ? ' · <span style="color:#c62828;">no entregó</span>' : ''}</span></span>
+            <strong style="color:${col(Number(g.grade))};white-space:nowrap;">${g.grade}/10</strong></div>`).join('')}
+        </div>`;
+      }).join('');
+  } catch (e) { box.innerHTML = ''; }
+}
+
 async function renderReportsTab() {
+  renderHomeworkGrades();
   const box = document.getElementById('reports-list');
   box.innerHTML = '<div style="color:#888;font-size:0.88rem;">Cargando…</div>';
   try {

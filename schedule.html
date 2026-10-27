@@ -851,7 +851,14 @@
               <div style="font-size:0.8rem;color:${late ? '#c62828' : '#555'};font-weight:700;">Due ${hwFmtDue(hw.dueAt)}${late ? ' (closed)' : ''}</div></div>
             <div style="text-align:right;font-size:0.85rem;font-weight:800;">${hw.submitted} of ${hw.total} handed in<br><span style="color:#2e7d32;">${hw.graded} graded</span></div>
           </div>
-          <div style="margin-top:8px;font-size:0.82rem;">${(hw.subs || []).map(x => `<div style="padding:3px 0;border-top:1px solid #f0f0f0;">${hwEsc(x.studentName)} — ${statusTxt[x.status] || x.status}${x.grade != null ? ' · <b>' + x.grade + '</b>/10' : ''}</div>`).join('')}</div>
+          <div style="margin-top:8px;font-size:0.85rem;">${(hw.subs || []).map(x => {
+            const canGrade = x.status === 'submitted' || x.status === 'graded' || late;
+            const label = x.status === 'graded' ? '✏️ Edit grade' : x.status === 'submitted' ? '✏️ Grade' : 'Give grade';
+            const btn = canGrade ? `<button data-hw="${hwEsc(hw.id)}" data-st="${hwEsc(x.studentName)}" onclick="hwOpenGrade(this.dataset.hw, this.dataset.st)" style="padding:5px 10px;background:${x.status === 'submitted' ? '#1a73e8' : '#fff'};color:${x.status === 'submitted' ? '#fff' : '#1a73e8'};border:1px solid #1a73e8;border-radius:8px;font-family:Nunito;font-weight:800;font-size:0.8rem;cursor:pointer;">${label}</button>` : '';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #f0f0f0;">
+              <span>${hwEsc(x.studentName)} — ${x.notHandedIn ? '⛔ not handed in' : (statusTxt[x.status] || x.status)}${x.grade != null ? ' · <b>' + x.grade + '</b>/10' : ''}</span>${btn}</div>`;
+          }).join('')}</div>
+          ${hw.pagesDeleted ? '<div style="font-size:0.78rem;color:#888;margin-top:4px;">Pages removed after 7 days — grades are kept.</div>' : ''}
           <button onclick="hwDelete('${hwEsc(hw.id)}')" style="margin-top:8px;padding:6px 12px;background:#fff;color:#c62828;border:1px solid #c62828;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">🗑 Delete</button>
         </div>`;
       }).join('');
@@ -861,6 +868,140 @@
     if (!confirm('Delete this homework for all students? Their work and grades for it will be removed.')) return;
     await fetch(`${SERVER_URL}/teacher/homework/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     hwLoadList();
+  }
+
+
+  // ───────── Homework grading ─────────
+  let _gr = null; // { hw, student, data, pages: [{ idx, w, h, scanvas, tcanvas, history, dirty, timer }] }
+  const GR_RED = '#d50000', GR_PEN = 6, GR_TEXT = 40;
+  async function hwOpenGrade(hwId, student) {
+    if (!window.fabric) { try { await hwLoadScript('https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js'); } catch (e) { alert('Could not load the grading tools. Check your internet.'); return; } }
+    let d;
+    try { d = await (await fetch(`${SERVER_URL}/teacher/homework/${encodeURIComponent(hwId)}/sub/${encodeURIComponent(student)}`, { headers: { Authorization: `Bearer ${token}` } })).json(); }
+    catch (e) { d = { success: false, error: 'Could not open it.' }; }
+    if (!d.success) { alert(d.error || 'Could not open it.'); return; }
+    hwCloseGrade(true);
+    const handedIn = d.status === 'submitted' || (d.status === 'graded' && d.submittedAt);
+    const showPages = handedIn && !d.pagesDeleted;
+    const ov = document.createElement('div'); ov.id = 'gr-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:#1a1a2e;z-index:10000;overflow-y:auto;font-family:Nunito,sans-serif;color:#fff;text-align:left;';
+    ov.innerHTML = `
+      <div style="position:sticky;top:0;z-index:5;background:#16213e;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+        <button onclick="hwCloseGrade()" style="padding:8px 12px;background:#0f3460;color:#a0c4ff;border:none;border-radius:10px;font-weight:900;cursor:pointer;">✖ Close</button>
+        <div style="flex:1;min-width:0;"><div style="font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${hwEsc(d.studentName)} — ${hwEsc(d.title)}</div>
+          <div style="font-size:0.75rem;color:#a0c4ff;">${d.submittedAt ? 'Handed in ' + hwFmtDue(d.submittedAt) : 'Not handed in'}</div></div>
+      </div>
+      ${showPages ? `<div style="position:sticky;top:56px;z-index:4;background:#16213e;padding:6px 12px;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="gr-tool on" data-t="pen" onclick="grTool('pen')" style="padding:7px 12px;border-radius:10px;border:2px solid #ffd54f;background:#1a4a8a;color:#fff;font-weight:900;cursor:pointer;">🖍 Red pen</button>
+        <button class="gr-tool" data-t="text" onclick="grTool('text')" style="padding:7px 12px;border-radius:10px;border:2px solid transparent;background:#0f3460;color:#fff;font-weight:900;cursor:pointer;">🔤 Red text</button>
+        <button onclick="grUndo()" style="padding:7px 12px;border-radius:10px;border:none;background:#0f3460;color:#fff;font-weight:900;cursor:pointer;">↩️ Undo</button>
+        <span id="gr-save" style="font-size:0.78rem;color:#a0c4ff;align-self:center;"></span></div>` : ''}
+      <div id="gr-pages" style="max-width:900px;margin:0 auto;padding:10px;">
+        ${showPages ? d.pages.map(pg => `<div id="grp-${pg.idx}" style="position:relative;margin:12px auto;background:#fff;border-radius:6px;overflow:hidden;">
+          <img id="grimg-${pg.idx}" style="display:block;width:100%;pointer-events:none;"/>
+          <canvas id="grs-${pg.idx}" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
+          <canvas id="grt-${pg.idx}"></canvas></div>`).join('')
+          : `<div style="padding:30px 10px;text-align:center;color:#a0c4ff;">${d.pagesDeleted ? 'The pages were removed after 7 days. You can still change the grade.' : 'This student did not hand in the homework. You can give a grade (for example 0).'}</div>`}
+      </div>
+      <div style="position:sticky;bottom:0;background:#16213e;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div><div style="font-size:0.78rem;font-weight:800;color:#a0c4ff;">Grade (0–10)</div>
+          <input id="gr-grade" type="number" min="0" max="10" step="0.1" inputmode="decimal" value="${d.grade ?? ''}" style="width:90px;padding:10px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;"/></div>
+        <div style="flex:1;min-width:180px;"><div style="font-size:0.78rem;font-weight:800;color:#a0c4ff;">Comment (optional)</div>
+          <input id="gr-comment" type="text" maxlength="1000" value="${hwEsc(d.comment || '')}" placeholder="e.g. Great job! Check your verbs." style="width:100%;padding:10px;border-radius:10px;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;"/></div>
+        <button onclick="grSave()" style="padding:12px 18px;background:#2e7d32;color:#fff;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-weight:900;font-size:1rem;cursor:pointer;">💾 Save grade</button>
+        <div id="gr-msg" style="width:100%;font-size:0.85rem;font-weight:800;"></div>
+      </div>`;
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+    _gr = { hw: hwId, student, data: d, tool: 'pen', pages: [] };
+    if (!showPages) return;
+    for (const pg of d.pages) {
+      const st = { idx: pg.idx, w: pg.w, h: pg.h, history: [], dirty: false, timer: null, loading: true, lastAt: 0 };
+      st.scanvas = new fabric.StaticCanvas('grs-' + pg.idx, { enableRetinaScaling: true });
+      st.tcanvas = new fabric.Canvas('grt-' + pg.idx, { isDrawingMode: true, selection: false, enableRetinaScaling: true });
+      Object.assign(st.tcanvas.wrapperEl.style, { position: 'absolute', top: '0', left: '0', zIndex: '2' }); // over the page picture
+      st.tcanvas.freeDrawingBrush = new fabric.PencilBrush(st.tcanvas);
+      st.tcanvas.freeDrawingBrush.color = GR_RED; st.tcanvas.freeDrawingBrush.width = GR_PEN;
+      _gr.pages.push(st);
+      grFit(st);
+      fetch(`${SERVER_URL}/homework/${encodeURIComponent(hwId)}/page/${pg.idx}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(x => { if (x && x.data) document.getElementById('grimg-' + pg.idx).src = x.data; }).catch(() => {});
+      const sm = d.marks && d.marks[pg.idx];
+      if (sm) { try { st.scanvas.loadFromJSON(JSON.parse(sm), () => st.scanvas.renderAll()); } catch (e) {} }
+      const tm = d.teacherMarks && d.teacherMarks[pg.idx];
+      const done = () => { st.loading = false; st.tcanvas.renderAll(); };
+      if (tm) { try { st.tcanvas.loadFromJSON(JSON.parse(tm), done); } catch (e) { done(); } } else done();
+      st.tcanvas.on('object:added', e => { if (!st.loading) { st.history.push(e.target); grDirty(st); } });
+      st.tcanvas.on('object:modified', () => grDirty(st));
+      st.tcanvas.on('text:changed', () => grDirty(st));
+      st.tcanvas.on('mouse:down', opt => {
+        if (_gr.tool !== 'text' || opt.target) return;
+        const pt = st.tcanvas.getPointer(opt.e);
+        const t = new fabric.IText('', { left: pt.x, top: pt.y - GR_TEXT / 2, fontSize: GR_TEXT, fill: GR_RED, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 800 });
+        st.tcanvas.add(t); st.tcanvas.setActiveObject(t); t.enterEditing();
+      });
+      st.tcanvas.on('text:editing:exited', e => { if (e.target && !e.target.text.trim()) { st.tcanvas.remove(e.target); st.history = st.history.filter(o => o !== e.target); grDirty(st); } });
+    }
+    window.addEventListener('resize', grFitAll);
+  }
+  function grFit(st) {
+    const box = document.getElementById('grp-' + st.idx); if (!box) return;
+    const avail = Math.min(document.getElementById('gr-pages').clientWidth - 20, 880);
+    box.style.width = avail + 'px';
+    const k = avail / st.w;
+    for (const c of [st.scanvas, st.tcanvas]) { c.setDimensions({ width: avail, height: Math.round(st.h * k) }); c.setZoom(k); }
+  }
+  let _grFitT = null;
+  function grFitAll() { clearTimeout(_grFitT); _grFitT = setTimeout(() => _gr && _gr.pages.forEach(grFit), 150); }
+  function grTool(t) {
+    if (!_gr) return; _gr.tool = t;
+    document.querySelectorAll('.gr-tool').forEach(b => { const on = b.dataset.t === t; b.style.borderColor = on ? '#ffd54f' : 'transparent'; b.style.background = on ? '#1a4a8a' : '#0f3460'; });
+    _gr.pages.forEach(st => { st.tcanvas.isDrawingMode = t === 'pen'; st.tcanvas.discardActiveObject(); st.tcanvas.renderAll(); });
+  }
+  function grUndo() {
+    if (!_gr) return;
+    const st = _gr.pages.filter(x => x.history.length).sort((a, b) => b.lastAt - a.lastAt)[0]; if (!st) return;
+    const o = st.history.pop(); if (o) { st.tcanvas.remove(o); st.tcanvas.renderAll(); grDirty(st); }
+  }
+  function grDirty(st) {
+    st.dirty = true; st.lastAt = Date.now();
+    const el = document.getElementById('gr-save'); if (el) el.textContent = 'Saving…';
+    clearTimeout(st.timer); st.timer = setTimeout(() => grSavePage(st), 1200);
+  }
+  async function grSavePage(st) {
+    if (!_gr || !st.dirty) return true;
+    st.dirty = false;
+    try {
+      const d = await (await fetch(`${SERVER_URL}/teacher/homework/${encodeURIComponent(_gr.hw)}/sub/${encodeURIComponent(_gr.student)}/marks`, { method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ idx: st.idx, json: JSON.stringify(st.tcanvas.toJSON()) }) })).json();
+      const el = document.getElementById('gr-save');
+      if (!d.success) { st.dirty = true; if (el) el.textContent = '⚠️ ' + (d.error || 'Not saved'); return false; }
+      if (el && !_gr.pages.some(x => x.dirty)) el.textContent = '✅ Corrections saved';
+      return true;
+    } catch (e) { st.dirty = true; return false; }
+  }
+  async function grSave() {
+    if (!_gr) return;
+    const msg = document.getElementById('gr-msg');
+    const grade = document.getElementById('gr-grade').value.trim(), comment = document.getElementById('gr-comment').value.trim();
+    const g = Number(grade.replace(',', '.'));
+    if (grade === '' || !Number.isFinite(g) || g < 0 || g > 10) { msg.style.color = '#ffab91'; msg.textContent = '⚠️ The grade must be a number from 0 to 10.'; return; }
+    for (const st of _gr.pages) { clearTimeout(st.timer); if (st.dirty) await grSavePage(st); }
+    try {
+      const d = await (await fetch(`${SERVER_URL}/teacher/homework/${encodeURIComponent(_gr.hw)}/sub/${encodeURIComponent(_gr.student)}/grade`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ grade, comment }) })).json();
+      if (!d.success) { msg.style.color = '#ffab91'; msg.textContent = '⚠️ ' + (d.error || 'Not saved'); return; }
+      msg.style.color = '#a5d6a7'; msg.textContent = `✅ Saved: ${d.grade}/10`;
+      setTimeout(() => { hwCloseGrade(); hwLoadList(); }, 700);
+    } catch (e) { msg.style.color = '#ffab91'; msg.textContent = '⚠️ Not saved — check your internet.'; }
+  }
+  function hwCloseGrade(silent) {
+    const ov = document.getElementById('gr-modal');
+    if (_gr) { _gr.pages.forEach(st => { clearTimeout(st.timer); if (st.dirty) grSavePage(st); }); }
+    if (ov) { if (_gr) _gr.pages.forEach(st => { try { st.tcanvas.dispose(); st.scanvas.dispose(); } catch (e) {} }); ov.remove(); }
+    window.removeEventListener('resize', grFitAll);
+    document.body.style.overflow = '';
+    if (!silent) _gr = null;
   }
 
   function showPane(name) {
