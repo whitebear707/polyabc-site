@@ -533,6 +533,7 @@ document.getElementById('room-label').textContent = SESSION_ID
   ? `Room: ${ROOM} · #${SESSION_ID.slice(-6)}`
   : `Room: ${ROOM}`;
 document.getElementById('room-label').style.background = '#e65100';
+if (ROOM === '0') { document.getElementById('room-label').textContent = '🤝 Junta / Meeting'; document.getElementById('room-label').style.background = '#6a1b9a'; const tb = document.getElementById('take-break-btn'); if (tb) tb.style.display = 'none'; } // meetings have no breaks
 if (IS_TEACHER) {
   document.getElementById('teacher-only').style.display = 'flex';
   document.getElementById('chat-btn-wrap').style.display = 'block';
@@ -1929,6 +1930,15 @@ function checkTeacherRoomLock() {
   const openBtn = document.getElementById('open-class-btn');
   const enterBtn = document.getElementById('enter-btn');
   if (!openBtn) return;
+
+  // Junta (room 0): no class schedule — the host opens it whenever they are ready
+  if (ROOM === '0') {
+    openBtn.disabled = false; openBtn.style.opacity = '1'; openBtn.title = '';
+    setBtnLabel(openBtn, classIsOpen ? '🔒 Close Class' : '🔓 Open Class');
+    syncOpenClassBtnVisibility();
+    if (enterBtn) { enterBtn.style.display = 'block'; enterBtn.disabled = false; enterBtn.style.opacity = '1'; enterBtn.style.cursor = 'pointer'; enterBtn.title = ''; }
+    return;
+  }
 
   // No assignments today — block teacher
   if (!todayAssignments.length) {

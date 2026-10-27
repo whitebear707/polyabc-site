@@ -374,6 +374,7 @@
     <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Contabilidad</div>
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
+    <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
         <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
@@ -710,6 +711,51 @@
     <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Tech Support los agrega y edita. Aquí puedes ver qué video ve cada rol.</div>
     <div id="hv-list"></div>
 </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: JUNTAS (meetings, room 0) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-meetings" class="panel">
+    <div class="panel-title">🤝 Juntas</div>
+    <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
+      Las juntas usan el <b>salón 0</b>. Tú entras como anfitrión; los maestros invitados entran con su contraseña de maestro y los invitados con la contraseña que se genera aquí.
+      Máximo <b id="mt-max">6</b> personas además de ti. Las juntas no cuentan como clase (no generan asistencia ni pago).
+    </div>
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:900;font-size:1rem;cursor:pointer;">
+          <input type="checkbox" id="mt-enabled" onchange="meetingToggle()" style="width:22px;height:22px;"/> Junta activa
+        </label>
+        <span id="mt-state" style="font-size:0.82rem;font-weight:800;"></span>
+      </div>
+      <div style="font-size:0.8rem;color:#888;margin-top:6px;">Apagada: nadie puede entrar al salón 0 ("No hay junta en este momento"). Al apagarla, la junta termina para todos.</div>
+      <div style="margin-top:12px;"><label style="font-size:0.8rem;font-weight:800;color:#555;">Tema de la junta (opcional)</label>
+        <input id="mt-title" type="text" maxlength="100" placeholder="p. ej. Junta con padres del grupo A37" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;margin-top:4px;"/></div>
+      <button onclick="meetingEnterHost()" style="margin-top:14px;padding:12px 20px;background:#6a1b9a;color:#fff;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.95rem;cursor:pointer;">🎥 Entrar a la junta como anfitrión</button>
+      <div id="mt-online" style="font-size:0.82rem;color:#555;margin-top:8px;"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">
+      <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+        <div style="font-weight:900;margin-bottom:4px;">👩‍🏫 Maestros invitados</div>
+        <div style="font-size:0.8rem;color:#888;margin-bottom:8px;">Entran con el salón <b>0</b> y su contraseña de maestro de siempre.</div>
+        <div id="mt-teachers" style="max-height:320px;overflow:auto;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button onclick="meetingSave()" style="padding:9px 16px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">💾 Guardar maestros</button>
+          <button onclick="meetingCopyTeacherNote()" style="padding:9px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">📋 Copiar aviso para maestros</button>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+        <div style="font-weight:900;margin-bottom:4px;">👪 Invitados (padres u otros)</div>
+        <div style="font-size:0.8rem;color:#888;margin-bottom:8px;">Cada invitado recibe su propia contraseña. Solo sirve para el salón 0 mientras la junta esté activa.</div>
+        <div style="display:flex;gap:8px;">
+          <input id="mt-guest-name" type="text" maxlength="60" placeholder="Nombre (p. ej. Mamá de Ana Pérez)" onkeydown="if(event.key==='Enter')meetingAddGuest()" style="flex:1;min-width:0;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/>
+          <button onclick="meetingAddGuest()" style="padding:9px 14px;background:#2e7d32;color:#fff;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">+ Agregar</button>
+        </div>
+        <div id="mt-guests" style="margin-top:10px;"></div>
+      </div>
+    </div>
+    <div id="mt-msg" style="margin-top:12px;font-weight:800;font-size:0.9rem;"></div>
+  </div>
 
   <div id="panel-spectators" class="panel">
     <div class="panel-title">👁 Espectadores</div>
@@ -1547,7 +1593,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1555,7 +1601,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1574,6 +1620,7 @@ function showPanel(name) {
   if (name === 'parents')    renderParentsPanel();
   if (name === 'staff')      renderStaff();
   if (name === 'spectators') renderSpectators();
+  if (name === 'meetings')   renderMeetings();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
 }
 
@@ -5433,6 +5480,91 @@ function copySpectatorInfo(id) {
   const text = `PolyABC — Acceso para observar clase / Spectator access\nhttps://polyabc.academy\nSala / Room: ${s.assignedRoom || '(te lo indicaremos / we will tell you)'}\nContraseña / Password: ${s.password}`;
   const done = () => specStatus('📋 Login info copied', true);
   if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => specStatus('⚠️ No se pudo copiar', false)); else specStatus('⚠️ No se pudo copiar', false);
+}
+
+// ── JUNTAS (meetings, room 0) ──
+let _meeting = null;
+function mtMsg(t, ok) { const m = document.getElementById('mt-msg'); m.textContent = t; m.style.color = ok ? '#2e7d32' : ok === false ? '#c62828' : '#555'; }
+async function renderMeetings() {
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/meeting`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    _meeting = await res.json();
+    if (!res.ok || _meeting.error) throw new Error('bad');
+  } catch (e) { mtMsg('⚠️ No se pudo cargar la junta.', false); return; }
+  const m = _meeting;
+  document.getElementById('mt-max').textContent = m.max;
+  document.getElementById('mt-enabled').checked = !!m.enabled;
+  document.getElementById('mt-title').value = m.title || '';
+  const st = document.getElementById('mt-state');
+  st.textContent = m.enabled ? '🟢 Activa — los invitados ya pueden entrar' : '⚪ Apagada';
+  st.style.color = m.enabled ? '#2e7d32' : '#888';
+  document.getElementById('mt-online').textContent = m.online && m.online.length ? `En la junta ahora: ${m.online.join(', ')}` : '';
+  document.getElementById('mt-teachers').innerHTML = (m.teachers || []).map(t => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:0.9rem;">
+      <input type="checkbox" class="mt-tch" value="${escHtml(t.room)}" ${m.teacherRooms.includes(t.room) ? 'checked' : ''}/>
+      ${escHtml(t.teacherName)} <span style="color:#999;font-size:0.78rem;">· Salón ${escHtml(t.room)}</span></label>`).join('') || '<div style="color:#aaa;">No hay maestros.</div>';
+  document.getElementById('mt-guests').innerHTML = (m.guests || []).map(g => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;">
+      <div><div style="font-weight:800;">${escHtml(g.name)}</div><div style="font-family:monospace;font-size:0.85rem;color:#555;">Salón 0 · ${escHtml(g.password)}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button data-id="${escHtml(g.id)}" onclick="meetingCopyGuest(this.dataset.id)" style="padding:6px 10px;background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">📋 Copiar acceso</button>
+        <button data-id="${escHtml(g.id)}" onclick="meetingDelGuest(this.dataset.id)" style="padding:6px 10px;background:#fff;color:#c62828;border:1px solid #c62828;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">🗑</button>
+      </div></div>`).join('') || '<div style="color:#aaa;font-size:0.85rem;">Aún no hay invitados.</div>';
+}
+async function meetingPost(body) {
+  const res = await fetch(`${SERVER_URL}/admin/meeting`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) });
+  return res.json();
+}
+async function meetingToggle() {
+  const on = document.getElementById('mt-enabled').checked;
+  if (!on && !confirm('¿Apagar la junta? Si hay alguien adentro, la junta termina para todos.')) { document.getElementById('mt-enabled').checked = true; return; }
+  const d = await meetingPost({ enabled: on, title: document.getElementById('mt-title').value });
+  mtMsg(d.success ? (on ? '✅ Junta activa' : 'Junta apagada') : '⚠️ No se pudo guardar', d.success);
+  renderMeetings();
+}
+async function meetingSave() {
+  const rooms = [...document.querySelectorAll('.mt-tch:checked')].map(x => x.value);
+  const d = await meetingPost({ teacherRooms: rooms, title: document.getElementById('mt-title').value });
+  mtMsg(d.success ? `✅ Guardado: ${rooms.length} maestro${rooms.length === 1 ? '' : 's'} invitado${rooms.length === 1 ? '' : 's'}` : '⚠️ No se pudo guardar', d.success);
+  renderMeetings();
+}
+async function meetingAddGuest() {
+  const inp = document.getElementById('mt-guest-name'); const name = inp.value.trim();
+  if (!name) { mtMsg('Escribe el nombre del invitado.', false); return; }
+  const res = await fetch(`${SERVER_URL}/admin/meeting/guest`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ name }) });
+  const d = await res.json();
+  if (!d.success) { mtMsg('⚠️ ' + (d.error || 'No se pudo agregar'), false); return; }
+  inp.value = ''; mtMsg(`✅ ${d.guest.name} agregado. Usa "Copiar acceso" para mandarle sus datos.`, true);
+  renderMeetings();
+}
+async function meetingDelGuest(id) {
+  const g = (_meeting?.guests || []).find(x => x.id === id);
+  if (!confirm(`¿Quitar a ${g ? g.name : 'este invitado'}? Su contraseña deja de funcionar y, si está en la junta, sale de inmediato.`)) return;
+  await fetch(`${SERVER_URL}/admin/meeting/guest/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } });
+  renderMeetings();
+}
+function mtCopy(text, what) {
+  const ok = () => mtMsg(`📋 ${what} copiado. Pégalo en WhatsApp.`, true);
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok).catch(() => mtMsg('⚠️ No se pudo copiar', false)); else mtMsg('⚠️ No se pudo copiar', false);
+}
+function meetingCopyGuest(id) {
+  const g = (_meeting?.guests || []).find(x => x.id === id); if (!g) return;
+  const t = _meeting.title ? ` — ${_meeting.title}` : '';
+  mtCopy(`PolyABC — Junta${t}\nEntra en: https://polyabc.academy/login.html\nSalón: 0\nContraseña: ${g.password}`, `Acceso de ${g.name}`);
+}
+function meetingCopyTeacherNote() {
+  const t = _meeting?.title ? ` (${_meeting.title})` : '';
+  mtCopy(`PolyABC — Meeting${t}\nLog in at https://polyabc.academy/login.html\nRoom: 0\nPassword: your usual teacher password`, 'Aviso para maestros');
+}
+async function meetingEnterHost() {
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/meeting/host-token`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: '{}' });
+    const d = await res.json();
+    if (!d.success) { mtMsg('⚠️ ' + (d.error || 'No se pudo entrar'), false); return; }
+    localStorage.setItem('adminToken', d.token);          // the classroom reads the host login from here
+    localStorage.setItem('teacherName', 'Admin');
+    window.open('classroom.html?room=0', '_blank');
+  } catch (e) { mtMsg('⚠️ Error de red', false); }
 }
 
 async function renderStaff() {

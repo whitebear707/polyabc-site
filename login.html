@@ -279,6 +279,7 @@
     // Server messages arrive in English or "English / Español" — show Spanish only.
 function trServerMsg(m) {
   if (!m) return m;
+  if (/junta/i.test(m)) return m; // meeting messages: teachers read English, parents Spanish — show both
   if (m.includes(' / ')) {
     const parts = m.split(' / ');
     const es = parts.find(x => /[áéíóúñ¿¡]|^(Esta|Este|Algo|No se|Por favor)\b/.test(x));
@@ -332,6 +333,15 @@ function trServerMsg(m) {
           localStorage.setItem('trialStudent', JSON.stringify({ id: data.studentId, name: data.name, hasLevel: data.hasLevel, level: data.trialLevel, enrolledType: data.enrolledType || '1v1' }));
           window.location.href = 'exam.html'; return;
         }
+        if (data.role === 'meeting') {
+          // Junta (room 0): straight into the meeting as a participant. Any teacher login saved on this
+          // device is cleared first, so the classroom does not treat this person as the host.
+          localStorage.removeItem('adminToken');
+          localStorage.setItem('studentToken', data.token);
+          localStorage.setItem('studentName', data.name);
+          localStorage.setItem('studentRoom', '0');
+          window.location.href = 'classroom.html?room=0'; return;
+        }
         if (data.role === 'spectator' || data.role === 'spectator_it') {
           // Watch-only access: straight into the classroom, no greeting, no camera
           localStorage.removeItem('adminToken'); localStorage.removeItem('teacherToken');
@@ -364,7 +374,7 @@ function trServerMsg(m) {
           showPaymentWall();
           btn.innerHTML = 'Entrar a clase →'; btn.disabled = false;
         } else {
-          document.getElementById('join-error').textContent = trServerMsg(data.message) || 'Salón o contraseña incorrectos. Intenta de nuevo.';
+          document.getElementById('join-error').textContent = trServerMsg(data.message || data.error) || 'Salón o contraseña incorrectos. Intenta de nuevo.';
           document.getElementById('join-error').style.display = 'block';
           btn.innerHTML = 'Entrar a clase →'; btn.disabled = false;
         }
