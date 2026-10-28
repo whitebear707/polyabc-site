@@ -510,6 +510,14 @@ const NET_TEST     = SESSION_ID ? (() => { try { const c = localStorage.getItem(
 // Tech support opens a class with ?it=1 using its own login (techToken), so it is never treated as admin/teacher
 const TECH_MODE    = params.get('it') === '1' && !!localStorage.getItem('techToken');
 const IS_TEACHER   = !TECH_MODE && !!localStorage.getItem('adminToken');
+// School rule: teachers can't give classes from a phone (tablets and computers are fine; meetings are not classes)
+const IS_PHONE     = !/iPad|Tablet/i.test(navigator.userAgent) && (/iPhone|iPod|Android.*Mobile|Mobi/i.test(navigator.userAgent) || (Math.min(screen.width, screen.height) < 500 && navigator.maxTouchPoints > 0));
+if (IS_TEACHER && IS_PHONE && (new URLSearchParams(location.search).get('room') || '') !== '0') {
+  document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a2e;padding:24px;font-family:Nunito,sans-serif;">'
+    + '<div style="background:#fff3e0;color:#e65100;border:2px solid #e65100;border-radius:16px;padding:20px;max-width:420px;text-align:center;font-weight:800;line-height:1.5;">📵 <b>Classes can’t be given from a phone.</b><br>Please use a computer or a tablet. You can still check your schedule, pay and homework on your phone.'
+    + '<br><br><a href="schedule.html" style="color:#1a73e8;">Go to my teacher panel</a></div></div>';
+  throw new Error('Teachers cannot give classes from a phone');
+}
 const MY_TOKEN     = TECH_MODE ? (localStorage.getItem('techToken') || '') : (localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '');
 const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
 // SPECTATOR: watch-only login (admin-created). The server decides what it may do; this only shapes the page.

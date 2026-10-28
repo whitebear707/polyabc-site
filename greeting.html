@@ -59,7 +59,7 @@
 </div>
 
 <div class="card">
-  <button class="greeting-btn btn-enter" id="enter-btn" onclick="enterClass()" disabled>🎓 Enter Class</button>
+  <button class="greeting-btn btn-enter" id="enter-btn" onclick="if (typeof IS_PHONE !== 'undefined' && IS_PHONE) return; enterClass()" disabled>🎓 Enter Class</button>
   <button class="greeting-btn btn-speed" id="speed-btn" onclick="openNetTest()">📶 Run Speed Test</button>
   <button class="greeting-btn btn-schedule" id="schedule-btn" onclick="goSchedule()" style="position:relative;">
     <span id="schedule-btn-label">📅 My Schedule</span>
@@ -97,6 +97,21 @@
   const room  = localStorage.getItem('teacherRoom');
   const name  = localStorage.getItem('teacherName');
   if (!token || !room) window.location.href = 'login.html';
+
+  // School rule: teachers can't give classes from a phone (tablets and computers are fine).
+  // A phone is a device that says so, or a touch screen whose short side is under 500 px.
+  const IS_PHONE = !/iPad|Tablet/i.test(navigator.userAgent) && (/iPhone|iPod|Android.*Mobile|Mobi/i.test(navigator.userAgent) || (Math.min(screen.width, screen.height) < 500 && navigator.maxTouchPoints > 0));
+  if (IS_PHONE) {
+    const eb = document.getElementById('enter-btn');
+    if (eb) {
+      const note = document.createElement('div');
+      note.id = 'phone-block';
+      note.style.cssText = 'background:#fff3e0;color:#e65100;border:2px solid #e65100;border-radius:12px;padding:12px 14px;font-weight:800;font-size:0.9rem;line-height:1.4;text-align:center;';
+      note.innerHTML = '📵 <b>Classes can’t be given from a phone.</b><br>Please use a computer or a tablet. You can still check your schedule, pay and homework on your phone.';
+      eb.parentNode.insertBefore(note, eb);
+      eb.style.display = 'none';
+    }
+  }
 
   // Connect socket to receive real-time waiting notifications
   const greetingSocket = io(SERVER_URL, { auth: { token }, transports: ['websocket'] });
