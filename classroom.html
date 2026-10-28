@@ -594,11 +594,25 @@ function updateSelfMonkey() {
   }
 }
 
+// Camera size: the boxes on screen are small, so a lighter picture looks the same and leaves room
+// for slow laptops, weak home internet and screen sharing. Students are small tiles; the teacher is shown bigger.
+// "ideal" never makes a camera fail; if one still refuses, fall back to the camera's normal picture.
+const CAM_VIDEO = IS_TEACHER
+  ? { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 24 } }
+  : { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 15 } };
+async function getCam(withAudio) {
+  try { return await navigator.mediaDevices.getUserMedia({ video: CAM_VIDEO, audio: withAudio }); }
+  catch (e) {
+    if (e && (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError')) return await navigator.mediaDevices.getUserMedia({ video: true, audio: withAudio });
+    throw e;
+  }
+}
+
 // Students: if the camera is blocked/missing but the mic works, join with mic only.
 // The camera error is kept so tech support still sees it.
 async function acquireMedia() {
   try {
-    return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    return await getCam(true);
   } catch (e) {
     if (IS_TEACHER) throw e;
     try {
@@ -628,7 +642,7 @@ function showCamOffNotice() {
     document.body.appendChild(b);
     document.getElementById('cam-retry-btn').onclick = async () => {
       try {
-        const v = await navigator.mediaDevices.getUserMedia({ video: true });
+        const v = await getCam(false);
         v.getVideoTracks().forEach(t => localStream && localStream.addTrack(t));
         reportMedia('ok');
         b.style.display = 'none';
@@ -1568,12 +1582,22 @@ function iInitiateVideo(targetId) {
 }
 // Self-heal: if no video arrives within a few seconds, or the link fails, redo the call
 // automatically (up to 4 times) so nobody has to refresh.
+// Does the other side actually send a camera picture? A student with no camera (blocked, broken or missing)
+// joins with sound only and says so when connecting; waiting for their picture would never end.
+function remoteSendsVideo(pc) {
+  const sdp = pc.currentRemoteDescription && pc.currentRemoteDescription.sdp;
+  if (!sdp) return true;                                                     // not known yet: assume yes
+  const sec = sdp.split(/\r?\nm=/).find(x => /^(m=)?video /.test(x));
+  return !!sec && /a=(sendrecv|sendonly)/.test(sec);
+}
 function watchVideoPeer(targetId, pc, socket) {
   const check = () => {
     if (videoPeers[targetId] !== pc) return;                       // replaced or removed
     if (!remoteRoles[targetId] && !studentSlots[targetId]) return;  // they left
     const state = pc.connectionState;
     if (pc._gotTrack && state !== 'failed' && state !== 'disconnected' && state !== 'closed') return;
+    // No camera on the other side: a connected link is healthy (rebuilding it would blank our own picture for them)
+    if (!remoteSendsVideo(pc) && state === 'connected') return;
     if ((videoTries[targetId] = (videoTries[targetId] || 0) + 1) > 4) return;
     if (iInitiateVideo(targetId)) callVideoPeer(targetId, socket);
     else socket.emit('video-retry', { to: targetId });
