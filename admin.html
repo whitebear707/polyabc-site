@@ -375,6 +375,7 @@
 
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
     <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
+    <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
         <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
@@ -711,6 +712,34 @@
     <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Tech Support los agrega y edita. Aquí puedes ver qué video ve cada rol.</div>
     <div id="hv-list"></div>
 </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: GRABACIONES (class recordings in Google Drive) -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-recordings" class="panel">
+    <div class="panel-title">🎥 Grabaciones de clases</div>
+    <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
+      Las clases se graban desde la computadora del maestro y se guardan en Google Drive (carpeta <b>PolyABC Grabaciones</b>). Antes de cada clase, maestro y alumnos aceptan la grabación. Las juntas no se graban.
+      Los padres pueden descargar las clases de su hijo durante 14 días. Para ver una grabación con el botón "Ver", tu cuenta de Google necesita acceso a la carpeta.
+    </div>
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div style="font-weight:900;margin-bottom:8px;">Google Drive</div>
+      <div id="rc-drive" style="font-size:0.92rem;margin-bottom:10px;">Cargando…</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" id="rc-connect" onclick="recConnectDrive()" style="background:#1a73e8;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;">🔗 Conectar Google Drive</button>
+        <button class="btn" id="rc-disconnect" onclick="recDisconnectDrive()" style="display:none;background:#fff;color:#e53935;border:2px solid #e53935;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;">Desconectar</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;font-size:0.9rem;">
+        Borrar grabaciones después de <input id="rc-keep" type="number" min="1" max="365" style="width:70px;padding:6px;border:1px solid #ccc;border-radius:8px;"/> días
+        <button onclick="recSaveKeep()" style="background:#2e7d32;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;">Guardar</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-weight:900;">Clases grabadas</div>
+      <button onclick="renderRecordings()" style="background:#f1f3f4;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;">🔄 Actualizar</button>
+    </div>
+    <div id="rc-list"></div>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: JUNTAS (meetings, room 0) -->
@@ -1593,7 +1622,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1601,7 +1630,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1621,6 +1650,7 @@ function showPanel(name) {
   if (name === 'staff')      renderStaff();
   if (name === 'spectators') renderSpectators();
   if (name === 'meetings')   renderMeetings();
+  if (name === 'recordings') renderRecordings();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
 }
 
@@ -5496,6 +5526,60 @@ function copySpectatorInfo(id) {
 // ── JUNTAS (meetings, room 0) ──
 let _meeting = null;
 function mtMsg(t, ok) { const m = document.getElementById('mt-msg'); m.textContent = t; m.style.color = ok ? '#2e7d32' : ok === false ? '#c62828' : '#555'; }
+// ── GRABACIONES ──
+async function renderRecordings() {
+  const box = document.getElementById('rc-drive');
+  try {
+    const st = await (await fetch(`${SERVER_URL}/admin/google/status`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    if (st.error) throw new Error(st.error);
+    box.innerHTML = !st.configured ? '⚠️ Falta configurar Google en el servidor (Render).'
+      : st.connected ? `🟢 Conectado${st.email ? ' con <b>' + escHtml(st.email) + '</b>' : ''} — las clases se están grabando.`
+      : '⚪ No conectado — las clases no se graban.';
+    document.getElementById('rc-connect').style.display = st.configured && !st.connected ? '' : 'none';
+    document.getElementById('rc-disconnect').style.display = st.connected ? '' : 'none';
+    document.getElementById('rc-keep').value = st.settings?.keepDays || 30;
+  } catch (e) { box.textContent = '⚠️ No se pudo cargar el estado.'; }
+  const list = document.getElementById('rc-list');
+  list.innerHTML = '<div style="color:#999;">Cargando…</div>';
+  try {
+    const rows = await (await fetch(`${SERVER_URL}/admin/recordings`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    if (!Array.isArray(rows)) throw new Error('bad');
+    if (!rows.length) { list.innerHTML = '<div style="color:#999;padding:12px;">Todavía no hay grabaciones.</div>'; return; }
+    const badge = r => r.status === 'complete' ? '<span style="color:#2e7d32;font-weight:900;">✅ Completa</span>'
+      : r.status === 'recording' ? '<span style="color:#e53935;font-weight:900;">⏺ Grabando / subiendo</span>'
+      : '<span style="color:#e65100;font-weight:900;" title="El maestro cerró antes de terminar de subir y no ha vuelto a entrar">⚠️ Incompleta</span>';
+    list.innerHTML = rows.map(r => `
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div style="font-weight:900;">${escHtml(r.date)} ${escHtml(r.time || '')} · Salón ${escHtml(r.room)} · ${escHtml(r.teacherName || '')}${r.part > 1 ? ' · parte ' + r.part : ''}</div>
+          ${badge(r)}
+        </div>
+        <div style="font-size:0.85rem;color:#555;margin-top:4px;">${escHtml(r.groupName || (r.students || []).join(', ') || '—')} · ${(r.bytes / 1048576).toFixed(1)} MB</div>
+        <div style="font-size:0.8rem;color:#777;margin-top:4px;">Aceptaron: ${escHtml((r.accepted || []).join(', ') || '—')}${r.denied && r.denied.length ? ' · <span style="color:#e53935;">Rechazaron: ' + escHtml(r.denied.join(', ')) + '</span>' : ''}</div>
+        ${r.link ? `<a href="${escHtml(r.link)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;background:#1a73e8;color:#fff;border-radius:8px;padding:6px 12px;font-weight:800;text-decoration:none;font-size:0.85rem;">▶ Ver en Drive</a>` : ''}
+      </div>`).join('');
+  } catch (e) { list.innerHTML = '<div style="color:#e53935;">⚠️ No se pudieron cargar las grabaciones.</div>'; }
+}
+async function recConnectDrive() {
+  const w = window.open('', '_blank');   // opened right on the tap so phones don't block it
+  try {
+    const r = await (await fetch(`${SERVER_URL}/admin/google/connect-url`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    if (!r.success) { if (w) w.close(); showToast('⚠️ ' + (r.error || 'Error')); return; }
+    if (w) w.location.href = r.url; else window.location.href = r.url;
+    showToast('Termina en la ventana de Google y luego presiona 🔄 Actualizar');
+  } catch (e) { if (w) w.close(); showToast('⚠️ Error de conexión'); }
+}
+async function recDisconnectDrive() {
+  if (!confirm('¿Desconectar Google Drive? Las clases dejarán de grabarse (las grabaciones ya guardadas se quedan en Drive).')) return;
+  await fetch(`${SERVER_URL}/admin/google/disconnect`, { method: 'POST', headers: { Authorization: `Bearer ${currentToken}` } }).catch(() => {});
+  renderRecordings();
+}
+async function recSaveKeep() {
+  const keepDays = Number(document.getElementById('rc-keep').value) || 30;
+  const r = await (await fetch(`${SERVER_URL}/admin/recordings/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ keepDays }) })).json().catch(() => ({}));
+  showToast(r.success ? `✅ Se borrarán después de ${r.keepDays} días` : '⚠️ No se pudo guardar');
+}
+
 async function renderMeetings() {
   try {
     const res = await fetch(`${SERVER_URL}/admin/meeting`, { headers: { Authorization: `Bearer ${currentToken}` } });
