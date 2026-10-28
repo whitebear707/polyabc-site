@@ -3846,7 +3846,7 @@ function recordingGate() {
           <div style="background:#fff;border-radius:22px;max-width:440px;width:100%;padding:28px 22px;text-align:center;animation:recPop .35s ease-out;border:4px solid #e53935;">
             <div style="display:inline-flex;align-items:center;gap:8px;background:#e53935;color:#fff;font-weight:900;padding:8px 18px;border-radius:30px;font-size:1.1rem;animation:recPulse 1.4s infinite;">● REC</div>
             <div style="font-size:1.6rem;font-weight:900;color:#1a1a2e;margin:18px 0 8px;">This class will be recorded</div>
-            <div style="color:#555;font-size:1rem;line-height:1.5;margin-bottom:22px;">Video, audio, the whiteboard and shared screens are recorded for the school and for the students’ families. Recordings are deleted after 30 days.</div>
+            <div style="color:#555;font-size:1rem;line-height:1.5;margin-bottom:22px;">Video, audio, the whiteboard and shared screens are recorded for the school and for the students’ families. Recordings are deleted after ${Number(st.keepDays) || 30} days.</div>
             <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
               <button id="rec-accept" style="flex:1;min-width:140px;background:#2e7d32;color:#fff;border:none;border-radius:14px;padding:16px;font-size:1.15rem;font-weight:900;cursor:pointer;">✅ Accept</button>
               <button id="rec-deny" style="flex:1;min-width:140px;background:#fff;color:#e53935;border:3px solid #e53935;border-radius:14px;padding:13px;font-size:1.15rem;font-weight:900;cursor:pointer;">✖ Deny</button>
