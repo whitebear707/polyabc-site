@@ -84,6 +84,7 @@
   </div>
 </div>
 
+<script src="recorder.js"></script>
 <script>
   const SERVER_URL = "https://polyabc-server.onrender.com";
 
@@ -376,6 +377,8 @@ let _lastWaitingCount = 0;
     ['teacherToken','teacherRoom','teacherName','adminToken','teacherIsSub'].forEach(k => localStorage.removeItem(k));
     window.location.href = 'login.html';
   }
+  // A class recording that was cut short (page closed early): send the rest now
+  if (window.PolyRec) setTimeout(() => PolyRec.resumePending(), 3000);
 </script>
 </body>
 </html>

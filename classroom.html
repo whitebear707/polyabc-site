@@ -501,6 +501,7 @@
   <style>@keyframes rotateIcon { 0%{transform:rotate(0deg)} 50%{transform:rotate(90deg)} 100%{transform:rotate(0deg)} }</style>
 </div>
 
+<script src="recorder.js"></script>
 <script>
 const SERVER_URL   = "https://polyabc-server.onrender.com";
 const params       = new URLSearchParams(window.location.search);
@@ -3170,12 +3171,12 @@ function teacherEndClass() {
   // Store end time for greeting page to display
   const endTime = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
   localStorage.setItem('lastClassEndedAt', endTime);
-  // Wait 2 seconds to ensure server fully processes end-class before disconnecting
-  setTimeout(() => {
+  // Wait 2 seconds to ensure server fully processes end-class before disconnecting (and finish saving the recording)
+  Promise.all([new Promise(r => setTimeout(r, 2000)), finishRecording().catch(() => {})]).then(() => {
     if (captureInterval) clearInterval(captureInterval);
     if (window._socket) window._socket.disconnect();
     window.location.href = 'greeting.html';
-  }, 2000);
+  });
 }
 
 // ── WebRTC Screenshare (peer-to-peer, zero server bandwidth) ──
@@ -3828,7 +3829,85 @@ function uploadImage(event) {
 // Show help after 15s if still loading
 setTimeout(() => { const spinner = document.getElementById('spinner'); if (spinner && spinner.style.display !== 'none') { document.getElementById('connect-msg').textContent = 'Taking too long?'; document.getElementById('connect-msg').style.fontSize = '1.2rem'; } }, 15000);
 
-startMedia();
+// ── Class recording: everyone in a class (not juntas) accepts first; Deny goes back home ──
+let REC_OK = false, REC_AC = null, liveRec = null, recStarting = false;
+function recordingGate() {
+  if (ROOM === '0' || IS_SPECTATOR || TECH_MODE || !MY_TOKEN) return Promise.resolve(true);
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
+  return fetch(`${SERVER_URL}/recording/status?room=${encodeURIComponent(ROOM)}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` }, signal: ctl.signal })
+    .then(r => r.json()).catch(() => ({ active: false })).then(st => {
+      clearTimeout(to);
+      if (!st || !st.active) return true;
+      return new Promise(resolve => {
+        const ov = document.createElement('div');
+        ov.id = 'rec-consent';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:radial-gradient(circle at center,#3a0d1f 0%,#1a1a2e 70%);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+        ov.innerHTML = `<style>@keyframes recPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(229,57,53,.7)}50%{transform:scale(1.08);box-shadow:0 0 0 18px rgba(229,57,53,0)}}@keyframes recPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}</style>
+          <div style="background:#fff;border-radius:22px;max-width:440px;width:100%;padding:28px 22px;text-align:center;animation:recPop .35s ease-out;border:4px solid #e53935;">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:#e53935;color:#fff;font-weight:900;padding:8px 18px;border-radius:30px;font-size:1.1rem;animation:recPulse 1.4s infinite;">● REC</div>
+            <div style="font-size:1.6rem;font-weight:900;color:#1a1a2e;margin:18px 0 8px;">This class will be recorded</div>
+            <div style="color:#555;font-size:1rem;line-height:1.5;margin-bottom:22px;">Video, audio, the whiteboard and shared screens are recorded for the school and for the students’ families. Recordings are deleted after 30 days.</div>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+              <button id="rec-accept" style="flex:1;min-width:140px;background:#2e7d32;color:#fff;border:none;border-radius:14px;padding:16px;font-size:1.15rem;font-weight:900;cursor:pointer;">✅ Accept</button>
+              <button id="rec-deny" style="flex:1;min-width:140px;background:#fff;color:#e53935;border:3px solid #e53935;border-radius:14px;padding:13px;font-size:1.15rem;font-weight:900;cursor:pointer;">✖ Deny</button>
+            </div></div>`;
+        document.body.appendChild(ov);
+        const log = (accepted) => fetch(`${SERVER_URL}/recording/consent`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ room: ROOM, sessionId: SESSION_ID, accepted }) }).catch(() => {});
+        document.getElementById('rec-accept').onclick = () => {
+          // the click lets the page mix sound for the recording
+          if (IS_TEACHER) { try { REC_AC = new (window.AudioContext || window.webkitAudioContext)(); REC_AC.resume().catch(() => {}); } catch (e) {} }
+          REC_OK = true; log(true); ov.remove(); resolve(true);
+        };
+        document.getElementById('rec-deny').onclick = async () => {
+          document.getElementById('rec-deny').disabled = true;
+          await Promise.race([log(false), new Promise(r => setTimeout(r, 2500))]);
+          window.location.href = IS_TEACHER ? 'greeting.html' : 'student-greeting.html';
+          resolve(false);
+        };
+      });
+    });
+}
+// Teacher: recording starts when the class is opened and runs until End Class
+async function maybeStartRecording() {
+  if (!IS_TEACHER || !REC_OK || liveRec || recStarting || !classIsOpen || !window.PolyRec) return;
+  recStarting = true;
+  try {
+    const r = await fetch(`${SERVER_URL}/recordings/start`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ room: ROOM, sessionId: SESSION_ID }) }).then(x => x.json());
+    if (r && r.success) {
+      const lr = PolyRec.LiveRecorder({ audioContext: REC_AC, boardCanvas: () => canvas && canvas.lowerCanvasEl, extraStreams: () => [localStream, screenStream] });
+      if (await lr.start(r.recId, r.uploadUrl)) { liveRec = lr; showRecBadge(); }
+    }
+  } catch (e) { console.warn('[REC] start failed', e); }
+  recStarting = false;
+}
+function showRecBadge() {
+  if (document.getElementById('rec-badge')) return;
+  const b = document.createElement('div'); b.id = 'rec-badge';
+  b.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9000;background:#e53935;color:#fff;font-weight:900;font-size:.8rem;padding:3px 12px;border-radius:20px;font-family:Nunito,sans-serif;pointer-events:none;';
+  b.textContent = '● REC'; document.body.appendChild(b);
+}
+// Honest "Saving class…" screen at End Class (pieces were sent during class, so this is usually quick)
+async function finishRecording() {
+  if (!liveRec) return;
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Nunito,sans-serif;text-align:center;padding:16px;';
+  ov.innerHTML = '<div id="rec-save-title" style="font-size:1.6rem;font-weight:900;margin-bottom:14px;">💾 Saving class…</div><div style="width:280px;max-width:90vw;height:14px;background:#333;border-radius:8px;overflow:hidden;"><div id="rec-save-bar" style="height:100%;width:0%;background:#69f0ae;transition:width .3s;"></div></div><div id="rec-save-sub" style="margin-top:12px;color:#aaa;font-size:.95rem;">Please keep this page open.</div>';
+  document.body.appendChild(ov);
+  const warn = e => { e.preventDefault(); e.returnValue = ''; };
+  window.addEventListener('beforeunload', warn);
+  const ok = await liveRec.stop((sent, total) => { const pc = total ? Math.round(sent * 100 / total) : 100; const bar = document.getElementById('rec-save-bar'); if (bar) bar.style.width = pc + '%'; });
+  window.removeEventListener('beforeunload', warn);
+  document.getElementById('rec-save-bar').style.width = '100%';
+  document.getElementById('rec-save-title').textContent = ok ? '✅ Done' : '✅ Saved on this computer';
+  document.getElementById('rec-save-sub').textContent = ok ? '' : 'The rest will be sent next time you open your teacher page.';
+  await new Promise(r => setTimeout(r, 1200));
+}
+if (IS_TEACHER) {
+  setInterval(maybeStartRecording, 3000);
+  if (window.PolyRec) setTimeout(() => PolyRec.resumePending(), 8000); // a class closed early last time: send the rest
+}
+
+recordingGate().then(ok => { if (ok) startMedia(); });
 </script>
 </body>
 </html>
