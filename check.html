@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<script src="errors.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" type="image/png" href="icon.png"/>
+<title>Device check — PolyABC</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root { --bg:#f0f4fa; --card:#fff; --ink:#1a1a2e; --muted:#6b7280; --line:#e2e6ef; --blue:#1a73e8; --green:#2e7d32; --red:#e53935; --amber:#e65100; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Nunito,Arial,sans-serif; }
+  main { max-width:560px; margin:0 auto; padding:18px 16px 40px; }
+  .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  .step { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line); }
+  .step:first-of-type { border-top:none; }
+  .st { font-weight:900; white-space:nowrap; }
+  .ok { color:var(--green); } .bad { color:var(--red); } .warn { color:var(--amber); }
+  button { font-family:inherit; font-weight:900; border:none; border-radius:12px; padding:12px 16px; font-size:1rem; cursor:pointer; }
+  .primary { background:var(--blue); color:#fff; width:100%; }
+  .yes { background:var(--green); color:#fff; } .no { background:#fff; color:var(--red); border:2px solid var(--red); }
+  video { width:100%; max-height:240px; background:#000; border-radius:12px; display:none; margin-top:10px; object-fit:contain; }
+  .meter { height:12px; background:#e5e7eb; border-radius:8px; overflow:hidden; margin-top:6px; }
+  .meter > div { height:100%; width:0; background:var(--green); transition:width .08s; }
+  input { width:100%; padding:11px; border:2px solid var(--line); border-radius:10px; font-family:inherit; font-size:1rem; margin-top:6px; }
+  .tips li { margin-bottom:6px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <h1>🔧 Device check · Prueba de equipo</h1>
+    <div class="muted">Checks your camera, microphone, speakers and internet before class. Takes about 1 minute.<br>Revisa tu cámara, micrófono, bocinas e internet antes de la clase. Tarda como 1 minuto.</div>
+    <input id="who" maxlength="80" placeholder="Student name · Nombre del alumno"/>
+    <button class="primary" id="start" style="margin-top:12px;">▶ Start · Empezar</button>
+  </div>
+
+  <div class="card" id="steps" style="display:none;">
+    <div class="step"><span>📷 Camera · Cámara</span><span class="st" id="s-cam">…</span></div>
+    <video id="vid" autoplay playsinline muted></video>
+    <div class="step" style="flex-wrap:wrap;"><span>🎤 Microphone · Micrófono <span class="muted" id="mic-hint">— say something · di algo</span></span><span class="st" id="s-mic">…</span>
+      <div class="meter" style="width:100%;"><div id="lvl"></div></div></div>
+    <div class="step" style="flex-wrap:wrap;"><span>🔊 Speakers · Bocinas</span><span class="st" id="s-spk">…</span>
+      <div id="spk-ask" style="display:none;width:100%;margin-top:8px;">
+        <div class="muted" style="margin-bottom:8px;">Did you hear a beep? · ¿Escuchaste un pitido?</div>
+        <div style="display:flex;gap:8px;"><button class="yes" id="spk-yes" style="flex:1;">Yes · Sí</button><button class="no" id="spk-no" style="flex:1;">No</button><button id="spk-again" style="background:#eef2ff;color:var(--blue);">↻</button></div>
+      </div></div>
+    <div class="step"><span>📶 Internet</span><span class="st" id="s-net">…</span></div>
+  </div>
+
+  <div class="card" id="result" style="display:none;"></div>
+</main>
+<script>
+const SERVER_URL = "https://polyabc-server.onrender.com";
+const $ = id => document.getElementById(id);
+const R = {};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const set = (id, txt, cls) => { const e = $(id); e.textContent = txt; e.className = 'st ' + (cls || ''); };
+try { $('who').value = localStorage.getItem('studentName') || localStorage.getItem('teacherName') || ''; } catch (e) {}
+function uaInfo() {
+  const ua = navigator.userAgent;
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Other';
+  const ver = (ua.match(/(?:Edg|OPR|Chrome|Firefox|Version)\/(\d+)/) || [])[1] || '';
+  const device = /iPad/.test(ua) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Android phone' : 'Android tablet') : /CrOS/.test(ua) ? 'Chromebook' : /Mac OS X/.test(ua) ? (navigator.maxTouchPoints > 1 ? 'iPad' : 'Mac') : /Windows/.test(ua) ? 'Windows PC' : /Linux/.test(ua) ? 'Linux PC' : 'Other';
+  return { browser: browser + (ver ? ' ' + ver : ''), device };
+}
+let stream = null;
+async function camMic() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true });
+  } catch (e) {
+    const blocked = e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError';
+    const none = e.name === 'NotFoundError';
+    const inUse = e.name === 'NotReadableError';
+    R.camera = R.mic = blocked ? 'blocked' : none ? 'none' : inUse ? 'in-use' : 'error';
+    set('s-cam', blocked ? '🚫 Blocked' : none ? '❌ Not found' : inUse ? '⚠️ In use' : '❌ Error', 'bad');
+    set('s-mic', '—', 'bad');
+    // maybe only one of them is missing: try separately
+    try { const v = await navigator.mediaDevices.getUserMedia({ video: true }); R.camera = 'ok'; set('s-cam', '✅ OK', 'ok'); showVid(v); } catch (e2) {}
+    try { const a = await navigator.mediaDevices.getUserMedia({ audio: true }); R.mic = 'testing'; await micLevel(a); } catch (e3) {}
+    return;
+  }
+  R.camera = 'ok';
+  const vt = stream.getVideoTracks()[0], s = vt && vt.getSettings ? vt.getSettings() : {};
+  R.cameraRes = s.width ? `${s.width}x${s.height}` : '';
+  set('s-cam', '✅ OK' + (R.cameraRes ? ' · ' + R.cameraRes : ''), 'ok');
+  showVid(stream);
+  await micLevel(stream);
+}
+function showVid(st) { $('vid').srcObject = st; $('vid').style.display = 'block'; }
+async function micLevel(st) {
+  set('s-mic', 'Listening… · Escuchando…', 'warn');
+  const ac = new (window.AudioContext || window.webkitAudioContext)(); await ac.resume().catch(() => {});
+  const an = ac.createAnalyser(); an.fftSize = 512; ac.createMediaStreamSource(st).connect(an);
+  const buf = new Uint8Array(an.fftSize); let peak = 0;
+  const end = Date.now() + 5000;
+  while (Date.now() < end) {
+    an.getByteTimeDomainData(buf);
+    let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128));
+    peak = Math.max(peak, m);
+    $('lvl').style.width = Math.min(100, m * 2.5) + '%';
+    if (peak > 18 && Date.now() > end - 3500) break;
+    await sleep(60);
+  }
+  $('lvl').style.width = '0%';
+  R.mic = peak > 18 ? 'ok' : peak > 4 ? 'quiet' : 'silent';
+  set('s-mic', R.mic === 'ok' ? '✅ OK' : R.mic === 'quiet' ? '⚠️ Very quiet · Muy bajo' : '❌ No sound · Sin sonido', R.mic === 'ok' ? 'ok' : 'bad');
+  $('mic-hint').style.display = 'none';
+  ac.close().catch(() => {});
+}
+function beep() {
+  const ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume().catch(() => {});
+  const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = 660; g.gain.value = 0.25;
+  o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.8);
+  setTimeout(() => ac.close().catch(() => {}), 1500);
+}
+function speakers() {
+  set('s-spk', 'Playing… · Sonando…', 'warn');
+  beep();
+  $('spk-ask').style.display = 'block';
+  return new Promise(res => {
+    $('spk-yes').onclick = () => { R.speakers = 'ok'; set('s-spk', '✅ OK', 'ok'); $('spk-ask').style.display = 'none'; res(); };
+    $('spk-no').onclick = () => { R.speakers = 'no'; set('s-spk', '❌ Not heard · No se escuchó', 'bad'); $('spk-ask').style.display = 'none'; res(); };
+    $('spk-again').onclick = beep;
+  });
+}
+async function network() {
+  set('s-net', 'Testing… · Probando…', 'warn');
+  // ping (server)
+  const pings = [];
+  for (let i = 0; i < 5; i++) { const t = performance.now(); try { await fetch(SERVER_URL + '/version?_=' + Date.now() + i, { cache: 'no-store' }); pings.push(performance.now() - t); } catch (e) {} }
+  pings.sort((a, b) => a - b); R.pingMs = pings.length ? Math.round(pings[Math.floor(pings.length / 2)]) : 0;
+  // download (a picture from this site, twice)
+  let bytes = 0, t0 = performance.now();
+  for (const f of ['cert/kids.jpg', 'cert/adult.jpg']) { try { const b = await (await fetch(f + '?_=' + Date.now(), { cache: 'no-store' })).arrayBuffer(); bytes += b.byteLength; } catch (e) {} }
+  R.downMbps = bytes ? +(bytes * 8 / ((performance.now() - t0) / 1000) / 1e6).toFixed(1) : 0;
+  // upload (1 MB of nothing)
+  try { const blob = new Blob([new Uint8Array(1024 * 1024)]); const t1 = performance.now();
+    await fetch(SERVER_URL + '/device-check/upload', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: blob });
+    R.upMbps = +(8 / ((performance.now() - t1) / 1000)).toFixed(1); } catch (e) { R.upMbps = 0; }
+  const good = R.downMbps >= 3 && R.upMbps >= 1.5 && R.pingMs < 400;
+  const okish = R.downMbps >= 1.5 && R.upMbps >= 0.8;
+  R.net = good ? 'ok' : okish ? 'fair' : 'poor';
+  set('s-net', `${good ? '✅' : okish ? '⚠️' : '❌'} ↓${R.downMbps} ↑${R.upMbps} Mbps · ${R.pingMs} ms`, good ? 'ok' : okish ? 'warn' : 'bad');
+}
+async function run() {
+  $('start').disabled = true; $('start').textContent = 'Checking… · Revisando…';
+  $('steps').style.display = 'block'; $('result').style.display = 'none';
+  Object.keys(R).forEach(k => delete R[k]);
+  await camMic();
+  await speakers();
+  await network();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  $('vid').style.display = 'none';
+  Object.assign(R, uaInfo());
+  const tips = [];
+  if (R.camera !== 'ok') tips.push(R.camera === 'blocked' ? 'Camera is blocked: click the 🔒 / camera icon next to the address bar and choose Allow. · La cámara está bloqueada: toca el candado junto a la dirección y elige Permitir.' : R.camera === 'in-use' ? 'Another app is using the camera (Zoom, Teams…). Close it and try again. · Otra app está usando la cámara. Ciérrala e intenta de nuevo.' : 'No camera found. Plug one in or use a device with a camera. · No se encontró cámara.');
+  if (R.mic && R.mic !== 'ok') tips.push('Microphone: check it is not muted and the right one is selected in the browser. · Micrófono: revisa que no esté silenciado.');
+  if (R.speakers !== 'ok') tips.push('Speakers: turn up the volume or connect headphones. · Bocinas: sube el volumen o conecta audífonos.');
+  if (R.net !== 'ok') tips.push('Internet is slow: get closer to the router, use a cable, or ask others at home not to stream videos during class. · Internet lento: acércate al módem o usa cable.');
+  if (/iPhone|Android phone/.test(R.device)) tips.push('Phones work, but a computer or tablet is much better for class. · Mejor usa computadora o tableta.');
+  if (!/Chrome|Edge|Safari/.test(R.browser)) tips.push('Use Google Chrome for the best results. · Usa Google Chrome.');
+  R.verdict = !tips.length ? 'ready' : (R.camera === 'ok' && R.mic === 'ok' && R.net !== 'poor') ? 'fair' : 'problems';
+  $('result').style.display = 'block';
+  $('result').innerHTML = `<div style="font-size:1.3rem;font-weight:900;" class="${R.verdict === 'ready' ? 'ok' : R.verdict === 'fair' ? 'warn' : 'bad'}">${R.verdict === 'ready' ? '✅ Ready for class! · ¡Listo para la clase!' : R.verdict === 'fair' ? '⚠️ Almost ready · Casi listo' : '❌ Needs fixing · Hay que arreglar'}</div>
+    <div class="muted" style="margin:4px 0 8px;">${R.device} · ${R.browser}</div>
+    ${tips.length ? '<ul class="tips">' + tips.map(t => '<li>' + t + '</li>').join('') + '</ul>' : ''}
+    <div class="muted">Results sent to tech support. · Resultados enviados a soporte técnico.</div>`;
+  let tok = ''; try { tok = localStorage.getItem('studentToken') || localStorage.getItem('adminToken') || localStorage.getItem('parentToken') || ''; } catch (e) {}
+  fetch(SERVER_URL + '/device-check', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}) },
+    body: JSON.stringify({ name: $('who').value.trim(), results: R }) }).catch(() => {});
+  $('start').disabled = false; $('start').textContent = '↻ Check again · Revisar otra vez';
+}
+$('start').onclick = run;
+</script>
+</body>
+</html>

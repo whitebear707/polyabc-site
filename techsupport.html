@@ -33,6 +33,42 @@
   .done { border-left:5px solid var(--green); opacity:.85; }
   .hidden { display:none !important; }
   @media (max-width:480px) { .wrap { padding:12px; } }
+  .wrap.wide { max-width:1400px; }
+  .tabs { flex-wrap:wrap; }
+  .tab { min-width:110px; }
+  .bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .clock { font-size:1.4rem; font-weight:900; margin-right:auto; }
+  .pill { border-radius:20px; padding:4px 10px; font-weight:900; font-size:.85rem; }
+  .p-red { background:#ffebee; color:#b71c1c; } .p-yel { background:#fff8e1; color:#e65100; } .p-grn { background:#e8f5e9; color:#1b5e20; } .p-gry { background:#eceff1; color:#455a64; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:10px; }
+  .tile { background:var(--card); border:1px solid var(--line); border-left:8px solid #b0bec5; border-radius:14px; padding:12px; }
+  .tile.red { border-left-color:#e53935; background:linear-gradient(90deg, rgba(229,57,53,.07), var(--card) 40%); }
+  .tile.yellow { border-left-color:#ffb300; }
+  .tile.green { border-left-color:#43a047; }
+  .tile.done { opacity:.75; }
+  .tile.flash { animation:flash 1s 3; }
+  @keyframes flash { 50% { box-shadow:0 0 0 4px rgba(229,57,53,.6); } }
+  .t-head { display:flex; justify-content:space-between; gap:6px; font-weight:900; }
+  .t-status { font-size:1.05rem; font-weight:900; margin:6px 0; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; }
+  .chip { border-radius:12px; padding:2px 8px; font-size:.78rem; font-weight:800; background:#eef2ff; color:#1a237e; }
+  .chip.in { background:#e8f5e9; color:#1b5e20; } .chip.wait { background:#fff8e1; color:#e65100; } .chip.out { background:#ffebee; color:#b71c1c; } .chip.lobby { background:#e3f2fd; color:#0d47a1; }
+  .prob { font-size:.82rem; font-weight:800; color:#b71c1c; } .prob.y { color:#e65100; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-left:4px; vertical-align:middle; background:#b0bec5; }
+  .dot.g { background:#43a047; } .dot.y { background:#ffb300; } .dot.r { background:#e53935; }
+  .feed { max-height:220px; overflow:auto; }
+  .feed .card { padding:8px 12px; margin-bottom:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .person { border-top:1px solid var(--line); padding:8px 0; font-size:.85rem; }
+  .person .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .person .acts button { padding:5px 10px; font-size:.78rem; }
+  .sm { padding:6px 10px; font-size:.8rem; }
+  table.mini { width:100%; border-collapse:collapse; font-size:.82rem; } table.mini td, table.mini th { border-bottom:1px solid var(--line); padding:6px 4px; text-align:left; vertical-align:top; }
+  .light { display:flex; justify-content:space-between; padding:8px 0; border-top:1px solid var(--line); }
+  body.tv .tabs, body.tv header { display:none; }
+  body.tv .wrap { max-width:none; padding:14px 20px; }
+  body.tv .grid { grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); }
+  body.tv .tile { font-size:1.1rem; } body.tv .clock { font-size:2rem; }
+
 </style>
 </head>
 <body>
@@ -56,13 +92,54 @@
   </header>
 
   <div class="tabs">
-    <button class="tab on" id="tab-classes" data-tab="classes">Classes now</button>
+    <button class="tab on" id="tab-board" data-tab="board">🛰 Board <span id="al-badge" class="badge hidden"></span></button>
+    <button class="tab" id="tab-classes" data-tab="classes">Classes now</button>
     <button class="tab" id="tab-tickets" data-tab="tickets">Tickets <span id="tk-badge" class="badge hidden"></span></button>
+    <button class="tab" id="tab-devices" data-tab="devices">🔧 Device checks</button>
+    <button class="tab" id="tab-system" data-tab="system">🩺 System</button>
     <button class="tab" id="tab-videos" data-tab="videos">Help videos</button>
   </div>
 
+  <!-- Board -->
+  <section id="sec-board">
+    <div class="bar">
+      <span class="clock" id="bd-clock">--:--</span>
+      <span class="pill p-red" id="bd-red">0</span><span class="pill p-yel" id="bd-yel">0</span><span class="pill p-grn" id="bd-grn">0</span>
+      <button class="btn-ghost sm" id="bd-sound">🔇 Sound off</button>
+      <button class="btn-ghost sm" id="bd-tv">📺 TV mode</button>
+      <button class="btn-ghost sm" id="bd-refresh">↻</button>
+    </div>
+    <div id="bd-health" class="muted" style="margin-bottom:8px;"></div>
+    <div id="bd-feed-wrap" class="hidden" style="margin-bottom:12px;">
+      <div class="row" style="margin-bottom:6px;"><b>🔔 Alerts</b><button class="btn-ghost sm" id="bd-clear">Clear all</button></div>
+      <div id="bd-feed" class="feed"></div>
+    </div>
+    <div id="bd-now"></div>
+    <div id="bd-next"></div>
+    <div id="bd-done"></div>
+  </section>
+
+  <!-- Device checks -->
+  <section id="sec-devices" class="hidden">
+    <div class="row" style="margin-bottom:10px;">
+      <span class="muted">Results from the device check page (polyabc.academy/check.html). Send families that link before class.</span>
+      <button class="btn-ghost" id="dc-refresh">Refresh</button>
+    </div>
+    <div id="dc-list"></div>
+  </section>
+
+  <!-- System -->
+  <section id="sec-system" class="hidden">
+    <div class="card"><b>🩺 System health</b><div id="sys-lights" style="margin-top:6px;">Loading…</div></div>
+    <div class="card">
+      <div class="row"><b>📋 Daily report</b><input id="rp-date" type="date" style="width:auto;padding:6px;border:2px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-family:inherit;"></div>
+      <div id="rp-body" style="margin-top:8px;">Loading…</div>
+    </div>
+    <div class="card"><div class="row"><b>🐞 Page errors (last 14 days)</b><button class="btn-ghost sm" id="er-refresh">Refresh</button></div><div id="er-list" style="margin-top:8px;"></div></div>
+  </section>
+
   <!-- Classes -->
-  <section id="sec-classes">
+  <section id="sec-classes" class="hidden">
     <div class="row" style="margin-bottom:10px;">
       <span class="muted">Classes open right now. Pick one to watch.</span>
       <button class="btn-ghost" id="rooms-refresh">Refresh</button>
@@ -110,7 +187,7 @@ const SERVER_URL = "https://polyabc-server.onrender.com";
 const TK_LABEL = { student_absent: '🚫 Student not here', student_problem: '⚠️ Student having problems', tech_help: '🛠 Tech help' };
 let techToken = null;
 let tkFilter = 'open';
-let tkTimer = null, roomsTimer = null;
+let tkTimer = null, roomsTimer = null, boardTimer = null;
 
 function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function getToken() { try { return localStorage.getItem('techToken'); } catch (e) { return null; } }
@@ -129,11 +206,13 @@ function showLogin(msg) {
 function showApp() {
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.remove('hidden');
-  loadRooms(); loadTickets();
+  loadRooms(); loadTickets(); loadBoard();
   roomsTimer = setInterval(loadRooms, 30000);
   tkTimer = setInterval(loadTickets, 60000);
+  boardTimer = setInterval(loadBoard, 10000);
+  showTab('board');
 }
-function stopTimers() { clearInterval(tkTimer); clearInterval(roomsTimer); }
+function stopTimers() { clearInterval(tkTimer); clearInterval(roomsTimer); clearInterval(boardTimer); }
 
 async function doLogin() {
   const pw = document.getElementById('tech-pass').value;
@@ -206,14 +285,16 @@ async function reopenTicket(id) {
 }
 
 function showTab(name) {
-  document.getElementById('sec-classes').classList.toggle('hidden', name !== 'classes');
-  document.getElementById('sec-tickets').classList.toggle('hidden', name !== 'tickets');
-  document.getElementById('tab-classes').classList.toggle('on', name === 'classes');
-  document.getElementById('sec-videos').classList.toggle('hidden', name !== 'videos');
-  document.getElementById('tab-tickets').classList.toggle('on', name === 'tickets');
-  document.getElementById('tab-videos').classList.toggle('on', name === 'videos');
+  ['board', 'classes', 'tickets', 'devices', 'system', 'videos'].forEach(t => {
+    document.getElementById('sec-' + t).classList.toggle('hidden', name !== t);
+    document.getElementById('tab-' + t).classList.toggle('on', name === t);
+  });
+  document.getElementById('app-view').classList.toggle('wide', name === 'board');
   if (name === 'tickets') loadTickets();
   if (name === 'videos') loadVideos();
+  if (name === 'board') loadBoard();
+  if (name === 'devices') loadDeviceChecks();
+  if (name === 'system') loadSystem();
 }
 function setFilter(f) {
   tkFilter = f;
@@ -298,6 +379,288 @@ document.getElementById('tab-classes').onclick = () => showTab('classes');
 document.getElementById('tab-tickets').onclick = () => showTab('tickets');
 document.getElementById('f-open').onclick = () => setFilter('open');
 document.getElementById('f-resolved').onclick = () => setFilter('resolved');
+
+// ══════════════ CONTROL-ROOM BOARD ══════════════
+const nowMx = () => { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' })); return d; };
+const toMin = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return h * 60 + m; };
+const fmtMin = m => { m = ((m % 1440) + 1440) % 1440; const h = Math.floor(m / 60), mm = m % 60; return `${h % 12 || 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
+let _board = null, _alerts = [], _alertKeys = new Set(), _sound = false, _openDetails = new Set(), _firstLoad = true;
+try { _sound = localStorage.getItem('tsSound') === '1'; } catch (e) {}
+function healthLevel(h) {
+  if (!h) return '';
+  if ((h.loss != null && h.loss >= 8) || (h.rtt != null && h.rtt >= 700) || h.badPeers > 0 || h.seesTeacher === false) return 'r';
+  if ((h.loss != null && h.loss >= 3) || (h.rtt != null && h.rtt >= 350) || h.hidden) return 'y';
+  return 'g';
+}
+function evalClass(c, L, nowM) {
+  const start = toMin(c.time), end = start + (c.durationMins || 30);
+  const att = c.att, P = [];   // problems: { lvl: 'r'|'y', code, text }
+  const users = (L && L.users) || [], waiting = (L && L.waiting) || [], health = (L && L.health) || [], media = (L && L.media) || [];
+  const inNames = new Set(users.filter(u => u.role === 'student').map(u => u.name));
+  const waitNames = new Set(waiting.map(w => w.name));
+  const st = { level: 'gray', label: '', section: 'next', P, start, end, inNames, waitNames };
+  if (c.cancelled) { st.label = 'Cancelled'; st.section = 'done'; return st; }
+  if (att && att.classEndedAt) {
+    st.section = 'done';
+    st.level = att.endType === 'invalid_termination' ? 'red' : att.endType === 'ended_early' ? 'yellow' : 'green';
+    st.label = att.endType === 'invalid_termination' ? '❌ Teacher left and never came back' : att.endType === 'ended_early' ? '⚠️ Ended early' : '✅ Finished';
+    return st;
+  }
+  if (nowM < start - 15) { st.label = `Starts in ${start - nowM} min`; return st; }
+  if (nowM < start) {
+    st.level = L && L.teacherIn ? 'green' : nowM >= start - 5 ? 'yellow' : 'gray';
+    st.label = L && L.teacherIn ? `Teacher ready · starts in ${start - nowM} min` : `Waiting for teacher · starts in ${start - nowM} min`;
+    if (waiting.length) st.label += ` · ${waiting.length} waiting`;
+    return st;
+  }
+  if (nowM > end + 15) {
+    st.section = 'done';
+    if (!att) { st.level = 'red'; st.label = '❌ No class happened'; P.push({ lvl: 'r', code: 'noclass', text: 'Nobody entered this class' }); }
+    else { st.level = 'yellow'; st.label = '⚠️ Class was not ended'; }
+    return st;
+  }
+  st.section = 'now';
+  const late = nowM - start;
+  if (!L || !L.teacherIn) {
+    if (L && L.teacherReconnecting || (att && att.teacherLoginAt)) P.push({ lvl: 'r', code: 'tdrop', text: 'Teacher disconnected' });
+    else if (late >= 2) P.push({ lvl: 'r', code: 'tlate', text: `Teacher not here (${late} min late)` });
+    else P.push({ lvl: 'y', code: 'tlate0', text: 'Teacher not here yet' });
+  } else if (!L.open) {
+    P.push({ lvl: waiting.length && late >= 1 ? 'r' : 'y', code: 'closed', text: `Class not opened${waiting.length ? ` · ${waiting.length} waiting` : ''}` });
+  }
+  if (L && L.open && waiting.length) P.push({ lvl: 'r', code: 'stuck', text: `Stuck on waiting screen: ${[...waitNames].join(', ')}` });
+  const missing = (c.expected || []).filter(n => !inNames.has(n) && !waitNames.has(n));
+  if (late >= 5 && missing.length) P.push({ lvl: 'y', code: 'missing:' + missing.join(','), text: `Not here: ${missing.join(', ')}` });
+  media.forEach(m => P.push({ lvl: 'r', code: 'media:' + m.name + m.status, text: `${m.name}: camera/mic ${m.status === 'blocked' ? 'blocked' : m.status === 'no-device' ? 'not found' : m.status === 'in-use' ? 'used by another app' : 'error'}` }));
+  health.forEach(h => {
+    if (h.role === 'student' && h.seesTeacher === false) P.push({ lvl: 'r', code: 'nosee:' + h.name, text: `${h.name} is not receiving the teacher's video` });
+    else if (h.role === 'student' && h.hearsTeacher === false) P.push({ lvl: 'r', code: 'nohear:' + h.name, text: `${h.name} is not receiving the teacher's sound` });
+    else if (healthLevel(h) === 'r') P.push({ lvl: 'y', code: 'net:' + h.name, text: `Bad connection: ${h.name}${h.loss != null ? ` (${h.loss}% lost)` : ''}` });
+    if (h.role === 'teacher' && !h.camOn && L.open) P.push({ lvl: 'y', code: 'tcam', text: 'Teacher camera is off' });
+  });
+  Object.entries((L && L.drops) || {}).forEach(([who, n]) => { if (n >= 3) P.push({ lvl: 'y', code: 'drops:' + who + n, text: `${who.split(':').slice(1).join(':')} reconnected ${n} times` }); });
+  if (_board.recordingOn && L && L.open && late >= 4) {
+    const recs = c.recordings || [];
+    const active = recs.find(r => r.status === 'recording');
+    if (!recs.length) P.push({ lvl: 'y', code: 'norec', text: 'Not recording' });
+    else if (active && active.lastChunkAt && Date.now() - new Date(active.lastChunkAt).getTime() > 5 * 60000) P.push({ lvl: 'y', code: 'recstuck', text: 'Recording upload is behind' });
+  }
+  if (c.tickets) P.push({ lvl: 'y', code: 'ticket', text: `${c.tickets} open ticket${c.tickets > 1 ? 's' : ''}` });
+  st.level = P.some(p => p.lvl === 'r') ? 'red' : P.some(p => p.lvl === 'y') ? 'yellow' : 'green';
+  st.label = st.level === 'green' ? `✅ In class · ${inNames.size}/${(c.expected || []).length || inNames.size} students` : P[0].text;
+  return st;
+}
+function personRows(c, L) {
+  const rows = [];
+  const hBy = {}; ((L && L.health) || []).forEach(h => hBy[h.sid] = h);
+  ((L && L.users) || []).forEach(u => rows.push({ sid: u.sid, name: u.name, role: u.role, where: 'in class', h: hBy[u.sid] }));
+  ((L && L.waiting) || []).forEach(w => rows.push({ sid: w.sid, name: w.name, role: 'student', where: 'waiting', h: null }));
+  return rows.map(r => {
+    const h = r.h, lv = healthLevel(h);
+    const drops = ((L && L.drops) || {})[`${r.role}:${r.name}`] || 0;
+    const facts = h ? [h.device, h.browser, h.rtt != null ? `${h.rtt} ms` : null, h.loss != null ? `${h.loss}% lost` : null, h.inKbps != null ? `↓${h.inKbps} ↑${h.outKbps} kbps` : null,
+      h.camOn ? '📷 on' : '📷 off', h.micOn ? '🎤 on' : '🎤 off', h.seesTeacher === false ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
+    const key = esc(c.room) + '|' + esc(r.sid);
+    return `<div class="person"><b>${r.role === 'teacher' ? '👩‍🏫' : '🧒'} ${esc(r.name)}</b> <span class="dot ${lv}"></span> <span class="muted">${esc(r.where)}${drops ? ` · reconnected ${drops}×` : ''}</span>
+      <div class="muted">${esc(facts)}</div>
+      <div class="acts">
+        <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','reload')">↻ Reload page</button>
+        <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','camera')">📷 Ask camera/mic</button>
+        <input id="msg-${key}" type="text" maxlength="300" placeholder="Message…" style="flex:1;min-width:120px;padding:5px 8px;font-size:.8rem;">
+        <button class="btn-blue" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','message', document.getElementById('msg-${key}').value)">Send</button>
+      </div></div>`;
+  }).join('') || '<div class="muted">Nobody connected.</div>';
+}
+function tileHtml(c, st, L) {
+  const exp = c.expected || [];
+  const lobbyNames = new Set((c.lobby || []).filter(l => l.events && l.events['lobby-opened']).map(l => l.name));
+  const chips = exp.map(n => st.inNames.has(n) ? `<span class="chip in">✅ ${esc(n)}</span>` : st.waitNames.has(n) ? `<span class="chip wait">⏳ ${esc(n)}</span>` : lobbyNames.has(n) && st.section !== 'done' ? `<span class="chip lobby">🚪 ${esc(n)}</span>` : st.section === 'now' ? `<span class="chip out">✖ ${esc(n)}</span>` : `<span class="chip">${esc(n)}</span>`).join('');
+  const extra = [...st.inNames].filter(n => !exp.includes(n)).map(n => `<span class="chip in">✅ ${esc(n)}</span>`).join('');
+  const th = L && (L.health || []).find(h => h.role === 'teacher');
+  const rec = (c.recordings || []).length ? (c.recordings.some(r => r.status === 'recording') ? '⏺ recording' : c.recordings.every(r => r.status === 'complete') ? '🎥 saved' : '⚠️ recording incomplete') : '';
+  const open = _openDetails.has(c.id);
+  return `<div class="tile ${st.section === 'done' ? 'done ' : ''}${st.level}" id="tile-${esc(c.id)}">
+    <div class="t-head"><span>${fmtMin(st.start)}–${fmtMin(st.end)} · Salón ${esc(c.room)}</span><span class="muted">${esc(c.classType.replace(' - ', ' '))}</span></div>
+    <div class="muted">👩‍🏫 ${esc(c.teacherName)}${c.sub ? ' (sub)' : ''}${L && L.teacherIn ? ` <span class="dot ${healthLevel(th)}"></span>` : ''} · ${esc(c.groupName || c.studentName || '')}${L && L.itWatching ? ' · 👁 watched' : ''}</div>
+    <div class="t-status">${esc(st.label)}</div>
+    <div class="chips">${chips}${extra}</div>
+    ${st.P.length > 1 || (st.P.length === 1 && st.level !== 'green' && st.label !== st.P[0].text) ? st.P.map(p => `<div class="prob ${p.lvl === 'y' ? 'y' : ''}">• ${esc(p.text)}</div>`).join('') : ''}
+    <div class="row" style="margin-top:8px;">
+      <span class="muted">${rec}</span>
+      <span style="display:flex;gap:6px;">
+        ${L && L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(c.room)}')">👁 Watch</button>` : ''}
+        ${st.section === 'now' || (L && (L.users.length || L.waiting.length)) ? `<button class="btn-ghost sm" onclick="toggleDetails('${esc(c.id)}')">${open ? 'Hide' : 'People'}</button>` : ''}
+      </span>
+    </div>
+    ${open ? `<div style="margin-top:6px;">${personRows(c, L)}</div>` : ''}
+  </div>`;
+}
+function toggleDetails(id) { _openDetails.has(id) ? _openDetails.delete(id) : _openDetails.add(id); renderBoard(); }
+async function itAction(room, sid, action, text) {
+  try {
+    const r = await (await api('/techsupport/action', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, auth()), body: JSON.stringify({ room, sid, action, text }) })).json();
+    alertToast(r.success ? (action === 'reload' ? 'Page reload sent ✅' : action === 'camera' ? 'Camera/mic request sent ✅' : 'Message sent ✅') : ('⚠️ ' + (r.error || 'Failed')));
+    if (r.success && action === 'message') { const el = document.getElementById(`msg-${room}|${sid}`); if (el) el.value = ''; }
+  } catch (e) {}
+}
+function alertToast(t) {
+  let el = document.getElementById('ts-toast');
+  if (!el) { el = document.createElement('div'); el.id = 'ts-toast'; el.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 16px;border-radius:12px;font-weight:800;z-index:9999;'; document.body.appendChild(el); }
+  el.textContent = t; el.style.display = 'block'; clearTimeout(el._t); el._t = setTimeout(() => el.style.display = 'none', 2500);
+}
+let _ac = null;
+function beep(n, freq) {
+  if (!_sound) return;
+  try {
+    _ac = _ac || new (window.AudioContext || window.webkitAudioContext)(); _ac.resume();
+    for (let i = 0; i < n; i++) { const o = _ac.createOscillator(), g = _ac.createGain(); o.frequency.value = freq; g.gain.value = 0.2; o.connect(g); g.connect(_ac.destination); const t = _ac.currentTime + i * 0.35; o.start(t); o.stop(t + 0.22); }
+  } catch (e) {}
+}
+function pushAlerts(newOnes) {
+  if (!newOnes.length) return;
+  const reds = newOnes.filter(a => a.lvl === 'r');
+  beep(reds.length ? 3 : 1, reds.length ? 880 : 520);
+  newOnes.forEach(a => { _alerts.unshift(a); const t = document.getElementById('tile-' + a.classId); if (t) t.classList.add('flash'); });
+  _alerts = _alerts.slice(0, 60);
+  try { if (_sound && 'Notification' in window && Notification.permission === 'granted' && document.visibilityState !== 'visible') new Notification('PolyABC: ' + newOnes[0].text, { body: newOnes[0].where }); } catch (e) {}
+  renderFeed();
+}
+function renderFeed() {
+  const w = document.getElementById('bd-feed-wrap'), f = document.getElementById('bd-feed');
+  w.classList.toggle('hidden', !_alerts.length);
+  const b = document.getElementById('al-badge');
+  b.textContent = _alerts.length; b.classList.toggle('hidden', !_alerts.length);
+  f.innerHTML = _alerts.map((a, i) => `<div class="card" style="border-left:5px solid ${a.lvl === 'r' ? '#e53935' : '#ffb300'};">
+    <div><b>${esc(a.text)}</b><div class="muted">${esc(a.where)} · ${esc(a.at)}</div></div><button class="btn-ghost sm" onclick="dismissAlert(${i})">✓</button></div>`).join('');
+}
+function dismissAlert(i) { _alerts.splice(i, 1); renderFeed(); }
+async function loadBoard() {
+  try {
+    const r = await api('/techsupport/board'); _board = await r.json();
+    if (_board.error) throw new Error(_board.error);
+    renderBoard();
+  } catch (e) { if (e.message !== 'auth') document.getElementById('bd-now').innerHTML = '<div class="card" style="color:var(--red);">Could not load the board. Retrying…</div>'; }
+}
+function renderBoard() {
+  if (!_board) return;
+  const n = nowMx(), nowM = n.getHours() * 60 + n.getMinutes();
+  document.getElementById('bd-clock').textContent = n.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ' · ' + n.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const rows = _board.classes.map(c => ({ c, L: _board.live[c.room], st: null }));
+  rows.forEach(x => {
+    const start = toMin(x.c.time), end = start + (x.c.durationMins || 30);
+    // live data belongs to the class happening now in that room
+    const relevant = nowM >= start - 20 && nowM <= end + 20;
+    x.st = evalClass(x.c, relevant ? x.L : null, nowM);
+    x.L = relevant ? x.L : null;
+  });
+  // alerts: new problems in running/finished classes
+  const fresh = [];
+  rows.forEach(x => x.st.P.forEach(p => {
+    const key = x.c.id + ':' + p.code;
+    if (_alertKeys.has(key)) return;
+    _alertKeys.add(key);
+    if (_firstLoad || p.code === 'tlate0') return;
+    fresh.push({ lvl: p.lvl, text: p.text, where: `Salón ${x.c.room} · ${x.c.teacherName} · ${fmtMin(x.st.start)}`, at: n.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), classId: x.c.id });
+  }));
+  // classes open without a schedule today (extra / make-up)
+  const scheduled = new Set(rows.filter(x => x.L).map(x => x.c.room));
+  const unscheduled = Object.entries(_board.live).filter(([room, L]) => (L.open || L.users.length) && !scheduled.has(room));
+  const order = { red: 0, yellow: 1, green: 2, gray: 3 };
+  const sec = name => rows.filter(x => x.st.section === name);
+  const now = sec('now').sort((a, b) => order[a.st.level] - order[b.st.level] || a.st.start - b.st.start);
+  const next = sec('next').sort((a, b) => a.st.start - b.st.start);
+  const done = sec('done').sort((a, b) => b.st.start - a.st.start);
+  const cnt = l => rows.filter(x => x.st.section !== 'done' && x.st.level === l).length;
+  document.getElementById('bd-red').textContent = '🔴 ' + cnt('red');
+  document.getElementById('bd-yel').textContent = '🟡 ' + cnt('yellow');
+  document.getElementById('bd-grn').textContent = '🟢 ' + cnt('green');
+  const unschedHtml = unscheduled.map(([room, L]) => `<div class="tile yellow"><div class="t-head"><span>Salón ${esc(room)}</span><span class="muted">not on today's schedule</span></div>
+    <div class="t-status">${L.open ? 'Class open' : 'People connected'} · ${L.users.filter(u => u.role === 'student').length} students</div>
+    <div class="row" style="margin-top:8px;"><span class="muted">👩‍🏫 ${esc(_board.teacherOf[room] || '')}</span>${L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(room)}')">👁 Watch</button>` : ''}</div></div>`).join('');
+  document.getElementById('bd-now').innerHTML = `<h3 style="margin:6px 0;">Now</h3>` + ((now.length || unscheduled.length) ? `<div class="grid">${now.map(x => tileHtml(x.c, x.st, x.L)).join('')}${unschedHtml}</div>` : '<div class="card muted">No classes running right now.</div>');
+  document.getElementById('bd-next').innerHTML = next.length ? `<h3 style="margin:14px 0 6px;">Coming up</h3><div class="grid">${next.map(x => tileHtml(x.c, x.st, x.L)).join('')}</div>` : '';
+  document.getElementById('bd-done').innerHTML = done.length ? `<h3 style="margin:14px 0 6px;">Finished today</h3><div class="grid">${done.map(x => tileHtml(x.c, x.st, x.L)).join('')}</div>` : '';
+  _firstLoad = false;
+  pushAlerts(fresh);
+}
+function setSound(on, init) {
+  _sound = on; try { localStorage.setItem('tsSound', on ? '1' : '0'); } catch (e) {}
+  document.getElementById('bd-sound').textContent = on ? '🔊 Sound on' : '🔇 Sound off';
+  if (on && !init) { beep(1, 660); try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {} }
+}
+let _wake = null;
+async function toggleTv() {
+  const on = !document.body.classList.contains('tv');
+  document.body.classList.toggle('tv', on);
+  document.getElementById('bd-tv').textContent = on ? '✖ Exit TV' : '📺 TV mode';
+  try { if (on) { await document.documentElement.requestFullscreen?.(); _wake = await navigator.wakeLock?.request('screen'); } else { if (document.fullscreenElement) await document.exitFullscreen(); _wake?.release(); _wake = null; } } catch (e) {}
+  if (on) showTab('board');
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('tv')) { document.body.classList.remove('tv'); document.getElementById('bd-tv').textContent = '📺 TV mode'; } });
+setInterval(() => { if (_board) renderBoard(); }, 30000); // keep times fresh between loads
+
+// ══════════════ DEVICE CHECKS ══════════════
+async function loadDeviceChecks() {
+  const box = document.getElementById('dc-list');
+  try {
+    const list = await (await api('/techsupport/device-checks')).json();
+    if (!list.length) { box.innerHTML = '<div class="card muted">No device checks yet. Share polyabc.academy/check.html with families.</div>'; return; }
+    const ic = v => v === 'ok' ? '✅' : !v ? '—' : '❌';
+    box.innerHTML = `<div class="card" style="overflow-x:auto;"><table class="mini"><tr><th>When</th><th>Who</th><th>Result</th><th>Cam</th><th>Mic</th><th>Spk</th><th>Internet</th><th>Device</th></tr>
+      ${list.map(d => `<tr><td>${esc(new Date(d.at).toLocaleString('en-US', { timeZone: 'America/Mexico_City', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td>
+        <td><b>${esc(d.name || '—')}</b><div class="muted">${esc(d.role)}</div></td>
+        <td>${d.results.verdict === 'ready' ? '✅ Ready' : d.results.verdict === 'fair' ? '⚠️ Fair' : '❌ Problems'}</td>
+        <td>${ic(d.results.camera)} ${esc(d.results.camera !== 'ok' ? d.results.camera : d.results.cameraRes)}</td><td>${ic(d.results.mic)}</td><td>${ic(d.results.speakers)}</td>
+        <td>↓${d.results.downMbps} ↑${d.results.upMbps} · ${d.results.pingMs}ms</td><td>${esc(d.results.device)}<div class="muted">${esc(d.results.browser)}</div></td></tr>`).join('')}</table></div>`;
+  } catch (e) { if (e.message !== 'auth') box.innerHTML = '<div class="card" style="color:var(--red);">Could not load.</div>'; }
+}
+
+// ══════════════ SYSTEM ══════════════
+async function loadSystem() {
+  const L = document.getElementById('sys-lights');
+  try {
+    const h = await (await api('/techsupport/health')).json();
+    const up = Math.round((Date.now() - new Date(h.serverStartedAt).getTime()) / 60000);
+    const light = (ok, label, val) => `<div class="light"><span>${ok === true ? '🟢' : ok === false ? '🔴' : '🟡'} ${label}</span><b>${val}</b></div>`;
+    L.innerHTML = light(true, 'Server', `up ${up >= 120 ? Math.round(up / 60) + ' h' : up + ' min'} · ${h.memoryMB} MB${h.version ? ' · ' + esc(h.version) : ''}`)
+      + light(h.db && h.db.ok, 'Database', h.db && h.db.ok ? h.db.ms + ' ms' : 'not responding')
+      + light(h.drive && h.drive.ok ? true : h.drive && h.drive.connected ? false : null, 'Google Drive (recordings)', h.drive && h.drive.ok ? 'connected' + (h.drive.email ? ' · ' + esc(h.drive.email) : '') : esc(h.drive && h.drive.error || 'not connected'))
+      + (h.email ? light(h.email.today < h.email.dailyLimit * 0.8 && h.email.month < h.email.monthlyLimit * 0.8 ? true : h.email.today >= h.email.dailyLimit || h.email.month >= h.email.monthlyLimit ? false : null, 'Emails', `${h.email.today}/${h.email.dailyLimit} today · ${h.email.month}/${h.email.monthlyLimit} month`) : '')
+      + light(h.errors24h ? null : true, 'Page errors (24 h)', h.errors24h || 0)
+      + light(h.stuckRecordings ? null : true, 'Incomplete recordings (7 days)', h.stuckRecordings || 0)
+      + light(true, 'Live now', `${h.openClasses} open classes · ${h.peopleInClass} people`);
+  } catch (e) { if (e.message !== 'auth') L.innerHTML = '🔴 Could not reach the server.'; }
+  const d = document.getElementById('rp-date');
+  if (!d.value) d.value = nowMx().toLocaleDateString('en-CA');
+  loadReport(); loadErrors();
+}
+async function loadReport() {
+  const box = document.getElementById('rp-body');
+  try {
+    const r = await (await api('/techsupport/daily-report?date=' + document.getElementById('rp-date').value)).json();
+    const ICON = { 'no-class': '❌', 'teacher-late': '⏰', 'ended-early': '⚠️', invalid: '❌', 'not-ended': '⚠️', 'teacher-drops': '📶', 'student-drops': '📶', absent: '🚫', recording: '🎥' };
+    box.innerHTML = `<div class="muted" style="margin-bottom:6px;">${r.held}/${r.classes} classes held · ${r.tickets} tickets (${r.openTickets} open) · ${r.pageErrors} page errors</div>`
+      + (r.items.length ? r.items.map(i => `<div class="light"><span>${ICON[i.type] || '•'} ${esc(i.detail)}</span><span class="muted" style="text-align:right;">${esc(i.label)}</span></div>`).join('') : '<div class="muted">✅ Nothing went wrong.</div>');
+  } catch (e) { if (e.message !== 'auth') box.textContent = 'Could not load.'; }
+}
+async function loadErrors() {
+  const box = document.getElementById('er-list');
+  try {
+    const list = await (await api('/techsupport/errors')).json();
+    box.innerHTML = list.length ? `<div style="overflow-x:auto;"><table class="mini"><tr><th>When</th><th>Page</th><th>Who</th><th>Error</th></tr>${list.map(e => `<tr><td>${esc(new Date(e.at).toLocaleString('en-US', { timeZone: 'America/Mexico_City', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${esc(e.page)}${e.room ? ' · ' + esc(e.room) : ''}</td><td>${esc(e.who)}</td><td>${esc(e.message)}<div class="muted">${esc(e.where)}</div></td></tr>`).join('')}</table></div>` : '<div class="muted">No errors 🎉</div>';
+  } catch (e) {}
+}
+document.getElementById('bd-sound').onclick = () => setSound(!_sound);
+document.getElementById('bd-tv').onclick = toggleTv;
+document.getElementById('bd-refresh').onclick = loadBoard;
+document.getElementById('bd-clear').onclick = () => { _alerts = []; renderFeed(); };
+document.getElementById('tab-board').onclick = () => showTab('board');
+document.getElementById('tab-devices').onclick = () => showTab('devices');
+document.getElementById('tab-system').onclick = () => showTab('system');
+document.getElementById('dc-refresh').onclick = loadDeviceChecks;
+document.getElementById('er-refresh').onclick = loadErrors;
+document.getElementById('rp-date').onchange = loadReport;
+setSound(_sound, true);
 
 // Start: use saved login if there is one
 techToken = getToken();

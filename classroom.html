@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <script src="errors.js"></script>
   <link rel="icon" type="image/png" href="icon.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=0.8"/>
   <style>
@@ -838,6 +839,13 @@ function connectSocket() {
   });
 
 
+
+  // Tech support remote fixes: reload this page, allow camera/mic again, or a message
+  socket.on('request-media-again', showMediaRetry);
+  socket.on('it-action', ({ action, text }) => {
+    if (action === 'reload') { location.reload(); return; }
+    if (action === 'message' && text) showItMessage(text);
+  });
 
   socket.on('connect', () => {
     document.getElementById('connect-msg').textContent = 'Connected! Joining room...';
@@ -3906,6 +3914,63 @@ if (IS_TEACHER) {
   setInterval(maybeStartRecording, 3000);
   if (window.PolyRec) setTimeout(() => PolyRec.resumePending(), 8000); // a class closed early last time: send the rest
 }
+
+function showItMessage(text) {
+  let b = document.getElementById('it-msg-banner');
+  if (!b) {
+    b = document.createElement('div'); b.id = 'it-msg-banner';
+    b.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99998;background:#6a1b9a;color:#fff;padding:14px 18px;border-radius:14px;font-family:Nunito,sans-serif;font-weight:800;max-width:90vw;box-shadow:0 6px 24px rgba(0,0,0,.35);display:flex;gap:12px;align-items:center;';
+    document.body.appendChild(b);
+  }
+  b.innerHTML = '<span>🛠 Tech Support: <span id="it-msg-text"></span></span><button style="background:#fff;color:#6a1b9a;border:none;border-radius:8px;padding:6px 12px;font-weight:900;cursor:pointer;">OK</button>';
+  document.getElementById('it-msg-text').textContent = text;
+  b.querySelector('button').onclick = () => b.remove();
+}
+
+// ── Connection health for the tech board (every 10 s, everyone in class except watchers) ──
+const _hPrev = new Map();
+function _uaInfo() {
+  const ua = navigator.userAgent;
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Other';
+  const ver = (ua.match(/(?:Edg|OPR|Chrome|Firefox|Version)\/(\d+)/) || [])[1] || '';
+  const device = /iPad/.test(ua) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Android phone' : 'Android tablet') : /CrOS/.test(ua) ? 'Chromebook' : /Mac OS X/.test(ua) ? (navigator.maxTouchPoints > 1 ? 'iPad' : 'Mac') : /Windows/.test(ua) ? 'Windows PC' : /Linux/.test(ua) ? 'Linux PC' : 'Other';
+  return { browser: browser + (ver ? ' ' + ver : ''), device };
+}
+async function collectHealth() {
+  const pcs = [];
+  [audioPeers, videoPeers, ssPeers].forEach(m => Object.entries(m).forEach(([sid, pc]) => pc && pc.getStats && pcs.push({ sid, pc, kind: m === audioPeers ? 'a' : m === videoPeers ? 'v' : 's' })));
+  let rtts = [], lost = 0, got = 0, inB = 0, outB = 0, fps = [], badPeers = 0;
+  const teacherSid = Object.keys(remoteRoles).find(k => remoteRoles[k] === 'teacher');
+  let seesTeacher = null, hearsTeacher = null;
+  const now = Date.now();
+  for (const { sid, pc, kind } of pcs) {
+    if (['failed', 'disconnected'].includes(pc.connectionState)) badPeers++;
+    let st; try { st = await pc.getStats(); } catch (e) { continue; }
+    let inBytes = 0, outBytes = 0, pl = 0, pr = 0;
+    st.forEach(r => {
+      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded' && r.currentRoundTripTime != null) rtts.push(r.currentRoundTripTime * 1000);
+      if (r.type === 'inbound-rtp') { inBytes += r.bytesReceived || 0; pl += r.packetsLost || 0; pr += r.packetsReceived || 0; if (r.kind === 'video' && r.framesPerSecond) fps.push(r.framesPerSecond); }
+      if (r.type === 'outbound-rtp') outBytes += r.bytesSent || 0;
+    });
+    const key = kind + sid, prev = _hPrev.get(key);
+    _hPrev.set(key, { inBytes, outBytes, pl, pr, t: now });
+    if (!prev) continue;
+    const dt = Math.max(1, (now - prev.t) / 1000);
+    inB += Math.max(0, inBytes - prev.inBytes) * 8 / 1000 / dt; outB += Math.max(0, outBytes - prev.outBytes) * 8 / 1000 / dt;
+    const dl = Math.max(0, pl - prev.pl), dr = Math.max(0, pr - prev.pr); lost += dl; got += dr;
+    if (sid === teacherSid && kind === 'v') seesTeacher = inBytes > prev.inBytes;
+    if (sid === teacherSid && kind === 'a') hearsTeacher = inBytes > prev.inBytes;
+  }
+  const ua = _uaInfo();
+  return { rtt: rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null, loss: lost + got ? lost * 100 / (lost + got) : 0, inKbps: inB, outKbps: outB,
+    fps: fps.length ? fps.reduce((a, b) => a + b, 0) / fps.length : null, camOn: !!(localStream && localStream.getVideoTracks().some(t => t.readyState === 'live' && t.enabled)),
+    micOn: !!(localStream && localStream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled)), seesTeacher: IS_TEACHER ? null : seesTeacher, hearsTeacher: IS_TEACHER ? null : hearsTeacher,
+    peers: pcs.length, badPeers, device: ua.device, browser: ua.browser, hidden: document.visibilityState === 'hidden' };
+}
+if (!IS_SPECTATOR) setInterval(async () => {
+  const s = window._socket; if (!s || !s.connected || !_joinedName) return;
+  try { s.emit('health-report', await collectHealth()); } catch (e) {}
+}, 10000);
 
 recordingGate().then(ok => { if (ok) startMedia(); });
 </script>
