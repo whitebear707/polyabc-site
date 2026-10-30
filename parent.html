@@ -6,7 +6,10 @@
   <link rel="icon" type="image/png" href="icon.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC - Parent Panel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Playfair+Display:wght@600;700&family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="cert/cert.js" defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #f0f4f8; min-height: 100vh; }
@@ -313,6 +316,7 @@
 
       <!-- Progress reports tab -->
       <div id="panel-reports" style="display:none;">
+        <div id="cert-list" style="margin-bottom:18px;"></div>
         <div id="hw-grades-list" style="margin-bottom:18px;"></div>
         <div id="reports-list"></div>
       </div>
@@ -1031,8 +1035,29 @@ async function renderHomeworkGrades() {
   } catch (e) { box.innerHTML = ''; }
 }
 
+async function renderParentCertificates() {
+  const box = document.getElementById('cert-list'); if (!box) return;
+  try {
+    const list = await (await fetch(`${SERVER_URL}/parent/certificates`, { headers: { Authorization: `Bearer ${_parentToken}` } })).json();
+    window._parentCerts = Array.isArray(list) ? list : [];
+    box.innerHTML = !window._parentCerts.length ? '' : `<div style="background:#fffbea;border:2px solid #f4c430;border-radius:14px;padding:14px;">
+      <div style="font-weight:900;margin-bottom:8px;">🎓 Certificados</div>
+      ${window._parentCerts.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f1e3a6;flex-wrap:wrap;">
+        <div style="font-size:0.9rem;"><b>${escHtml(c.name)}</b> · Nivel ${escHtml(c.level)}<div style="color:#888;font-size:0.78rem;">${escHtml(c.date)} · ID ${escHtml(c.id)}</div></div>
+        <button onclick="parentCertDownload('${escHtml(c.id)}', this)" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer;">⬇ Descargar</button></div>`).join('')}
+    </div>`;
+  } catch (e) { box.innerHTML = ''; }
+}
+async function parentCertDownload(id, el) {
+  const c = (window._parentCerts || []).find(x => x.id === id); if (!c || !window.PolyCert) return;
+  const t = el.textContent; el.disabled = true; el.textContent = 'Preparando…';
+  try { await PolyCert.downloadPdf(c); } catch (e) { alert('No se pudo descargar. Intenta de nuevo.'); }
+  el.disabled = false; el.textContent = t;
+}
+
 async function renderReportsTab() {
   renderHomeworkGrades();
+  renderParentCertificates();
   const box = document.getElementById('reports-list');
   box.innerHTML = '<div style="color:#888;font-size:0.88rem;">Cargando…</div>';
   try {

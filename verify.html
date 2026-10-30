@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="icon" type="image/png" href="icon.png"/>
+<title>Verificar certificado — PolyABC</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  body{margin:0;min-height:100vh;background:#f0f4fa;font-family:Nunito,Arial,sans-serif;color:#1a1a2e;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+  .card{background:#fff;border-radius:18px;max-width:440px;width:100%;padding:28px 22px;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+  .logo{height:56px;margin-bottom:10px}
+  .badge{display:inline-block;font-weight:900;font-size:1.25rem;padding:10px 18px;border-radius:14px;margin:8px 0 16px}
+  .ok{background:#e8f5e9;color:#1b5e20}.bad{background:#ffebee;color:#b71c1c}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid #eee;text-align:left}
+  .row b{text-align:right}
+  form{display:flex;gap:8px;margin-top:14px}
+  input{flex:1;padding:10px;border:1px solid #ccc;border-radius:10px;font-size:1rem;min-width:0}
+  button{background:#1a73e8;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:800;font-size:1rem;cursor:pointer}
+  .muted{color:#777;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="LOGO.png" class="logo" alt="PolyABC" onerror="this.style.display='none'"/>
+  <div style="font-weight:900;font-size:1.2rem;">Verificar certificado / Verify certificate</div>
+  <div id="out" class="muted" style="margin-top:14px;">Escribe el ID del certificado.<br>Enter the certificate ID.</div>
+  <form onsubmit="event.preventDefault();check(document.getElementById('cid').value);">
+    <input id="cid" inputmode="numeric" placeholder="ID 000000000" maxlength="12"/>
+    <button>Verificar</button>
+  </form>
+</div>
+<script>
+const SERVER_URL = "https://polyabc-server.onrender.com";
+const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = iso => { const [y, m, d] = String(iso).split('-').map(Number); return `${d} de ${MONTHS[m - 1]} de ${y}`; };
+async function check(raw) {
+  const id = String(raw || '').replace(/\D/g, '');
+  const out = document.getElementById('out');
+  document.getElementById('cid').value = id;
+  if (id.length !== 9) { out.innerHTML = '<span class="badge bad">❌ ID no válido / Invalid ID</span>'; return; }
+  out.innerHTML = 'Verificando… / Checking…';
+  try {
+    const r = await (await fetch(`${SERVER_URL}/certificate/verify/${id}`)).json();
+    if (r.valid) out.innerHTML = `<span class="badge ok">✅ Certificado válido / Valid</span>
+      <div class="row"><span>Nombre / Name</span><b>${esc(r.name)}</b></div>
+      <div class="row"><span>Nivel / Level</span><b>${esc(r.level)}</b></div>
+      <div class="row"><span>Fecha / Date</span><b>${esc(fmt(r.date))}</b></div>
+      <div class="row"><span>ID</span><b>${esc(r.id)}</b></div>`;
+    else if (r.revoked) out.innerHTML = '<span class="badge bad">⚠️ Certificado anulado / Revoked</span><div class="muted">Este certificado fue anulado por la escuela.</div>';
+    else if (r.error) out.innerHTML = `<span class="badge bad">⚠️ ${esc(r.error)}</span>`;
+    else out.innerHTML = '<span class="badge bad">❌ No encontrado / Not found</span><div class="muted">Este ID no corresponde a ningún certificado de PolyABC.</div>';
+  } catch (e) { out.innerHTML = '<span class="badge bad">⚠️ Sin conexión. Intenta de nuevo.</span>'; }
+}
+const q = new URLSearchParams(location.search).get('id');
+if (q) check(q);
+</script>
+</body>
+</html>

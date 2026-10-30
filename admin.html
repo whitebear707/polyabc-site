@@ -11,7 +11,10 @@
   <meta name="apple-mobile-web-app-title" content="PolyABC Admin"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PolyABC - Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Playfair+Display:wght@600;700&family=Libre+Baskerville:wght@400;700&family=Montserrat:wght@500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="cert/cert.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #f0f4f8; min-height: 100vh; }
@@ -376,6 +379,7 @@
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
     <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
     <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
+    <div class="menu-item" id="menu-certificates" onclick="menuNav('certificates')">🎓 Certificados</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
         <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
@@ -712,6 +716,33 @@
     <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Tech Support los agrega y edita. Aquí puedes ver qué video ve cada rol.</div>
     <div id="hv-list"></div>
 </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: CERTIFICADOS -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-certificates" class="panel">
+    <div class="panel-title">🎓 Certificados</div>
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div class="field-group"><label>Alumno</label>
+        <select id="ct-student" onchange="certPickStudent()" style="width:100%;"></select></div>
+      <div class="field-group"><label>Nombre en el certificado</label>
+        <input id="ct-name" maxlength="80" placeholder="Nombre completo" style="width:100%;box-sizing:border-box;"/></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="field-group" style="flex:1;min-width:120px;"><label>Nivel</label>
+          <select id="ct-level" style="width:100%;"><option>A0</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></div>
+        <div class="field-group" style="flex:1;min-width:150px;"><label>Fecha</label>
+          <input id="ct-date" type="date" style="width:100%;box-sizing:border-box;"/></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;font-weight:800;margin:6px 0 14px;cursor:pointer;">
+        <input type="checkbox" id="ct-adult" style="width:22px;height:22px;"/> Adulto <span style="font-weight:400;color:#888;font-size:0.85rem;">(sin marcar = niños)</span></label>
+      <button id="ct-go" onclick="certGenerate()" style="width:100%;background:#2e7d32;color:#fff;border:none;border-radius:12px;padding:13px;font-weight:900;font-size:1rem;cursor:pointer;">🎓 Generar certificado (PDF)</button>
+      <div id="ct-msg" style="margin-top:10px;font-size:0.88rem;"></div>
+      <img id="ct-preview" style="display:none;width:100%;margin-top:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.15);"/>
+    </div>
+    <div style="font-weight:900;margin-bottom:8px;">Certificados emitidos</div>
+    <input id="ct-search" oninput="renderCertList()" placeholder="🔍 Buscar nombre o ID" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccc;border-radius:10px;margin-bottom:8px;"/>
+    <div id="ct-list"></div>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: GRABACIONES (class recordings in Google Drive) -->
@@ -1622,7 +1653,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1630,7 +1661,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1651,6 +1682,7 @@ function showPanel(name) {
   if (name === 'spectators') renderSpectators();
   if (name === 'meetings')   renderMeetings();
   if (name === 'recordings') renderRecordings();
+  if (name === 'certificates') renderCertificates();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
 }
 
@@ -5526,6 +5558,67 @@ function copySpectatorInfo(id) {
 // ── JUNTAS (meetings, room 0) ──
 let _meeting = null;
 function mtMsg(t, ok) { const m = document.getElementById('mt-msg'); m.textContent = t; m.style.color = ok ? '#2e7d32' : ok === false ? '#c62828' : '#555'; }
+// ── CERTIFICADOS ──
+let _certs = [];
+function certToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
+async function renderCertificates() {
+  const sel = document.getElementById('ct-student');
+  const names = [...new Set((allStudents || []).map(s => s.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  sel.innerHTML = '<option value="">— Otra persona (escribir nombre) —</option>' + names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  if (!document.getElementById('ct-date').value) document.getElementById('ct-date').value = certToday();
+  try { _certs = await (await fetch(`${SERVER_URL}/admin/certificates`, { headers: { Authorization: `Bearer ${currentToken}` } })).json(); if (!Array.isArray(_certs)) _certs = []; } catch (e) { _certs = []; }
+  renderCertList();
+}
+function certPickStudent() {
+  const n = document.getElementById('ct-student').value;
+  const s = (allStudents || []).find(x => x.name === n);
+  document.getElementById('ct-name').value = n ? (s?.fullName || n) : '';
+  if (s?.level && [...document.getElementById('ct-level').options].some(o => o.value === s.level)) document.getElementById('ct-level').value = s.level;
+}
+function renderCertList() {
+  const q = (document.getElementById('ct-search').value || '').toLowerCase().trim();
+  const rows = _certs.filter(c => !q || c.name.toLowerCase().includes(q) || c.id.includes(q.replace(/\D/g, '') || '~'));
+  document.getElementById('ct-list').innerHTML = rows.length ? rows.map(c => `
+    <div style="background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;${c.revoked ? 'opacity:.55;' : ''}">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-weight:900;">${escHtml(c.name)} · ${escHtml(c.level)}</div>
+        <div style="font-size:0.8rem;color:#777;">${c.template === 'adult' ? 'Adulto' : 'Niños'} · ${escHtml(c.date)}</div>
+      </div>
+      <div style="font-size:0.8rem;color:#555;margin-top:2px;">ID ${escHtml(c.id)}${c.revoked ? ' · <b style="color:#e53935;">ANULADO</b>' : ''}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button onclick="certDownload('${escHtml(c.id)}')" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;">⬇ PDF</button>
+        <button onclick="certRevoke('${escHtml(c.id)}', ${c.revoked ? 'false' : 'true'})" style="background:#fff;color:${c.revoked ? '#2e7d32' : '#e53935'};border:2px solid ${c.revoked ? '#2e7d32' : '#e53935'};border-radius:8px;padding:4px 10px;font-weight:800;cursor:pointer;">${c.revoked ? 'Reactivar' : 'Anular'}</button>
+      </div>
+    </div>`).join('') : '<div style="color:#999;padding:10px;">No hay certificados.</div>';
+}
+async function certGenerate() {
+  const msg = document.getElementById('ct-msg'), btn = document.getElementById('ct-go');
+  const body = { name: document.getElementById('ct-name').value.trim(), level: document.getElementById('ct-level').value, date: document.getElementById('ct-date').value,
+    template: document.getElementById('ct-adult').checked ? 'adult' : 'kids', studentName: document.getElementById('ct-student').value || null };
+  if (!body.name) { msg.innerHTML = '<span style="color:#e53935;">Escribe el nombre.</span>'; return; }
+  if (!body.date) { msg.innerHTML = '<span style="color:#e53935;">Elige la fecha.</span>'; return; }
+  btn.disabled = true; msg.textContent = 'Generando…';
+  try {
+    const r = await (await fetch(`${SERVER_URL}/admin/certificates`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) })).json();
+    if (!r.success) { msg.innerHTML = `<span style="color:#e53935;">⚠️ ${escHtml(r.error || 'Error')}</span>`; btn.disabled = false; return; }
+    _certs.unshift(r.certificate); renderCertList();
+    const cv = await PolyCert.render(r.certificate);
+    const pv = document.getElementById('ct-preview'); pv.src = cv.toDataURL('image/jpeg', 0.6); pv.style.display = 'block';
+    await PolyCert.downloadPdf(r.certificate);
+    msg.innerHTML = `✅ Certificado generado · ID <b>${escHtml(r.certificate.id)}</b>`;
+  } catch (e) { msg.innerHTML = '<span style="color:#e53935;">⚠️ No se pudo generar.</span>'; }
+  btn.disabled = false;
+}
+async function certDownload(id) {
+  const c = _certs.find(x => x.id === id); if (!c) return;
+  try { await PolyCert.downloadPdf(c); } catch (e) { showToast('⚠️ No se pudo descargar'); }
+}
+async function certRevoke(id, revoked) {
+  if (revoked && !confirm('¿Anular este certificado? Al escanear el QR dirá "anulado".')) return;
+  const r = await (await fetch(`${SERVER_URL}/admin/certificates/${encodeURIComponent(id)}/revoke`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ revoked }) })).json().catch(() => ({}));
+  if (r.success) { const c = _certs.find(x => x.id === id); if (c) c.revoked = revoked; renderCertList(); } else showToast('⚠️ Error');
+}
+
 // ── GRABACIONES ──
 async function renderRecordings() {
   const box = document.getElementById('rc-drive');
