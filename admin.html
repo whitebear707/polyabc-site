@@ -381,6 +381,7 @@
     <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
     <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
     <div class="menu-item" id="menu-certificates" onclick="menuNav('certificates')">🎓 Certificados</div>
+    <div class="menu-item" id="menu-announcements" onclick="menuNav('announcements')">📢 Anuncios</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
         <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
@@ -719,6 +720,38 @@
 </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: ANUNCIOS -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-announcements" class="panel">
+    <div class="panel-title">📢 Anuncios</div>
+    <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
+      El mensaje aparece arriba en los paneles que elijas, entre las fechas que pongas. Cada persona lo puede cerrar con la ✕.
+    </div>
+    <div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div class="field-group"><label>Mensaje</label>
+        <textarea id="an-text" maxlength="300" rows="3" placeholder="Ej: No hay clases el lunes 16 por día festivo." style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:8px;font-family:inherit;"></textarea></div>
+      <div style="font-weight:800;font-size:0.85rem;margin-bottom:6px;">¿Quién lo ve?</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-weight:700;">
+        <label><input type="checkbox" class="an-aud" value="teacher" checked/> Maestros</label>
+        <label><input type="checkbox" class="an-aud" value="student" checked/> Alumnos</label>
+        <label><input type="checkbox" class="an-aud" value="parent" checked/> Padres</label>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div class="field-group" style="flex:1;min-width:140px;"><label>Desde</label><input type="date" id="an-from" style="width:100%;box-sizing:border-box;"/></div>
+        <div class="field-group" style="flex:1;min-width:140px;"><label>Hasta</label><input type="date" id="an-until" style="width:100%;box-sizing:border-box;"/></div>
+        <div class="field-group" style="flex:1;min-width:140px;"><label>Color</label>
+          <select id="an-color" style="width:100%;"><option value="blue">🔵 Azul (aviso)</option><option value="yellow">🟡 Amarillo (importante)</option><option value="red">🔴 Rojo (urgente)</option><option value="green">🟢 Verde (buena noticia)</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="an-save" onclick="annSave()" style="flex:1;background:#2e7d32;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:900;cursor:pointer;">📢 Publicar</button>
+        <button id="an-cancel" onclick="annReset()" style="display:none;background:#fff;border:2px solid #ccc;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="an-msg" style="margin-top:8px;font-size:0.88rem;"></div>
+    </div>
+    <div id="an-list"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: CERTIFICADOS -->
   <!-- ══════════════════════════════════════════════════════ -->
   <div id="panel-certificates" class="panel">
@@ -947,6 +980,14 @@
     </div>
     <div id="makeup-req-box" style="margin-bottom:20px;"></div>
     <div id="review-status-box" style="margin-bottom:20px;"></div>
+    <div style="background:#fff;border:2px solid #6a1b9a;border-radius:14px;padding:14px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="font-weight:900;font-size:1rem;">📊 Calificación de maestros</div>
+        <input type="month" id="sc-month" onchange="loadScorecard()" style="padding:6px;border:1px solid #ccc;border-radius:8px;"/>
+      </div>
+      <div style="font-size:0.78rem;color:#777;margin:4px 0 8px;">Puntualidad 30 · Clases completas 25 · Tiempo de habla 20 · Reseñas 15 · Tareas calificadas 10. Toca un maestro para ver el detalle.</div>
+      <div id="sc-list">Cargando…</div>
+    </div>
     <div id="teachers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
   </div>
 
@@ -1654,7 +1695,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1662,7 +1703,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1674,7 +1715,7 @@ function showPanel(name) {
   if (name === 'payroll')    { populatePayTeacherFilter(); }
   if (name === 'attendance')  { populateAttTeacherFilter(); }
   if (name === 'calendar')   { renderMasterCalendar(); }
-  if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); loadMakeupRequests(); }
+  if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); loadMakeupRequests(); loadScorecard(); }
   if (name === 'students')   renderAllStudents();
   if (name === 'groups')     renderGroups();
   if (name === 'accounting') { renderAccounting(); }
@@ -1684,6 +1725,7 @@ function showPanel(name) {
   if (name === 'meetings')   renderMeetings();
   if (name === 'recordings') renderRecordings();
   if (name === 'certificates') renderCertificates();
+  if (name === 'announcements') renderAnnouncements();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
 }
 
@@ -3921,6 +3963,28 @@ function buildPayrollTags(c) {
   return tags.join(' ');
 }
 
+// ── Talk time (teacher's share of speaking) ──
+const TALK_LABEL = { 5: 'Excelente', 4: 'Muy bien', 3: 'Bien', 2: 'Mejorable', 1: 'Habla demasiado' };
+const TALK_COLOR = { 5: '#2e7d32', 4: '#558b2f', 3: '#f9a825', 2: '#ef6c00', 1: '#c62828' };
+function talkStars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+function talkBadge(t) {
+  if (!t) return '';
+  return `<div style="font-size:0.75rem;font-weight:900;color:${TALK_COLOR[t.rating]};margin-top:3px;" title="Porcentaje del tiempo de habla que usó el maestro">🗣 Maestro ${t.teacherPct}% · ${talkStars(t.rating)}</div>`;
+}
+function talkSection(t) {
+  if (!t) return `<div style="background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:16px;font-size:0.82rem;color:#888;">🗣 Tiempo de habla: sin datos (se necesitan 8+ minutos de clase medidos).</div>`;
+  const bar = (label, pct, color) => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:0.82rem;"><div style="width:110px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(label)}</div><div style="flex:1;background:#eee;border-radius:6px;height:12px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${color};"></div></div><div style="width:40px;text-align:right;font-weight:900;">${pct}%</div></div>`;
+  const quiet = t.students.filter(x => x.pct < 3).map(x => x.name);
+  return `<div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+      <div style="font-size:0.85rem;font-weight:700;color:#555;">🗣 TIEMPO DE HABLA</div>
+      <div style="font-weight:900;color:${TALK_COLOR[t.rating]};">${talkStars(t.rating)} ${TALK_LABEL[t.rating]}</div>
+    </div>
+    ${bar('Maestro', t.teacherPct, '#1a73e8')}
+    ${t.students.map(x => bar(x.name, x.pct, '#43a047')).join('')}
+    <div style="font-size:0.75rem;color:#888;margin-top:6px;">Medido ${t.measuredMins} min · silencio ${t.silencePct}% · Meta: que el maestro use 50% o menos del tiempo de habla.${quiet.length ? ` <b style="color:#c62828;">Casi no hablaron: ${escHtml(quiet.join(', '))}</b>` : ''}</div>
+  </div>`;
+}
 async function loadAttendance() {
   const teacherRoom = document.getElementById('att-teacher').value;
   const fromDate    = document.getElementById('att-from').value;
@@ -3985,6 +4049,7 @@ async function loadAttendance() {
         <div style="text-align:right;">
           ${flagged ? `<div style="background:#b71c1c;color:white;border-radius:10px;padding:2px 8px;font-size:0.72rem;font-weight:900;margin-bottom:4px;">${r.earlyEnd.by === 'students' ? `🔴 SIN ALUMNOS LOS ÚLTIMOS ${Math.round(r.earlyEnd.earlyMins)} MIN` : `🔴 ENDED EARLY −${Math.round(r.earlyEnd.earlyMins)} MIN`}</div>` : ''}
           <div style="font-size:0.82rem;color:#555;">${studentCount} student${studentCount!==1?'s':''}</div>
+          ${talkBadge(r.talk)}
           <div style="font-size:0.75rem;color:#aaa;margin-top:2px;">Clic para ver →</div>
         </div>
       </div>
@@ -4127,6 +4192,7 @@ function openAttDetail(idx) {
           </table>
         </div>` : ''}
       </div>
+      ${talkSection(r.talk)}
       <div style="font-size:0.85rem;font-weight:700;color:#555;margin-bottom:8px;">STUDENTS</div>
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr style="background:#f0f4f8;">
@@ -5559,6 +5625,97 @@ function copySpectatorInfo(id) {
 // ── JUNTAS (meetings, room 0) ──
 let _meeting = null;
 function mtMsg(t, ok) { const m = document.getElementById('mt-msg'); m.textContent = t; m.style.color = ok ? '#2e7d32' : ok === false ? '#c62828' : '#555'; }
+// ── CALIFICACIÓN DE MAESTROS ──
+let _scOpen = new Set();
+async function loadScorecard() {
+  const mi = document.getElementById('sc-month');
+  if (!mi.value) mi.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }).slice(0, 7);
+  const box = document.getElementById('sc-list');
+  try {
+    const d = await (await fetch(`${SERVER_URL}/admin/teacher-scorecard?month=${mi.value}`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    window._sc = d.teachers || [];
+    renderScorecard();
+  } catch (e) { box.innerHTML = '<div style="color:#e53935;">⚠️ No se pudo cargar.</div>'; }
+}
+function renderScorecard() {
+  const box = document.getElementById('sc-list'), list = window._sc || [];
+  if (!list.length) { box.innerHTML = '<div style="color:#999;">Sin clases este mes.</div>'; return; }
+  const col = s => s >= 85 ? '#2e7d32' : s >= 70 ? '#f9a825' : '#c62828';
+  const row = (k, v, bad) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid #f0f0f0;font-size:0.82rem;"><span>${k}</span><b style="color:${bad ? '#c62828' : '#1a1a2e'};">${v}</b></div>`;
+  box.innerHTML = list.map(t => {
+    const open = _scOpen.has(t.room);
+    return `<div style="border:1px solid #eee;border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;" onclick="scToggle('${escJsAttr(t.room)}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div><b>${escHtml(t.teacherName)}</b> <span style="color:#999;font-size:0.8rem;">· Salón ${escHtml(t.room)}</span>
+          <div style="font-size:0.78rem;color:#666;margin-top:2px;">⏰ ${t.onTime}/${t.held + t.missed} a tiempo · 🗣 ${t.avgTalkPct != null ? t.avgTalkPct + '%' : '—'} · 📝 ${t.reviewsDone}/${t.reviewsTotal}</div></div>
+        <div style="font-size:1.6rem;font-weight:900;color:${col(t.score)};">${t.score}</div>
+      </div>
+      ${open ? `<div style="margin-top:8px;">
+        ${row('Clases programadas / dadas', `${t.scheduled} / ${t.held}`)}
+        ${row('No dio la clase', t.missed, t.missed > 0)}
+        ${row('Llegó tarde (3+ min)', t.late ? `${t.late} · promedio ${t.avgLateMins} min` : 0, t.late > 0)}
+        ${row('Clases completas', t.completed)}
+        ${row('Terminó antes', t.endedEarly, t.endedEarly > 0)}
+        ${row('Se fue y no regresó', t.invalid, t.invalid > 0)}
+        ${row('Desconexiones del maestro', t.teacherDrops, t.teacherDrops >= 5)}
+        ${row('Tiempo de habla del maestro', t.avgTalkPct != null ? `${t.avgTalkPct}% · ${'★'.repeat(Math.round(t.avgRating))}${'☆'.repeat(5 - Math.round(t.avgRating))} (${t.talkClasses} clases)` : 'sin datos', t.avgTalkPct > 70)}
+        ${row('Reseñas mensuales', `${t.reviewsDone}/${t.reviewsTotal}`, t.reviewsDone < t.reviewsTotal)}
+        ${row('Tareas: asignadas · entregadas · calificadas', `${t.homeworkAssigned} · ${t.handedIn} · ${t.graded}`)}
+        ${row('Tareas sin calificar (3+ días)', t.slowGrading, t.slowGrading > 0)}
+        ${row('Alumnos: mes pasado → se quedaron', `${t.studentsPrev} → ${t.studentsKept} (este mes ${t.studentsNow})`, t.studentsPrev && t.studentsKept < t.studentsPrev)}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+function scToggle(room) { _scOpen.has(room) ? _scOpen.delete(room) : _scOpen.add(room); renderScorecard(); }
+
+// ── ANUNCIOS ──
+let _anns = [], _annEdit = null;
+const AN_AUD = { teacher: 'Maestros', student: 'Alumnos', parent: 'Padres' };
+const AN_COL = { blue: '#1a73e8', yellow: '#ffd54f', red: '#e53935', green: '#2e7d32' };
+function annToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
+async function renderAnnouncements() {
+  if (!document.getElementById('an-from').value) { document.getElementById('an-from').value = annToday(); document.getElementById('an-until').value = annToday(); }
+  try { _anns = await (await fetch(`${SERVER_URL}/admin/announcements`, { headers: { Authorization: `Bearer ${currentToken}` } })).json(); if (!Array.isArray(_anns)) _anns = []; } catch (e) { _anns = []; }
+  const t = annToday();
+  document.getElementById('an-list').innerHTML = _anns.length ? _anns.map(a => {
+    const st = a.until < t ? '⚪ Terminó' : a.from > t ? '🕒 Programado' : '🟢 Activo';
+    return `<div style="background:#fff;border:1px solid #e0e0e0;border-left:6px solid ${AN_COL[a.color] || '#1a73e8'};border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-weight:800;">${escHtml(a.text)}</div>
+      <div style="font-size:0.8rem;color:#666;margin-top:4px;">${st} · ${escHtml(a.from)} → ${escHtml(a.until)} · ${a.audiences.map(x => AN_AUD[x] || x).join(', ')}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button onclick="annEdit('${escJsAttr(a.id)}')" style="background:#f1f3f4;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;">Editar</button>
+        <button onclick="annDelete('${escJsAttr(a.id)}')" style="background:#fff;color:#e53935;border:2px solid #e53935;border-radius:8px;padding:4px 10px;font-weight:800;cursor:pointer;">Borrar</button>
+      </div></div>`; }).join('') : '<div style="color:#999;padding:10px;">No hay anuncios.</div>';
+}
+function annReset() {
+  _annEdit = null; document.getElementById('an-text').value = ''; document.getElementById('an-from').value = annToday(); document.getElementById('an-until').value = annToday();
+  document.querySelectorAll('.an-aud').forEach(c => c.checked = true); document.getElementById('an-color').value = 'blue';
+  document.getElementById('an-save').textContent = '📢 Publicar'; document.getElementById('an-cancel').style.display = 'none';
+}
+function annEdit(id) {
+  const a = _anns.find(x => x.id === id); if (!a) return;
+  _annEdit = id; document.getElementById('an-text').value = a.text; document.getElementById('an-from').value = a.from; document.getElementById('an-until').value = a.until;
+  document.querySelectorAll('.an-aud').forEach(c => c.checked = a.audiences.includes(c.value)); document.getElementById('an-color').value = a.color;
+  document.getElementById('an-save').textContent = '💾 Guardar cambios'; document.getElementById('an-cancel').style.display = '';
+  document.getElementById('an-text').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+async function annSave() {
+  const body = { id: _annEdit, text: document.getElementById('an-text').value.trim(), audiences: [...document.querySelectorAll('.an-aud:checked')].map(c => c.value),
+    from: document.getElementById('an-from').value, until: document.getElementById('an-until').value, color: document.getElementById('an-color').value };
+  const msg = document.getElementById('an-msg');
+  const r = await (await fetch(`${SERVER_URL}/admin/announcements`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify(body) })).json().catch(() => ({}));
+  if (!r.success) { msg.innerHTML = `<span style="color:#e53935;">⚠️ ${escHtml(r.error || 'No se pudo guardar')}</span>`; return; }
+  msg.innerHTML = '✅ Guardado'; setTimeout(() => msg.textContent = '', 2500);
+  annReset(); renderAnnouncements();
+}
+async function annDelete(id) {
+  if (!confirm('¿Borrar este anuncio?')) return;
+  await fetch(`${SERVER_URL}/admin/announcements/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } }).catch(() => {});
+  if (_annEdit === id) annReset();
+  renderAnnouncements();
+}
+
 // ── CERTIFICADOS ──
 let _certs = [];
 function certToday() { return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }

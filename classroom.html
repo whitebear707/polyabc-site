@@ -3175,6 +3175,7 @@ function teacherBRB() { document.getElementById('leave-modal').style.display = '
 function teacherEndClass() {
   document.getElementById('leave-modal').style.display = 'none';
   const debtPayoffMins = window._debtPayoffMins || 0;
+  if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs });
   if (window._socket) window._socket.emit('end-class', { room: ROOM, debtPayoffMins, sessionId: SESSION_ID });
   // Store end time for greeting page to display
   const endTime = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
@@ -3971,6 +3972,77 @@ if (!IS_SPECTATOR) setInterval(async () => {
   const s = window._socket; if (!s || !s.connected || !_joinedName) return;
   try { s.emit('health-report', await collectHealth()); } catch (e) {}
 }, 10000);
+
+// ── Talk-time meter (teacher's browser only; never in juntas) ──
+// Every 200 ms: who is making voice-level sound? Students from each audio connection's level,
+// the teacher from their own mic. No recording, no words — just seconds of talking per person.
+const TT = { teacherMs: 0, students: {}, measuredMs: 0, silenceMs: 0, floor: {}, hang: {}, ac: null, an: null, buf: null, srcTrack: null, prevE: {}, localMax: 0, busy: false };
+function ttLocalLevel() {
+  try {
+    const tr = localStream && localStream.getAudioTracks()[0];
+    if (!tr || tr.readyState !== 'live' || !tr.enabled) return 0;
+    if (!TT.ac) TT.ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (TT.ac.state === 'suspended') { TT.ac.resume().catch(() => {}); return 0; }
+    if (TT.srcTrack !== tr) { TT.an = TT.ac.createAnalyser(); TT.an.fftSize = 1024; TT.ac.createMediaStreamSource(new MediaStream([tr])).connect(TT.an); TT.buf = new Float32Array(TT.an.fftSize); TT.srcTrack = tr; }
+    TT.an.getFloatTimeDomainData(TT.buf);
+    let sum = 0; for (let i = 0; i < TT.buf.length; i++) sum += TT.buf[i] * TT.buf[i];
+    return Math.sqrt(sum / TT.buf.length);
+  } catch (e) { return 0; }
+}
+// A student's voice level over the last half second, from the received sound's energy (works for every browser that sends audio)
+async function ttRemoteLevel(sid, pc) {
+  try {
+    let e = 0, d = 0;
+    (await pc.getStats()).forEach(r => { if (r.type === 'inbound-rtp' && r.kind === 'audio') { e += r.totalAudioEnergy || 0; d += r.totalSamplesDuration || 0; } });
+    const p = TT.prevE[sid]; TT.prevE[sid] = { e, d };
+    if (!p || d <= p.d) return 0;
+    return Math.sqrt(Math.max(0, e - p.e) / (d - p.d));
+  } catch (e) { return 0; }
+}
+function ttSpeaking(key, level, now) {
+  // noise floor follows the quiet moments; speech must be clearly above it
+  const f = TT.floor[key] == null ? level : TT.floor[key];
+  TT.floor[key] = level < f ? level : f + (level - f) * 0.002;
+  if (level > Math.max(0.03, TT.floor[key] * 2.5)) TT.hang[key] = now;
+  return now - (TT.hang[key] || 0) < 600;   // short pauses between words still count
+}
+if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
+  setInterval(() => { if (_joinedName && classIsOpen) TT.localMax = Math.max(TT.localMax, ttLocalLevel()); }, 100);
+  setInterval(async () => {
+    if (!_joinedName || !classIsOpen || TT.busy) return;
+    TT.busy = true;
+    try {
+      const now = Date.now(); let any = false;
+      // the teacher's own mic: energy of what is being sent (no audio player needed); falls back to a direct mic reading
+      let tl = null;
+      const firstPc = Object.values(audioPeers)[0];
+      if (firstPc) {
+        try {
+          let e = 0, d = 0, found = false;
+          (await firstPc.getStats()).forEach(r => { if (r.type === 'media-source' && r.kind === 'audio' && r.totalSamplesDuration != null) { e = r.totalAudioEnergy || 0; d = r.totalSamplesDuration; found = true; } });
+          const p = TT.prevE.__teacher; TT.prevE.__teacher = { e, d };
+          if (found && p && d > p.d) tl = Math.sqrt(Math.max(0, e - p.e) / (d - p.d));
+        } catch (er) {}
+        const tr = localStream && localStream.getAudioTracks()[0];
+        if (tr && !tr.enabled) tl = 0;   // muted
+      }
+      if (tl == null) tl = TT.localMax;
+      if (ttSpeaking('__teacher', tl, now)) { TT.teacherMs += 500; any = true; }
+      TT.localMax = 0;
+      for (const [sid, pc] of Object.entries(audioPeers)) {
+        const name = remoteNames[sid]; if (!name || remoteRoles[sid] !== 'student') continue;
+        if (ttSpeaking(name, await ttRemoteLevel(sid, pc), now)) { TT.students[name] = (TT.students[name] || 0) + 500; any = true; }
+      }
+      TT.measuredMs += 500; if (!any) TT.silenceMs += 500;
+    } finally { TT.busy = false; }
+  }, 500);
+  setInterval(() => {
+    const s = window._socket; if (!s || !s.connected || TT.measuredMs < 1000) return;
+    s.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs });
+    TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0;
+  }, 30000);
+  document.addEventListener('click', () => { if (TT.ac && TT.ac.state === 'suspended') TT.ac.resume().catch(() => {}); });
+}
 
 recordingGate().then(ok => { if (ok) startMedia(); });
 </script>
