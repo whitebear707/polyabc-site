@@ -143,19 +143,35 @@ function occurrences(it, from, to) {
   }
   return out;
 }
+// Payments of one debt from `from` to `to`: the monthly minimum, or everything at once on the planned pay-off day
+function debtSchedule(it, from, to) {
+  const out = []; let rem = Number(it.total) || 0;
+  const r = (Number(it.rate) || 0) / 1200, min = Number(it.amount) || 0, plan = it.payoffDate && it.payoffDate >= from ? it.payoffDate : null;
+  const dates = occurrences(it, from, to);
+  if (plan && plan <= to && !dates.includes(plan)) dates.push(plan);
+  dates.sort();
+  for (const d of dates) {
+    if (rem <= 0.01) break;
+    if (plan && d === plan) { out.push({ date: d, pay: rem, rem: 0, full: true }); rem = 0; break; }
+    rem += rem * r;
+    const pay = Math.min(min, rem); rem -= pay;
+    out.push({ date: d, pay, rem, full: false });
+  }
+  return out;
+}
+// what is still owed on a debt at the START of day d (before that day's payment)
+function owedBefore(it, d) {
+  let rem = Number(it.total) || 0;
+  debtSchedule({ ...it, payoffDate: null }, W.balance.asOf, addDays(d, -1)).forEach(x => rem = x.rem);
+  return rem;
+}
 // ── every money movement from the balance date up to `to`, with debts shrinking as they are paid ──
 function buildEvents(to) {
   const from = W.balance.asOf, ev = {}; // date -> [{name, amount(signed), type, id, note}]
   const push = (d, e) => (ev[d] = ev[d] || []).push(e);
   W.items.forEach(it => {
     if (it.type === 'debt') {
-      let rem = Number(it.total) || 0; const r = (Number(it.rate) || 0) / 1200, min = Number(it.amount) || 0;
-      for (const d of occurrences(it, from, to)) {
-        if (rem <= 0.01) break;
-        rem += rem * r;
-        const pay = Math.min(min, rem); rem -= pay;
-        push(d, { id: it.id, type: 'debt', name: it.name, amount: -pay, note: rem > 0.01 ? `${money(rem)} left` : '🎉 paid off' });
-      }
+      debtSchedule(it, from, to).forEach(x => push(x.date, { id: it.id, type: 'debt', name: it.name, amount: -x.pay, note: x.full ? '💥 paid in full (your plan)' : x.rem > 0.01 ? `${money(x.rem)} left` : '🎉 paid off' }));
     } else {
       occurrences(it, from, to).forEach(d => push(d, { id: it.id, type: it.type, name: it.name, amount: it.type === 'income' ? Number(it.amount) || 0 : -(Number(it.amount) || 0) }));
     }
@@ -217,6 +233,9 @@ function renderDetail() {
       const firstShort = Object.keys(window._endBal).filter(x => x > d && window._endBal[x] < 0).sort()[0];
       if (firstShort) html += `<div class="warn">⚠️ On ${esc(nice(firstShort))} you'd be at ${money(window._endBal[firstShort])}.</div>`;
     }
+    // "what if I pay a debt in full on this day?"
+    const debts = W.items.filter(i => i.type === 'debt' && i.payoffDate !== d && owedBefore(i, d) > 0.01 && (!i.payoffDate || i.payoffDate > d));
+    if (debts.length) html += `<div style="margin-top:10px;"><div class="muted" style="margin-bottom:6px;">What if I pay a debt in full on this day?</div>${debts.map(i => `<button class="ghost" style="margin:0 6px 6px 0;" onclick="planPayoff('${esc(i.id)}','${d}')">💥 Pay off ${esc(i.name)} (${money(owedBefore(i, d))})</button>`).join('')}</div>`;
   } else html += `<div class="muted" style="margin-top:6px;">Before your last balance update — no totals shown.</div>`;
   $('detail').innerHTML = html;
 }
@@ -226,16 +245,23 @@ function renderLists() {
     $('list-' + type).innerHTML = list.length ? list.map(i => {
       let sub = type === 'debt' ? `Min ${money(+i.amount)} every month · due ${esc(nice(i.date))}${i.rate ? ` · ${i.rate}%/yr` : ''}` : `${REPEAT[i.repeat || 'once']} · ${esc(nice(i.date))}`;
       let right = type === 'income' ? `<span class="plus">+${money(+i.amount)}</span>` : type === 'bill' ? `<span class="minus">−${money(+i.amount).replace('−', '')}</span>` : `<span class="minus">${money(+i.total)}</span>`;
+      if (type === 'debt' && i.payoffDate) {
+        sub += `<div style="margin-top:4px;color:var(--blue);font-weight:800;">💥 Plan: pay it all on ${esc(nice(i.payoffDate))} <button class="ghost" style="padding:2px 8px;font-size:.75rem;margin-left:4px;" onclick="event.stopPropagation();planPayoff('${esc(i.id)}', null)">✕ cancel plan</button></div>`;
+      }
       if (type === 'debt') {
         // payoff date at this pace
         const pays = []; Object.entries(window._ev).forEach(([d, es]) => es.forEach(e => { if (e.id === i.id) pays.push([d, e]); }));
         pays.sort((a, b) => a[0].localeCompare(b[0]));
-        const done = pays.find(p => /paid off/.test(p[1].note));
-        sub += `<div class="muted">${done ? `🎉 Paid off around ${esc(parse(done[0]).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }))} (${pays.length} payments)` : pays.length && (+i.rate) && (+i.total) * (+i.rate) / 1200 >= +i.amount ? '⚠️ The minimum doesn\'t cover the interest' : 'Not paid off in the next 13 months'}</div>`;
+        const done = pays.find(p => /paid off|paid in full/.test(p[1].note));
+        sub += `<div class="muted">${done ? `🎉 Paid off around ${esc(parse(done[0]).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }))} (${pays.length} payment${pays.length === 1 ? '' : 's'})` : pays.length && (+i.rate) && (+i.total) * (+i.rate) / 1200 >= +i.amount ? '⚠️ The minimum doesn\'t cover the interest' : 'Not paid off in the next 13 months'}</div>`;
       }
       return `<div class="it" style="cursor:pointer;" onclick="openSheet('${type}','${esc(i.id)}')"><span><b>${esc(i.name)}</b><div class="muted">${sub}</div></span>${right}</div>`;
     }).join('') : '<div class="muted">None yet.</div>';
   });
+}
+function planPayoff(id, d) {
+  W.items = W.items.map(x => x.id === id ? { ...x, payoffDate: d || null } : x);
+  render(); save();
 }
 function pick(d) {
   sel = d;
@@ -257,7 +283,8 @@ function openSheet(type, id) {
   } else if (type === 'debt') {
     $('sh-body').innerHTML = field('Debt name', 'f-name', 'text', it.name, 'maxlength="60"') + field('Minimum payment', 'f-amount', 'number', it.amount, 'inputmode="decimal" step="0.01"')
       + field('Total I owe now', 'f-total', 'number', it.total, 'inputmode="decimal" step="0.01"') + field('Next payment date', 'f-date', 'date', it.date || todayIso())
-      + field('Interest % per year (optional)', 'f-rate', 'number', it.rate, 'inputmode="decimal" step="0.01" placeholder="0"');
+      + field('Interest % per year (optional)', 'f-rate', 'number', it.rate, 'inputmode="decimal" step="0.01" placeholder="0"')
+      + field('Pay it ALL on this day (optional plan)', 'f-payoff', 'date', it.payoffDate || '');
   } else {
     $('sh-body').innerHTML = field(type === 'income' ? 'Income name' : 'Bill name', 'f-name', 'text', it.name, 'maxlength="60"') + field('Amount', 'f-amount', 'number', it.amount, 'inputmode="decimal" step="0.01"')
       + field(type === 'income' ? 'Date I get it (first one)' : 'Due date (first one)', 'f-date', 'date', it.date || todayIso())
@@ -277,7 +304,7 @@ $('sh-save').onclick = () => {
     const name = $('f-name').value.trim(), amount = num('f-amount'), date = $('f-date').value;
     if (!name || amount == null || !date) return alertBox('Fill in name, amount and date');
     const it = { id: shId || Math.random().toString(36).slice(2, 10), type: shType, name, amount, date };
-    if (shType === 'debt') { it.total = num('f-total') || 0; it.rate = num('f-rate') || 0; }
+    if (shType === 'debt') { it.total = num('f-total') || 0; it.rate = num('f-rate') || 0; it.payoffDate = $('f-payoff').value || null; }
     else it.repeat = $('f-repeat').value;
     if (shId) W.items = W.items.map(x => x.id === shId ? it : x); else W.items.push(it);
   }
@@ -291,8 +318,9 @@ $('prev').onclick = () => { view = new Date(view.getFullYear(), view.getMonth() 
 $('next').onclick = () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); };
 
 // ── saving (server, encrypted; a copy stays on this device in case the internet is down) ──
-let saveT = null;
+let saveT = null, dirty = false;
 function save() {
+  dirty = true;
   try { localStorage.setItem('walletCache', JSON.stringify(W)); } catch (e) {}
   $('saved').textContent = 'Saving…';
   clearTimeout(saveT);
@@ -311,7 +339,7 @@ async function load() {
     const r = await fetch(SERVER_URL + '/techsupport/wallet', { headers: { Authorization: 'Bearer ' + token } });
     if (r.status === 403) { location.href = 'techsupport.html'; return; }
     const d = await r.json();
-    if (d.data && d.data.balance) { W = d.data; try { localStorage.setItem('walletCache', JSON.stringify(W)); } catch (e) {} render(); }
+    if (d.data && d.data.balance && !dirty) { W = d.data; try { localStorage.setItem('walletCache', JSON.stringify(W)); } catch (e) {} render(); }
   } catch (e) { $('saved').textContent = '⚠️ Offline'; }
 }
 load();
