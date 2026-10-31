@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f4f6fb; --card:#fff; --ink:#1a1a2e; --muted:#6b7280; --line:#e2e6ef; --green:#2e7d32; --gbg:#c8e6c9; --red:#c62828; --rbg:#ffcdd2; --blue:#1a73e8; --sel:#1a73e8; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#121826; --card:#1c2538; --ink:#eef2ff; --muted:#9aa4b8; --line:#2c3850; --gbg:#1f4d2a; --rbg:#5c1f24; } }
+  :root[data-theme="dark"] { --bg:#121826; --card:#1c2538; --ink:#eef2ff; --muted:#9aa4b8; --line:#2c3850; --gbg:#1f4d2a; --rbg:#5c1f24; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:Nunito,Arial,sans-serif; }
+  .wrap { max-width:640px; margin:0 auto; padding:12px 16px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; }
+  .head { text-align:center; padding:18px 14px; }
+  .head .lbl { color:var(--muted); font-weight:800; font-size:.85rem; }
+  .head .amt { font-size:2.4rem; font-weight:900; margin:2px 0; cursor:pointer; }
+  .head .sub { font-size:.85rem; color:var(--muted); }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  button { font-family:inherit; font-weight:800; border:none; border-radius:10px; padding:9px 14px; cursor:pointer; font-size:.9rem; }
+  .ghost { background:transparent; border:2px solid var(--line); color:var(--ink); }
+  .pri { background:var(--blue); color:#fff; }
+  .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .dow { text-align:center; font-size:.72rem; font-weight:900; color:var(--muted); padding:4px 0; }
+  .day { aspect-ratio:1/1; border-radius:10px; border:1px solid var(--line); padding:3px; font-size:.8rem; font-weight:800; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; min-width:0; overflow:hidden; }
+  .day.out { opacity:.35; }
+  .day.inc { background:var(--gbg); }
+  .day.exp { background:var(--rbg); }
+  .day.both { background:linear-gradient(135deg, var(--gbg) 0 50%, var(--rbg) 50% 100%); }
+  .day.today { outline:3px solid var(--ink); outline-offset:-3px; }
+  .day.sel { outline:3px solid var(--sel); outline-offset:-3px; }
+  .day .bal { font-size:.62rem; font-weight:800; color:var(--muted); text-align:right; white-space:nowrap; }
+  .day .bal.neg { color:var(--red); }
+  .detail h3 { margin:0 0 6px; }
+  .it { display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--line); font-size:.92rem; }
+  .plus { color:var(--green); font-weight:900; } .minus { color:var(--red); font-weight:900; }
+  .sec-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .sec-h h3 { margin:0; font-size:1.05rem; }
+  .muted { color:var(--muted); font-size:.82rem; }
+  .sheet-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:flex-end; justify-content:center; z-index:50; }
+  .sheet { background:var(--card); color:var(--ink); width:100%; max-width:640px; border-radius:18px 18px 0 0; padding:18px 16px 24px; }
+  .sheet label { display:block; font-weight:800; font-size:.85rem; margin:10px 0 4px; }
+  .sheet input, .sheet select { width:100%; padding:11px; border:2px solid var(--line); border-radius:10px; font-family:inherit; font-size:1rem; background:var(--card); color:var(--ink); }
+  .warn { background:#fff3e0; color:#e65100; border-radius:10px; padding:8px 10px; font-weight:800; font-size:.85rem; margin-top:8px; }
+  .saved { font-size:.75rem; color:var(--muted); text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row" style="margin-bottom:8px;">
+    <a href="techsupport.html" style="color:var(--muted);text-decoration:none;font-weight:800;">← Back</a>
+    <span id="saved" class="muted"></span>
+  </div>
+
+  <div class="card head">
+    <div class="lbl">Money I have today</div>
+    <div class="amt" id="h-amt" title="Tap to update">$0</div>
+    <div class="sub" id="h-sub">Tap the amount to update it</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:8px;">
+      <button class="ghost" id="prev">‹</button>
+      <b id="month-title" style="font-size:1.1rem;"></b>
+      <button class="ghost" id="next">›</button>
+    </div>
+    <div class="cal" id="cal"></div>
+    <div class="muted" style="margin-top:8px;">🟩 income · 🟥 bill or debt payment · small number = money left that day</div>
+  </div>
+
+  <div class="card detail" id="detail"></div>
+
+  <div class="card">
+    <div class="sec-h"><h3>💰 Income</h3><button class="pri" onclick="openSheet('income')">+ Add</button></div>
+    <div id="list-income"></div>
+  </div>
+  <div class="card">
+    <div class="sec-h"><h3>🧾 Bills</h3><button class="pri" onclick="openSheet('bill')">+ Add</button></div>
+    <div id="list-bill"></div>
+  </div>
+  <div class="card">
+    <div class="sec-h"><h3>💳 Debts</h3><button class="pri" onclick="openSheet('debt')">+ Add</button></div>
+    <div id="list-debt"></div>
+  </div>
+</div>
+
+<div class="sheet-bg" id="sheet-bg">
+  <div class="sheet">
+    <div class="row"><b id="sh-title" style="font-size:1.15rem;"></b><button class="ghost" onclick="closeSheet()">✕</button></div>
+    <div id="sh-body"></div>
+    <div class="row" style="margin-top:16px;">
+      <button class="ghost" id="sh-del" style="color:var(--red);display:none;">Delete</button>
+      <button class="pri" id="sh-save" style="flex:1;margin-left:8px;">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SERVER_URL = "https://polyabc-server.onrender.com";
+const token = (() => { try { return localStorage.getItem('techToken'); } catch (e) { return null; } })();
+if (!token) location.href = 'techsupport.html';
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
+const short = n => { const a = Math.abs(n), s = n < 0 ? '−' : ''; return a >= 1e6 ? s + (a / 1e6).toFixed(1) + 'M' : a >= 1e4 ? s + Math.round(a / 1e3) + 'k' : a >= 1e3 ? s + (a / 1e3).toFixed(1) + 'k' : s + Math.round(a); };
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+const todayIso = () => iso(new Date());
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const nice = s => { const d = parse(s); return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); };
+const REPEAT = { once: 'One time', weekly: 'Every week', biweekly: 'Every 2 weeks', monthly: 'Every month' };
+
+let W = { balance: { amount: 0, asOf: todayIso() }, items: [] };
+let view = new Date(); view.setDate(1);
+let sel = todayIso();
+
+// ── dates an item happens between from and to (inclusive) ──
+function occurrences(it, from, to) {
+  const out = [];
+  if (!it.date) return out;
+  const rep = it.type === 'debt' ? 'monthly' : (it.repeat || 'once');
+  if (rep === 'once') { if (it.date >= from && it.date <= to) out.push(it.date); return out; }
+  if (rep === 'weekly' || rep === 'biweekly') {
+    const step = rep === 'weekly' ? 7 : 14;
+    let d = it.date;
+    if (d < from) { const gap = Math.floor((parse(from) - parse(d)) / 86400000 / step) * step; d = addDays(d, gap); }
+    while (d <= to) { if (d >= from) out.push(d); d = addDays(d, step); }
+    return out;
+  }
+  // monthly on the same day (last day of short months)
+  const start = parse(it.date), day = start.getDate();
+  let y = start.getFullYear(), m = start.getMonth();
+  const f = parse(from); if (new Date(y, m, 1) < new Date(f.getFullYear(), f.getMonth(), 1)) { y = f.getFullYear(); m = f.getMonth(); }
+  for (let i = 0; i < 600; i++) {
+    const last = new Date(y, m + 1, 0).getDate();
+    const d = iso(new Date(y, m, Math.min(day, last)));
+    if (d > to) break;
+    if (d >= from && d >= it.date) out.push(d);
+    m++; if (m > 11) { m = 0; y++; }
+  }
+  return out;
+}
+// ── every money movement from the balance date up to `to`, with debts shrinking as they are paid ──
+function buildEvents(to) {
+  const from = W.balance.asOf, ev = {}; // date -> [{name, amount(signed), type, id, note}]
+  const push = (d, e) => (ev[d] = ev[d] || []).push(e);
+  W.items.forEach(it => {
+    if (it.type === 'debt') {
+      let rem = Number(it.total) || 0; const r = (Number(it.rate) || 0) / 1200, min = Number(it.amount) || 0;
+      for (const d of occurrences(it, from, to)) {
+        if (rem <= 0.01) break;
+        rem += rem * r;
+        const pay = Math.min(min, rem); rem -= pay;
+        push(d, { id: it.id, type: 'debt', name: it.name, amount: -pay, note: rem > 0.01 ? `${money(rem)} left` : '🎉 paid off' });
+      }
+    } else {
+      occurrences(it, from, to).forEach(d => push(d, { id: it.id, type: it.type, name: it.name, amount: it.type === 'income' ? Number(it.amount) || 0 : -(Number(it.amount) || 0) }));
+    }
+  });
+  return ev;
+}
+// past days: just show what is scheduled there (no money math before the balance date)
+function markersBefore(from, to) {
+  const ev = {};
+  W.items.forEach(it => occurrences(it, from, to).forEach(d => (ev[d] = ev[d] || []).push({ id: it.id, type: it.type, name: it.name, amount: it.type === 'income' ? +it.amount : -(+it.amount), past: true })));
+  return ev;
+}
+function render() {
+  const y = view.getFullYear(), m = view.getMonth();
+  $('month-title').textContent = `${MONTHS[m]} ${y}`;
+  const first = new Date(y, m, 1), gridStart = new Date(y, m, 1 - first.getDay());
+  const gridEnd = iso(new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + 41));
+  const asOf = W.balance.asOf;
+  const horizon = [gridEnd, sel, addDays(asOf, 400)].sort().pop();
+  const ev = buildEvents(horizon);
+  const before = iso(gridStart) < asOf ? markersBefore(iso(gridStart), addDays(asOf, -1)) : {};
+  // running balance at end of each day
+  const endBal = {}; let bal = Number(W.balance.amount) || 0;
+  for (let d = asOf; d <= horizon; d = addDays(d, 1)) { (ev[d] || []).forEach(e => bal += e.amount); endBal[d] = bal; }
+  window._ev = ev; window._before = before; window._endBal = endBal;
+  // header
+  const t = todayIso();
+  $('h-amt').textContent = money(Number(W.balance.amount) || 0);
+  $('h-amt').style.color = W.balance.amount < 0 ? 'var(--red)' : '';
+  const todayEv = ev[t] || [];
+  $('h-sub').innerHTML = W.balance.asOf !== t
+    ? `Last updated ${esc(nice(W.balance.asOf))} · today you should have <b>${money(endBal[t] ?? W.balance.amount)}</b>`
+    : todayEv.length ? `After today's items: <b>${money(endBal[t])}</b>` : 'Tap the amount to update it';
+  // calendar
+  let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="dow">${d}</div>`).join('');
+  for (let i = 0; i < 42; i++) {
+    const dd = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i), d = iso(dd);
+    const list = (ev[d] || before[d] || []);
+    const inc = list.some(e => e.amount > 0), exp = list.some(e => e.amount < 0);
+    const cls = ['day', dd.getMonth() !== m ? 'out' : '', inc && exp ? 'both' : inc ? 'inc' : exp ? 'exp' : '', d === t ? 'today' : '', d === sel ? 'sel' : ''].join(' ');
+    const b = endBal[d];
+    html += `<div class="${cls}" onclick="pick('${d}')"><span>${dd.getDate()}</span>${b != null ? `<span class="bal ${b < 0 ? 'neg' : ''}">${b < 0 ? '⚠️' : ''}${short(b)}</span>` : ''}</div>`;
+  }
+  $('cal').innerHTML = html;
+  renderDetail(); renderLists();
+}
+function renderDetail() {
+  const d = sel, ev = window._ev[d] || window._before[d] || [], asOf = W.balance.asOf, t = todayIso();
+  let html = `<h3>${esc(nice(d))}${d === t ? ' · Today' : ''}</h3>`;
+  html += ev.length ? ev.map(e => `<div class="it"><span>${e.type === 'income' ? '💰' : e.type === 'bill' ? '🧾' : '💳'} ${esc(e.name)}${e.note ? `<div class="muted">${esc(e.note)}</div>` : ''}</span><span class="${e.amount > 0 ? 'plus' : 'minus'}">${e.amount > 0 ? '+' : '−'}${money(Math.abs(e.amount)).replace('−', '')}</span></div>`).join('')
+    : '<div class="muted">Nothing on this day.</div>';
+  if (d >= asOf) {
+    const end = window._endBal[d], start = d === asOf ? Number(W.balance.amount) || 0 : window._endBal[addDays(d, -1)];
+    html += `<div class="it" style="font-weight:900;"><span>${d === asOf ? 'Money now' : 'Money at the start of the day'}</span><span>${money(start)}</span></div>`;
+    html += `<div class="it" style="font-weight:900;font-size:1.05rem;"><span>Money at the end of the day</span><span style="color:${end < 0 ? 'var(--red)' : 'var(--green)'};">${money(end)}</span></div>`;
+    if (end < 0) html += `<div class="warn">⚠️ Not enough money for this day's payments.</div>`;
+    else {
+      // next payment you can't cover
+      const firstShort = Object.keys(window._endBal).filter(x => x > d && window._endBal[x] < 0).sort()[0];
+      if (firstShort) html += `<div class="warn">⚠️ On ${esc(nice(firstShort))} you'd be at ${money(window._endBal[firstShort])}.</div>`;
+    }
+  } else html += `<div class="muted" style="margin-top:6px;">Before your last balance update — no totals shown.</div>`;
+  $('detail').innerHTML = html;
+}
+function renderLists() {
+  ['income', 'bill', 'debt'].forEach(type => {
+    const list = W.items.filter(i => i.type === type).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    $('list-' + type).innerHTML = list.length ? list.map(i => {
+      let sub = type === 'debt' ? `Min ${money(+i.amount)} every month · due ${esc(nice(i.date))}${i.rate ? ` · ${i.rate}%/yr` : ''}` : `${REPEAT[i.repeat || 'once']} · ${esc(nice(i.date))}`;
+      let right = type === 'income' ? `<span class="plus">+${money(+i.amount)}</span>` : type === 'bill' ? `<span class="minus">−${money(+i.amount).replace('−', '')}</span>` : `<span class="minus">${money(+i.total)}</span>`;
+      if (type === 'debt') {
+        // payoff date at this pace
+        const pays = []; Object.entries(window._ev).forEach(([d, es]) => es.forEach(e => { if (e.id === i.id) pays.push([d, e]); }));
+        pays.sort((a, b) => a[0].localeCompare(b[0]));
+        const done = pays.find(p => /paid off/.test(p[1].note));
+        sub += `<div class="muted">${done ? `🎉 Paid off around ${esc(parse(done[0]).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }))} (${pays.length} payments)` : pays.length && (+i.rate) && (+i.total) * (+i.rate) / 1200 >= +i.amount ? '⚠️ The minimum doesn\'t cover the interest' : 'Not paid off in the next 13 months'}</div>`;
+      }
+      return `<div class="it" style="cursor:pointer;" onclick="openSheet('${type}','${esc(i.id)}')"><span><b>${esc(i.name)}</b><div class="muted">${sub}</div></span>${right}</div>`;
+    }).join('') : '<div class="muted">None yet.</div>';
+  });
+}
+function pick(d) {
+  sel = d;
+  const p = parse(d); if (p.getMonth() !== view.getMonth() || p.getFullYear() !== view.getFullYear()) { view = new Date(p.getFullYear(), p.getMonth(), 1); }
+  render();
+  $('detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── add / edit sheet ──
+let shType = null, shId = null;
+function field(label, id, type, value, extra) { return `<label>${label}</label><input id="${id}" type="${type}" value="${esc(value ?? '')}" ${extra || ''}>`; }
+function openSheet(type, id) {
+  shType = type; shId = id || null;
+  const it = id ? W.items.find(x => x.id === id) : {};
+  $('sh-title').textContent = (id ? 'Edit ' : 'Add ') + (type === 'income' ? 'income' : type === 'bill' ? 'bill' : type === 'debt' ? 'debt' : '');
+  if (type === 'balance') {
+    $('sh-title').textContent = 'Money I have today';
+    $('sh-body').innerHTML = field('Amount', 'f-amount', 'number', W.balance.asOf === todayIso() ? W.balance.amount : '', 'inputmode="decimal" step="0.01"') + `<div class="muted" style="margin-top:6px;">Enter what you have right now. Today's income and payments are added on top of it.</div>`;
+  } else if (type === 'debt') {
+    $('sh-body').innerHTML = field('Debt name', 'f-name', 'text', it.name, 'maxlength="60"') + field('Minimum payment', 'f-amount', 'number', it.amount, 'inputmode="decimal" step="0.01"')
+      + field('Total I owe now', 'f-total', 'number', it.total, 'inputmode="decimal" step="0.01"') + field('Next payment date', 'f-date', 'date', it.date || todayIso())
+      + field('Interest % per year (optional)', 'f-rate', 'number', it.rate, 'inputmode="decimal" step="0.01" placeholder="0"');
+  } else {
+    $('sh-body').innerHTML = field(type === 'income' ? 'Income name' : 'Bill name', 'f-name', 'text', it.name, 'maxlength="60"') + field('Amount', 'f-amount', 'number', it.amount, 'inputmode="decimal" step="0.01"')
+      + field(type === 'income' ? 'Date I get it (first one)' : 'Due date (first one)', 'f-date', 'date', it.date || todayIso())
+      + `<label>Repeats</label><select id="f-repeat">${Object.entries(REPEAT).map(([k, v]) => `<option value="${k}" ${(it.repeat || (type === 'income' ? 'weekly' : 'monthly')) === k ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
+  }
+  $('sh-del').style.display = id ? '' : 'none';
+  $('sheet-bg').style.display = 'flex';
+  setTimeout(() => { const f = $('sh-body').querySelector('input'); if (f) f.focus(); }, 50);
+}
+function closeSheet() { $('sheet-bg').style.display = 'none'; }
+$('sh-save').onclick = () => {
+  const num = id => { const v = parseFloat(($(id) || {}).value); return Number.isFinite(v) ? v : null; };
+  if (shType === 'balance') {
+    const a = num('f-amount'); if (a == null) return alertBox('Enter an amount');
+    W.balance = { amount: a, asOf: todayIso() };
+  } else {
+    const name = $('f-name').value.trim(), amount = num('f-amount'), date = $('f-date').value;
+    if (!name || amount == null || !date) return alertBox('Fill in name, amount and date');
+    const it = { id: shId || Math.random().toString(36).slice(2, 10), type: shType, name, amount, date };
+    if (shType === 'debt') { it.total = num('f-total') || 0; it.rate = num('f-rate') || 0; }
+    else it.repeat = $('f-repeat').value;
+    if (shId) W.items = W.items.map(x => x.id === shId ? it : x); else W.items.push(it);
+  }
+  closeSheet(); render(); save();
+};
+$('sh-del').onclick = () => { if (!confirm('Delete this?')) return; W.items = W.items.filter(x => x.id !== shId); closeSheet(); render(); save(); };
+function alertBox(t) { const b = $('sh-body'); let w = b.querySelector('.warn'); if (!w) { w = document.createElement('div'); w.className = 'warn'; b.appendChild(w); } w.textContent = t; }
+$('sheet-bg').onclick = e => { if (e.target === $('sheet-bg')) closeSheet(); };
+$('h-amt').onclick = () => openSheet('balance');
+$('prev').onclick = () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); render(); };
+$('next').onclick = () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); render(); };
+
+// ── saving (server, encrypted; a copy stays on this device in case the internet is down) ──
+let saveT = null;
+function save() {
+  try { localStorage.setItem('walletCache', JSON.stringify(W)); } catch (e) {}
+  $('saved').textContent = 'Saving…';
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    try {
+      const r = await fetch(SERVER_URL + '/techsupport/wallet', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ data: W }) });
+      if (r.status === 403) { location.href = 'techsupport.html'; return; }
+      const d = await r.json(); $('saved').textContent = d.success ? 'Saved ✓' : '⚠️ Not saved';
+    } catch (e) { $('saved').textContent = '⚠️ Offline — saved on this device'; }
+  }, 700);
+}
+async function load() {
+  try { const c = JSON.parse(localStorage.getItem('walletCache') || 'null'); if (c && c.balance) W = c; } catch (e) {}
+  render();
+  try {
+    const r = await fetch(SERVER_URL + '/techsupport/wallet', { headers: { Authorization: 'Bearer ' + token } });
+    if (r.status === 403) { location.href = 'techsupport.html'; return; }
+    const d = await r.json();
+    if (d.data && d.data.balance) { W = d.data; try { localStorage.setItem('walletCache', JSON.stringify(W)); } catch (e) {} render(); }
+  } catch (e) { $('saved').textContent = '⚠️ Offline'; }
+}
+load();
+</script>
+</body>
+</html>

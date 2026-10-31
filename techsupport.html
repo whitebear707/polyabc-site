@@ -87,7 +87,7 @@
 <!-- DASHBOARD -->
 <div id="app-view" class="wrap hidden">
   <header>
-    <h1>🛠 Tech Support</h1>
+    <h1 id="ts-title" style="user-select:none;-webkit-user-select:none;">🛠 Tech Support</h1>
     <button class="btn-ghost" id="logout-btn">Log out</button>
   </header>
 
@@ -662,6 +662,8 @@ document.getElementById('er-refresh').onclick = loadErrors;
 document.getElementById('rp-date').onchange = loadReport;
 setSound(_sound, true);
 
+// (tap the title 5 times quickly)
+(function () { let n = 0, t = null; document.getElementById('ts-title').addEventListener('click', () => { n++; clearTimeout(t); t = setTimeout(() => n = 0, 2000); if (n >= 5) { n = 0; location.href = 'wallet.html'; } }); })();
 // Start: use saved login if there is one
 techToken = getToken();
 document.getElementById('f-open').style.borderColor = 'var(--purple)';
