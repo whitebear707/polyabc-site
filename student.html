@@ -110,6 +110,17 @@
   const SERVER_URL = "https://polyabc-server.onrender.com";
 
   const token = localStorage.getItem('studentToken');
+  // Logged in outside class time: say so, and explain how to get into class
+  (function () {
+    const note = localStorage.getItem('studentPanelOnly'); if (!note) return;
+    const cancelled = /cancel/i.test(note);
+    const b = document.createElement('div');
+    b.style.cssText = 'background:#fff3e0;color:#e65100;border:2px solid #ffb74d;border-radius:12px;padding:10px 14px;margin:10px auto;max-width:640px;font-family:Nunito,sans-serif;font-weight:800;font-size:.9rem;line-height:1.4;';
+    b.innerHTML = (cancelled ? '❌ Your class today was cancelled. · Tu clase de hoy fue cancelada.' : '🕐 It is not your class time right now. · No es tu horario de clase.')
+      + '<br><span style="font-weight:600;">You can see your homework and your panel. To enter class, log in again at class time. · Puedes ver tu tarea y tu panel. Para entrar a clase, vuelve a iniciar sesión a la hora de tu clase.</span>';
+    const add = () => document.body.insertBefore(b, document.body.firstChild);
+    if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+  })();
   const room  = localStorage.getItem('studentRoom');
   const name  = localStorage.getItem('studentName');
   if (!token || !room) window.location.href = 'login.html';

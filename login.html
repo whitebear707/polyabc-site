@@ -367,6 +367,9 @@ function trServerMsg(m) {
             localStorage.setItem('studentToken', data.token);
             localStorage.setItem('studentName', data.name);
             localStorage.setItem('studentRoom', room);
+            // Outside class time: open the Student Panel (homework, grades) instead of the class lobby
+            if (data.panelOnly) { localStorage.setItem('studentPanelOnly', data.message || '1'); window.location.href = 'student.html'; return; }
+            localStorage.removeItem('studentPanelOnly');
             window.location.href = `student-greeting.html`;
           }
         } else if (data.suspended) {

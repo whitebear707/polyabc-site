@@ -905,6 +905,17 @@ function connectSocket() {
       document.getElementById('waiting-screen').style.display = 'flex';
       document.getElementById('waiting-name').textContent = `Welcome, ${MY_NAME}! 👋`;
       if (!IS_TEACHER) loadTodayAssignment();
+    } else if (msg === 'NOT_CLASS_TIME') {
+      document.getElementById('connecting-screen').style.display = 'none';
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      const screen = document.createElement('div');
+      screen.style.cssText = 'position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:white;font-family:Nunito,sans-serif;text-align:center;padding:20px;';
+      screen.innerHTML = `<div style="font-size:3rem;margin-bottom:16px;">🕐</div>
+        <div style="font-size:1.3rem;font-weight:900;margin-bottom:8px;">It's not your class time</div>
+        <div style="font-size:1rem;color:#a0c4ff;margin-bottom:4px;">Log in again when your class starts.</div>
+        <div style="font-size:0.9rem;color:#a0c4ff;margin-bottom:24px;">No es tu horario de clase. Vuelve a iniciar sesión cuando empiece tu clase.</div>
+        <button onclick="window.location.href='login.html'" style="background:#1a73e8;color:white;border:none;padding:12px 28px;border-radius:10px;font-family:Nunito;font-size:1rem;font-weight:900;cursor:pointer;">Log in / Iniciar sesión</button>`;
+      document.body.appendChild(screen);
     } else if (msg === 'ALREADY_IN_CLASS') {
       document.getElementById('connecting-screen').style.display = 'none';
       // Show clear message
