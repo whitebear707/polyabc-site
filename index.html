@@ -257,6 +257,7 @@
       <a href="#clases">Clases</a>
       <a href="#como-funciona">Cómo funciona</a>
       <a href="#niveles">Niveles</a>
+      <a href="#ayuda" id="nav-help" class="btn btn-sm" style="display:none;background:#e8f0fe;color:#1a73e8;">❓ Ayuda</a>
       <a href="login.html" class="btn btn-primary btn-sm">Entrar a clase</a>
     </div>
   </div>
@@ -276,7 +277,7 @@
         <a href="https://wa.me/523313208792?text=Hola%2C%20me%20interesa%20inscribir%20a%20un%20alumno%20en%20PolyABC%20y%20necesito%20un%20c%C3%B3digo%20de%20registro."
            target="_blank" rel="noopener" class="btn btn-wa js-wa">💬 Inscríbete por WhatsApp</a>
       </div>
-      <p class="hero-note">¿Ya tienes cuenta? Entra con el número de salón y tu contraseña.</p>
+      <p class="hero-note">¿Ya tienes cuenta? Entra con el número de salón y tu contraseña.<span id="hero-help" style="display:none;"> · <a href="#ayuda">❓ Ver videos de ayuda</a></span></p>
     </div>
 
     <div class="hero-card">
@@ -474,6 +475,7 @@
       document.getElementById('help-list').innerHTML = HV.map((v, i) => `<button onclick="hvOpen(${i})" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;border:1px solid #e2e6ee;border-radius:14px;background:#fff;cursor:pointer;font-family:inherit;font-size:1rem;font-weight:700;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,.04);"><span style="flex:0 0 34px;height:34px;border-radius:50%;background:#e8f0fe;color:#1a73e8;display:flex;align-items:center;justify-content:center;">▶</span><span>${esc(v.title)}</span></button>`).join('');
       document.getElementById('ayuda').style.display = '';
       document.getElementById('foot-help').style.display = '';
+      document.getElementById('nav-help').style.display = ''; document.getElementById('hero-help').style.display = '';
       if (location.hash === '#ayuda') document.getElementById('ayuda').scrollIntoView();
     } catch (e) {}
   })();
