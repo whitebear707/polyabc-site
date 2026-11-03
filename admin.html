@@ -4,6 +4,7 @@
   <meta name="google" content="notranslate">
   <meta charset="UTF-8"/>
   <script src="errors.js"></script>
+  <script src="report.js"></script>
   <link rel="icon" type="image/png" href="icon.png"/>
   <link rel="manifest" href="admin-manifest.json"/>
   <link rel="apple-touch-icon" href="icon.png"/>
@@ -2599,12 +2600,13 @@ async function loadReviewStatus() {
       const color = pct === 100 ? '#2e7d32' : pct >= 50 ? '#f9a825' : '#e53935';
       const missing = r.missing.length
         ? `<div style="font-size:0.8rem;color:#b71c1c;margin-top:4px;">Falta: ${r.missing.map(n => escHtml(n)).join(', ')}</div>` : '';
+      const views = (r.reviews || []).map(rv => { const k = (window._rvAll = window._rvAll || []).push(rv) - 1; return `<button onclick="PolyReport.show(window._rvAll[${k}])" style="background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;padding:3px 8px;font-size:0.75rem;font-weight:800;cursor:pointer;margin:3px 4px 0 0;">📄 ${escHtml(rv.studentName)}</button>`; }).join('');
       return `<div style="padding:10px 0;border-bottom:1px solid #eee;">
         <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:700;color:#333;">
           <span>${escHtml(r.teacherName)} <span style="color:#888;font-weight:600;">· Salón ${escHtml(r.room)}</span></span>
           <span>${r.completed} de ${r.total}</span></div>
         <div style="background:#eee;border-radius:6px;height:8px;overflow:hidden;margin-top:6px;"><div style="width:${pct}%;height:100%;background:${color};"></div></div>
-        ${missing}</div>`;
+        ${missing}${views ? `<div style="margin-top:4px;">${views}</div>` : ''}</div>`;
     };
     box.innerHTML = `<div style="background:#fff;border:2px solid #1a73e8;border-radius:14px;padding:18px;">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">

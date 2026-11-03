@@ -4,6 +4,7 @@
   <meta name="google" content="notranslate">
   <meta charset="UTF-8"/>
   <script src="errors.js"></script>
+  <script src="report.js"></script>
   <script src="announce.js" data-aud="parent" defer></script>
   <link rel="icon" type="image/png" href="icon.png"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -1070,21 +1071,18 @@ async function renderReportsTab() {
       box.innerHTML = '<div style="color:#888;font-size:0.88rem;text-align:center;padding:20px 0;">Aún no hay reportes de progreso.<br><span style="font-size:0.8rem;">Los maestros los publican al final de cada mes.</span></div>';
       return;
     }
-    box.innerHTML = reports.map(r => `
-      <div style="border:2px solid #e6ecf5;border-radius:12px;padding:14px;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline;">
-          <div style="font-weight:900;color:#1a1a2e;">${escHtml(r.studentName)}</div>
-          <div style="font-size:0.78rem;color:#888;">Maestro: ${escHtml(r.teacherName || '—')}</div>
+    window._parentReports = reports;
+    box.innerHTML = reports.map((r, i) => `
+      <div style="border:2px solid #e6ecf5;border-radius:12px;padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:900;color:#1a1a2e;">📄 ${escHtml(r.studentName)} · ${escHtml(PolyReport.monthLabel(r))}</div>
+          <div style="font-size:0.8rem;color:#888;margin-top:2px;">Maestro: ${escHtml(r.teacherName || '—')}${r.requested ? ' · <span style="color:#e65100;font-weight:700;">Informe especial</span>' : ''}</div>
+          ${r.report && r.report.familyNote ? `<div style="font-size:0.84rem;color:#444;margin-top:6px;">❤️ ${escHtml(r.report.familyNote.length > 110 ? r.report.familyNote.slice(0, 110) + '…' : r.report.familyNote)}</div>` : ''}
         </div>
-        <div style="font-size:0.82rem;color:#1a73e8;font-weight:700;margin:4px 0 10px;">
-          Periodo evaluado: ${reportDate(r.periodFrom)} – ${reportDate(r.periodTo)}
+        <div style="display:flex;gap:6px;">
+          <button onclick="PolyReport.show(window._parentReports[${i}])" style="background:#1a73e8;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;">👁 Ver</button>
+          <button onclick="PolyReport.show(window._parentReports[${i}]);setTimeout(()=>document.getElementById('prr-print').click(),300)" style="background:#fff;color:#1a73e8;border:2px solid #1a73e8;border-radius:10px;padding:7px 12px;font-weight:800;cursor:pointer;">🖨 Imprimir</button>
         </div>
-        ${Object.keys(REPORT_LABELS).filter(k => r.scores && r.scores[k] !== undefined).map(k => `
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f2f2f2;">
-            <span style="font-size:0.83rem;">${REPORT_LABELS[k]}</span>
-            ${scoreBar(r.scores[k])}
-          </div>`).join('')}
-        <div style="margin-top:12px;background:#f7f9fc;border-radius:8px;padding:12px;font-size:0.86rem;line-height:1.55;white-space:pre-wrap;">${escHtml(r.comment || '')}</div>
       </div>`).join('');
   } catch(e) {
     box.innerHTML = '<div style="color:#c62828;font-size:0.88rem;">No se pudieron cargar los reportes.</div>';
