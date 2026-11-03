@@ -584,26 +584,22 @@
       </div>`).join('');
   }
 
-  function openReviewModal(name, requestId) {
-    _reviewStudent = name;
-    _reviewRequest = requestId || null;
-    const req = requestId ? (_reviewData.requests || []).find(r => r.id === requestId) : null;
-    if (requestId && !req) { alert('That review request is no longer available — reloading.'); loadReviews(); return; }
-    const entry = (_reviewData.students || []).find(s => s.name === name);
-    // A requested review always starts blank — it must be written fresh.
-    const prev = req ? null : entry?.review;
-    document.getElementById('review-modal-title').textContent = name;
-    document.getElementById('review-modal-month').innerHTML = req
-      ? `<span style="color:#e65100;font-weight:900;">📨 Requested by admin</span><br>Evaluation period: <strong>${fmtPeriod(req.periodFrom, req.periodTo)}</strong>${req.note ? '<br>Note: ' + escHtml(req.note) : ''}`
-      : `Monthly report · Evaluation period: <strong>${fmtPeriod(_reviewData.monthFrom, _reviewData.monthTo)}</strong>`;
-    const R = (prev && prev.report) || {};
-    const dfl = (entry && entry.defaults) || {};
+  let _rvCtx = { R: {}, dfl: {} }, _rvType = 'kids';
+  function renderReviewForm(type) {
+    // keep what was typed in level/course when switching
+    const keepLevel = document.getElementById('rv-level')?.value, keepCourse = document.getElementById('rv-course')?.value;
+    _rvType = type;
+    const R = _rvCtx.R.type === type || (!_rvCtx.R.type && type === 'kids') ? _rvCtx.R : {};
+    const dfl = { ..._rvCtx.dfl, ...(keepLevel ? { level: keepLevel } : {}), ...(keepCourse ? { course: keepCourse } : {}) };
+    const tg = (t, l) => `<button type="button" onclick="renderReviewForm('${t}')" style="flex:1;padding:9px;border-radius:10px;border:2px solid ${type === t ? '#1a73e8' : '#ddd'};background:${type === t ? '#1a73e8' : '#fff'};color:${type === t ? '#fff' : '#333'};font-family:Nunito;font-weight:900;cursor:pointer;">${l}</button>`;
+    const toggle = `<div style="display:flex;gap:8px;margin-bottom:10px;">${tg('kids', '🧒 Kids report')}${tg('adult', '🧑‍💼 Adult report')}</div>`;
+    if (type === 'adult') return renderAdultForm(R, dfl, toggle);
     const lbl = t => `<div style="font-weight:900;font-size:0.88rem;margin:12px 0 4px;">${t}</div>`;
     const inp = 'width:100%;padding:9px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;box-sizing:border-box;';
     const sec = (color, title) => `<div style="background:${color};border-radius:10px;padding:7px 12px;font-weight:900;margin-top:16px;">${title}</div>`;
     const focus = (R.focus && R.focus.length ? R.focus : ['', '', '']);
     const chk = (name, list, sel) => list.map(([k, es]) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:0.86rem;cursor:pointer;"><input type="checkbox" name="${name}" value="${k}" ${sel.includes(k) ? 'checked' : ''} style="margin-top:3px;width:17px;height:17px;" ${k === 'other' ? 'onchange="document.getElementById(\'rv-other\').style.display=this.checked?\'block\':\'none\'"' : ''}><span><b>${REVIEW_EN[k]}</b> <span style="color:#888;">· ${es}</span></span></label>`).join('');
-    document.getElementById('review-form').innerHTML = `
+    document.getElementById('review-form').innerHTML = toggle + `
       <div style="background:#e8f0fe;color:#1a3a6e;border-radius:10px;padding:10px 12px;font-size:0.82rem;font-weight:700;">Parents see this as the school's monthly report (in Spanish) and can print it. Write your answers in Spanish if you can.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <div style="flex:1;min-width:110px;">${lbl('Level')}<select id="rv-level" style="${inp}"><option value="">—</option>${['A0','A1','A2','B1','B2','C1','C2'].map(l => `<option ${ (R.level || dfl.level) === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
@@ -624,6 +620,67 @@
       ${lbl('Short goal')}<input id="rv-goal" maxlength="200" value="${escHtml(R.goal || '')}" style="${inp}">
       ${sec('#fbdde3', '❤️ 5. Note for the family — recognition or effort')}
       <textarea id="rv-family" maxlength="700" style="${inp}height:70px;margin-top:6px;">${escHtml(R.familyNote || '')}</textarea>`;
+  }
+  function renderAdultForm(R, dfl, toggle) {
+    const lbl = t => `<div style="font-weight:900;font-size:0.88rem;margin:12px 0 4px;">${t}</div>`;
+    const inp = 'width:100%;padding:9px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;box-sizing:border-box;';
+    const sec = (color, title) => `<div style="background:${color};color:#fff;border-radius:10px;padding:7px 12px;font-weight:900;margin-top:16px;">${title}</div>`;
+    const EN_ATT = { attendance: 'Attendance', punctuality: 'Punctuality', participation: 'Participation in class', homework: 'Homework completion', practice: 'Practice outside class' };
+    const EN_AREA = { listening: 'Listening', speaking: 'Speaking', pronunciation: 'Pronunciation', vocabulary: 'Vocabulary', grammar: 'Grammar', reading: 'Reading', writing: 'Writing', confidence: 'Confidence communicating' };
+    const EN_R = { exc: 'Excellent', good: 'Good', prog: 'In progress', help: 'Needs support' };
+    const rateRow = (group, k, es, en, sel) => `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;"><div style="font-size:0.85rem;font-weight:800;">${en} <span style="color:#999;font-weight:600;">· ${es}</span></div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">${PolyReport.RATINGS.map(([rk]) => `<label style="cursor:pointer;"><input type="radio" name="rv-${group}-${k}" value="${rk}" ${sel === rk ? 'checked' : ''} style="display:none;" onchange="this.closest('div').querySelectorAll('span').forEach(x=>{x.style.background='#f0f0f0';x.style.color='#333'});this.nextElementSibling.style.background='#1a73e8';this.nextElementSibling.style.color='#fff';"><span style="display:inline-block;padding:4px 9px;border-radius:14px;font-size:0.76rem;font-weight:800;background:${sel === rk ? '#1a73e8' : '#f0f0f0'};color:${sel === rk ? '#fff' : '#333'};">${EN_R[rk]}</span></label>`).join('')}</div></div>`;
+    const lines = (cls, arr, n, ph) => { const a = (arr && arr.length ? arr : []).slice(); while (a.length < n) a.push(''); return a.map((v, i) => `<input class="${cls}" maxlength="200" value="${escHtml(v)}" placeholder="• ${i === 0 ? ph : ''}" style="${inp}margin-top:6px;">`).join(''); };
+    const prof = R.profession || _rvCtx.dfl.profession || {};
+    document.getElementById('review-form').innerHTML = toggle + `
+      <div style="background:#e8f0fe;color:#1a3a6e;border-radius:10px;padding:10px 12px;font-size:0.82rem;font-weight:700;">Adult version of the monthly report (parents/student see it in Spanish and can print it). Write your answers in Spanish if you can.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:110px;">${lbl('Level')}<select id="rv-level" style="${inp}"><option value="">—</option>${['A0','A1','A2','B1','B2','C1','C2'].map(l => `<option ${(R.level || dfl.level) === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div style="flex:2;min-width:180px;">${lbl('Course')}<input id="rv-course" maxlength="60" value="${escHtml(R.course || dfl.course || '')}" style="${inp}"></div>
+      </div>
+      ${lbl('Profession / occupation picture')}
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div id="rv-prof-pic" style="width:64px;height:64px;border-radius:50%;overflow:hidden;border:3px solid #1e5aa8;background:#dfe8f6;display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex:0 0 64px;">${prof.icon ? `<img src="${PolyReport.ICON_BASE}${prof.icon}.jpg" style="width:100%;height:100%;object-fit:cover;">` : '💼'}</div>
+        <div style="flex:1;"><input id="rv-prof-label" maxlength="40" value="${escHtml(prof.label || '')}" placeholder="Profession name (e.g. Médico, Dentista)" style="${inp}"><input type="hidden" id="rv-prof-icon" value="${escHtml(prof.icon || '')}"></div>
+        <button type="button" onclick="document.getElementById('rv-prof-grid').style.display=document.getElementById('rv-prof-grid').style.display==='none'?'grid':'none'" style="background:#f0f4f8;border:none;border-radius:8px;padding:8px 10px;font-family:Nunito;font-weight:800;cursor:pointer;">Choose</button>
+      </div>
+      <div id="rv-prof-grid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-top:8px;max-height:260px;overflow-y:auto;padding:4px;border:1px solid #eee;border-radius:10px;">
+        <div onclick="pickProf('','')" style="text-align:center;cursor:pointer;font-size:0.68rem;"><div style="width:56px;height:56px;margin:0 auto;border-radius:50%;background:#dfe8f6;display:flex;align-items:center;justify-content:center;font-size:1.6rem;">💼</div>None</div>
+        ${PolyReport.PROFESSIONS.map(([k, l]) => `<div onclick="pickProf('${k}','${escJsAttr(l)}')" style="text-align:center;cursor:pointer;font-size:0.68rem;line-height:1.1;"><img src="${PolyReport.ICON_BASE}${k}.jpg" loading="lazy" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 2px;">${l}</div>`).join('')}
+      </div>
+      ${sec('#1e88e5', '👥 Attendance and participation')}
+      ${PolyReport.ADULT_ATT.map(([k, es]) => rateRow('att', k, es, EN_ATT[k], (R.att || {})[k])).join('')}
+      ${sec('#e53935', '📊 Areas evaluated')}
+      ${PolyReport.ADULT_AREAS.map(([k, es]) => rateRow('area', k, es, EN_AREA[k], (R.areas || {})[k])).join('')}
+      ${sec('#f2b400', '📖 Topics and skills worked on')}${lines('rv-topics', R.topics, 3, 'e.g. Present perfect in work conversations')}
+      ${sec('#2e9d4a', '👍 Strengths observed')}${lines('rv-strengths', R.strengths, 3, 'e.g. Clear pronunciation of technical words')}
+      ${sec('#1e88e5', '🎯 Areas to reinforce')}${lines('rv-improve', R.improve, 3, 'e.g. Past tense irregular verbs')}
+      ${sec('#e53935', '🚩 Next step / Goal for next month')}${lines('rv-next', R.next, 2, 'e.g. Lead a 5-minute work meeting in English')}
+      ${sec('#2e9d4a', '💬 Comment for the family / student')}<textarea id="rv-family" maxlength="700" style="${inp}height:70px;margin-top:6px;">${escHtml(R.familyNote || '')}</textarea>`;
+  }
+  function pickProf(k, label) {
+    document.getElementById('rv-prof-icon').value = k;
+    const lb = document.getElementById('rv-prof-label'); if (!lb.value || PolyReport.PROFESSIONS.some(p => p[1] === lb.value)) lb.value = label;
+    document.getElementById('rv-prof-pic').innerHTML = k ? `<img src="${PolyReport.ICON_BASE}${k}.jpg" style="width:100%;height:100%;object-fit:cover;">` : '💼';
+    document.getElementById('rv-prof-grid').style.display = 'none';
+  }
+  function openReviewModal(name, requestId) {
+    _reviewStudent = name;
+    _reviewRequest = requestId || null;
+    const req = requestId ? (_reviewData.requests || []).find(r => r.id === requestId) : null;
+    if (requestId && !req) { alert('That review request is no longer available — reloading.'); loadReviews(); return; }
+    const entry = (_reviewData.students || []).find(s => s.name === name);
+    // A requested review always starts blank — it must be written fresh.
+    const prev = req ? null : entry?.review;
+    document.getElementById('review-modal-title').textContent = name;
+    document.getElementById('review-modal-month').innerHTML = req
+      ? `<span style="color:#e65100;font-weight:900;">📨 Requested by admin</span><br>Evaluation period: <strong>${fmtPeriod(req.periodFrom, req.periodTo)}</strong>${req.note ? '<br>Note: ' + escHtml(req.note) : ''}`
+      : `Monthly report · Evaluation period: <strong>${fmtPeriod(_reviewData.monthFrom, _reviewData.monthTo)}</strong>`;
+    const R = (prev && prev.report) || {};
+    const dfl = (entry && entry.defaults) || {};
+    _rvCtx = { R, dfl };
+    document.getElementById('review-form').innerHTML = '';
+    renderReviewForm(R.type || dfl.type || 'kids');
     document.getElementById('review-error').style.display = 'none';
     document.getElementById('review-modal').style.display = 'flex';
   }
@@ -639,6 +696,13 @@
   }
   function collectReport() {
     const v = id => (document.getElementById(id)?.value || '').trim();
+    if (_rvType === 'adult') {
+      const vals = cls => [...document.querySelectorAll('.' + cls)].map(i => i.value.trim()).filter(Boolean);
+      const rates = (group, list) => Object.fromEntries(list.map(([k]) => [k, (document.querySelector(`input[name="rv-${group}-${k}"]:checked`) || {}).value || null]));
+      return { type: 'adult', level: v('rv-level'), course: v('rv-course'), profession: { icon: v('rv-prof-icon'), label: v('rv-prof-label') },
+        att: rates('att', PolyReport.ADULT_ATT), areas: rates('area', PolyReport.ADULT_AREAS),
+        topics: vals('rv-topics'), strengths: vals('rv-strengths'), improve: vals('rv-improve'), next: vals('rv-next'), familyNote: v('rv-family') };
+    }
     return {
       level: v('rv-level'), course: v('rv-course'),
       focus: [...document.querySelectorAll('.rv-focus')].map(i => i.value.trim()).filter(Boolean),
