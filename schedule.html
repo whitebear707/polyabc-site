@@ -321,7 +321,7 @@
     <div class="step-card">
       <div style="font-weight:900;color:#fff;">How to set your availability</div>
       <ol>
-        <li><b>Set your weekly hours</b> — tap a day's time box below (for example 9:00 AM to 5:00 PM).</li>
+        <li><b>Set your weekly hours</b> — tap a day's time box below (for example 9:00 AM to 5:00 PM). Work in two parts of the day? Tap <b>+ hours</b> to add more (for example 8–10 AM and 5–10 PM).</li>
         <li><b>Mark the days you can work</b> — scroll down to the calendar and tap each date. Green means available.</li>
         <li><b>Press 💾 Save Schedule</b> at the bottom of the screen.</li>
       </ol>
@@ -1127,6 +1127,7 @@
     const aData = await aRes.json();
     dayHours = aData.dayHours || {};
     dates    = aData.dates    || {};
+    loadDayHoursIntoPicker();
 
     // Mark schedule as viewed — clear notification badge
     localStorage.setItem(`lastScheduleView_${room}`, new Date().toISOString());
@@ -1244,24 +1245,48 @@
   let _tpCurrent = {}; // id -> { h, m, ampm }
   let _tpOpen = null;
 
+  // Several working windows per day (e.g. 8–10 AM and 5–10 PM). Window 1 uses ids dh-start-Mon / dh-end-Mon,
+  // window 2 dh-start-Mon-2, window 3 dh-start-Mon-3.
+  const MAX_WINDOWS = 3;
+  let _winCount = {};
+  const dhKey = (part, d, i) => `dh-${part}-${d}${i > 1 ? '-' + i : ''}`;
+  function dayWindowsOf(h) {
+    if (!h) return [];
+    return Array.isArray(h.windows) && h.windows.length ? h.windows : (h.start && h.end ? [{ start: h.start, end: h.end }] : []);
+  }
+  function loadDayHoursIntoPicker() {
+    _winCount = {};
+    DAYS.forEach(d => {
+      const ws = dayWindowsOf(dayHours[d]);
+      _winCount[d] = Math.max(1, ws.length);
+      ws.forEach((w, i) => { _tpCurrent[dhKey('start', d, i + 1)] = timeStrToTp(w.start); _tpCurrent[dhKey('end', d, i + 1)] = timeStrToTp(w.end); });
+    });
+  }
   function renderDayHours() {
     const grid = document.getElementById('day-hours-grid');
     grid.innerHTML = DAYS.map(d => {
-      const sv = dayHours[d]?.start ? timeStrToTp(dayHours[d].start) : null;
-      const ev = dayHours[d]?.end   ? timeStrToTp(dayHours[d].end)   : null;
-      if (sv) _tpCurrent[`dh-start-${d}`] = sv;
-      if (ev) _tpCurrent[`dh-end-${d}`]   = ev;
-      return `
-        <div class="day-hour-col">
-          <div class="day-hour-label">${d}</div>
-          <div class="time-picker">
-            <div class="time-display ${sv?'set':''}" id="dh-start-${d}" onclick="openTimePicker('dh-start-${d}',event)">${sv ? tpToDisplay(sv) : 'Start'}</div>
-          </div>
-          <div class="time-picker">
-            <div class="time-display ${ev?'set':''}" id="dh-end-${d}" onclick="openTimePicker('dh-end-${d}',event)">${ev ? tpToDisplay(ev) : 'End'}</div>
-          </div>
-        </div>`;
+      const n = _winCount[d] || 1;
+      let html = `<div class="day-hour-col"><div class="day-hour-label">${d}</div>`;
+      for (let i = 1; i <= n; i++) {
+        const ks = dhKey('start', d, i), ke = dhKey('end', d, i);
+        const sv = _tpCurrent[ks] && _tpCurrent[ks].h ? _tpCurrent[ks] : null, ev = _tpCurrent[ke] && _tpCurrent[ke].h ? _tpCurrent[ke] : null;
+        if (i > 1) html += `<div style="width:100%;border-top:1px dashed rgba(160,196,255,0.4);margin-top:4px;padding-top:4px;display:flex;justify-content:center;"><button onclick="removeWindow('${d}',${i})" title="Remove these hours" style="background:none;border:none;color:#ff8a80;font-weight:900;cursor:pointer;font-size:0.75rem;">✕ remove</button></div>`;
+        html += `<div class="time-picker"><div class="time-display ${sv ? 'set' : ''}" id="${ks}" onclick="openTimePicker('${ks}',event)">${sv ? tpToDisplay(sv) : 'Start'}</div></div>
+          <div class="time-picker"><div class="time-display ${ev ? 'set' : ''}" id="${ke}" onclick="openTimePicker('${ke}',event)">${ev ? tpToDisplay(ev) : 'End'}</div></div>`;
+      }
+      if (n < MAX_WINDOWS) html += `<button onclick="addWindow('${d}')" title="Add more hours this day" style="background:none;border:1px dashed #a0c4ff;color:#a0c4ff;border-radius:8px;font-family:Nunito;font-weight:800;font-size:0.72rem;padding:3px 4px;cursor:pointer;width:100%;">+ hours</button>`;
+      return html + '</div>';
     }).join('');
+  }
+  function addWindow(d) { _winCount[d] = Math.min(MAX_WINDOWS, (_winCount[d] || 1) + 1); renderDayHours(); }
+  function removeWindow(d, i) {
+    const n = _winCount[d] || 1;
+    for (let k = i; k < n; k++) {
+      ['start', 'end'].forEach(part => { const nx = _tpCurrent[dhKey(part, d, k + 1)]; if (nx) _tpCurrent[dhKey(part, d, k)] = nx; else delete _tpCurrent[dhKey(part, d, k)]; });
+    }
+    delete _tpCurrent[dhKey('start', d, n)]; delete _tpCurrent[dhKey('end', d, n)];
+    _winCount[d] = Math.max(1, n - 1);
+    renderDayHours();
   }
 
   function openTimePicker(id, e) {
@@ -1334,31 +1359,17 @@
     closeTimePicker();
   }
 
-  function tpApplyAll(id) {
+  function tpApplyDays(id, days) {
     const cur = _tpCurrent[id];
     if (!cur?.h) return;
-    const isStart = id.includes('start');
-    DAYS.forEach(d => {
-      const key = `dh-${isStart?'start':'end'}-${d}`;
-      _tpCurrent[key] = { ...cur };
-      const el = document.getElementById(key);
-      if (el) { el.textContent = tpToDisplay(cur); el.classList.add('set'); }
-    });
+    const m = id.match(/^dh-(start|end)-[A-Za-z]{3}(?:-(\d))?$/); if (!m) return;
+    const part = m[1], idx = Number(m[2] || 1);
+    days.forEach(d => { if ((_winCount[d] || 1) < idx) _winCount[d] = idx; _tpCurrent[dhKey(part, d, idx)] = { ...cur }; });
     closeTimePicker();
+    renderDayHours();
   }
-
-  function tpApplyWeekdays(id) {
-    const cur = _tpCurrent[id];
-    if (!cur?.h) return;
-    const isStart = id.includes('start');
-    ['Mon','Tue','Wed','Thu','Fri'].forEach(d => {
-      const key = `dh-${isStart?'start':'end'}-${d}`;
-      _tpCurrent[key] = { ...cur };
-      const el = document.getElementById(key);
-      if (el) { el.textContent = tpToDisplay(cur); el.classList.add('set'); }
-    });
-    closeTimePicker();
-  }
+  function tpApplyAll(id) { tpApplyDays(id, DAYS); }
+  function tpApplyWeekdays(id) { tpApplyDays(id, ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']); }
 
   function tpClear(id) {
     delete _tpCurrent[id];
@@ -1505,12 +1516,23 @@
 
   async function saveAvailability() {
     const tz = 'America/Mexico_City';
+    const problems = [];
+    const nextHours = {};
     DAYS.forEach(d => {
-      const start = tpTo24(_tpCurrent[`dh-start-${d}`]);
-      const end   = tpTo24(_tpCurrent[`dh-end-${d}`]);
-      if (start && end) dayHours[d] = { start, end, tz };
-      else delete dayHours[d];
+      const ws = [];
+      for (let i = 1; i <= (_winCount[d] || 1); i++) {
+        const start = tpTo24(_tpCurrent[dhKey('start', d, i)]), end = tpTo24(_tpCurrent[dhKey('end', d, i)]);
+        if (!start && !end) continue;
+        if (!start || !end) { problems.push(`${d}: each set of hours needs a Start and an End.`); continue; }
+        if (end <= start) { problems.push(`${d}: ${tpToDisplay(_tpCurrent[dhKey('end', d, i)])} is not after ${tpToDisplay(_tpCurrent[dhKey('start', d, i)])}.`); continue; }
+        ws.push({ start, end });
+      }
+      ws.sort((a, b) => a.start.localeCompare(b.start));
+      for (let i = 1; i < ws.length; i++) if (ws[i].start < ws[i - 1].end) problems.push(`${d}: two sets of hours overlap.`);
+      if (ws.length) nextHours[d] = { start: ws[0].start, end: ws[0].end, windows: ws, tz };
     });
+    if (problems.length) { alert('Please fix your hours before saving:\n\n' + [...new Set(problems)].join('\n')); return; }
+    dayHours = nextHours;
     await fetch(`${SERVER_URL}/availability`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

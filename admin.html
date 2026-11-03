@@ -1740,6 +1740,10 @@ function masterNextMonth() { masterMonth++; if (masterMonth > 11) { masterMonth 
 function toDateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmt12(t) { if (!t) return ''; const [h,m] = t.split(':'); const hr=parseInt(h),ampm=hr>=12?'PM':'AM'; return `${hr%12||12}:${m} ${ampm}`; }
 
+// A teacher can have several sets of hours per day (dayHours[day].windows); older records only start/end
+function availWindows(h) { if (!h) return []; return Array.isArray(h.windows) && h.windows.length ? h.windows : (h.start && h.end ? [{ start: h.start, end: h.end }] : []); }
+function inAvail(h, time) { return !!time && availWindows(h).some(w => time >= w.start && time <= w.end); }
+function availText(h) { return availWindows(h).map(w => `${fmt12(w.start)} – ${fmt12(w.end)}`).join(' y '); }
 function getAvailableTeachersForDate(dateStr) {
   const date = new Date(dateStr + 'T12:00:00');
   const dayName = DAYS[date.getDay()];
@@ -1755,7 +1759,7 @@ function getAvailableTeachersForDate(dateStr) {
 function matchesFilters(teachers, filterTime, filterDayOfWeek) {
   return teachers.some(t => {
     if (!t.hours) return false;
-    if (filterTime && !(filterTime >= t.hours.start && filterTime <= t.hours.end)) return false;
+    if (filterTime && !inAvail(t.hours, filterTime)) return false;
     return true;
   });
 }
@@ -1823,8 +1827,8 @@ function renderExtraSlotResults() {
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const matches = allAvailability.filter(t => {
     return slots.every(slot => {
-      const hours = t.dayHours?.[dayNames[slot.day]];
-      return hours && slot.time >= hours.start && slot.time <= hours.end;
+      const hours = t.dayHours?.[DAYS[slot.day]];
+      return inAvail(hours, slot.time);
     });
   });
 
@@ -1866,7 +1870,7 @@ function renderMasterCalendar() {
     // cover that time - previously this stayed as the raw per-day count no
     // matter what time was typed in, which is why the badge looked the
     // same regardless of the search.
-    const displayTeachers = filterTime ? teachers.filter(t => t.hours && filterTime >= t.hours.start && filterTime <= t.hours.end) : teachers;
+    const displayTeachers = filterTime ? teachers.filter(t => inAvail(t.hours, filterTime)) : teachers;
 
     // Both filters must match if set
     const dayMatches  = filterDay === '' || dayOfWeek === parseInt(filterDay);
@@ -1957,11 +1961,11 @@ function renderDayDetail(dateStr) {
   if (teachers.length === 0) {
     html += `<div style="color:#aaa;text-align:center;padding:20px;font-size:0.9rem;">No hay maestros disponibles este día.</div>`;
   } else {
-    const filtered = filterTime ? teachers.filter(t => t.hours && filterTime >= t.hours.start && filterTime <= t.hours.end) : teachers;
+    const filtered = filterTime ? teachers.filter(t => inAvail(t.hours, filterTime)) : teachers;
     const display = filtered.length > 0 ? filtered : teachers;
     display.forEach(t => {
       const assignments = allAssignments.filter(a => a.date === dateStr && a.room === t.room);
-      const hoursHtml = t.hours ? `${fmt12(t.hours.start)} – ${fmt12(t.hours.end)}${t.hours.tz ? ' <span style="font-size:0.75rem;color:#aaa;">('+t.hours.tz.split('/').pop().replace(/_/g,' ')+')</span>' : ''}` : 'Hours not set';
+      const hoursHtml = availWindows(t.hours).length ? `${availText(t.hours)}${t.hours.tz ? ' <span style="font-size:0.75rem;color:#aaa;">('+t.hours.tz.split('/').pop().replace(/_/g,' ')+')</span>' : ''}` : 'Hours not set';
       const assignHtml = assignments.map(a => {
         const g = allGroups.find(g => g._id === a.groupId);
         const debtBadge = g?.debtMins > 0
@@ -2013,7 +2017,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
   const availableTeachers = getAvailableTeachersForDate(dateStr).filter(t => {
     // Check teacher is available at that time
     if (!t.hours) return false;
-    if (time < t.hours.start || time > t.hours.end) return false;
+    if (!inAvail(t.hours, time)) return false;
     // Check no existing assignment at that time
     const busy = allAssignments.some(a => a.room === t.room && a.date === dateStr && a.time === time);
     return !busy;
@@ -2123,7 +2127,7 @@ function refreshNewTrialTeachers() {
 
   const availableTeachers = getAvailableTeachersForDate(dateStr).filter(t => {
     if (!t.hours) return false;
-    if (time < t.hours.start || time > t.hours.end) return false;
+    if (!inAvail(t.hours, time)) return false;
     const busy = allAssignments.some(a => a.room === t.room && a.date === dateStr && a.time === time);
     return !busy;
   });
@@ -2475,10 +2479,10 @@ async function saveAssignGroup(dateStr, room) {
   // Check time is within teacher's available hours for that day
   const dayName = DAYS[new Date(dateStr + 'T12:00:00').getDay()];
   const hours = teacher?.dayHours?.[dayName];
-  if (hours?.start && hours?.end) {
-    if (time < hours.start || time > hours.end) {
+  if (availWindows(hours).length) {
+    if (!inAvail(hours, time)) {
       showAlert('😬','¡Ups!',
-        `${teacherName} está disponible los ${dayName}s de ${fmt12(hours.start)} a ${fmt12(hours.end)}.\n\n${fmt12(time)} está fuera de su horario.`,
+        `${teacherName} está disponible los ${dayName}s de ${availText(hours)}.\n\n${fmt12(time)} está fuera de su horario.`,
         [{label:'Entendido',fn:'closeAlert()',primary:true}]); return;
     }
   }
