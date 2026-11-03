@@ -171,6 +171,7 @@
         <label><input type="checkbox" class="hv-aud" value="student"> Student</label>
         <label><input type="checkbox" class="hv-aud" value="teacher"> Teacher</label>
         <label><input type="checkbox" class="hv-aud" value="parent"> Parent</label>
+        <label><input type="checkbox" class="hv-aud" value="public"> 🏠 Home page (anyone, no login)</label>
       </div>
       <div class="row" style="margin-top:12px;">
         <button class="btn-primary" id="hv-save">Add video</button>
@@ -305,7 +306,7 @@ function setFilter(f) {
 
 // ── Help videos (tech support manages them) ──
 let _hvEditId = null;
-const HV_AUD = { admin: 'Admin', student: 'Student', teacher: 'Teacher', parent: 'Parent' };
+const HV_AUD = { admin: 'Admin', student: 'Student', teacher: 'Teacher', parent: 'Parent', public: 'Home page' };
 async function loadVideos() {
   const box = document.getElementById('hv-list');
   try {

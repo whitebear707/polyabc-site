@@ -388,6 +388,17 @@
   </div>
 </section>
 
+<section id="ayuda" style="display:none;">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>¿Necesitas ayuda?</h2>
+      <p>Videos cortos para entrar a clase, al panel de padres y más.</p>
+    </div>
+    <div id="help-list" style="max-width:720px;margin:0 auto;"></div>
+    <p style="text-align:center;margin-top:14px;"><a href="check.html" style="font-weight:800;">🔧 Probar mi cámara, micrófono e internet</a></p>
+  </div>
+</section>
+
 <section style="padding-top:0;">
   <div class="wrap">
     <div class="cta-band">
@@ -408,6 +419,7 @@
         <a href="parent.html">Panel de padres</a>
         <a href="#clases">Clases</a>
         <a href="#niveles">Niveles</a>
+        <a href="#ayuda" id="foot-help" style="display:none;">Ayuda</a>
       </div>
     </div>
     <div class="foot-legal">© <span id="year"></span> PolyABC — Escuela de inglés en línea</div>
@@ -433,6 +445,37 @@
         a.href = `https://wa.me/${whatsapp}?text=${msg}`;
       });
     } catch (e) { /* keep the hardcoded fallback */ }
+  })();
+
+  // Help videos chosen by tech support for the home page (no login needed)
+  let HV = [];
+  function hvOpen(i) {
+    const v = HV[i]; if (!v) return;
+    let m = document.getElementById('hv-modal');
+    if (!m) {
+      m = document.createElement('div'); m.id = 'hv-modal';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(10,15,30,0.72);display:none;align-items:center;justify-content:center;padding:20px;z-index:20000;';
+      m.innerHTML = '<div style="background:#fff;border-radius:16px;width:100%;max-width:780px;padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;"><b id="hv-t"></b><button id="hv-x" aria-label="Cerrar" style="border:none;background:#eef0f4;border-radius:50%;width:32px;height:32px;cursor:pointer;">✕</button></div><div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;background:#000;"><iframe id="hv-f" style="position:absolute;inset:0;width:100%;height:100%;border:0;" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>';
+      document.body.appendChild(m);
+      const close = () => { m.style.display = 'none'; document.getElementById('hv-f').src = 'about:blank'; };
+      m.addEventListener('click', e => { if (e.target === m || e.target.closest('#hv-x')) close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    }
+    document.getElementById('hv-t').textContent = v.title;
+    document.getElementById('hv-f').src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtubeId) + '?autoplay=1&rel=0';
+    m.style.display = 'flex';
+  }
+  (async () => {
+    try {
+      const d = await (await fetch('https://polyabc-server.onrender.com/help-videos/public', { signal: AbortSignal.timeout(15000) })).json();
+      HV = d.videos || [];
+      if (!HV.length) return;
+      const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      document.getElementById('help-list').innerHTML = HV.map((v, i) => `<button onclick="hvOpen(${i})" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px 16px;margin-bottom:10px;border:1px solid #e2e6ee;border-radius:14px;background:#fff;cursor:pointer;font-family:inherit;font-size:1rem;font-weight:700;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,.04);"><span style="flex:0 0 34px;height:34px;border-radius:50%;background:#e8f0fe;color:#1a73e8;display:flex;align-items:center;justify-content:center;">▶</span><span>${esc(v.title)}</span></button>`).join('');
+      document.getElementById('ayuda').style.display = '';
+      document.getElementById('foot-help').style.display = '';
+      if (location.hash === '#ayuda') document.getElementById('ayuda').scrollIntoView();
+    } catch (e) {}
   })();
 </script>
 </body>

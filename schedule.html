@@ -306,6 +306,7 @@
   <button class="tab-btn" data-pane="reviews" onclick="showPane('reviews')">📝 Reviews<span class="dot" id="reviews-dot"></span></button>
   <button class="tab-btn" data-pane="homework" onclick="showPane('homework')">📚 Homework</button>
   <button class="tab-btn" data-pane="profile" onclick="showPane('profile')">👤 Profile</button>
+  <button class="tab-btn" data-pane="help" onclick="showPane('help')">❓ Help</button>
 </div>
 
 <div id="main">
@@ -446,6 +447,9 @@
     </div>
   </div>
 
+  </div>
+
+  <div class="pane" id="pane-help">
   <p class="section-title">❓ Help Videos</p>
   <div id="help-videos-box" style="margin-bottom:24px;"></div>
   </div>
@@ -1225,7 +1229,7 @@
     checkReviewRequestCount();
     loadTalkTime();
     const startPane = (location.hash || '').replace('#', '') || (function(){ try { return localStorage.getItem('teacherPane'); } catch (e) { return null; } })() || 'home';
-    showPane(['home','avail','pay','reviews','homework','profile'].includes(startPane) ? startPane : 'home');
+    showPane(['home','avail','pay','reviews','homework','profile','help'].includes(startPane) ? startPane : 'home');
   }
   // ───────── Talk time (how much of the speaking the teacher does) ─────────
   async function loadTalkTime() {
