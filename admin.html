@@ -1581,7 +1581,7 @@ function closeAdminIosPopup() { document.getElementById('admin-ios-popup').style
 // The assistant only schedules: calendar, students, groups, parents, attendance (view).
 // The server refuses anything else; this just hides what they can't use.
 let currentRole = 'admin';
-const ASSISTANT_PANELS = ['calendar', 'students', 'groups', 'parents', 'attendance'];
+const ASSISTANT_PANELS = ['calendar', 'students', 'groups', 'parents', 'attendance', 'meetings'];
 function applyAssistantMode(name) {
   document.querySelectorAll('#hamburger-menu .menu-item').forEach(mi => {
     const panel = (mi.id || '').replace('menu-', '');
@@ -1589,6 +1589,9 @@ function applyAssistantMode(name) {
   });
   document.querySelectorAll('#hamburger-menu > div:not(.menu-item)').forEach(h => { if (/Finanzas|Sistema|Personal|Dinero/i.test(h.textContent)) h.style.display = 'none'; });
   document.querySelectorAll('[id^="nav-"]').forEach(b => { if (!ASSISTANT_PANELS.includes(b.id.replace('nav-', ''))) b.style.display = 'none'; });
+  // Juntas sits under "Sistema", which assistants don't see: show it with the other day-to-day items
+  const mtItem = document.getElementById('menu-meetings'), attItem = document.getElementById('menu-attendance');
+  if (mtItem && attItem) attItem.after(mtItem);
   const tag = document.createElement('div');
   tag.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:5000;background:#6a1b9a;color:#fff;font-weight:800;font-size:0.75rem;padding:5px 10px;border-radius:14px;font-family:Nunito,sans-serif;';
   tag.textContent = '🧑‍💼 Asistente: ' + (name || '');
@@ -5955,7 +5958,7 @@ async function renderMeetings() {
       ${escHtml(t.teacherName)} <span style="color:#999;font-size:0.78rem;">· Salón ${escHtml(t.room)}</span></label>`).join('') || '<div style="color:#aaa;">No hay maestros.</div>';
   document.getElementById('mt-guests').innerHTML = (m.guests || []).map(g => `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap;">
-      <div><div style="font-weight:800;">${escHtml(g.name)}</div><div style="font-family:monospace;font-size:0.85rem;color:#555;">Salón 0 · ${escHtml(g.password)}</div></div>
+      <div><div style="font-weight:800;">${escHtml(g.name)}</div><div style="font-family:monospace;font-size:0.85rem;color:#555;">Salón 0 · ${escHtml(g.password || g.access || '')}</div></div>
       <div style="display:flex;gap:6px;">
         <button data-id="${escHtml(g.id)}" onclick="meetingCopyGuest(this.dataset.id)" style="padding:6px 10px;background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">📋 Copiar acceso</button>
         <button data-id="${escHtml(g.id)}" onclick="meetingDelGuest(this.dataset.id)" style="padding:6px 10px;background:#fff;color:#c62828;border:1px solid #c62828;border-radius:8px;font-family:Nunito;font-weight:800;cursor:pointer;">🗑</button>
@@ -6000,7 +6003,7 @@ function mtCopy(text, what) {
 function meetingCopyGuest(id) {
   const g = (_meeting?.guests || []).find(x => x.id === id); if (!g) return;
   const t = _meeting.title ? ` — ${_meeting.title}` : '';
-  mtCopy(`PolyABC — Junta${t}\nEntra en: https://polyabc.academy/login.html\nSalón: 0\nContraseña: ${g.password}`, `Acceso de ${g.name}`);
+  mtCopy(`PolyABC — Junta${t}\nEntra en: https://polyabc.academy/login.html\nSalón: 0\nContraseña: ${g.password || g.access || ''}`, `Acceso de ${g.name}`);
 }
 function meetingCopyTeacherNote() {
   const t = _meeting?.title ? ` (${_meeting.title})` : '';
@@ -6012,7 +6015,7 @@ async function meetingEnterHost() {
     const d = await res.json();
     if (!d.success) { mtMsg('⚠️ ' + (d.error || 'No se pudo entrar'), false); return; }
     localStorage.setItem('adminToken', d.token);          // the classroom reads the host login from here
-    localStorage.setItem('teacherName', 'Admin');
+    localStorage.setItem('teacherName', d.name || 'Admin');
     window.open('classroom.html?room=0', '_blank');
   } catch (e) { mtMsg('⚠️ Error de red', false); }
 }
