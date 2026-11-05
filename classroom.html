@@ -3203,8 +3203,17 @@ function teacherEndClass() {
 const ssPeers = {}; // studentSocketId -> RTCPeerConnection
 let screenStream = null; let isSharing = false;
 
+let _ssStarting = false;
 async function toggleScreenShare() {
   if (isSharing) { stopScreenShare(); return; }
+  if (_ssStarting) return;                       // a second click while the picker is open
+  // anything left over from a share that didn't end cleanly
+  if (rawScreenStream || screenStream || shareCrop || Object.keys(ssPeers).length) { try { stopScreenShare(); } catch (e) {} }
+  const oldModal = document.getElementById('share-mode-modal'); if (oldModal) oldModal.remove();
+  _ssStarting = true;
+  try { await startScreenShare(); } finally { _ssStarting = false; }
+}
+async function startScreenShare() {
   let raw = null;
   try {
     // The picker opens on Chrome tabs (best for material from a website: it keeps sharing while the teacher
@@ -3282,7 +3291,8 @@ function askShareMode(raw, startInArea = false, initialRect = null) {
       <div id="smm-title" style="font-weight:900;font-size:1.2rem;color:#1a1a2e;"></div>
       <div id="smm-stage" style="position:relative;background:#111;border-radius:10px;overflow:hidden;user-select:none;touch-action:none;">
         <video id="smm-vid" autoplay playsinline muted style="display:block;width:100%;height:56vh;object-fit:contain;"></video>
-        <div id="smm-box" style="position:absolute;border:3px solid #00e676;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);display:none;pointer-events:none;border-radius:4px;"></div>
+        <div id="smm-box" style="position:absolute;border:3px solid #00e676;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);display:none;pointer-events:none;border-radius:4px;">${['top:-7px;left:-7px', 'top:-7px;right:-7px', 'bottom:-7px;left:-7px', 'bottom:-7px;right:-7px'].map(p => `<i style="position:absolute;${p};width:12px;height:12px;background:#00e676;border:2px solid #fff;border-radius:3px;"></i>`).join('')}</div>
+        <div id="smm-count" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,0.6);color:#fff;font-weight:900;font-size:1.1rem;text-align:center;padding:20px;"></div>
       </div>
       <div id="smm-help" style="font-size:0.95rem;color:#555;"></div>
       <div id="smm-btns" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;"></div>
@@ -3333,16 +3343,38 @@ function askShareMode(raw, startInArea = false, initialRect = null) {
     window.addEventListener('resize', drawBox);
     vid.addEventListener('loadedmetadata', drawBox);
     const at = e => { const p = picture(); return { fx: clamp((e.clientX - p.sr.left - p.left) / p.w), fy: clamp((e.clientY - p.sr.top - p.top) / p.h) }; };
+    // Drag inside the box to move it, drag a corner/edge to resize it, drag outside to draw a new one
+    function grabKind(q) {
+      const p = picture(), tol = 14 / Math.max(1, p.w), tolY = 14 / Math.max(1, p.h);
+      const nearL = Math.abs(q.fx - rect.x) < tol, nearR = Math.abs(q.fx - (rect.x + rect.w)) < tol;
+      const nearT = Math.abs(q.fy - rect.y) < tolY, nearB = Math.abs(q.fy - (rect.y + rect.h)) < tolY;
+      const insideX = q.fx > rect.x - tol && q.fx < rect.x + rect.w + tol, insideY = q.fy > rect.y - tolY && q.fy < rect.y + rect.h + tolY;
+      if (insideX && insideY && (nearL || nearR || nearT || nearB)) return (nearT ? 'n' : nearB ? 's' : '') + (nearL ? 'w' : nearR ? 'e' : '');
+      if (q.fx > rect.x && q.fx < rect.x + rect.w && q.fy > rect.y && q.fy < rect.y + rect.h) return 'move';
+      return 'new';
+    }
+    const CURSOR = { move: 'move', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', ne: 'nesw-resize', sw: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize', new: 'crosshair' };
     stage.addEventListener('pointerdown', e => {
       if (mode !== 'area') return;
-      drag = { ...at(e), before: { ...rect } };
+      const q = at(e);
+      drag = { ...q, kind: box.style.display === 'block' ? grabKind(q) : 'new', before: { ...rect } };
       try { stage.setPointerCapture(e.pointerId); } catch (err) {}
       e.preventDefault();
     });
     stage.addEventListener('pointermove', e => {
-      if (!drag) return;
       const q = at(e);
-      rect = { x: Math.min(drag.fx, q.fx), y: Math.min(drag.fy, q.fy), w: Math.abs(q.fx - drag.fx), h: Math.abs(q.fy - drag.fy) };
+      if (!drag) { if (mode === 'area') stage.style.cursor = CURSOR[box.style.display === 'block' ? grabKind(q) : 'new']; return; }
+      const b = drag.before, dx = q.fx - drag.fx, dy = q.fy - drag.fy;
+      if (drag.kind === 'new') rect = { x: Math.min(drag.fx, q.fx), y: Math.min(drag.fy, q.fy), w: Math.abs(q.fx - drag.fx), h: Math.abs(q.fy - drag.fy) };
+      else if (drag.kind === 'move') rect = { x: clamp(Math.min(b.x + dx, 1 - b.w)), y: clamp(Math.min(b.y + dy, 1 - b.h)), w: b.w, h: b.h };
+      else {
+        let x1 = b.x, y1 = b.y, x2 = b.x + b.w, y2 = b.y + b.h;
+        if (drag.kind.includes('w')) x1 = clamp(Math.min(q.fx, x2 - 0.05));
+        if (drag.kind.includes('e')) x2 = clamp(Math.max(q.fx, x1 + 0.05));
+        if (drag.kind.includes('n')) y1 = clamp(Math.min(q.fy, y2 - 0.05));
+        if (drag.kind.includes('s')) y2 = clamp(Math.max(q.fy, y1 + 0.05));
+        rect = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+      }
       drawBox();
     });
     const endDrag = () => {
@@ -3368,13 +3400,32 @@ function askShareMode(raw, startInArea = false, initialRect = null) {
       btns.append(button('✂️ Share part of the screen', '#00897b', showArea),
                   button('🖥️ Share everything', '#6a1b9a', () => finish({ mode: 'all' })));
     }
+    // A fresh picture in 3 seconds: time to bring the lesson window to the front, then come back and mark the area
+    function snapshotSoon() {
+      const cnt = ov.querySelector('#smm-count');
+      let n = 3;
+      vid.play().catch(() => {});
+      cnt.style.display = 'flex';
+      const tick = () => {
+        cnt.innerHTML = `<div style="font-size:3rem;">${n}</div><div>Go to your lesson window now — the picture is taken in ${n} s, then come back here.</div><div style="font-weight:600;font-size:0.9rem;margin-top:6px;">Ve a la ventana de tu lección; la foto se toma en ${n} s y luego regresa aquí.</div>`;
+        if (n-- <= 0) {
+          cnt.style.display = 'none';
+          if (wholeScreen) { try { vid.pause(); } catch (e) {} }
+          showArea();
+          return;
+        }
+        setTimeout(tick, 1000);
+      };
+      tick();
+    }
     function showArea() {
       mode = 'area';
       title.textContent = 'Drag a box over the part you want to share';
-      help.textContent = 'Click and drag on the picture. Students will only see what is inside the green box.';
+      help.innerHTML = 'Drag on the picture to draw the green box. Drag <b>inside</b> it to move it, or its <b>corners/edges</b> to resize. Students only see what is inside.' + (wholeScreen ? ' <b>Can\'t see your lesson?</b> Use 📸 New picture.' : '');
       btns.innerHTML = '';
-      btns.append(button(startInArea ? 'Cancel' : '⬅ Back', '#888', startInArea ? () => finish(null) : showChoose),
-                  button('✅ Share this area', '#2e7d32', () => finish({ mode: 'part', rect: { ...rect } })));
+      btns.append(button(startInArea ? 'Cancel' : '⬅ Back', '#888', startInArea ? () => finish(null) : showChoose));
+      if (wholeScreen) btns.append(button('📸 New picture in 3 s', '#1a73e8', snapshotSoon));
+      btns.append(button('✅ Share this area', '#2e7d32', () => finish({ mode: 'part', rect: { ...rect } })));
       drawBox();
     }
     if (startInArea) showArea(); else showChoose();
