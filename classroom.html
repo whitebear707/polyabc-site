@@ -3903,8 +3903,22 @@ async function maybeStartRecording() {
 function showRecBadge() {
   if (document.getElementById('rec-badge')) return;
   const b = document.createElement('div'); b.id = 'rec-badge';
-  b.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9000;background:#e53935;color:#fff;font-weight:900;font-size:.8rem;padding:3px 12px;border-radius:20px;font-family:Nunito,sans-serif;pointer-events:none;';
-  b.textContent = '● REC'; document.body.appendChild(b);
+  b.textContent = '● REC';
+  const lbl = document.getElementById('room-label');
+  if (lbl && lbl.parentNode) {
+    // right next to the room / class name, not on top of it
+    b.style.cssText = 'display:inline-block;margin-left:8px;vertical-align:middle;background:#e53935;color:#fff;font-weight:900;font-size:.8rem;padding:4px 10px;border-radius:20px;font-family:Nunito,sans-serif;pointer-events:none;white-space:nowrap;';
+    // keep the header layout: room label + REC sit together in one spot
+    const wrap = document.createElement('span');
+    const centered = getComputedStyle(lbl).position === 'absolute';   // desktop: the label is centered in the header
+    wrap.style.cssText = centered ? 'position:absolute;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;white-space:nowrap;' : 'display:inline-flex;align-items:center;margin:0 auto;';
+    lbl.parentNode.insertBefore(wrap, lbl);
+    wrap.appendChild(lbl); wrap.appendChild(b);
+    if (centered) { lbl.style.position = 'static'; lbl.style.transform = 'none'; }
+  } else {
+    b.style.cssText = 'position:fixed;top:8px;right:8px;z-index:9000;background:#e53935;color:#fff;font-weight:900;font-size:.8rem;padding:3px 12px;border-radius:20px;font-family:Nunito,sans-serif;pointer-events:none;';
+    document.body.appendChild(b);
+  }
 }
 // Honest "Saving class…" screen at End Class (pieces were sent during class, so this is usually quick)
 async function finishRecording() {
