@@ -383,6 +383,7 @@
     <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
     <div class="menu-item" id="menu-certificates" onclick="menuNav('certificates')">🎓 Certificados</div>
     <div class="menu-item" id="menu-announcements" onclick="menuNav('announcements')">📢 Anuncios</div>
+    <div class="menu-item" id="menu-assistants" onclick="menuNav('assistants')">🧑‍💼 Asistentes</div>
     <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
         <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
@@ -719,6 +720,24 @@
     <div style="font-size:0.85rem;color:#666;margin-bottom:12px;line-height:1.5;">Tech Support los agrega y edita. Aquí puedes ver qué video ve cada rol.</div>
     <div id="hv-list"></div>
 </div>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- PANEL: ASISTENTES -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-assistants" class="panel">
+    <div class="panel-title">🧑‍💼 Asistentes del administrador</div>
+    <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
+      Un asistente entra en esta misma página con su <b>usuario</b> y contraseña. Solo puede ver el horario, alumnos, grupos, padres y asistencia, y <b>asignar clases, suplentes, alumnos a grupos y padres a alumnos</b>.
+      No puede cobrar, ver ni cambiar pagos, nómina o contabilidad, ni editar o borrar maestros, alumnos o padres. No ve contraseñas ni sueldos.
+    </div>
+    <div style="background:#fff;border:2px solid #6a1b9a;border-radius:14px;padding:16px;margin-bottom:16px;">
+      <div class="field-group"><label>Usuario</label><input id="as-user" maxlength="40" autocomplete="off" placeholder="Ej: laura" style="width:100%;box-sizing:border-box;"/></div>
+      <div class="field-group"><label>Contraseña (mínimo 8)</label><input id="as-pass" maxlength="60" autocomplete="new-password" style="width:100%;box-sizing:border-box;"/></div>
+      <button onclick="asCreate()" style="width:100%;background:#6a1b9a;color:#fff;border:none;border-radius:12px;padding:12px;font-weight:900;cursor:pointer;">+ Crear asistente</button>
+      <div id="as-msg" style="margin-top:8px;font-size:0.88rem;"></div>
+    </div>
+    <div id="as-list"></div>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: ANUNCIOS -->
@@ -1558,6 +1577,34 @@ function installAdminApp() {
 function dismissAdminInstall() { document.getElementById('admin-pwa-popup').style.display='none'; }
 function closeAdminIosPopup() { document.getElementById('admin-ios-popup').style.display='none'; }
 
+// ── ADMIN ASSISTANT MODE ──
+// The assistant only schedules: calendar, students, groups, parents, attendance (view).
+// The server refuses anything else; this just hides what they can't use.
+let currentRole = 'admin';
+const ASSISTANT_PANELS = ['calendar', 'students', 'groups', 'parents', 'attendance'];
+function applyAssistantMode(name) {
+  document.querySelectorAll('#hamburger-menu .menu-item').forEach(mi => {
+    const panel = (mi.id || '').replace('menu-', '');
+    if (!ASSISTANT_PANELS.includes(panel)) mi.style.display = 'none';
+  });
+  document.querySelectorAll('#hamburger-menu > div:not(.menu-item)').forEach(h => { if (/Finanzas|Sistema|Personal|Dinero/i.test(h.textContent)) h.style.display = 'none'; });
+  document.querySelectorAll('[id^="nav-"]').forEach(b => { if (!ASSISTANT_PANELS.includes(b.id.replace('nav-', ''))) b.style.display = 'none'; });
+  const tag = document.createElement('div');
+  tag.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:5000;background:#6a1b9a;color:#fff;font-weight:800;font-size:0.75rem;padding:5px 10px;border-radius:14px;font-family:Nunito,sans-serif;';
+  tag.textContent = '🧑‍💼 Asistente: ' + (name || '');
+  document.body.appendChild(tag);
+}
+// When the server refuses an action for an assistant, say so (only for changes, not background loading)
+(function () {
+  const orig = window.fetch.bind(window);
+  window.fetch = async (url, opts) => {
+    const r = await orig(url, opts);
+    if (currentRole === 'assistant' && r.status === 403 && opts && opts.method && opts.method !== 'GET') {
+      r.clone().json().then(d => { if (d && d.assistant) showToast('🔒 ' + d.error, 3500); }).catch(() => {});
+    }
+    return r;
+  };
+})();
 async function doLogin() {
   const pass = document.getElementById('login-pass').value.trim();
   if (!pass) return;
@@ -1566,11 +1613,22 @@ async function doLogin() {
   try {
     const res = await fetch(`${SERVER_URL}/admin-login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pass })
+      body: JSON.stringify({ password: pass, username: (document.getElementById('login-user').value || '').trim() })
     });
     if (btn) { btn.disabled = false; btn.textContent = 'Iniciar sesión'; }
     const data = await res.json();
     if (!data.success) { document.getElementById('login-error').style.display = 'block'; return; }
+    currentRole = data.role === 'assistant' ? 'assistant' : 'admin';
+    if (data.role === 'assistant') {
+      currentToken = data.token;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      applyAssistantMode(data.name);
+      await loadAll();
+      showPanel('calendar');
+      checkNewTrials(); setInterval(checkNewTrials, 30000);
+      return;
+    }
     if (data.role !== 'admin') {
       // Teacher — redirect to greeting
       localStorage.setItem('teacherToken', data.token);
@@ -1594,6 +1652,7 @@ async function doLogin() {
 }
 
 function logout() {
+  if (currentRole === 'assistant') { location.reload(); return; }
   currentToken = null;
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -1696,7 +1755,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1704,7 +1763,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1727,6 +1786,7 @@ function showPanel(name) {
   if (name === 'recordings') renderRecordings();
   if (name === 'certificates') renderCertificates();
   if (name === 'announcements') renderAnnouncements();
+  if (name === 'assistants') renderAssistants();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
 }
 
@@ -5674,6 +5734,44 @@ function renderScorecard() {
   }).join('');
 }
 function scToggle(room) { _scOpen.has(room) ? _scOpen.delete(room) : _scOpen.add(room); renderScorecard(); }
+
+// ── ASISTENTES ──
+async function renderAssistants() {
+  const box = document.getElementById('as-list');
+  try {
+    const list = await (await fetch(`${SERVER_URL}/admin/assistants`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    box.innerHTML = Array.isArray(list) && list.length ? list.map(a => `
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:10px 12px;margin-bottom:8px;${a.active ? '' : 'opacity:.6;'}">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><b>🧑‍💼 ${escHtml(a.username)}</b><span style="font-size:0.8rem;color:#777;">${a.active ? '🟢 Activo' : '⏸ Desactivado'}${a.lastLoginAt ? ' · último acceso ' + escHtml(new Date(a.lastLoginAt).toLocaleDateString('es-MX')) : ''}</span></div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button onclick="asReset('${escJsAttr(a.id)}','${escJsAttr(a.username)}')" style="background:#f1f3f4;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;">🔑 Nueva contraseña</button>
+          <button onclick="asToggle('${escJsAttr(a.id)}', ${!a.active})" style="background:#f1f3f4;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;">${a.active ? '⏸ Desactivar' : '▶ Activar'}</button>
+          <button onclick="asDelete('${escJsAttr(a.id)}','${escJsAttr(a.username)}')" style="background:#fff;color:#e53935;border:2px solid #e53935;border-radius:8px;padding:4px 10px;font-weight:800;cursor:pointer;">Borrar</button>
+        </div></div>`).join('') : '<div style="color:#999;padding:10px;">No hay asistentes.</div>';
+  } catch (e) { box.innerHTML = '<div style="color:#e53935;">⚠️ No se pudo cargar.</div>'; }
+}
+async function asCreate() {
+  const msg = document.getElementById('as-msg');
+  const r = await (await fetch(`${SERVER_URL}/admin/assistants`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ username: document.getElementById('as-user').value.trim(), password: document.getElementById('as-pass').value }) })).json().catch(() => ({}));
+  if (!r.success) { msg.innerHTML = `<span style="color:#e53935;">⚠️ ${escHtml(r.error || 'No se pudo crear')}</span>`; return; }
+  msg.innerHTML = `✅ Listo. Entra en esta página con usuario <b>${escHtml(document.getElementById('as-user').value.trim())}</b> y su contraseña.`;
+  document.getElementById('as-user').value = ''; document.getElementById('as-pass').value = '';
+  renderAssistants();
+}
+async function asReset(id, name) {
+  const pw = prompt(`Nueva contraseña para ${name} (mínimo 8 caracteres):`); if (!pw) return;
+  const r = await (await fetch(`${SERVER_URL}/admin/assistants/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ password: pw }) })).json().catch(() => ({}));
+  showToast(r.success ? '✅ Contraseña cambiada' : '⚠️ ' + (r.error || 'Error'));
+}
+async function asToggle(id, active) {
+  await fetch(`${SERVER_URL}/admin/assistants/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ active }) }).catch(() => {});
+  renderAssistants();
+}
+async function asDelete(id, name) {
+  if (!confirm(`¿Borrar al asistente ${name}? Ya no podrá entrar.`)) return;
+  await fetch(`${SERVER_URL}/admin/assistants/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${currentToken}` } }).catch(() => {});
+  renderAssistants();
+}
 
 // ── ANUNCIOS ──
 let _anns = [], _annEdit = null;
