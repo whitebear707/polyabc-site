@@ -885,7 +885,8 @@ async function renderAvailableClasses() {
       fetch(`${SERVER_URL}/parent/available-classes`, { headers: { Authorization: `Bearer ${_parentToken}` } }),
       fetch(`${SERVER_URL}/school-info/public`)
     ]);
-    const { classes } = await classesRes.json();
+    const { classes, levels } = await classesRes.json();
+    const lvTxt = (levels || []).map(escHtml).join(', ');
     const info = await infoRes.json().catch(() => ({}));
     const wa = info.whatsapp;
     const waMsg = encodeURIComponent('Hola, quisiera más información sobre horarios / clases disponibles.');
@@ -907,10 +908,12 @@ async function renderAvailableClasses() {
 
     wrap.innerHTML = `
       <div style="font-size:0.85rem;color:#555;margin-bottom:14px;line-height:1.5;">
-        Estos son los horarios de clases grupales disponibles ahora mismo. Si un horario nuevo te conviene más,
+        Estos son los horarios de clases grupales disponibles ahora mismo${lvTxt ? ` para el nivel de tu hijo/a (<b>${lvTxt}</b>)` : ''}. Si un horario nuevo te conviene más,
         contáctanos — el cambio se hace por WhatsApp, no desde aquí.
       </div>
-      ${rows || '<div style="text-align:center;color:#aaa;padding:20px;">No hay clases grupales configuradas todavía.</div>'}
+      ${rows || (lvTxt
+        ? `<div style="text-align:center;color:#888;padding:20px;">Por ahora no hay otros horarios grupales de nivel ${lvTxt}. Contáctanos y te avisamos cuando se abra uno.</div>`
+        : '<div style="text-align:center;color:#888;padding:20px;">Aún no tenemos el nivel de tu hijo/a registrado. Contáctanos y te mostramos los horarios de su nivel.</div>')}
       <div style="margin-top:18px;padding:16px;background:#fff8e1;border-radius:12px;">
         <div style="font-weight:900;color:#e65100;margin-bottom:4px;">🎓 ¿Buscas clases 1v1?</div>
         <div style="font-size:0.85rem;color:#666;margin-bottom:10px;">Los horarios 1v1 son personalizados — contáctanos directamente.</div>
