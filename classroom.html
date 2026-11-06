@@ -401,6 +401,7 @@
         <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
       </div>
       <div class="tool-separator"></div>
+      <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
       <button id="leaderboard-btn" class="tool-btn" onclick="toggleLeaderboard()" style="background:#f57f17;">🏆 Leaderboard</button>
       <div id="chat-btn-wrap" style="display:none;position:relative;">
@@ -610,10 +611,16 @@ function updateSelfMonkey() {
 const CAM_VIDEO = IS_TEACHER
   ? { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 24, max: 24 } }
   : { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 15, max: 15 } };
+// The microphone this person chose last time (🎙️ Mic button). "ideal": if it's unplugged, the browser uses another one.
+function micConstraint() {
+  let id = ''; try { id = localStorage.getItem('micDeviceId') || ''; } catch (e) {}
+  return id ? { deviceId: { ideal: id } } : true;
+}
 async function getCam(withAudio) {
-  try { return await navigator.mediaDevices.getUserMedia({ video: CAM_VIDEO, audio: withAudio }); }
+  const aud = withAudio ? micConstraint() : false;
+  try { return await navigator.mediaDevices.getUserMedia({ video: CAM_VIDEO, audio: aud }); }
   catch (e) {
-    if (e && (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError')) return await navigator.mediaDevices.getUserMedia({ video: true, audio: withAudio });
+    if (e && (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError')) return await navigator.mediaDevices.getUserMedia({ video: true, audio: aud });
     throw e;
   }
 }
@@ -626,7 +633,7 @@ async function acquireMedia() {
   } catch (e) {
     if (IS_TEACHER) throw e;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const s = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() });
       s._camError = e;
       return s;
     } catch (e2) { throw e; }
@@ -845,6 +852,7 @@ function connectSocket() {
   socket.on('it-action', ({ action, text }) => {
     if (action === 'reload') { location.reload(); return; }
     if (action === 'message' && text) showItMessage(text);
+    if (action === 'mic') openMicPicker(true);
   });
 
   socket.on('connect', () => {
@@ -1823,11 +1831,19 @@ function showStudentSlot(socketId, name, isBirthday) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${identity}`;
   slot.innerHTML = `<video id="vimg-${identity}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}"></video>
-    ${IS_TEACHER ? `<div id="spk-${identity}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>` : ''}`;
+    ${IS_TEACHER ? `<div id="spk-${identity}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>
+    <div id="micask-${identity}" title="Can't hear this student? Open the microphone chooser on their screen" style="position:absolute;bottom:4px;left:30px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🎙️</div>` : ''}`;
   if (IS_TEACHER) {
     slot.style.cursor = 'pointer';
     slot.addEventListener('click', (e) => {
-      if (!e.target.closest(`#spk-${identity}`)) toggleStudentCamClick(curSid(identity));
+      if (!e.target.closest(`#spk-${identity}`) && !e.target.closest(`#micask-${identity}`)) toggleStudentCamClick(curSid(identity));
+    });
+    const mk = slot.querySelector(`#micask-${identity}`);
+    if (mk) mk.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window._socket) window._socket.emit('ask-mic-pick', { targetId: curSid(identity) });
+      mk.style.background = '#2e7d32'; setTimeout(() => { mk.style.background = 'rgba(0,0,0,0.5)'; }, 1500);
+      showMicToast(`🎙️ Microphone chooser opened on ${name || 'the student'}'s screen.`);
     });
     const spk = slot.querySelector(`#spk-${identity}`);
     if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(curSid(identity)); });
@@ -4113,12 +4129,129 @@ async function collectHealth() {
   return { rtt: rtts.length ? rtts.reduce((a, b) => a + b, 0) / rtts.length : null, loss: lost + got ? lost * 100 / (lost + got) : 0, inKbps: inB, outKbps: outB,
     fps: fps.length ? fps.reduce((a, b) => a + b, 0) / fps.length : null, camOn: !!(localStream && localStream.getVideoTracks().some(t => t.readyState === 'live' && t.enabled)),
     micOn: !!(localStream && localStream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled)), seesTeacher: IS_TEACHER ? null : seesTeacher, hearsTeacher: IS_TEACHER ? null : hearsTeacher,
-    peers: pcs.length, badPeers, device: ua.device, browser: ua.browser, hidden: document.visibilityState === 'hidden' };
+    peers: pcs.length, badPeers, device: ua.device, browser: ua.browser, hidden: document.visibilityState === 'hidden',
+    mic: micLabel(), micLevel: micPeakTake() };
 }
 if (!IS_SPECTATOR) setInterval(async () => {
   const s = window._socket; if (!s || !s.connected || !_joinedName) return;
   try { s.emit('health-report', await collectHealth()); } catch (e) {}
 }, 10000);
+
+// ── Microphone: level meter, chooser, "we can't hear you" warning ──
+// 🎙️ Mic button (everyone in class): shows every microphone with a live bar — talk and pick the one that moves.
+// The teacher (🎙️ on a student's box) and Tech Support can open it on someone else's screen.
+const MIC = { ac: null, an: null, buf: null, track: null, level: 0, peak: 0, quietSince: 0, warned: false };
+function micTrack() { const t = localStream && localStream.getAudioTracks()[0]; return t && t.readyState === 'live' ? t : null; }
+function micLabel() { const t = micTrack(); return t ? String(t.label || 'Microphone').slice(0, 60) : ''; }
+function rmsOf(an, buf) { an.getFloatTimeDomainData(buf); let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i]; return Math.sqrt(s / buf.length); }
+function micPeakTake() { const p = Math.min(100, Math.round(MIC.peak * 400)); MIC.peak = 0; return p; }
+function micTick() {
+  const t = micTrack();
+  try {
+    if (!t) { MIC.level = 0; return; }
+    if (!MIC.ac) MIC.ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (MIC.ac.state === 'suspended') MIC.ac.resume().catch(() => {});
+    if (MIC.track !== t) { MIC.an = MIC.ac.createAnalyser(); MIC.an.fftSize = 1024; MIC.buf = new Float32Array(MIC.an.fftSize); MIC.ac.createMediaStreamSource(new MediaStream([t])).connect(MIC.an); MIC.track = t; MIC.quietSince = Date.now(); }
+    MIC.level = MIC.ac.state === 'running' ? rmsOf(MIC.an, MIC.buf) : 0;
+    MIC.peak = Math.max(MIC.peak, MIC.level);
+  } catch (e) { MIC.level = 0; }
+  const bar = document.getElementById('mic-pick-lvl');
+  if (bar) bar.style.width = (t && t.enabled ? Math.min(100, MIC.level * 400) : 0) + '%';
+  // Nothing at all from the mic for 25 s while it's on: it's probably the wrong one (or the laptop lid mic, a dead headset…)
+  // (students can listen quietly for a while, so they get longer before the warning)
+  if (!t || !t.enabled || MIC.ac.state !== 'running' || MIC.level > 0.0015) { MIC.quietSince = Date.now(); return; }
+  if (!MIC.warned && _joinedName && Date.now() - MIC.quietSince > (IS_TEACHER ? 25000 : 60000)) { MIC.warned = true; showMicSilentWarning(); }
+}
+if (!IS_SPECTATOR) {
+  setInterval(micTick, 150);
+  document.addEventListener('click', () => { if (MIC.ac && MIC.ac.state === 'suspended') MIC.ac.resume().catch(() => {}); });
+  setTimeout(() => { const b = document.getElementById('mic-pick-btn'); if (b) b.style.display = 'inline-flex'; }, 0);
+  // Mic unplugged in the middle of class: move to another one by itself
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', () => {
+    setTimeout(() => {
+      const t = localStream && localStream.getAudioTracks()[0];
+      if (t && t.readyState === 'ended') switchMic('').then(() => showMicToast('🎙️ Your microphone was unplugged — now using: ' + micLabel())).catch(() => {});
+    }, 800);
+  });
+}
+function showMicToast(text) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#263238;color:#fff;padding:10px 18px;border-radius:12px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.9rem;z-index:100001;box-shadow:0 4px 16px rgba(0,0,0,0.3);max-width:90vw;text-align:center;';
+  d.textContent = text; document.body.appendChild(d); setTimeout(() => d.remove(), 4000);
+}
+function showMicSilentWarning() {
+  if (document.getElementById('mic-silent-warn')) return;
+  const d = document.createElement('div'); d.id = 'mic-silent-warn';
+  d.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#fff3e0;color:#bf360c;border:2px solid #e65100;border-radius:12px;padding:10px 16px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.9rem;z-index:99999;max-width:92vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+  d.innerHTML = '🎙️ Your microphone isn\'t picking up any sound. Maybe it\'s the wrong one.<br><span style="font-weight:600;">Tu micrófono no capta sonido. Puede ser el equivocado.</span><br>' +
+    '<button id="msw-pick" style="margin-top:8px;border:none;background:#e65100;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:900;font-family:inherit;">Choose microphone / Elegir micrófono</button> ' +
+    '<button id="msw-x" style="margin-top:8px;border:none;background:#bbb;color:#333;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:800;font-family:inherit;">OK</button>';
+  document.body.appendChild(d);
+  d.querySelector('#msw-pick').onclick = () => { d.remove(); openMicPicker(); };
+  d.querySelector('#msw-x').onclick = () => d.remove();
+  if (window.reportPageError) reportPageError('mic: no sound from "' + micLabel() + '"', 'mic');
+}
+async function switchMic(deviceId) {
+  const old = localStream && localStream.getAudioTracks()[0];
+  const ns = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId: { exact: deviceId } } : true });
+  const nt = ns.getAudioTracks()[0];
+  nt.enabled = old ? old.enabled : true;
+  // send the new mic on every audio connection without reconnecting anyone
+  Object.values(audioPeers).forEach(pc => {
+    try { const snd = pc.getSenders().find(x => x.track ? x.track.kind === 'audio' : (x.dtmf != null)); if (snd) snd.replaceTrack(nt); } catch (e) {}
+  });
+  if (localStream) { if (old) { localStream.removeTrack(old); old.stop(); } localStream.addTrack(nt); } else localStream = ns;
+  try { if (deviceId) localStorage.setItem('micDeviceId', deviceId); else localStorage.removeItem('micDeviceId'); } catch (e) {}
+  MIC.warned = false; MIC.quietSince = Date.now();
+  return nt;
+}
+async function openMicPicker(fromHelper) {
+  if (IS_SPECTATOR || document.getElementById('mic-picker')) return;
+  const ov = document.createElement('div'); ov.id = 'mic-picker';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.4);">
+    ${fromHelper ? '<div style="background:#e3f2fd;color:#0d47a1;border-radius:10px;padding:8px 12px;font-weight:800;font-size:0.85rem;margin-bottom:10px;">👋 Your teacher / Tech Support asked you to check your microphone.<br><span style="font-weight:600;">Tu maestro o Soporte te pidió revisar tu micrófono.</span></div>' : ''}
+    <div style="font-size:1.25rem;font-weight:900;color:#1a1a2e;">🎙️ Choose your microphone</div>
+    <div style="color:#555;font-size:0.9rem;margin:4px 0 14px;"><b>Talk</b> and watch the green bars — pick the one that moves.<br>Habla y mira las barras verdes: elige el que se mueve.</div>
+    <div id="mp-list" style="display:flex;flex-direction:column;gap:8px;">Loading… / Cargando…</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;"><button id="mp-close" style="border:none;background:#888;color:#fff;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">Close / Cerrar</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const previews = []; let timer = null;
+  const close = () => { clearInterval(timer); previews.forEach(p => { try { p.stream.getTracks().forEach(t => t.stop()); } catch (e) {} }); ov.remove(); };
+  ov.querySelector('#mp-close').onclick = close;
+  const list = ov.querySelector('#mp-list');
+  let devs = [];
+  try { devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput' && d.deviceId !== 'communications'); } catch (e) {}
+  if (!devs.length) { list.innerHTML = '<div style="color:#c62828;font-weight:800;">No microphone found. Plug one in or allow the microphone in the browser (🔒 next to the address).<br>No se encontró micrófono.</div>'; return; }
+  const cur = micTrack(), curId = cur && cur.getSettings ? cur.getSettings().deviceId : '';
+  const ac = MIC.ac || new (window.AudioContext || window.webkitAudioContext)(); MIC.ac = ac; ac.resume().catch(() => {});
+  list.innerHTML = '';
+  for (const d of devs.slice(0, 8)) {
+    const using = d.deviceId === curId || (!curId && d.deviceId === 'default');
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:2px solid ${using ? '#2e7d32' : '#e0e0e0'};background:${using ? '#e8f5e9' : '#fafafa'};`;
+    const name = (d.label || 'Microphone').replace(/^Default - /, '⭐ ');
+    row.innerHTML = `<div style="flex:1;min-width:0;"><div style="font-weight:800;font-size:0.9rem;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(d.label || '')}">${escapeHtml(name)}</div>
+      <div style="height:10px;background:#e0e0e0;border-radius:5px;overflow:hidden;margin-top:6px;"><div class="mp-bar" style="height:100%;width:0%;background:#2e7d32;transition:width .1s;"></div></div></div>`;
+    const b = document.createElement('button');
+    b.style.cssText = `border:none;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer;font-family:inherit;white-space:nowrap;${using ? 'background:#c8e6c9;color:#1b5e20;' : 'background:#1a73e8;color:#fff;'}`;
+    b.textContent = using ? '✓ In use' : 'Use this / Usar';
+    b.onclick = async () => {
+      b.disabled = true; b.textContent = '…';
+      try { await switchMic(d.deviceId); showMicToast('🎙️ Now using: ' + micLabel()); close(); }
+      catch (e) { b.disabled = false; b.textContent = '⚠️ Try again'; if (window.reportPageError) reportPageError('mic switch: ' + e.name + ': ' + e.message, 'mic'); }
+    };
+    row.appendChild(b); list.appendChild(row);
+    const bar = row.querySelector('.mp-bar');
+    try {
+      const stream = using && cur ? new MediaStream([cur]) : await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: d.deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      const an = ac.createAnalyser(); an.fftSize = 1024; ac.createMediaStreamSource(stream).connect(an);
+      previews.push({ stream: using && cur ? { getTracks: () => [] } : stream, an, buf: new Float32Array(1024), bar });
+    } catch (e) { bar.parentNode.outerHTML = '<div style="color:#999;font-size:0.75rem;margin-top:4px;">Can\'t test this one (busy or disconnected)</div>'; }
+  }
+  timer = setInterval(() => previews.forEach(p => { try { p.bar.style.width = Math.min(100, rmsOf(p.an, p.buf) * 400) + '%'; } catch (e) {} }), 100);
+}
 
 // ── Talk-time meter (teacher's browser only; never in juntas) ──
 // Every 200 ms: who is making voice-level sound? Students from each audio connection's level,

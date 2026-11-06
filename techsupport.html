@@ -460,13 +460,14 @@ function personRows(c, L) {
     const h = r.h, lv = healthLevel(h);
     const drops = ((L && L.drops) || {})[`${r.role}:${r.name}`] || 0;
     const facts = h ? [h.device, h.browser, h.rtt != null ? `${h.rtt} ms` : null, h.loss != null ? `${h.loss}% lost` : null, h.inKbps != null ? `↓${h.inKbps} ↑${h.outKbps} kbps` : null,
-      h.camOn ? '📷 on' : '📷 off', h.micOn ? '🎤 on' : '🎤 off', h.seesTeacher === false ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
+      h.camOn ? '📷 on' : '📷 off', h.micOn ? ('🎤 ' + (h.mic || 'on') + (h.micLevel != null ? ` (level ${h.micLevel}%)` : '')) : '🎤 off', h.seesTeacher === false ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
     const key = esc(c.room) + '|' + esc(r.sid);
     return `<div class="person"><b>${r.role === 'teacher' ? '👩‍🏫' : '🧒'} ${esc(r.name)}</b> <span class="dot ${lv}"></span> <span class="muted">${esc(r.where)}${drops ? ` · reconnected ${drops}×` : ''}</span>
       <div class="muted">${esc(facts)}</div>
       <div class="acts">
         <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','reload')">↻ Reload page</button>
         <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','camera')">📷 Ask camera/mic</button>
+        <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','mic')">🎙️ Choose mic</button>
         <input id="msg-${key}" type="text" maxlength="300" placeholder="Message…" style="flex:1;min-width:120px;padding:5px 8px;font-size:.8rem;">
         <button class="btn-blue" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','message', document.getElementById('msg-${key}').value)">Send</button>
       </div></div>`;
@@ -500,7 +501,7 @@ function toggleDetails(id) { _openDetails.has(id) ? _openDetails.delete(id) : _o
 async function itAction(room, sid, action, text) {
   try {
     const r = await (await api('/techsupport/action', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, auth()), body: JSON.stringify({ room, sid, action, text }) })).json();
-    alertToast(r.success ? (action === 'reload' ? 'Page reload sent ✅' : action === 'camera' ? 'Camera/mic request sent ✅' : 'Message sent ✅') : ('⚠️ ' + (r.error || 'Failed')));
+    alertToast(r.success ? (action === 'reload' ? 'Page reload sent ✅' : action === 'camera' ? 'Camera/mic request sent ✅' : action === 'mic' ? 'Mic chooser opened on their screen ✅' : 'Message sent ✅') : ('⚠️ ' + (r.error || 'Failed')));
     if (r.success && action === 'message') { const el = document.getElementById(`msg-${room}|${sid}`); if (el) el.value = ''; }
   } catch (e) {}
 }
