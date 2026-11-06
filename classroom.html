@@ -1288,9 +1288,17 @@ function connectSocket() {
     }
   });
 
+  // 5 minutes and the teacher is still gone (power cut, internet down): the class stays open, the school is told
+  socket.on('teacher-away-long', () => {
+    if (IS_TEACHER) return;
+    const ts = document.getElementById('teacher-status');
+    if (ts) { ts.style.display = 'block'; ts.innerHTML = '⚠️ Teacher lost connection. Please wait — the school has been told.<br>Tu maestro perdió la conexión. Espera, la escuela ya fue avisada.'; }
+    const lp = document.querySelector('#teacher-logo-placeholder div'); if (lp) lp.textContent = 'Please wait… / Espera…';
+  });
+
   socket.on('teacher-reconnected', () => {
     if (!IS_TEACHER) {
-      const ts = document.getElementById('teacher-status'); if (ts) ts.style.display = 'none';
+      const ts = document.getElementById('teacher-status'); if (ts) { ts.style.display = 'none'; ts.textContent = '⚠️ Teacher disconnected...'; }
       document.getElementById('room-label').style.background = '#2e7d32';
       const logoPlaceholder = document.getElementById('teacher-logo-placeholder');
       if (logoPlaceholder) logoPlaceholder.style.display = 'none';
@@ -2098,6 +2106,7 @@ function startTimer(assignment) {
   const timerEl = document.getElementById('class-timer');
   if (timerEl) timerEl.style.display='block';
   const duration = getDuration(assignment.classType);
+  window._curAssign = assignment;
   const warnAt = duration - 10;
   let autoOpened = false;
   let classStartedEmitted = false;
@@ -3211,11 +3220,43 @@ function leaveClass() {
 }
 
 function teacherBRB() { document.getElementById('leave-modal').style.display = 'none'; if (captureInterval) clearInterval(captureInterval); if (window._socket) window._socket.disconnect(); window.location.href = 'login.html'; }
-function teacherEndClass() {
+// A class can only be ended when its time is over, or 15 minutes after the start if no student is in it.
+// (Ending by mistake used to cut the class for everyone.) Returns null when ending is allowed.
+function endClassBlocked() {
+  const a = window._curAssign;
+  if (ROOM === '0' || !a) return null;
+  const nowMx = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
+  const nowMins = t2m(nowMx), sm = t2m(a.time), em = sm + getDuration(a.classType);
+  const students = Object.keys(studentSlots).filter(k => k !== '__self__').length;
+  if (nowMins >= em - 1 || (nowMins >= sm + 15 && students === 0)) return null;
+  const f = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return `${(h % 12) || 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+  return { endsAt: f(em), emptyAt: f(sm + 15), students };
+}
+function showEndBlocked(b) {
+  const old = document.getElementById('end-blocked'); if (old) old.remove();
+  const d = document.createElement('div'); d.id = 'end-blocked';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+  d.innerHTML = `<div style="background:#16213e;color:#fff;border-radius:20px;padding:28px;max-width:420px;width:100%;text-align:center;">
+    <div style="font-size:1.25rem;font-weight:900;margin-bottom:10px;">⏳ The class can't be ended yet</div>
+    <div style="color:#cfd8dc;font-size:0.95rem;line-height:1.5;">This class ends at <b>${b.endsAt}</b>.${b.students ? '' : `<br>If no student comes, you can end it from <b>${b.emptyAt}</b>.`}<br><br>Need to step away? Use <b>“I'll be back in 5 minutes”</b> — the class stays open for your students.</div>
+    <button onclick="this.closest('#end-blocked').remove()" style="margin-top:18px;width:100%;padding:13px;background:#1a73e8;color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;">OK</button></div>`;
+  document.body.appendChild(d);
+}
+async function teacherEndClass() {
   document.getElementById('leave-modal').style.display = 'none';
+  const blocked = endClassBlocked();
+  if (blocked) { showEndBlocked(blocked); return; }
   const debtPayoffMins = window._debtPayoffMins || 0;
   if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs });
-  if (window._socket) window._socket.emit('end-class', { room: ROOM, debtPayoffMins, sessionId: SESSION_ID });
+  if (window._socket) {
+    // the server checks the same rule (its clock is the one that counts)
+    const res = await new Promise(resolve => {
+      let done = false;
+      window._socket.emit('end-class', { room: ROOM, debtPayoffMins, sessionId: SESSION_ID }, r => { done = true; resolve(r || { ok: true }); });
+      setTimeout(() => { if (!done) resolve({ ok: true }); }, 5000);
+    });
+    if (res && res.ok === false) { showEndBlocked({ endsAt: res.endsAt || '', emptyAt: '', students: res.students || 1 }); return; }
+  }
   // Store end time for greeting page to display
   const endTime = new Date().toLocaleTimeString('en-US', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: true });
   localStorage.setItem('lastClassEndedAt', endTime);
