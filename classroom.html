@@ -1387,7 +1387,17 @@ function connectSocket() {
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('ss-answer', { to: from, answer: pc.localDescription });
-    } catch(e) { console.warn('ss-offer error:', e.message); }
+    } catch(e) { console.warn('ss-offer error:', e.message); if (window.reportPageError) reportPageError('ss-offer: ' + e.message, 'screenshare-student'); }
+    // No picture after a few seconds: ask the teacher to send this share again (max 3 times per share)
+    setTimeout(async () => {
+      if (ssPeers[from] !== pc) return;
+      let got = 0;
+      try { (await pc.getStats()).forEach(r => { if (r.type === 'inbound-rtp' && r.kind === 'video') got += r.framesDecoded || 0; }); } catch (e) {}
+      if (got > 0) return;
+      window._ssAsk = (window._ssAsk || 0) + 1;
+      if (window.reportPageError) reportPageError(`screenshare: no picture (ask ${window._ssAsk}) conn=${pc.connectionState} ice=${pc.iceConnectionState}`, 'screenshare-student');
+      if (window._ssAsk <= 3) socket.emit('ss-ice', { to: from, candidate: { ssRetry: true } });
+    }, 8000);
   });
 
   socket.on('ss-answer', async ({ from, answer }) => {
@@ -1398,6 +1408,7 @@ function connectSocket() {
   });
 
   socket.on('ss-ice', async ({ from, candidate }) => {
+    if (candidate && candidate.ssRetry) { if (IS_TEACHER && isSharing && screenStream) ssRetryPeer(from, 'student asked'); return; }
     const pc = ssPeers[from];
     if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
   });
@@ -1418,6 +1429,7 @@ function connectSocket() {
       const sb  = document.getElementById('ss-sound-btn'); if (sb) sb.remove();
       const cc  = document.querySelector('.canvas-container'); if (cc) cc.style.zIndex = '';
       if (canvas) { canvas.backgroundColor = '#ffffff'; canvas.renderAll(); }
+      window._ssAsk = 0;
       if (window._canDraw === false) {
         canvas.isDrawingMode = false; canvas.selection = false;
         canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
@@ -3270,9 +3282,13 @@ async function startScreenShare() {
 
     // The browser's own "Stop sharing" bar ends the original track
     raw.getVideoTracks()[0].onended = () => stopScreenShare();
+    ssStartWatch();
   } catch(e) {
     if (raw && !isSharing) raw.getTracks().forEach(t => t.stop());
-    if (e.name !== 'NotAllowedError') alert('Could not start screen share: ' + e.message);
+    if (e.name !== 'NotAllowedError') {
+      if (window.reportPageError) reportPageError('screenshare start: ' + e.name + ': ' + e.message, 'screenshare-teacher');
+      alert('Could not start screen share: ' + e.message);
+    }
   }
 }
 
@@ -3494,9 +3510,62 @@ async function changeShareArea() {
 }
 // ── end share part ──
 
+// ── Share health check (teacher) ──
+// Every few seconds: is each student's connection actually sending picture? If not, send it again (max 3 per
+// student per share), then tell the teacher and tech support (Tech Support → System).
+let _ssWatchT = null, _ssRetries = {}, _ssWarned = false;
+function ssStartWatch() {
+  clearInterval(_ssWatchT); _ssRetries = {}; _ssWarned = false;
+  _ssWatchT = setInterval(ssCheck, 3000);
+}
+function ssRetryPeer(sid, why) {
+  _ssRetries[sid] = (_ssRetries[sid] || 0) + 1;
+  if (_ssRetries[sid] > 3) return false;
+  console.warn('[screenshare] sending again to', sid, '(' + why + ')');
+  callSsPeer(sid).catch(e => { if (window.reportPageError) reportPageError('screenshare re-call: ' + e.message, 'screenshare-teacher'); });
+  return true;
+}
+async function ssCheck() {
+  if (!isSharing || !screenStream) { clearInterval(_ssWatchT); return; }
+  const src = rawScreenStream && rawScreenStream.getVideoTracks()[0];
+  const out = screenStream.getVideoTracks()[0];
+  if (!src || src.readyState === 'ended' || (out && out.readyState === 'ended')) {
+    if (window.reportPageError) reportPageError(`screenshare: picture track ended src=${src && src.readyState} out=${out && out.readyState}`, 'screenshare-teacher');
+    showShareProblem('ended'); return;
+  }
+  if (src.muted) showShareProblem('hidden'); else hideShareProblem('hidden');
+  for (const [sid, pc] of Object.entries(ssPeers)) {
+    if (!pc._made || Date.now() - pc._made < 7000) continue;
+    let sent = 0;
+    try { (await pc.getStats()).forEach(r => { if (r.type === 'outbound-rtp' && r.kind === 'video') sent += r.framesSent || 0; }); } catch (e) {}
+    if (sent > 0 || src.muted) continue;
+    if (!ssRetryPeer(sid, `no frames sent conn=${pc.connectionState}`) && !_ssWarned) {
+      _ssWarned = true;
+      if (window.reportPageError) reportPageError(`screenshare: nothing sent after 3 tries conn=${pc.connectionState} ice=${pc.iceConnectionState} src=${src.readyState}/${src.muted ? 'muted' : 'ok'} crop=${!!shareCrop} surface=${(src.getSettings && src.getSettings().displaySurface) || '?'}`, 'screenshare-teacher');
+      showShareProblem('noframes');
+    }
+  }
+}
+function showShareProblem(kind) {
+  const id = 'ss-problem-' + kind;
+  if (document.getElementById(id)) return;
+  const msg = {
+    hidden: '⚠️ The window you are sharing is minimized or hidden, so students see nothing. Open it again (don\'t minimize it).',
+    ended: '⚠️ Your screen share stopped sending. Press <b>Stop Sharing</b>, then <b>Share Screen</b> again.',
+    noframes: '⚠️ Students are not getting your screen. Press <b>Stop Sharing</b>, then <b>Share Screen</b> and pick a <b>Chrome Tab</b>. If it keeps happening, refresh this page.'
+  }[kind];
+  const d = document.createElement('div'); d.id = id; d.className = 'ss-problem';
+  d.style.cssText = 'position:fixed;top:118px;left:50%;transform:translateX(-50%);background:#fff3e0;color:#bf360c;border:2px solid #e65100;border-radius:12px;padding:10px 16px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.88rem;z-index:99999;max-width:90vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
+  d.innerHTML = msg + ' <button onclick="this.parentNode.remove()" style="margin-left:8px;border:none;background:#e65100;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font-weight:900;">OK</button>';
+  document.body.appendChild(d);
+}
+function hideShareProblem(kind) { const d = document.getElementById('ss-problem-' + kind); if (d) d.remove(); }
+
 async function callSsPeer(studentId) {
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
+  if (!screenStream) return;
   const pc = new RTCPeerConnection(ICE_CONFIG);
+  pc._made = Date.now();
   ssPeers[studentId] = pc;
   screenStream.getTracks().forEach(t => pc.addTrack(t, screenStream));
   pc.onicecandidate = (e) => { if (e.candidate) window._socket.emit('ss-ice', { to: studentId, candidate: e.candidate }); };
@@ -3507,6 +3576,8 @@ async function callSsPeer(studentId) {
 
 function stopScreenShare() {
   isSharing = false;
+  clearInterval(_ssWatchT);
+  document.querySelectorAll('.ss-problem').forEach(d => d.remove());
   if (shareCrop) { try { shareCrop.cleanup(); } catch (e) {} shareCrop = null; }
   if (rawScreenStream) { rawScreenStream.getTracks().forEach(t => t.stop()); rawScreenStream = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }

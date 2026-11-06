@@ -147,12 +147,18 @@
     const audioIds = new Set();
     let ac = opts.audioContext, dest = null, rec = null, upload = null, ticker = null, scanT = null, stopped = false;
 
+    function dropEnded() {
+      // a share that was stopped: let go of its reader and last picture (holding them can starve the next capture)
+      for (const [id, e] of frames) if (e.track && e.track.readyState === 'ended') {
+        try { e.reader && e.reader.cancel(); } catch (er) {} if (e.frame) { try { e.frame.close(); } catch (er) {} } frames.delete(id);
+      }
+    }
     function latest(track) {
       if (!track || track.readyState !== 'live') return null;
       let e = frames.get(track.id);
       if (!e && typeof MediaStreamTrackProcessor !== 'undefined') {
         // Reads frames straight from the camera / share, so it keeps working while the teacher is on another tab
-        e = { frame: null, reader: null };
+        e = { frame: null, reader: null, track };
         try {
           e.reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
           (async () => { try { for (;;) { const { value, done } = await e.reader.read(); if (done) break; if (e.frame) e.frame.close(); e.frame = value; if (stopped) { value.close(); e.frame = null; break; } } } catch (er) {} })();
@@ -173,6 +179,7 @@
     }
     function liveVideo(el) { const s = el && el.srcObject; const t = s && s.getVideoTracks && s.getVideoTracks()[0]; return t && t.readyState === 'live' && t.enabled !== false ? t : null; }
     function draw() {
+      dropEnded();
       ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, W, H);
       const by = (H - BH) / 2;
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, by, BW, BH);

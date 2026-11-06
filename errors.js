@@ -2,7 +2,7 @@
 // Max 5 per page load, no duplicates, ignores harmless browser noise.
 (function () {
   const seen = new Set(); let sent = 0;
-  const IGNORE = /ResizeObserver loop|^Script error\.?$|AbortError|The play\(\) request was interrupted|NotAllowedError: play\(\)|Load failed|Failed to fetch|NetworkError/i;
+  const IGNORE = /ResizeObserver loop|^Script error\.?$|AbortError|The play\(\) request was interrupted|NotAllowedError: play\(\)|Load failed|Failed to fetch|NetworkError|message channel closed before a response|Extension context invalidated/i;
   function send(message, where) {
     try {
       message = String(message || '').slice(0, 300);
