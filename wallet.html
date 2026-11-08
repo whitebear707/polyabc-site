@@ -79,6 +79,7 @@
   <div class="card">
     <div class="sec-h"><h3>🧾 Bills</h3><button class="pri" onclick="openSheet('bill')">+ Add</button></div>
     <div id="list-bill"></div>
+    <button class="ghost" style="width:100%;margin-top:10px;" onclick="payRestOfMonth()">✓ I already paid the rest of this month</button>
   </div>
   <div class="card">
     <div class="sec-h"><h3>💳 Debts</h3><button class="pri" onclick="openSheet('debt')">+ Add</button></div>
@@ -169,11 +170,22 @@ function owedBefore(it, d) {
 function buildEvents(to) {
   const from = W.balance.asOf, ev = {}; // date -> [{name, amount(signed), type, id, note}]
   const push = (d, e) => (ev[d] = ev[d] || []).push(e);
+  // A payment made early moves to the day it was paid. If "Money I have today" was updated after that,
+  // it's already inside the balance and isn't taken out again.
+  const place = (it, due, e) => {
+    const p = (it.paid || {})[due];
+    if (!p) return push(due, { ...e, due });
+    const inBal = p.on <= W.balance.asOf && p.at <= (W.balance.setAt || 0);
+    const word = it.type === 'income' ? 'Received' : 'Paid';
+    push(due, { ...e, due, amount: 0, paidEarly: true, note: `✓ ${word} early on ${nice(p.on)}` + (e.note ? ' · ' + e.note : '') });
+    if (!inBal && p.on >= from && p.on !== due) push(p.on, { ...e, due, note: `✓ ${word} early (was due ${nice(due)})` });
+    else if (!inBal && p.on === due) ev[due][ev[due].length - 1].amount = e.amount;
+  };
   W.items.forEach(it => {
     if (it.type === 'debt') {
-      debtSchedule(it, from, to).forEach(x => push(x.date, { id: it.id, type: 'debt', name: it.name, amount: -x.pay, note: x.full ? '💥 paid in full (your plan)' : x.rem > 0.01 ? `${money(x.rem)} left` : '🎉 paid off' }));
+      debtSchedule(it, from, to).forEach(x => place(it, x.date, { id: it.id, type: 'debt', name: it.name, amount: -x.pay, note: x.full ? '💥 paid in full (your plan)' : x.rem > 0.01 ? `${money(x.rem)} left` : '🎉 paid off' }));
     } else {
-      occurrences(it, from, to).forEach(d => push(d, { id: it.id, type: it.type, name: it.name, amount: it.type === 'income' ? Number(it.amount) || 0 : -(Number(it.amount) || 0) }));
+      occurrences(it, from, to).forEach(d => place(it, d, { id: it.id, type: it.type, name: it.name, amount: it.type === 'income' ? Number(it.amount) || 0 : -(Number(it.amount) || 0) }));
     }
   });
   return ev;
@@ -221,7 +233,13 @@ function render() {
 function renderDetail() {
   const d = sel, ev = window._ev[d] || window._before[d] || [], asOf = W.balance.asOf, t = todayIso();
   let html = `<h3>${esc(nice(d))}${d === t ? ' · Today' : ''}</h3>`;
-  html += ev.length ? ev.map(e => `<div class="it"><span>${e.type === 'income' ? '💰' : e.type === 'bill' ? '🧾' : '💳'} ${esc(e.name)}${e.note ? `<div class="muted">${esc(e.note)}</div>` : ''}</span><span class="${e.amount > 0 ? 'plus' : 'minus'}">${e.amount > 0 ? '+' : '−'}${money(Math.abs(e.amount)).replace('−', '')}</span></div>`).join('')
+  const btn = e => {
+    if (e.past || !e.due || e.due < t) return '';
+    const it = W.items.find(x => x.id === e.id); if (!it) return '';
+    if ((it.paid || {})[e.due]) return e.due === d ? `<button class="ghost" style="padding:2px 8px;font-size:.75rem;margin-top:4px;" onclick="markPaid('${esc(e.id)}','${e.due}',false)">↩ Undo</button>` : '';
+    return `<button class="ghost" style="padding:2px 8px;font-size:.75rem;margin-top:4px;" onclick="markPaid('${esc(e.id)}','${e.due}',true)">✓ ${e.type === 'income' ? 'Got it already' : 'Paid it already'}</button>`;
+  };
+  html += ev.length ? ev.map(e => `<div class="it"><span>${e.type === 'income' ? '💰' : e.type === 'bill' ? '🧾' : '💳'} ${esc(e.name)}${e.note ? `<div class="muted">${esc(e.note)}</div>` : ''}${btn(e) ? '<div>' + btn(e) + '</div>' : ''}</span><span class="${e.paidEarly ? 'muted' : e.amount > 0 ? 'plus' : 'minus'}">${e.paidEarly ? '✓' : (e.amount > 0 ? '+' : '−') + money(Math.abs(e.amount)).replace('−', '')}</span></div>`).join('')
     : '<div class="muted">Nothing on this day.</div>';
   if (d >= asOf) {
     const end = window._endBal[d], start = d === asOf ? Number(W.balance.amount) || 0 : window._endBal[addDays(d, -1)];
@@ -259,6 +277,29 @@ function renderLists() {
     }).join('') : '<div class="muted">None yet.</div>';
   });
 }
+// ✓ Paid it already: that payment counts as done today. Then "Money I have today" is asked again so the
+// balance and the payments agree (anything paid before the balance update is already inside it).
+function markPaid(id, due, on, noAsk) {
+  W.items = W.items.map(x => {
+    if (x.id !== id) return x;
+    const paid = { ...(x.paid || {}) };
+    if (on) paid[due] = { on: todayIso(), at: Date.now() }; else delete paid[due];
+    return { ...x, paid };
+  });
+  render(); save();
+  if (on && !noAsk) openSheet('balance', null, 'Paid ✓ — now enter the money you have <b>after</b> paying, so nothing is counted twice.');
+}
+// Everything still due from today to the end of this month, paid in one go
+function payRestOfMonth() {
+  const t = todayIso(), d = parse(t), end = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  const ev = buildEvents(end), todo = [];
+  Object.entries(ev).forEach(([day, es]) => es.forEach(e => { if (day >= t && day <= end && e.amount < 0 && !e.paidEarly && e.due === day && !(W.items.find(x => x.id === e.id)?.paid || {})[day]) todo.push([e.id, day, e.name, -e.amount]); }));
+  if (!todo.length) return alert('Nothing left to pay this month 🎉');
+  const total = todo.reduce((s, x) => s + x[3], 0);
+  if (!confirm(`Mark these as paid today?\n\n${todo.map(x => `• ${x[2]} (${nice(x[1])}) ${money(x[3])}`).join('\n')}\n\nTotal ${money(total)}`)) return;
+  todo.forEach(x => markPaid(x[0], x[1], true, true));
+  openSheet('balance', null, `Marked ${todo.length} payment${todo.length === 1 ? '' : 's'} as paid ✓ — now enter the money you have <b>after</b> paying, so nothing is counted twice.`);
+}
 function planPayoff(id, d) {
   W.items = W.items.map(x => x.id === id ? { ...x, payoffDate: d || null } : x);
   render(); save();
@@ -273,13 +314,14 @@ function pick(d) {
 // ── add / edit sheet ──
 let shType = null, shId = null;
 function field(label, id, type, value, extra) { return `<label>${label}</label><input id="${id}" type="${type}" value="${esc(value ?? '')}" ${extra || ''}>`; }
-function openSheet(type, id) {
+function openSheet(type, id, note) {
   shType = type; shId = id || null;
   const it = id ? W.items.find(x => x.id === id) : {};
   $('sh-title').textContent = (id ? 'Edit ' : 'Add ') + (type === 'income' ? 'income' : type === 'bill' ? 'bill' : type === 'debt' ? 'debt' : '');
   if (type === 'balance') {
     $('sh-title').textContent = 'Money I have today';
-    $('sh-body').innerHTML = field('Amount', 'f-amount', 'number', W.balance.asOf === todayIso() ? W.balance.amount : '', 'inputmode="decimal" step="0.01"') + `<div class="muted" style="margin-top:6px;">Enter what you have right now. Today's income and payments are added on top of it.</div>`;
+    $('sh-body').innerHTML = field('Amount', 'f-amount', 'number', W.balance.asOf === todayIso() ? W.balance.amount : '', 'inputmode="decimal" step="0.01"') + (note ? `<div class="warn" style="background:#e8f5e9;color:#1b5e20;margin-top:8px;">${note}</div>` : '')
+      + `<div class="muted" style="margin-top:6px;">Enter what you have right now. Today's income and payments that you haven't marked as paid are added on top of it.</div>`;
   } else if (type === 'debt') {
     $('sh-body').innerHTML = field('Debt name', 'f-name', 'text', it.name, 'maxlength="60"') + field('Minimum payment', 'f-amount', 'number', it.amount, 'inputmode="decimal" step="0.01"')
       + field('Total I owe now', 'f-total', 'number', it.total, 'inputmode="decimal" step="0.01"') + field('Next payment date', 'f-date', 'date', it.date || todayIso())
@@ -299,7 +341,7 @@ $('sh-save').onclick = () => {
   const num = id => { const v = parseFloat(($(id) || {}).value); return Number.isFinite(v) ? v : null; };
   if (shType === 'balance') {
     const a = num('f-amount'); if (a == null) return alertBox('Enter an amount');
-    W.balance = { amount: a, asOf: todayIso() };
+    W.balance = { amount: a, asOf: todayIso(), setAt: Date.now() };
   } else {
     const name = $('f-name').value.trim(), amount = num('f-amount'), date = $('f-date').value;
     if (!name || amount == null || !date) return alertBox('Fill in name, amount and date');
