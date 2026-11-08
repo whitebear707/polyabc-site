@@ -3047,10 +3047,16 @@ function lastNameOnly(name, fullName) {
 function renderAllStudents() {
   const tbody = document.getElementById('students-tbody');
   let all = getAllStudents();
-  // Attach studentId from allStudents records (room sub-docs don't carry it)
+  // Students placed in a teacher's room come from the room's own list, which only has name/password/room.
+  // Fill in everything else (parent, phone, type, level, DOB, ID…) from the full student record.
   all = all.map(s => {
     const full = allStudents.find(x => x.name === s.name);
-    return { ...s, studentId: s.studentId || full?.studentId || null,
+    const own = Object.fromEntries(Object.entries(s).filter(([, v]) => v !== null && v !== undefined && v !== ''));
+    // Parent not stamped on the student record (older links): take it from the family list
+    const fam = (full && full.parentName) || s.parentName ? null
+      : (typeof _allParents !== 'undefined' && Array.isArray(_allParents) ? _allParents : []).find(par => (par.students || []).some(x => x.name === s.name));
+    const famInfo = fam ? { parentName: fam.parentName, parentPhone: fam.phone, relationship: fam.relationship } : {};
+    return { ...(full || {}), ...famInfo, ...own, studentId: s.studentId || full?.studentId || null,
              manuallySuspended: s.manuallySuspended || full?.manuallySuspended || false,
              fullName: s.fullName || full?.fullName || null };
   });
