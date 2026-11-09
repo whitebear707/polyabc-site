@@ -937,7 +937,7 @@
     <div id="cal-sidebar">
       <div class="sidebar-section">
         <div class="sidebar-title">Filtrar por día y hora</div>
-        <select id="teacher-filter" onchange="renderMasterCalendar()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
+        <select id="teacher-filter" onchange="renderMasterCalendar();if(selectedDate)renderDayDetail(selectedDate)" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Cualquier maestro --</option>
         </select>
         <select id="day-filter" onchange="renderMasterCalendar();renderExtraSlotResults();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
@@ -1132,7 +1132,7 @@
   </div>
   <div style="margin-bottom:12px;">
     <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Maestro</label>
-    <select id="teacher-filter-mobile" onchange="document.getElementById('teacher-filter').value=this.value;renderMasterCalendar();" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
+    <select id="teacher-filter-mobile" onchange="document.getElementById('teacher-filter').value=this.value;renderMasterCalendar();if(selectedDate)renderDayDetail(selectedDate);" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">
       <option value="">-- Cualquier maestro --</option>
     </select>
   </div>
@@ -1997,7 +1997,18 @@ function selectDay(dateStr) {
 function renderDayDetail(dateStr) {
   const detail = document.getElementById('day-detail');
   const filterTime = document.getElementById('time-filter').value;
-  const teachers = getAvailableTeachersForDate(dateStr);
+  const filterTeacherSel = (document.getElementById('teacher-filter') || {}).value || '';
+  // Teachers free that day, plus any teacher who has a class that day even without availability set
+  // (otherwise the class was counted on the calendar but nowhere to be seen in this list)
+  let teachers = getAvailableTeachersForDate(dateStr);
+  const dName = DAYS[new Date(dateStr + 'T12:00:00').getDay()];
+  [...new Set(allAssignments.filter(a => a.date === dateStr).map(a => String(a.room)))].forEach(room => {
+    if (teachers.some(t => String(t.room) === room)) return;
+    const av = allAvailability.find(t => String(t.room) === room);
+    const rm = (typeof rooms !== 'undefined' && Array.isArray(rooms) ? rooms : []).find(x => String(x.room) === room);
+    teachers.push({ ...(av || {}), room, teacherName: (av && av.teacherName) || (rm && rm.teacherName) || ('Salón ' + room), hours: av?.dayHours?.[dName] || null, _noAvail: true });
+  });
+  if (filterTeacherSel) teachers = teachers.filter(t => String(t.room) === String(filterTeacherSel));
   const date = new Date(dateStr + 'T12:00:00');
   const dayName = DAYS[date.getDay()];
 
