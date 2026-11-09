@@ -98,6 +98,7 @@
     <button class="tab" id="tab-devices" data-tab="devices">🔧 Device checks</button>
     <button class="tab" id="tab-system" data-tab="system">🩺 System</button>
     <button class="tab" id="tab-videos" data-tab="videos">Help videos</button>
+    <button class="tab" id="tab-live" data-tab="live">🟢 Live <span id="lv-badge" class="badge hidden"></span></button>
   </div>
 
   <!-- Board -->
@@ -159,6 +160,16 @@
     <div id="tickets-list"></div>
   </section>
 
+  <!-- Live visitors -->
+  <section id="sec-live" class="hidden">
+    <div class="bar">
+      <span class="clock" id="lv-count">0 online</span>
+      <label class="muted" style="font-weight:700;"><input type="checkbox" id="lv-showgone"> Show people who left</label>
+    </div>
+    <div class="muted" style="margin-bottom:10px;">People on the website right now (not in class). Click 💬 to send a message or a one-click link — it pops up on their screen and they can answer.</div>
+    <div id="lv-list" class="grid"></div>
+  </section>
+
   <!-- Help videos -->
   <section id="sec-videos" class="hidden">
     <div class="card">
@@ -183,6 +194,7 @@
   </section>
 </div>
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
 const SERVER_URL = "https://polyabc-server.onrender.com";
 const TK_LABEL = { student_absent: '🚫 Student not here', student_problem: '⚠️ Student having problems', tech_help: '🛠 Tech help' };
@@ -207,7 +219,7 @@ function showLogin(msg) {
 function showApp() {
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.remove('hidden');
-  loadRooms(); loadTickets(); loadBoard();
+  loadRooms(); loadTickets(); loadBoard(); lvConnect();
   roomsTimer = setInterval(loadRooms, 30000);
   tkTimer = setInterval(loadTickets, 60000);
   boardTimer = setInterval(loadBoard, 10000);
@@ -286,7 +298,7 @@ async function reopenTicket(id) {
 }
 
 function showTab(name) {
-  ['board', 'classes', 'tickets', 'devices', 'system', 'videos'].forEach(t => {
+  ['board', 'classes', 'tickets', 'devices', 'system', 'videos', 'live'].forEach(t => {
     document.getElementById('sec-' + t).classList.toggle('hidden', name !== t);
     document.getElementById('tab-' + t).classList.toggle('on', name === t);
   });
@@ -296,7 +308,77 @@ function showTab(name) {
   if (name === 'board') loadBoard();
   if (name === 'devices') loadDeviceChecks();
   if (name === 'system') loadSystem();
+  if (name === 'live') { LV.unread = 0; lvBadge(); lvRender(); }
 }
+
+// ── 🟢 Live: who is on the website now ──
+const LV = { map: new Map(), sock: null, unread: 0, open: null, tick: null };
+const LV_PAGES = { 'index.html': '🏠 Home', '': '🏠 Home', 'login.html': '🔑 Login', 'parent.html': '👪 Parent panel', 'student.html': '🎓 Student panel', 'student-greeting.html': '🎓 Student welcome', 'homework.html': '📝 Homework', 'exam.html': '📝 Exam', 'check.html': '🔧 Device check', 'verify.html': '🏅 Certificate check', 'privacy.html': '📄 Privacy', 'terms.html': '📄 Terms' };
+const LV_LINKS = [
+  ['login.html', '🔑 Iniciar sesión', 'Log in'],
+  ['parent.html', '👪 Panel de padres', 'Parent panel'],
+  ['student-greeting.html', '🎓 Entrar a clase', 'Class'],
+  ['check.html', '🔧 Revisar cámara y micrófono', 'Device check'],
+];
+function lvConnect() {
+  if (LV.sock || !window.io) return;
+  LV.sock = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+  LV.sock.on('connect', () => LV.sock.emit('live-watch', { token: techToken }));
+  LV.sock.on('live-list', list => { LV.map = new Map(list.map(v => [v.vid, v])); lvRender(); });
+  LV.sock.on('live-update', v => {
+    const old = LV.map.get(v.vid);
+    const newReply = v.msgs.length && v.msgs[v.msgs.length - 1].from === 'visitor' && (!old || old.msgs.length < v.msgs.length);
+    LV.map.set(v.vid, v);
+    if (newReply) { LV.unread++; lvBadge(); try { if (typeof beep === 'function') beep(2, 880); } catch (e) {} }
+    if (!document.getElementById('sec-live').classList.contains('hidden')) lvRender();
+  });
+  clearInterval(LV.tick); LV.tick = setInterval(() => { if (!document.getElementById('sec-live').classList.contains('hidden')) lvRender(); }, 15000);
+}
+function lvBadge() { const b = document.getElementById('lv-badge'); b.textContent = LV.unread; b.classList.toggle('hidden', !LV.unread); }
+function lvAgo(ms) { const s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + ' min' : Math.floor(s / 3600) + ' h'; }
+function lvPage(p) { const f = String(p || '').split('#')[0]; return LV_PAGES[f] || esc(p || '?'); }
+function lvDevice(ua) { ua = ua || ''; return (/iPhone|iPad/.test(ua) ? '📱 iPhone/iPad' : /Android/.test(ua) ? '📱 Android' : /Mac/.test(ua) ? '💻 Mac' : /Windows/.test(ua) ? '💻 Windows' : '💻') + (/Edg\//.test(ua) ? ' · Edge' : /Chrome\//.test(ua) ? ' · Chrome' : /Safari\//.test(ua) ? ' · Safari' : /Firefox\//.test(ua) ? ' · Firefox' : ''); }
+function lvWho(v) {
+  const w = v.who;
+  if (!w) return `🌐 Visitor <span class="muted">${esc(v.ip || '')}</span>`;
+  const k = { parent: '👪 Parent', adult: '🎓 Adult student', student: '🎓 Student', teacher: '👩‍🏫 Teacher' }[w.kind] || '';
+  return `${k}: ${esc(w.name)}${w.kids && w.kids.length ? ` <span class="muted">(${w.kids.map(esc).join(', ')})</span>` : ''}${w.room ? ` <span class="muted">· Salón ${esc(w.room)}</span>` : ''}<div class="muted">${esc(v.ip || '')}</div>`;
+}
+function lvRender() {
+  const showGone = document.getElementById('lv-showgone').checked;
+  const list = [...LV.map.values()].filter(v => v.online || showGone).sort((a, b) => (b.online - a.online) || (b.at - a.at));
+  document.getElementById('lv-count').textContent = [...LV.map.values()].filter(v => v.online).length + ' online';
+  const el = document.getElementById('lv-list');
+  if (!list.length) { el.innerHTML = '<div class="card muted">Nobody on the website right now.</div>'; return; }
+  const keepTyping = LV.open && document.getElementById('lv-in-' + LV.open) ? document.getElementById('lv-in-' + LV.open).value : '';
+  el.innerHTML = list.map(v => {
+    const open = LV.open === v.vid;
+    const trail = v.trail.slice(-6).map(t => lvPage(t.page)).join(' → ');
+    const msgs = v.msgs.slice(-8).map(m => `<div style="margin:3px 0;${m.from === 'visitor' ? 'color:#1b5e20;font-weight:800;' : ''}">${m.from === 'visitor' ? '🗨️ ' : '➤ ' + esc(m.by || '') + ': '}${esc(m.text || '')}${m.link ? ` <span class="chip">${esc(m.linkLabel || m.link)}</span>` : ''}</div>`).join('');
+    return `<div class="tile ${v.online ? 'green' : 'done'}">
+      <div class="t-head"><span>${lvWho(v)}</span><span class="muted">${v.online ? '🟢 ' + lvAgo(v.since) : 'left ' + lvAgo(v.gone || v.at) + ' ago'}</span></div>
+      <div class="t-status">${lvPage(v.page)} <span class="muted" style="font-weight:700;">· ${lvAgo(v.at)} on this page</span></div>
+      <div class="muted">${lvDevice(v.ua)}${v.tabs > 1 ? ' · ' + v.tabs + ' tabs' : ''}</div>
+      ${trail ? `<div class="muted" style="margin-top:4px;">Path: ${trail}</div>` : ''}
+      ${msgs ? `<div class="card" style="margin:8px 0 0;padding:8px 10px;font-size:.85rem;">${msgs}</div>` : ''}
+      ${v.online ? (open ? `<div style="margin-top:8px;">
+          <input type="text" id="lv-in-${v.vid}" maxlength="500" placeholder="Message… e.g. ¿Necesitas ayuda?" style="width:100%;">
+          <div class="chips" style="margin-top:6px;">${LV_LINKS.map(l => `<button class="btn-ghost sm" style="padding:5px 9px;font-size:.78rem;" onclick="lvSend('${v.vid}','${l[0]}','${esc(l[1])}')">${esc(l[1])}</button>`).join('')}</div>
+          <div class="row" style="margin-top:6px;"><button class="btn-blue" onclick="lvSend('${v.vid}')">Send message</button><button class="btn-ghost" onclick="LV.open=null;lvRender()">Close</button></div>
+        </div>` : `<button class="btn-blue" style="margin-top:8px;" onclick="LV.open='${v.vid}';lvRender();setTimeout(()=>{const i=document.getElementById('lv-in-${v.vid}');i&&i.focus();},30)">💬 Message</button>`) : ''}
+    </div>`;
+  }).join('');
+  if (keepTyping && document.getElementById('lv-in-' + LV.open)) document.getElementById('lv-in-' + LV.open).value = keepTyping;
+}
+function lvSend(vid, link, label) {
+  const inp = document.getElementById('lv-in-' + vid);
+  const text = inp ? inp.value.trim() : '';
+  if (!text && !link) return;
+  const greet = !text && link ? 'Hola 👋 aquí está tu enlace:' : text;
+  LV.sock && LV.sock.emit('live-send', { vid, text: greet, link: link || '', linkLabel: label || '' });
+  if (inp) inp.value = '';
+}
+document.getElementById('lv-showgone').onchange = lvRender;
 function setFilter(f) {
   tkFilter = f;
   document.getElementById('f-open').style.borderColor = f === 'open' ? 'var(--purple)' : '';
@@ -659,6 +741,7 @@ document.getElementById('bd-clear').onclick = () => { _alerts = []; renderFeed()
 document.getElementById('tab-board').onclick = () => showTab('board');
 document.getElementById('tab-devices').onclick = () => showTab('devices');
 document.getElementById('tab-system').onclick = () => showTab('system');
+document.getElementById('tab-live').onclick = () => showTab('live');
 document.getElementById('dc-refresh').onclick = loadDeviceChecks;
 document.getElementById('er-refresh').onclick = loadErrors;
 document.getElementById('rp-date').onchange = loadReport;
