@@ -5081,6 +5081,16 @@ function openBillingEdit(name) {
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">ASSIGNED TEACHER</label>
           <div id="be-room-wrap">${roomFieldHTML(s.enrolledType, s.studentRoom)}</div>
         </div>
+        <div style="background:#f1f8e9;border:1px solid #c5e1a5;border-radius:10px;padding:10px;">
+          <label style="font-size:0.8rem;font-weight:900;color:#558b2f;display:block;margin-bottom:6px;">FECHAS DE PAGO (manual)</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:140px;"><div style="font-size:0.78rem;color:#666;margin-bottom:3px;">Último pago</div>
+              <input type="date" id="be-lastpaid" value="${mxDate(s.lastPaidAt)}" data-orig="${mxDate(s.lastPaidAt)}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;"></div>
+            <div style="flex:1;min-width:140px;"><div style="font-size:0.78rem;color:#666;margin-bottom:3px;">Próximo pago</div>
+              <input type="date" id="be-nextdue" value="${mxDate(s.nextPaymentDue)}" data-orig="${mxDate(s.nextPaymentDue)}" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;"></div>
+          </div>
+          <div style="font-size:0.78rem;color:#666;margin-top:6px;">Para alumnos que ya pagaron antes de usar la plataforma. Con el próximo pago confirmado, el sistema sigue solo. No crea movimiento en el libro.</div>
+        </div>
         <div>
           <label style="font-size:0.8rem;font-weight:900;color:#888;display:block;margin-bottom:4px;">AMOUNT DUE (MXN)</label>
           <input type="number" id="be-amount" value="${s.amountDue||''}" placeholder="e.g. 600" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
@@ -5091,6 +5101,8 @@ function openBillingEdit(name) {
   beToggleMode(); beRenderSlots();
 }
 
+// A stored date as YYYY-MM-DD in Mexico time (for <input type=date>)
+function mxDate(iso) { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' }); }
 async function saveBillingEdit(name) {
   const scheduledDays = [...document.querySelectorAll('#billing-edit-modal input[type=checkbox]:checked')].map(c => c.value);
   const body = {
@@ -5113,6 +5125,14 @@ async function saveBillingEdit(name) {
     body.slots = _beSlots.map(x => ({ day: x.day, time: x.time, minutes: x.minutes }));
     delete body.scheduledDays; delete body.scheduledTime; delete body.minutesPerClass; delete body.classesPerWeek;
   }
+  // Payment dates: only sent when changed by hand
+  const lp = document.getElementById('be-lastpaid'), nd = document.getElementById('be-nextdue');
+  if (lp && lp.value !== lp.dataset.orig) body.lastPaidAt = lp.value || null;
+  if (nd && nd.value !== nd.dataset.orig) {
+    body.nextPaymentDue = nd.value || null;
+    if (nd.value) body.paid = nd.value >= mxDate(new Date().toISOString()); // due date ahead = paid up
+  }
+  if (body.lastPaidAt && body.nextPaymentDue && body.nextPaymentDue < body.lastPaidAt) { showToast('⚠️ El próximo pago no puede ser antes del último pago'); return; }
   await fetch(`${SERVER_URL}/billing/student/${encodeURIComponent(name)}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
     body: JSON.stringify(body)
