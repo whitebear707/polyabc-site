@@ -166,7 +166,7 @@
       <span class="clock" id="lv-count">0 online</span>
       <label class="muted" style="font-weight:700;"><input type="checkbox" id="lv-showgone"> Show people who left</label>
     </div>
-    <div class="muted" style="margin-bottom:10px;">People on the website right now (not in class). Click 💬 to send a message or a one-click link — it pops up on their screen and they can answer.</div>
+    <div class="muted" style="margin-bottom:10px;">People on the website right now (not in class). Click 💬 to send a message or a one-click link (pops up on their screen, they can answer), or take them straight to a page.</div>
     <div id="lv-list" class="grid"></div>
   </section>
 
@@ -364,6 +364,8 @@ function lvRender() {
       ${v.online ? (open ? `<div style="margin-top:8px;">
           <input type="text" id="lv-in-${v.vid}" maxlength="500" placeholder="Message… e.g. ¿Necesitas ayuda?" style="width:100%;">
           <div class="chips" style="margin-top:6px;">${LV_LINKS.map(l => `<button class="btn-ghost sm" style="padding:5px 9px;font-size:.78rem;" onclick="lvSend('${v.vid}','${l[0]}','${esc(l[1])}')">${esc(l[1])}</button>`).join('')}</div>
+          <div class="muted" style="margin-top:8px;font-weight:800;">➡️ Take them there now (their page changes by itself):</div>
+          <div class="chips" style="margin-top:4px;">${LV_LINKS.map(l => `<button class="btn-ghost sm" style="padding:5px 9px;font-size:.78rem;border-color:#43a047;" onclick="lvGo('${v.vid}','${l[0]}','${esc(l[1])}')">➡️ ${esc(l[1])}</button>`).join('')}<button class="btn-ghost sm" style="padding:5px 9px;font-size:.78rem;" onclick="lvGo('${v.vid}','reload','reload')">↻ Reload their page</button></div>
           <div class="row" style="margin-top:6px;"><button class="btn-blue" onclick="lvSend('${v.vid}')">Send message</button><button class="btn-ghost" onclick="LV.open=null;lvRender()">Close</button></div>
         </div>` : `<button class="btn-blue" style="margin-top:8px;" onclick="LV.open='${v.vid}';lvRender();setTimeout(()=>{const i=document.getElementById('lv-in-${v.vid}');i&&i.focus();},30)">💬 Message</button>`) : ''}
     </div>`;
@@ -377,6 +379,10 @@ function lvSend(vid, link, label) {
   const greet = !text && link ? 'Hola 👋 aquí está tu enlace:' : text;
   LV.sock && LV.sock.emit('live-send', { vid, text: greet, link: link || '', linkLabel: label || '' });
   if (inp) inp.value = '';
+}
+function lvGo(vid, link, label) {
+  if (link !== 'reload' && !confirm('Take this person to "' + label.replace(/&amp;/g, '&') + '" now?')) return;
+  LV.sock && LV.sock.emit('live-go', { vid, link, label });
 }
 document.getElementById('lv-showgone').onchange = lvRender;
 function setFilter(f) {

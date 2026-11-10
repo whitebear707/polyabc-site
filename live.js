@@ -19,6 +19,17 @@
     sock = window.io(SERVER, { transports: ['websocket', 'polling'], reconnectionDelayMax: 20000 });
     sock.on('connect', hello);
     sock.on('live-msg', showMsg);
+    // The school sends you to a page (e.g. the login) or reloads this one
+    sock.on('live-go', ({ link } = {}) => {
+      if (link === 'reload') return location.reload();
+      let url = ''; try { url = new URL(link, location.origin + '/').href; } catch (e) { return; }
+      if (new URL(url).origin !== location.origin) return;
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;background:rgba(26,26,46,.75);z-index:2147483001;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Nunito,Arial,sans-serif;font-weight:900;font-size:1.2rem;text-align:center;padding:20px;';
+      d.innerHTML = 'PolyABC te está llevando a la página correcta…<br><span style="font-weight:600;font-size:1rem;">Taking you to the right page…</span>';
+      document.body.appendChild(d);
+      setTimeout(() => { location.href = url; }, 1500);
+    });
     window.addEventListener('hashchange', hello);
   }
   function load() {
