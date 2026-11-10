@@ -399,7 +399,7 @@
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
         <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
-        <button id="sharepip-btn" class="tool-btn" onclick="openSharePip(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs and shows exactly what students see">📌 Floating preview</button>
+        <button id="sharepip-btn" class="tool-btn" onclick="openFloatWindow(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs: your students' cameras and what they see on the shared screen">📌 Floating window</button>
       </div>
       <div class="tool-separator"></div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
@@ -3331,8 +3331,8 @@ async function startScreenShare() {
     showScreenBehindCanvas(screenStream, true);
     // A small always-on-top window with exactly what students see, so the teacher doesn't have to come back to this tab
     const pipBtn = document.getElementById('sharepip-btn');
-    if (pipBtn && document.pictureInPictureEnabled) pipBtn.style.display = '';
-    if (shareCrop) openSharePip(true);
+    if (pipBtn && (window.documentPictureInPicture || document.pictureInPictureEnabled)) pipBtn.style.display = '';
+    openFloatWindow(true);
 
     // Notify students and call each connected student peer
     if (window._socket) {
@@ -3636,7 +3636,73 @@ async function callSsPeer(studentId) {
   window._socket.emit('ss-offer', { to: studentId, offer: pc.localDescription });
 }
 
-// Floating "what students see" window (Chrome/Edge picture-in-picture). Stays on top of every tab and window.
+// ── Floating window for the teacher (Chrome/Edge "document picture-in-picture") ──
+// Stays on top of every tab and window: the students' cameras (so the teacher can see they are still there
+// while working in another tab) plus exactly what students see of the shared screen. Reuses the videos the
+// class already receives, so it adds no internet use. Browsers without it fall back to the shared picture only.
+let _float = null; // { win, timer }
+async function openFloatWindow(auto) {
+  if (!IS_TEACHER) return;
+  const btn = document.getElementById('sharepip-btn');
+  if (!window.documentPictureInPicture) return openSharePip(auto);
+  if (_float && !_float.win.closed) { if (!auto) _float.win.close(); return; }
+  let win;
+  try { win = await documentPictureInPicture.requestWindow({ width: 380, height: 440 }); }
+  catch (e) { if (!auto && btn) { const t = btn.textContent; btn.textContent = '⚠️ Not available here'; setTimeout(() => { btn.textContent = t; }, 3000); } return; }
+  const d = win.document;
+  d.title = 'Students';
+  d.head.innerHTML = '<meta charset="utf-8"><style>' +
+    'html,body{margin:0;background:#12121f;color:#fff;font-family:Nunito,Arial,sans-serif;}' +
+    '#fw-share{display:none;padding:6px 6px 0;}#fw-share .cap{font-size:11px;font-weight:800;opacity:.7;margin:0 0 3px 2px;}' +
+    '#fw-share video{width:100%;max-height:200px;background:#000;border-radius:8px;object-fit:contain;display:block;}' +
+    '#fw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;padding:6px;}' +
+    '.t{position:relative;aspect-ratio:4/3;background:#000;border-radius:8px;overflow:hidden;}' +
+    '.t video{width:100%;height:100%;object-fit:cover;display:block;}' +
+    '.t .n{position:absolute;left:0;right:0;bottom:0;padding:3px 6px;font-size:12px;font-weight:800;background:linear-gradient(transparent,rgba(0,0,0,.75));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+    '.t .off{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#222;font-size:13px;font-weight:800;opacity:.9;}' +
+    '#fw-none{padding:18px;text-align:center;font-size:13px;opacity:.7;}</style>';
+  d.body.innerHTML = '<div id="fw-share"><div class="cap">What students see</div><video id="fw-sv" autoplay muted playsinline></video></div><div id="fw-grid"></div><div id="fw-none">Waiting for students…</div>';
+  const tiles = new Map();
+  const sync = () => {
+    // Shared picture
+    const sv = d.getElementById('fw-sv'), box = d.getElementById('fw-share');
+    if (isSharing && screenStream) {
+      box.style.display = 'block';
+      if (sv.srcObject !== screenStream) { sv.srcObject = screenStream; sv.play().catch(() => {}); }
+    } else { box.style.display = 'none'; if (sv.srcObject) sv.srcObject = null; }
+    // Student cameras (the same streams the class page already shows)
+    const live = new Set();
+    document.querySelectorAll('.student-box').forEach(slot => {
+      const key = slot.id.replace(/^slot-/, ''), v = slot.querySelector('video');
+      if (!v) return;
+      live.add(key);
+      let t = tiles.get(key);
+      if (!t) {
+        const el = d.createElement('div'); el.className = 't';
+        const vv = d.createElement('video'); vv.autoplay = true; vv.muted = true; vv.playsInline = true;
+        const n = d.createElement('div'); n.className = 'n'; n.textContent = key;
+        const off = d.createElement('div'); off.className = 'off'; off.textContent = '📷 camera off';
+        el.append(vv, n, off); d.getElementById('fw-grid').appendChild(el);
+        t = { el, vv, off }; tiles.set(key, t);
+      }
+      if (v.srcObject && t.vv.srcObject !== v.srcObject) { t.vv.srcObject = v.srcObject; t.vv.play().catch(() => {}); }
+      t.off.style.display = (v.dataset.camOff === 'true' || !v.srcObject) ? 'flex' : 'none';
+    });
+    tiles.forEach((t, key) => { if (!live.has(key)) { t.el.remove(); tiles.delete(key); } });
+    d.getElementById('fw-none').style.display = tiles.size ? 'none' : 'block';
+  };
+  sync();
+  const timer = setInterval(sync, 1000);
+  _float = { win, timer };
+  win.addEventListener('pagehide', () => { clearInterval(timer); if (_float && _float.win === win) _float = null; });
+}
+try { if (IS_TEACHER) navigator.mediaSession.setActionHandler('enterpictureinpicture', () => openFloatWindow(true)); } catch (e) {}
+window.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('sharepip-btn');
+  if (b && IS_TEACHER && window.documentPictureInPicture) b.style.display = '';
+});
+
+// Fallback: floating picture of just the shared screen (video picture-in-picture)
 async function openSharePip(auto) {
   const v = document.getElementById('screenshare-vid'), btn = document.getElementById('sharepip-btn');
   if (!v || !document.pictureInPictureEnabled) return;
@@ -3653,7 +3719,7 @@ async function openSharePip(auto) {
 function stopScreenShare() {
   isSharing = false;
   try { if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {}); } catch (e) {}
-  const pipB = document.getElementById('sharepip-btn'); if (pipB) pipB.style.display = 'none';
+  const pipB = document.getElementById('sharepip-btn'); if (pipB && !window.documentPictureInPicture) pipB.style.display = 'none';
   clearInterval(_ssWatchT);
   document.querySelectorAll('.ss-problem').forEach(d => d.remove());
   if (shareCrop) { try { shareCrop.cleanup(); } catch (e) {} shareCrop = null; }
