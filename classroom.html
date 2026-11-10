@@ -399,6 +399,7 @@
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
         <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
         <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
+        <button id="sharepip-btn" class="tool-btn" onclick="openSharePip(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs and shows exactly what students see">📌 Floating preview</button>
       </div>
       <div class="tool-separator"></div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
@@ -3328,6 +3329,10 @@ async function startScreenShare() {
 
     // Show teacher's own screen behind canvas
     showScreenBehindCanvas(screenStream, true);
+    // A small always-on-top window with exactly what students see, so the teacher doesn't have to come back to this tab
+    const pipBtn = document.getElementById('sharepip-btn');
+    if (pipBtn && document.pictureInPictureEnabled) pipBtn.style.display = '';
+    if (shareCrop) openSharePip(true);
 
     // Notify students and call each connected student peer
     if (window._socket) {
@@ -3631,8 +3636,24 @@ async function callSsPeer(studentId) {
   window._socket.emit('ss-offer', { to: studentId, offer: pc.localDescription });
 }
 
+// Floating "what students see" window (Chrome/Edge picture-in-picture). Stays on top of every tab and window.
+async function openSharePip(auto) {
+  const v = document.getElementById('screenshare-vid'), btn = document.getElementById('sharepip-btn');
+  if (!v || !document.pictureInPictureEnabled) return;
+  try {
+    if (document.pictureInPictureElement === v) { await document.exitPictureInPicture(); return; }
+    if (v.readyState < 1) await new Promise(r => { v.addEventListener('loadedmetadata', r, { once: true }); setTimeout(r, 3000); });
+    try { await v.play(); } catch (e) {}
+    await v.requestPictureInPicture();
+  } catch (e) {
+    if (!auto && btn) { const t = btn.textContent; btn.textContent = '⚠️ Not available here'; setTimeout(() => { btn.textContent = t; }, 3000); }
+  }
+}
+
 function stopScreenShare() {
   isSharing = false;
+  try { if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {}); } catch (e) {}
+  const pipB = document.getElementById('sharepip-btn'); if (pipB) pipB.style.display = 'none';
   clearInterval(_ssWatchT);
   document.querySelectorAll('.ss-problem').forEach(d => d.remove());
   if (shareCrop) { try { shareCrop.cleanup(); } catch (e) {} shareCrop = null; }
