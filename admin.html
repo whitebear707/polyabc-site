@@ -590,12 +590,13 @@
 
     <!-- Clear test records (before today) -->
     <div style="background:#fff8f0;border:2px solid #ff9800;border-radius:14px;padding:20px;margin-top:20px;">
-      <div style="font-size:0.95rem;font-weight:900;color:#e65100;margin-bottom:6px;">🧹 Borrar registros de prueba (antes de hoy)</div>
+      <div style="font-size:0.95rem;font-weight:900;color:#e65100;margin-bottom:6px;">🧹 Borrar registros de prueba (antes de una fecha)</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
-        Borra solo la <strong>asistencia</strong> y la <strong>nómina</strong> (ajustes y pagos a maestros) de <strong>todos los maestros</strong> con fecha anterior a hoy.
-        Lo de hoy en adelante, y todo lo demás (alumnos, padres, grupos, asignaciones, cobranza, grabaciones, tareas), <strong>no se toca</strong>.
+        Borra solo la <strong>asistencia</strong> y la <strong>nómina</strong> (ajustes y pagos a maestros) de <strong>todos los maestros</strong> con fecha anterior a la que elijas abajo.
+        Lo de la fecha que elijas en adelante, y todo lo demás (alumnos, padres, grupos, asignaciones, cobranza, grabaciones, tareas), <strong>no se toca</strong>.
         Primero ves cuántos registros son; se descarga un respaldo antes de borrar.
       </div>
+      <div style="margin-bottom:10px;font-size:0.85rem;font-weight:800;">Borrar todo lo anterior a: <input type="date" id="cleanup-date" value="2026-11-10" style="padding:6px 8px;border:2px solid #e0e0e0;border-radius:8px;font-family:Nunito;"> <span style="font-weight:400;color:#888;">(pon el día de tu primera clase real; ese día y los siguientes no se tocan)</span></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button onclick="cleanupPreview()" style="padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔍 Ver qué se borraría</button>
         <button id="cleanup-del-btn" onclick="cleanupDelete()" style="display:none;padding:10px 20px;background:#e53935;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🗑 Respaldar y borrar</button>
@@ -6621,14 +6622,14 @@ async function cleanupPreview() {
   const st = document.getElementById('cleanup-status'), btn = document.getElementById('cleanup-del-btn');
   btn.style.display = 'none'; st.style.color = '#1a73e8'; st.textContent = '⏳ Contando…';
   try {
-    const r = await fetch(`${SERVER_URL}/admin/cleanup/preview`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const r = await fetch(`${SERVER_URL}/admin/cleanup/preview?before=${encodeURIComponent(document.getElementById('cleanup-date').value)}`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const d = await r.json();
     if (!d.success) throw new Error(d.error || 'No se pudo contar');
     _cleanupCut = d.before;
     const total = Object.values(d.counts).reduce((a, b) => a + b, 0);
     const lines = Object.keys(d.counts).map(k => `• ${d.counts[k]} ${CLEANUP_LABELS[k] || k}`).join('<br>');
     st.style.color = '#333';
-    st.innerHTML = `Antes de <b>${d.before}</b> se borrarían:<br>${lines}<br>Se conservan ${d.keptAttendanceTodayOn} registros de asistencia de hoy en adelante.`;
+    st.innerHTML = `Antes de <b>${d.before}</b> se borrarían:<br>${lines}<br>Se conservan ${d.keptAttendanceTodayOn} registros de asistencia de esa fecha en adelante.`;
     if (total > 0) btn.style.display = '';
     else st.innerHTML += '<br>✅ No hay nada que borrar.';
   } catch (e) { st.style.color = '#e53935'; st.textContent = '❌ ' + e.message; }
@@ -6637,7 +6638,7 @@ async function cleanupDelete() {
   const st = document.getElementById('cleanup-status');
   try {
     st.style.color = '#1a73e8'; st.textContent = '⏳ Descargando respaldo…';
-    const b = await fetch(`${SERVER_URL}/admin/cleanup/backup`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const b = await fetch(`${SERVER_URL}/admin/cleanup/backup?before=${encodeURIComponent(_cleanupCut)}`, { headers: { Authorization: `Bearer ${currentToken}` } });
     if (!b.ok) throw new Error('No se pudo descargar el respaldo; no se borró nada.');
     const url = URL.createObjectURL(await b.blob());
     const a = document.createElement('a'); a.href = url; a.download = `polyabc-respaldo-antes-de-${_cleanupCut}.json`; a.click(); URL.revokeObjectURL(url);
@@ -6646,7 +6647,7 @@ async function cleanupDelete() {
   if (phrase !== 'BORRAR PRUEBAS') { st.style.color = '#e65100'; st.textContent = 'Cancelado. No se borró nada.'; return; }
   st.textContent = '⏳ Borrando…';
   try {
-    const r = await fetch(`${SERVER_URL}/admin/cleanup/run`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ confirmPhrase: 'BORRAR PRUEBAS' }) });
+    const r = await fetch(`${SERVER_URL}/admin/cleanup/run`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ confirmPhrase: 'BORRAR PRUEBAS', before: _cleanupCut }) });
     const d = await r.json();
     if (!d.success) throw new Error(d.error || 'No se pudo borrar');
     st.style.color = '#00897b';
