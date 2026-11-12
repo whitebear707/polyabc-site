@@ -2160,7 +2160,7 @@ function startTimer(assignment) {
 
     // Timer hit 0 — official class start
     if (!classStartedEmitted) {
-      classStartedEmitted = true; window._classStarted = true;
+      classStartedEmitted = true; window._classStarted = true; window._classStartedAt = Date.now() - Math.max(0, elapsed) * 60000;
       if (IS_TEACHER && window._socket) window._socket.emit('class-started', { room: ROOM });
     }
 
@@ -2728,7 +2728,7 @@ function giveStar(socketId, name) {
   if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
 
   // Increment FIRST, then emit the up-to-date counts
-  rewardCounts[socketId][type]++;
+  rewardCounts[socketId][type]++; if (IS_TEACHER) TU.rewards++;
   const updatedCounts = { ...rewardCounts[socketId] };
   if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji, counts: updatedCounts });
 
@@ -3248,7 +3248,8 @@ async function teacherEndClass() {
   const blocked = endClassBlocked();
   if (blocked) { showEndBlocked(blocked); return; }
   const debtPayoffMins = window._debtPayoffMins || 0;
-  if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs });
+  if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs,
+    interrupts: TT.interrupts, waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU }, ...((TT.firstStudentMs != null && !TT.firstSent) ? { firstStudentMs: TT.firstStudentMs } : {}) });
   if (window._socket) {
     // the server checks the same rule (its clock is the one that counts)
     const res = await new Promise(resolve => {
@@ -3319,7 +3320,7 @@ async function startScreenShare() {
       shareCrop = null;
       screenStream = raw;
     }
-    isSharing = true;
+    isSharing = true; TU.shares++;
     if (!screenStream.getAudioTracks().length) showShareAudioTip();
 
     const btn = document.getElementById('screenshare-btn');
@@ -3856,6 +3857,7 @@ function initWhiteboard(socket) {
       canvas.remove(e.path); canvas.renderAll(); return;
     }
     if (suppressSync) return;
+    if (IS_TEACHER) TU.strokes++;
     window._socket.emit('whiteboard-path', { room: ROOM, path: e.path.toJSON() });
   });
   let _syncTimer = null;
@@ -4383,7 +4385,25 @@ async function openMicPicker(fromHelper) {
 // ── Talk-time meter (teacher's browser only; never in juntas) ──
 // Every 200 ms: who is making voice-level sound? Students from each audio connection's level,
 // the teacher from their own mic. No recording, no words — just seconds of talking per person.
-const TT = { teacherMs: 0, students: {}, measuredMs: 0, silenceMs: 0, floor: {}, hang: {}, ac: null, an: null, buf: null, srcTrack: null, prevE: {}, localMax: 0, busy: false };
+const TT = { teacherMs: 0, students: {}, measuredMs: 0, silenceMs: 0, floor: {}, hang: {}, ac: null, an: null, buf: null, srcTrack: null, prevE: {}, localMax: 0, busy: false,
+  interrupts: 0, waitSumMs: 0, waitN: 0, gapMs: 0, gapOpen: false, prevT: false, firstStudentMs: null, firstSent: false };
+// How the teacher uses the class tools (counted only while the class is running with a student in it)
+const TU = { shares: 0, shareMs: 0, strokes: 0, rewards: 0 };
+try { const v = Number(sessionStorage.getItem('ttFirst:' + ROOM + ':' + new Date().toDateString())); if (v > 0) { TT.firstStudentMs = v; TT.firstSent = true; } } catch (e) {}
+// One half-second step of the conversation: who spoke, and what that means
+//  - interruption: the teacher starts talking while a student is talking
+//  - wait time: after a student stops, how long the teacher stays quiet before speaking again (gaps over 20 s are ignored)
+//  - first student speech: time from the class start until a student first speaks
+function ttStep(S, tSpeak, sSpeak, now, classStartedAt) {
+  if (classStartedAt && S.firstStudentMs == null && sSpeak) S.firstStudentMs = Math.max(1, now - classStartedAt);
+  if (tSpeak && !S.prevT && sSpeak) S.interrupts++;
+  if (sSpeak) { S.gapOpen = true; S.gapMs = 0; }
+  else if (S.gapOpen) {
+    if (tSpeak) { S.waitSumMs += S.gapMs; S.waitN++; S.gapOpen = false; S.gapMs = 0; }
+    else { S.gapMs += 500; if (S.gapMs > 20000) { S.gapOpen = false; S.gapMs = 0; } }
+  }
+  S.prevT = !!tSpeak;
+}
 function ttLocalLevel() {
   try {
     const tr = localStream && localStream.getAudioTracks()[0];
@@ -4436,19 +4456,27 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
         if (tr && !tr.enabled) tl = 0;   // muted
       }
       if (tl == null) tl = TT.localMax;
-      if (ttSpeaking('__teacher', tl, now)) { TT.teacherMs += 500; any = true; }
+      const tSpeak = ttSpeaking('__teacher', tl, now);
+      if (tSpeak) { TT.teacherMs += 500; any = true; }
       TT.localMax = 0;
+      let sSpeak = false;
       for (const [sid, pc] of Object.entries(audioPeers)) {
         const name = remoteNames[sid]; if (!name || remoteRoles[sid] !== 'student') continue;
-        if (ttSpeaking(name, await ttRemoteLevel(sid, pc), now)) { TT.students[name] = (TT.students[name] || 0) + 500; any = true; }
+        if (ttSpeaking(name, await ttRemoteLevel(sid, pc), now)) { TT.students[name] = (TT.students[name] || 0) + 500; any = true; sSpeak = true; }
       }
       TT.measuredMs += 500; if (!any) TT.silenceMs += 500;
+      ttStep(TT, tSpeak, sSpeak, now, window._classStartedAt);
+      if (isSharing) TU.shareMs += 500;
     } finally { TT.busy = false; }
   }, 500);
   setInterval(() => {
     const s = window._socket; if (!s || !s.connected || TT.measuredMs < 1000) return;
-    s.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs });
-    TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0;
+    const d = { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs,
+      interrupts: TT.interrupts, waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU } };
+    if (TT.firstStudentMs != null && !TT.firstSent) { d.firstStudentMs = TT.firstStudentMs; TT.firstSent = true; try { sessionStorage.setItem('ttFirst:' + ROOM + ':' + new Date().toDateString(), String(TT.firstStudentMs)); } catch (e) {} }
+    s.emit('talk-time', d);
+    TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0; TT.interrupts = 0; TT.waitSumMs = 0; TT.waitN = 0;
+    TU.shares = 0; TU.shareMs = 0; TU.strokes = 0; TU.rewards = 0;
   }, 30000);
   document.addEventListener('click', () => { if (TT.ac && TT.ac.state === 'suspended') TT.ac.resume().catch(() => {}); });
 }

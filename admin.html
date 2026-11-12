@@ -1021,7 +1021,7 @@
         <div style="font-weight:900;font-size:1rem;">📊 Calificación de maestros</div>
         <input type="month" id="sc-month" onchange="loadScorecard()" style="padding:6px;border:1px solid #ccc;border-radius:8px;"/>
       </div>
-      <div style="font-size:0.78rem;color:#777;margin:4px 0 8px;">Puntualidad 30 · Clases completas 25 · Tiempo de habla 20 · Reseñas 15 · Tareas calificadas 10. Toca un maestro para ver el detalle.</div>
+      <div style="font-size:0.78rem;color:#777;margin:4px 0 8px;">Puntualidad 20 · Clases completas 15 · Tiempo de habla 15 · Reseñas 10 · Tareas 5 · Calificación de padres 10 · Cámara y micrófono 8 · Atención de alumnos 7 · Interacción (interrupciones y pausas) 7 · Primer minuto 3. Lo que aún no tiene datos cuenta completo. Toca un maestro para ver el detalle.</div>
       <div id="sc-list">Cargando…</div>
     </div>
     <div id="teachers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
@@ -5803,6 +5803,13 @@ function renderScorecard() {
         ${row('Cubrió clases de otros maestros', t.covered)}
         ${row('Clases muestra → se inscribieron', t.trialsTaught ? `${t.trialsEnrolled} de ${t.trialsTaught}` : 'ninguna este mes')}
         ${row('Alumnos que subieron de nivel (vs. reporte del mes pasado)', t.levelCompared ? `${t.levelUps} de ${t.levelCompared}` : 'sin datos')}
+        ${row('Interrupciones por clase (maestro habla encima del alumno)', t.avgInterrupts != null ? t.avgInterrupts : 'sin datos', t.avgInterrupts != null && t.avgInterrupts > 3)}
+        ${row('Pausa tras hablar el alumno (ideal 2–8 s)', t.avgWaitSec != null ? t.avgWaitSec + ' s' : 'sin datos', t.avgWaitSec != null && (t.avgWaitSec < 1 || t.avgWaitSec > 10))}
+        ${row('Silencio al inicio (hasta que habla el alumno)', t.avgFirstSec != null ? t.avgFirstSec + ' s' : 'sin datos', t.avgFirstSec != null && t.avgFirstSec > 120)}
+        ${row('Cámara y micrófono del maestro encendidos', t.reliabilityPct != null ? t.reliabilityPct + '%' : 'sin datos', t.reliabilityPct != null && t.reliabilityPct < 90)}
+        ${row('Atención de alumnos (cámara encendida y en la clase)', t.engagementPct != null ? t.engagementPct + '%' : 'sin datos', t.engagementPct != null && t.engagementPct < 70)}
+        ${row('Compartió pantalla en', t.engClasses ? `${t.shareClasses} de ${t.engClasses} clases` : 'sin datos', false)}
+        ${row('Premios por clase', t.rewardsPerClass != null ? t.rewardsPerClass : 'sin datos', t.rewardsPerClass != null && t.rewardsPerClass < 1)}
         ${row('Calificación de los padres (opcional)', t.parentRatingCount ? `${t.parentRatingAvg}/5 · ${t.parentRatingCount} ${t.parentRatingCount === 1 ? 'respuesta' : 'respuestas'}` : 'sin respuestas', t.parentRatingAvg != null && t.parentRatingAvg < 3.5)}
         ${t.parentRatingCount ? `<div style="padding:4px 0;"><button onclick="event.stopPropagation();scComments('${escJsAttr(t.room)}')" style="background:#f1f3f4;border:none;border-radius:8px;padding:5px 12px;font-weight:800;font-size:0.78rem;cursor:pointer;">💬 Ver comentarios de padres</button>${(_scComments[t.room] || []).map(c => `<div style="font-size:0.8rem;border-top:1px solid #f0f0f0;padding:5px 0;"><b>${escHtml(c.studentName)}</b> · ${'★'.repeat(c.scores.overall || 0)}${'☆'.repeat(5 - (c.scores.overall || 0))}${c.comment ? '<br>' + escHtml(c.comment) : ''}</div>`).join('')}</div>` : ''}
         ${row('Reseñas mensuales', `${t.reviewsDone}/${t.reviewsTotal}`, t.reviewsDone < t.reviewsTotal)}
