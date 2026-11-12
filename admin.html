@@ -5780,6 +5780,14 @@ function renderScorecard() {
         ${row('Se fue y no regresó', t.invalid, t.invalid > 0)}
         ${row('Desconexiones del maestro', t.teacherDrops, t.teacherDrops >= 5)}
         ${row('Tiempo de habla del maestro', t.avgTalkPct != null ? `${t.avgTalkPct}% · ${'★'.repeat(Math.round(t.avgRating))}${'☆'.repeat(5 - Math.round(t.avgRating))} (${t.talkClasses} clases)` : 'sin datos', t.avgTalkPct > 70)}
+        ${row('Tiempo de habla de los alumnos', t.avgStudentTalkPct != null ? t.avgStudentTalkPct + '%' : 'sin datos', t.avgStudentTalkPct != null && t.avgStudentTalkPct < 30)}
+        ${row('Silencio (nadie habla)', t.avgSilencePct != null ? t.avgSilencePct + '%' : 'sin datos', t.avgSilencePct != null && t.avgSilencePct > 30)}
+        ${row('Se pasó del horario (3+ min)', t.overtimeClasses ? `${t.overtimeClasses} clases · promedio ${Math.round(t.overtimeMins / t.overtimeClasses)} min` : 0)}
+        ${row('Alumnos que no llegaron', t.expectedSlots ? `${t.studentAbsences} de ${t.expectedSlots}` : 'sin datos', t.expectedSlots > 0 && t.studentAbsences / t.expectedSlots > 0.25)}
+        ${row('Lo reemplazó un sustituto', t.replaced, t.replaced > 0)}
+        ${row('Cubrió clases de otros maestros', t.covered)}
+        ${row('Clases muestra → se inscribieron', t.trialsTaught ? `${t.trialsEnrolled} de ${t.trialsTaught}` : 'ninguna este mes')}
+        ${row('Alumnos que subieron de nivel (vs. reporte del mes pasado)', t.levelCompared ? `${t.levelUps} de ${t.levelCompared}` : 'sin datos')}
         ${row('Reseñas mensuales', `${t.reviewsDone}/${t.reviewsTotal}`, t.reviewsDone < t.reviewsTotal)}
         ${row('Tareas: asignadas · entregadas · calificadas', `${t.homeworkAssigned} · ${t.handedIn} · ${t.graded}`)}
         ${row('Tareas sin calificar (3+ días)', t.slowGrading, t.slowGrading > 0)}
