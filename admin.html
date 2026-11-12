@@ -1309,6 +1309,13 @@
         <div style="font-size:0.75rem;color:#888;">Omite el límite de 24 h para reservar pruebas, para emergencias</div>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eee;">
+      <input type="checkbox" id="teacher-hide-sc" style="width:18px;height:18px;cursor:pointer;accent-color:#6a1b9a;"/>
+      <div>
+        <label for="teacher-hide-sc" style="font-weight:700;font-size:0.9rem;cursor:pointer;">📊 No incluir en el scorecard</label>
+        <div style="font-size:0.75rem;color:#888;">Para maestros de prueba. No cambia sus clases ni su pago.</div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeTeacherModal()">Cancelar</button>
       <button class="btn btn-blue" onclick="saveTeacher()">Guardar</button>
@@ -2846,6 +2853,7 @@ function openAddTeacherModal() {
   document.getElementById('teacher-rate-input').value = '';
   document.getElementById('rate-when-wrap').style.display = 'none';
   document.getElementById('teacher-emergency').checked = false;
+  document.getElementById('teacher-hide-sc').checked = false;
   _teacherPhotoPending = null;
   document.getElementById('teacher-photo-input').value = '';
   document.getElementById('teacher-photo-status').textContent = '';
@@ -2871,6 +2879,7 @@ function openEditTeacherModal(roomId) {
   document.getElementById('rate-when-fields').style.display = 'none';
   renderRateHistory(r);
   document.getElementById('teacher-emergency').checked = !!r.timeOverride;
+  document.getElementById('teacher-hide-sc').checked = !!r.hideFromScorecard;
   _teacherPhotoPending = null;         // null = leave existing photo untouched
   document.getElementById('teacher-photo-input').value = '';
   document.getElementById('teacher-photo-status').textContent = '';
@@ -3001,9 +3010,13 @@ async function saveTeacher() {
     const data = await res.json();
     if (!data.success) { showAlert('😬','¡Ups!',data.message||'No se pudo crear el salón.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   }
+  try { // scorecard hide flag (its own endpoint)
+    await fetch(`${SERVER_URL}/admin/scorecard-hide`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ room, hide: document.getElementById('teacher-hide-sc').checked }) });
+  } catch (e) {}
   closeTeacherModal();
   await loadRooms();
   renderTeachers();
+  if (typeof loadScorecard === 'function') loadScorecard();
 }
 
 function confirmDeleteRoom(roomId) {
