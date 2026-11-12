@@ -446,6 +446,16 @@
       <div id="my-photo-status" style="font-size:0.78rem;color:#667;margin-top:6px;">Choose an image to update your picture.</div>
     </div>
   </div>
+  <p class="section-title">🗣 How should we address you?</p>
+  <div style="background:rgba(255,255,255,0.05);border:1px solid #1a73e8;border-radius:14px;padding:16px;margin-bottom:24px;">
+    <div style="font-size:0.82rem;color:#a0c4ff;margin-bottom:10px;">Used in Spanish (parents, admin) and on your welcome screen. You can change it any time.</div>
+    <div id="gender-btns" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="chip" data-g="f" onclick="setMyGender('f')">Maestra (Ms.)</button>
+      <button class="chip" data-g="m" onclick="setMyGender('m')">Maestro (Mr.)</button>
+      <button class="chip" data-g="x" onclick="setMyGender('x')">Maestre (neutral, Mx.)</button>
+    </div>
+    <div id="gender-status" style="font-size:0.78rem;color:#667;margin-top:8px;"></div>
+  </div>
 
   </div>
 
@@ -1675,7 +1685,21 @@
       if (!res.ok) return;
       const p = await res.json();
       _showMyPhoto(p.photo || null);
+      _markGender(p.gender || '');
     } catch(e) {}
+  }
+  function _markGender(g) {
+    document.querySelectorAll('#gender-btns .chip').forEach(b => b.classList.toggle('on', b.dataset.g === g));
+    try { localStorage.setItem('teacherGender', g || ''); } catch (e) {}
+  }
+  async function setMyGender(g) {
+    const st = document.getElementById('gender-status');
+    st.style.color = '#667'; st.textContent = 'Saving...';
+    try {
+      const r = await (await fetch(`${SERVER_URL}/teacher/gender`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ gender: g }) })).json();
+      if (!r.success) { st.style.color = '#e53935'; st.textContent = r.error || 'Could not save.'; return; }
+      _markGender(g); st.style.color = '#2e7d32'; st.textContent = '✅ Saved.';
+    } catch (e) { st.style.color = '#e53935'; st.textContent = 'Could not connect.'; }
   }
 
   // Shrink before upload so we're not storing multi-MB phone photos
