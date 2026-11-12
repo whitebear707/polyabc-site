@@ -3248,7 +3248,7 @@ async function teacherEndClass() {
   const blocked = endClassBlocked();
   if (blocked) { showEndBlocked(blocked); return; }
   const debtPayoffMins = window._debtPayoffMins || 0;
-  if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs,
+  if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs, longSilenceMs: TT.longMs || 0,
     waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU } });
   if (window._socket) {
     // the server checks the same rule (its clock is the one that counts)
@@ -4465,16 +4465,18 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
         if (ttSpeaking(name, await ttRemoteLevel(sid, pc), now)) { TT.students[name] = (TT.students[name] || 0) + 500; any = true; sSpeak = true; }
       }
       TT.measuredMs += 500; if (!any) TT.silenceMs += 500;
+      // Silence only counts when nobody speaks for more than 90 s in a row (a question, writing time, thinking are normal)
+      if (any) TT.run = 0; else { TT.run = (TT.run || 0) + 500; if (TT.run === 90500) TT.longMs = (TT.longMs || 0) + 90500; else if (TT.run > 90500) TT.longMs = (TT.longMs || 0) + 500; }
       ttStep(TT, tSpeak, sSpeak, now, window._classStartedAt);
       if (isSharing) TU.shareMs += 500;
     } finally { TT.busy = false; }
   }, 500);
   setInterval(() => {
     const s = window._socket; if (!s || !s.connected || TT.measuredMs < 1000) return;
-    const d = { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs,
+    const d = { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs, longSilenceMs: TT.longMs || 0,
       waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU } };
     s.emit('talk-time', d);
-    TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0; TT.waitSumMs = 0; TT.waitN = 0;
+    TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0; TT.longMs = 0; TT.waitSumMs = 0; TT.waitN = 0;
     TU.shares = 0; TU.shareMs = 0; TU.strokes = 0; TU.rewards = 0;
   }, 30000);
   document.addEventListener('click', () => { if (TT.ac && TT.ac.state === 'suspended') TT.ac.resume().catch(() => {}); });

@@ -4084,7 +4084,7 @@ function talkSection(t) {
     </div>
     ${bar('Maestro', t.teacherPct, '#1a73e8')}
     ${t.students.map(x => bar(x.name, x.pct, '#43a047')).join('')}
-    <div style="font-size:0.75rem;color:#888;margin-top:6px;">Medido ${t.measuredMins} min · silencio ${t.silencePct}% · Meta: que el maestro use 50% o menos del tiempo de habla.${quiet.length ? ` <b style="color:#c62828;">Casi no hablaron: ${escHtml(quiet.join(', '))}</b>` : ''}</div>
+    <div style="font-size:0.75rem;color:#888;margin-top:6px;">Medido ${t.measuredMins} min · silencio largo ${t.silencePct}% · Meta: que el maestro use 50% o menos del tiempo de habla.${quiet.length ? ` <b style="color:#c62828;">Casi no hablaron: ${escHtml(quiet.join(', '))}</b>` : ''}</div>
   </div>`;
 }
 async function loadAttendance() {
@@ -5796,7 +5796,7 @@ function renderScorecard() {
         ${row('Desconexiones del maestro', t.teacherDrops, t.teacherDrops >= 5)}
         ${row('Tiempo de habla del maestro', t.avgTalkPct != null ? `${t.avgTalkPct}% · ${'★'.repeat(Math.round(t.avgRating))}${'☆'.repeat(5 - Math.round(t.avgRating))} (${t.talkClasses} clases)` : 'sin datos', t.avgTalkPct > 70)}
         ${row('Tiempo de habla de los alumnos', t.avgStudentTalkPct != null ? t.avgStudentTalkPct + '%' : 'sin datos', t.avgStudentTalkPct != null && t.avgStudentTalkPct < 30)}
-        ${row('Silencio (nadie habla)', t.avgSilencePct != null ? t.avgSilencePct + '%' : 'sin datos', t.avgSilencePct != null && t.avgSilencePct > 30)}
+        ${row('Silencio largo (más de 1:30 sin hablar)', t.avgSilencePct != null ? t.avgSilencePct + '%' : 'sin datos', t.avgSilencePct != null && t.avgSilencePct > 30)}
         ${row('Se pasó del horario (3+ min)', t.overtimeClasses ? `${t.overtimeClasses} clases · promedio ${Math.round(t.overtimeMins / t.overtimeClasses)} min` : 0)}
         ${row('Alumnos que no llegaron', t.expectedSlots ? `${t.studentAbsences} de ${t.expectedSlots}` : 'sin datos', t.expectedSlots > 0 && t.studentAbsences / t.expectedSlots > 0.25)}
         ${row('Lo reemplazó un sustituto', t.replaced, t.replaced > 0)}
