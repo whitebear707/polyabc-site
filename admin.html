@@ -5316,12 +5316,12 @@ function openCreateParentModal() {
   const modal = document.getElementById('create-parent-modal');
   modal.innerHTML = `
     <div style="background:white;border-radius:16px;padding:26px;max-width:440px;width:100%;">
-      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">👪 Crear cuenta de padre</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">👪 Crear padre o alumno adulto</div>
       <div style="font-size:0.82rem;color:#888;margin-bottom:18px;">
-        Para padres que prefieren no registrarse solos. No necesitan código de registro — pueden entrar de inmediato con la contraseña que pongas aquí.
+        Para padres o adultos que prefieren no registrarse solos. No necesitan código de registro — pueden entrar de inmediato con la contraseña que pongas aquí.
       </div>
 
-      <div class="field-group"><label>Nombre del padre *</label>
+      <div class="field-group"><label>Nombre (del padre o del alumno adulto) *</label>
         <input type="text" id="cp-name" placeholder="e.g. María González"/></div>
       <div class="field-group"><label>Email *</label>
         <input type="email" id="cp-email" placeholder="e.g. maria@email.com"/></div>
@@ -5334,8 +5334,15 @@ function openCreateParentModal() {
           <option value="mother">Mother / Mamá</option>
           <option value="father">Father / Papá</option>
           <option value="guardian">Tutor</option>
-          <option value="self">Alumno adulto</option>
+          <option value="self">Alumno adulto (es su propio alumno)</option>
         </select></div>
+      <div id="cp-adult-box" style="display:none;background:#f0f7ff;border-radius:10px;padding:12px;margin-bottom:6px;">
+        <div style="font-size:0.8rem;color:#555;margin-bottom:8px;">Se creará también su acceso a clase, ya ligado a esta cuenta.</div>
+        <div class="field-group"><label>Nombre en clase</label>
+          <input type="text" id="cp-student-name" placeholder="Si lo dejas vacío, usa el nombre de arriba"/></div>
+        <div class="field-group"><label>Contraseña para entrar a clase * (mín. 4)</label>
+          <input type="text" id="cp-student-pw" placeholder="Distinta a la de cualquier otra persona"/></div>
+      </div>
 
       <div id="cp-status" style="font-size:0.85rem;font-weight:700;min-height:18px;margin-top:6px;"></div>
 
@@ -5347,6 +5354,7 @@ function openCreateParentModal() {
       </div>
     </div>`;
   modal.style.display = 'flex';
+  document.getElementById('cp-relationship').onchange = e => { document.getElementById('cp-adult-box').style.display = e.target.value === 'self' ? 'block' : 'none'; };
 }
 
 async function saveNewParent() {
@@ -5363,21 +5371,27 @@ async function saveNewParent() {
   if (password.length < 6) {
     status.textContent = '⚠️ La contraseña debe tener al menos 6 caracteres'; status.style.color = '#e53935'; return;
   }
+  const isAdult = relationship === 'self';
+  const studentName = document.getElementById('cp-student-name').value.trim(), studentPassword = document.getElementById('cp-student-pw').value.trim();
+  if (isAdult && studentPassword.length < 4) {
+    status.textContent = '⚠️ Pon la contraseña para entrar a clase (mínimo 4 caracteres)'; status.style.color = '#e53935'; return;
+  }
 
   status.textContent = 'Creando...'; status.style.color = '#888';
   try {
     const res = await fetch(`${SERVER_URL}/admin/parents`, {
       method: 'POST',
       headers: { 'Content-Type':'application/json', Authorization: `Bearer ${currentToken}` },
-      body: JSON.stringify({ parentName, email, phone, password, relationship })
+      body: JSON.stringify({ parentName, email, phone, password, relationship, ...(isAdult ? { studentName, studentPassword } : {}) })
     });
     const d = await res.json();
     if (!d.success) { status.textContent = '❌ ' + (d.error || 'No se pudo crear'); status.style.color = '#e53935'; return; }
 
     document.getElementById('create-parent-modal').style.display = 'none';
     await renderParentsPanel();
-    showAlert('✅','Padre creado',
-      `${parentName} ya puede entrar con:\n\nEmail: ${email}\nPassword: ${password}\n\nAsigna alumnos a esta familia desde la lista de abajo.`,
+    showAlert('✅', isAdult ? 'Alumno adulto creado' : 'Padre creado',
+      isAdult ? `${parentName} ya puede entrar:\n\nPanel de padres (polyabc.academy)\nEmail: ${email}\nPassword: ${password}\n\nA clase como alumno:\nContraseña de clase: ${studentPassword}\n(Nombre en clase: ${d.student && d.student.name || studentName || parentName})\n\nSolo falta asignarle maestro y horario.`
+        : `${parentName} ya puede entrar con:\n\nEmail: ${email}\nPassword: ${password}\n\nAsigna alumnos a esta familia desde la lista de abajo.`,
       [{label:'Entendido',fn:'closeAlert()',primary:true}]);
   } catch(e) {
     status.textContent = '❌ No se pudo conectar con el servidor'; status.style.color = '#e53935';
