@@ -2160,7 +2160,7 @@ function startTimer(assignment) {
 
     // Timer hit 0 — official class start
     if (!classStartedEmitted) {
-      classStartedEmitted = true;
+      classStartedEmitted = true; window._classStarted = true;
       if (IS_TEACHER && window._socket) window._socket.emit('class-started', { room: ROOM });
     }
 
@@ -4416,9 +4416,11 @@ function ttSpeaking(key, level, now) {
 if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
   setInterval(() => { if (_joinedName && classIsOpen) TT.localMax = Math.max(TT.localMax, ttLocalLevel()); }, 100);
   setInterval(async () => {
-    if (!_joinedName || !classIsOpen || TT.busy) return;
+    // Only the real class counts: not the greeting time before the scheduled start, and not while no student is in the room
+    if (!_joinedName || !classIsOpen || !window._classStarted || TT.busy) return;
     TT.busy = true;
     try {
+      if (!Object.keys(audioPeers).some(sid => remoteNames[sid] && remoteRoles[sid] === 'student')) { TT.localMax = 0; return; }
       const now = Date.now(); let any = false;
       // the teacher's own mic: energy of what is being sent (no audio player needed); falls back to a direct mic reading
       let tl = null;
