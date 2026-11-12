@@ -3172,6 +3172,34 @@ function getAudioCtx() {
   return _audioCtx;
 }
 
+// Come-back siren for students: if the class tab is hidden or minimized for 7 s during the class, a loud "oh no" siren repeats every 10 s until they return
+(function () {
+  if (typeof IS_TEACHER === 'undefined' || IS_TEACHER || TECH_MODE || ROOM === '0') return;
+  const warm = () => { try { getAudioCtx(); } catch (e) {} };
+  ['click', 'touchstart', 'keydown'].forEach(ev => document.addEventListener(ev, warm, { once: true, passive: true }));
+  let startT = null, repT = null;
+  const onBreak = () => { const bs = document.getElementById('break-screen'); return bs && bs.style.display !== 'none'; };
+  function siren() {
+    if (document.visibilityState !== 'hidden' || !window._classStarted || onBreak()) return;
+    try {
+      const ctx = getAudioCtx(), t0 = ctx.currentTime + 0.05, g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.9, t0 + 0.05);
+      g.gain.setValueAtTime(0.9, t0 + 1.7); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.0);
+      g.connect(ctx.destination);
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.connect(g);
+      for (let i = 0; i < 4; i++) { o.frequency.setValueAtTime(500, t0 + i * 0.5); o.frequency.linearRampToValueAtTime(1000, t0 + i * 0.5 + 0.25); o.frequency.linearRampToValueAtTime(500, t0 + i * 0.5 + 0.5); }
+      o.start(t0); o.stop(t0 + 2.0);
+    } catch (e) {}
+  }
+  function stop() { clearTimeout(startT); clearInterval(repT); startT = repT = null; }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      if (startT || repT) return;
+      startT = setTimeout(() => { startT = null; siren(); repT = setInterval(siren, 10000); }, 7000);
+    } else stop();
+  });
+})();
+
 function playReactionSoundOnce(emoji) {
   try {
     const ctx = getAudioCtx();
