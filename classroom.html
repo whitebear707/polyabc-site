@@ -4438,6 +4438,7 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
   setInterval(async () => {
     // Only the real class counts: not the greeting time before the scheduled start, and not while no student is in the room
     if (!_joinedName || !classIsOpen || !window._classStarted || TT.busy) return;
+    { const bs = document.getElementById('break-screen'); if (bs && bs.style.display !== 'none') { TT.run = 0; TT.localMax = 0; return; } } // nothing is measured during a break
     TT.busy = true;
     try {
       if (!Object.keys(audioPeers).some(sid => remoteNames[sid] && remoteRoles[sid] === 'student')) { TT.localMax = 0; return; }
