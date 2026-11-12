@@ -531,7 +531,7 @@
       </div>
       <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;">
         <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Alumno</label>
-          <input type="text" id="vac-name" list="vac-names" placeholder="Nombre del alumno" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/><datalist id="vac-names"></datalist></div>
+          <input type="text" id="vac-name" list="vac-names" placeholder="Número de ID o nombre" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/><datalist id="vac-names"></datalist></div>
         <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Primer día sin clase</label>
           <input type="date" id="vac-from" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
         <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Último día sin clase</label>
@@ -6289,21 +6289,26 @@ async function loadVacations() {
     const dl = document.getElementById('vac-names');
     if (dl && !dl.children.length) {
       const sr = await fetch(`${SERVER_URL}/billing/students`, { headers: { Authorization: `Bearer ${currentToken}` } });
-      (await sr.json()).filter(s => s.classType !== 'Trial').forEach(s => { const o = document.createElement('option'); o.value = s.name; dl.appendChild(o); });
+      window._vacStudents = (await sr.json()).filter(s => s.classType !== 'Trial').map(s => ({ name: s.name, id: s.studentId || '', full: s.fullName || '', label: `${s.studentId ? '#' + s.studentId + ' · ' : ''}${s.name}${s.fullName && s.fullName !== s.name ? ' (' + s.fullName + ')' : ''}` }));
+      window._vacStudents.forEach(s => { const o = document.createElement('option'); o.value = s.label; dl.appendChild(o); });
     }
     const r = await fetch(`${SERVER_URL}/admin/vacations`, { headers: { Authorization: `Bearer ${currentToken}` } });
     const list = await r.json(), box = document.getElementById('vac-list');
     if (!box) return;
     const fmt = d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
     box.innerHTML = (Array.isArray(list) ? list : []).map(v => `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;background:#e0f2f1;border-radius:8px;margin-top:6px;font-size:0.85rem;">
-      <strong>${escHtml(v.name)}</strong><span>${fmt(v.from)} → ${fmt(v.to)} (${v.days} día${v.days > 1 ? 's' : ''})</span>
+      <strong>${escHtml(((window._vacStudents || []).find(s => s.name === v.name) || {}).label || v.name)}</strong><span>${fmt(v.from)} → ${fmt(v.to)} (${v.days} día${v.days > 1 ? 's' : ''})</span>
       <button onclick="endVacation('${encodeURIComponent(v.name)}')" style="margin-left:auto;padding:5px 12px;background:#fff;border:2px solid #00897b;color:#00695c;border-radius:8px;font-family:Nunito;font-weight:800;font-size:0.78rem;cursor:pointer;">Cancelar / ya regresó</button></div>`).join('');
   } catch (e) {}
 }
 async function saveVacation() {
   const msg = document.getElementById('vac-msg');
-  const name = document.getElementById('vac-name').value.trim(), from = document.getElementById('vac-from').value, to = document.getElementById('vac-to').value;
-  if (!name || !from || !to) { msg.style.color = '#e53935'; msg.textContent = 'Escribe el alumno y las dos fechas.'; return; }
+  const typed = document.getElementById('vac-name').value.trim(), from = document.getElementById('vac-from').value, to = document.getElementById('vac-to').value;
+  const q = typed.toLowerCase().replace(/^#/, ''), all = window._vacStudents || [];
+  const hits = all.filter(s => s.label === typed || (s.id && s.id.toLowerCase() === q) || s.name.toLowerCase() === q);
+  if (!typed || !from || !to) { msg.style.color = '#e53935'; msg.textContent = 'Elige el alumno y las dos fechas.'; return; }
+  if (hits.length !== 1) { msg.style.color = '#e53935'; msg.textContent = hits.length ? 'Hay varios alumnos con ese nombre: elígelo de la lista (con su número de ID).' : 'No encontré ese alumno: elígelo de la lista o escribe su número de ID.'; return; }
+  const name = hits[0].name;
   msg.style.color = '#888'; msg.textContent = 'Guardando...';
   try {
     const r = await fetch(`${SERVER_URL}/admin/vacation`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ name, from, to }) });
