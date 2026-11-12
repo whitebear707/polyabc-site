@@ -1123,6 +1123,7 @@ function connectSocket() {
 
   socket.on('class-closed', () => {
     if (!IS_TEACHER) {
+      shutdownClassMedia();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (captureInterval) clearInterval(captureInterval);
       document.body.innerHTML = `<div style="position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:Nunito,sans-serif;color:white;">
@@ -1258,6 +1259,7 @@ function connectSocket() {
   });
   socket.on('class-ended', () => {
     if (!IS_TEACHER) {
+      shutdownClassMedia();
       // Stop all media tracks so webcam light turns off
       if (localStream) localStream.getTracks().forEach(t => t.stop());
       if (captureInterval) clearInterval(captureInterval);
@@ -3670,6 +3672,13 @@ async function callSsPeer(studentId) {
 // while working in another tab). Reuses the videos the
 // class already receives, so it adds no internet use. Browsers without it fall back to the shared picture only.
 let _float = null; // { win, timer }
+// The "Class has ended" screen must really end the call: close every audio/video link and the floating window, so nothing keeps running behind it
+function shutdownClassMedia() {
+  try { [audioPeers, videoPeers, ssPeers].forEach(m => Object.keys(m).forEach(k => { try { m[k] && m[k].close && m[k].close(); } catch (e) {} delete m[k]; })); } catch (e) {}
+  try { document.querySelectorAll('audio,video').forEach(el => { try { el.pause(); el.srcObject = null; } catch (e) {} }); } catch (e) {}
+  try { if (_float && _float.win && !_float.win.closed) _float.win.close(); } catch (e) {}
+  try { if (typeof screenStream !== 'undefined' && screenStream) screenStream.getTracks().forEach(t => t.stop()); } catch (e) {}
+}
 async function openFloatWindow(auto) {
   if (!IS_TEACHER) return;
   const btn = document.getElementById('sharepip-btn');
