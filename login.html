@@ -360,6 +360,7 @@ function trServerMsg(m) {
             if (data.isSub) localStorage.setItem('teacherIsSub', '1');
             else localStorage.removeItem('teacherIsSub');
             localStorage.setItem('teacherName', data.name || 'Teacher');
+            localStorage.setItem('teacherGender', data.gender || '');
             localStorage.setItem('adminToken', data.token);
             localStorage.removeItem('studentToken');
             window.location.href = 'greeting.html';

@@ -1302,6 +1302,12 @@
       </div>
       <div id="teacher-photo-status" style="font-size:0.75rem;color:#888;margin-top:4px;"></div>
     </div>
+    <div style="padding:10px 0;border-top:1px solid #eee;margin-top:4px;">
+      <label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Cómo se le llama</label>
+      <select id="teacher-gender" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:10px;font-family:Nunito;font-size:0.95rem;">
+        <option value="">Elegir…</option><option value="f">Maestra</option><option value="m">Maestro</option><option value="x">Maestre (neutro)</option>
+      </select>
+    </div>
     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eee;margin-top:4px;">
       <input type="checkbox" id="teacher-emergency" style="width:18px;height:18px;cursor:pointer;accent-color:#e53935;"/>
       <div>
@@ -1742,7 +1748,7 @@ async function loadAllAvailabilityData() {
   const sel = document.getElementById('teacher-filter');
   if (sel) {
     sel.innerHTML = '<option value="">-- Cualquier maestro --</option>' +
-      allAvailability.map(t => `<option value="${t.room}">Maestro ${t.teacherName||'Salón '+t.room} (Salón ${t.room})</option>`).join('');
+      allAvailability.map(t => `<option value="${t.room}">${mwFor(t.room)} ${t.teacherName||'Salón '+t.room} (Salón ${t.room})</option>`).join('');
   }
 }
 
@@ -2110,7 +2116,7 @@ function renderDayDetail(dateStr) {
         </div>`;
       }).join('');
       html += `<div class="day-teacher-card">
-        <div class="day-teacher-name">Maestro ${t.teacherName || `Salón ${t.room}`} · Salón ${t.room}</div>
+        <div class="day-teacher-name">${mwFor(t.room)} ${t.teacherName || `Salón ${t.room}`} · Salón ${t.room}</div>
         <div class="day-teacher-hours">🕐 ${hoursHtml}</div>
         ${assignHtml}
         <button onclick="openAssignGroupModal('${dateStr}','${t.room}')"
@@ -2140,7 +2146,7 @@ function openTrialAssignModal(bookingId, studentName, level, dateStr, time) {
   });
 
   const roomOptions = availableTeachers.length > 0
-    ? availableTeachers.map(t => `<option value="${t.room}">Maestro ${t.teacherName||'—'} · Salón ${t.room}</option>`).join('')
+    ? availableTeachers.map(t => `<option value="${t.room}">${mwFor(t.room)} ${t.teacherName||'—'} · Salón ${t.room}</option>`).join('')
     : `<option value="">No hay maestros disponibles a esta hora</option>`;
 
   const canAssign = availableTeachers.length > 0;
@@ -2187,7 +2193,7 @@ function _showGroupTrialAssignModal(bookingId, studentName, level) {
 
   const existingOptions = upcoming.map(a => {
     const teacher = allAvailability.find(t => t.room === a.room);
-    return `<option value="${a._id}">${a.date} · ${fmt12(a.time)} · Maestro ${teacher?.teacherName || '—'} · Salón ${a.room} · ${a.groupName || a.level || 'Class'}</option>`;
+    return `<option value="${a._id}">${a.date} · ${fmt12(a.time)} · ${mwFor(teacher.room)} ${teacher?.teacherName || '—'} · Salón ${a.room} · ${a.groupName || a.level || 'Class'}</option>`;
   }).join('');
 
   const panel = document.getElementById('assign-day-panel');
@@ -2249,7 +2255,7 @@ function refreshNewTrialTeachers() {
   });
 
   sel.innerHTML = availableTeachers.length > 0
-    ? availableTeachers.map(t => `<option value="${t.room}">Maestro ${t.teacherName||'—'} · Salón ${t.room}</option>`).join('')
+    ? availableTeachers.map(t => `<option value="${t.room}">${mwFor(t.room)} ${t.teacherName||'—'} · Salón ${t.room}</option>`).join('')
     : `<option value="">No hay maestros disponibles a esta hora</option>`;
 }
 
@@ -2293,7 +2299,7 @@ async function assignTrialToExisting(bookingId, studentName) {
 
 function openAssignSubModal(assignmentId, room, dateStr, time) {
   const otherTeachers = rooms.filter(r => r.room !== room);
-  const options = otherTeachers.map(r => `<option value="${r.room}">Maestro ${r.teacherName || '—'} · Salón ${r.room}</option>`).join('');
+  const options = otherTeachers.map(r => `<option value="${r.room}">${mwFor(r.room)} ${r.teacherName || '—'} · Salón ${r.room}</option>`).join('');
 
   const panel = document.getElementById('assign-day-panel');
   panel.innerHTML = `
@@ -2432,7 +2438,7 @@ function openAssignGroupModal(dateStr, room) {
 
 function _showAssignGroupModal(dateStr, room) {
   const teacher = allAvailability.find(t => t.room === room);
-  const teacherName = `Maestro ${teacher?.teacherName || 'Salón '+room}`;
+  const teacherName = `${mwFor(teacher.room)} ${teacher?.teacherName || 'Salón '+room}`;
   const date = new Date(dateStr + 'T12:00:00');
   const dayName = DAYS[date.getDay()];
   const hours = teacher?.dayHours?.[dayName];
@@ -2586,7 +2592,7 @@ async function saveAssignGroup(dateStr, room) {
 
   // Check date availability
   const teacher = allAvailability.find(t => t.room === room);
-  const teacherName = `Maestro ${teacher?.teacherName || 'Salón '+room}`;
+  const teacherName = `${mwFor(teacher.room)} ${teacher?.teacherName || 'Salón '+room}`;
   const dateStatus = teacher?.dates?.[dateStr] || 'unavailable';
   if (dateStatus !== 'available') {
     showAlert('😬','¡Ups!',`${teacherName} no está marcado como disponible el ${dateStr}.`,[{label:'Entendido',fn:'closeAlert()',primary:true}]); return;
@@ -2758,7 +2764,7 @@ function renderTeachers() {
         ${avatar}
         <div>
           <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e;">Salón ${escHtml(r.room)}</div>
-          <div style="font-size:0.85rem;color:#666;">👩‍🏫 Maestro ${escHtml(r.teacherName || '—')}</div>
+          <div style="font-size:0.85rem;color:#666;">👩‍🏫 ${mwFor(r.room)} ${escHtml(r.teacherName || '—')}</div>
         </div>
       </div>
       <div class="notranslate" translate="no" style="font-size:0.85rem;color:#666;margin-bottom:4px;">🔑 ${escHtml(r.teacherPassword)}</div>
@@ -2858,6 +2864,7 @@ function openAddTeacherModal() {
   document.getElementById('teacher-rate-input').value = '';
   document.getElementById('rate-when-wrap').style.display = 'none';
   document.getElementById('teacher-emergency').checked = false;
+  document.getElementById('teacher-gender').value = '';
   document.getElementById('teacher-hide-sc').checked = false;
   _teacherPhotoPending = null;
   document.getElementById('teacher-photo-input').value = '';
@@ -2884,6 +2891,7 @@ function openEditTeacherModal(roomId) {
   document.getElementById('rate-when-fields').style.display = 'none';
   renderRateHistory(r);
   document.getElementById('teacher-emergency').checked = !!r.timeOverride;
+  document.getElementById('teacher-gender').value = r.gender || '';
   document.getElementById('teacher-hide-sc').checked = !!r.hideFromScorecard;
   _teacherPhotoPending = null;         // null = leave existing photo untouched
   document.getElementById('teacher-photo-input').value = '';
@@ -2991,7 +2999,7 @@ async function saveTeacher() {
   const timeOverride = document.getElementById('teacher-emergency').checked;
   if (!room || !pass) { showAlert('😬','¡Ups!','Room number and password are required.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
-  const body = { teacherName: name, teacherEmail: email, teacherPassword: pass, hourlyRate: parseFloat(rate)||0, timeOverride };
+  const body = { teacherName: name, teacherEmail: email, teacherPassword: pass, hourlyRate: parseFloat(rate)||0, timeOverride, gender: document.getElementById('teacher-gender').value };
   if (_teacherPhotoPending !== null) body.photo = _teacherPhotoPending;
   if (editId && document.getElementById('rate-when-check').checked) {
     const rd = document.getElementById('rate-when-date').value;
@@ -3090,6 +3098,12 @@ function checkDuplicatePassword(pass, excludeRoom) {
 }
 
 // For plain HTML content (text nodes, innerHTML).
+// Maestra / Maestro / Maestre (neutral); "Maestro/a" until the teacher's profile has one chosen
+function mwFor(roomId) {
+  const r = (typeof rooms !== 'undefined' ? rooms : []).find(x => String(x.room) === String(roomId));
+  const g = r && r.gender;
+  return g === 'f' ? 'Maestra' : g === 'm' ? 'Maestro' : g === 'x' ? 'Maestre' : 'Maestro/a';
+}
 function escHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -3713,7 +3727,7 @@ function populateGroupRoomSelect(selected) {
   const sel = document.getElementById('group-room');
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Sin asignar --</option>' +
-    rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(selected) ? ' selected' : ''}>Maestro ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
+    rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(selected) ? ' selected' : ''}>${mwFor(r.room)} ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
 }
 
 function populateGroupStudentSelect() {
@@ -3847,7 +3861,7 @@ async function loadTrialBookings() {
         <div style="color:#555;margin:3px 0;">📅 ${b.date} · 🕐 ${fmt12(b.time)}</div>
         <div style="display:flex;gap:6px;margin-top:6px;">
           <select id="trial-room-${b._id}" style="flex:1;padding:5px;border-radius:6px;border:1px solid #ddd;font-family:Nunito;font-size:0.8rem;">
-            ${rooms.map(r=>`<option value="${r.room}">Maestro ${r.teacherName} · Salón ${r.room}</option>`).join('')}
+            ${rooms.map(r=>`<option value="${r.room}">${mwFor(r.room)} ${r.teacherName} · Salón ${r.room}</option>`).join('')}
           </select>
           <button onclick="assignTrial('${b._id}')" style="padding:5px 10px;background:#2e7d32;color:white;border:none;border-radius:6px;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">Asignar</button>
         </div>
@@ -3883,13 +3897,13 @@ function populatePayTeacherFilter() {
   const sel = document.getElementById('pay-teacher');
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Todos los maestros --</option>' +
-    rooms.map(r => `<option value="${r.room}">Maestro ${r.teacherName||'—'} (Salón ${r.room})</option>`).join('');
+    rooms.map(r => `<option value="${r.room}">${mwFor(r.room)} ${r.teacherName||'—'} (Salón ${r.room})</option>`).join('');
   updatePayDates();
 }
 
 // ── Manual attendance & payroll adjustments ──
 function openManualAttendance() {
-  document.getElementById('ma-room').innerHTML = rooms.map(r => `<option value="${escHtml(r.room)}">Maestro ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
+  document.getElementById('ma-room').innerHTML = rooms.map(r => `<option value="${escHtml(r.room)}">${mwFor(r.room)} ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
   ['ma-date','ma-time','ma-student','ma-group','ma-reason'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ma-count').value = 2;
   document.getElementById('ma-type').value = '1v1 - 30 Min'; maTypeChanged();
@@ -3922,7 +3936,7 @@ async function saveManualAttendance() {
 }
 function openPayAdjustment(room, name, defaultDate) {
   document.getElementById('pa-room').value = room;
-  document.getElementById('pa-teacher').textContent = `Maestro ${name || '—'} · Salón ${room}`;
+  document.getElementById('pa-teacher').textContent = `${mwFor(room)} ${name || '—'} · Salón ${room}`;
   document.getElementById('pa-date').value = defaultDate || '';
   document.getElementById('pa-amount').value = ''; document.getElementById('pa-reason').value = '';
   document.getElementById('pa-status').textContent = '';
@@ -3992,7 +4006,7 @@ async function loadPayroll() {
       <div class="card" style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
           <div>
-            <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">Maestro ${t.teacherName||'—'} · Salón ${t.room}</div>
+            <div style="font-size:1rem;font-weight:900;color:#1a1a2e;">${mwFor(t.room)} ${t.teacherName||'—'} · Salón ${t.room}</div>
             <div style="font-size:0.82rem;color:#888;margin-top:2px;">Tarifa actual: $${t.hourlyRate}/h · ${t.classes.length} clase${t.classes.length!==1?'s':''}</div>
           </div>
           <div style="text-align:right;">
@@ -4037,7 +4051,7 @@ function populateAttTeacherFilter() {
   const sel = document.getElementById('att-teacher');
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Todos los maestros --</option>' +
-    rooms.map(r => `<option value="${r.room}">Maestro ${r.teacherName||'—'} (Salón ${r.room})</option>`).join('');
+    rooms.map(r => `<option value="${r.room}">${mwFor(r.room)} ${r.teacherName||'—'} (Salón ${r.room})</option>`).join('');
 }
 
 function clearAttSearch() {
@@ -4108,7 +4122,7 @@ const TALK_COLOR = { 5: '#2e7d32', 4: '#558b2f', 3: '#f9a825', 2: '#ef6c00', 1: 
 function talkStars(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
 function talkBadge(t) {
   if (!t) return '';
-  return `<div style="font-size:0.75rem;font-weight:900;color:${TALK_COLOR[t.rating]};margin-top:3px;" title="Porcentaje del tiempo de habla que usó el maestro">🗣 Maestro ${t.teacherPct}% · ${talkStars(t.rating)}</div>`;
+  return `<div style="font-size:0.75rem;font-weight:900;color:${TALK_COLOR[t.rating]};margin-top:3px;" title="Porcentaje del tiempo de habla que usó el maestro">🗣 Habló ${t.teacherPct}% · ${talkStars(t.rating)}</div>`;
 }
 function talkSection(t) {
   if (!t) return `<div style="background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:16px;font-size:0.82rem;color:#888;">🗣 Tiempo de habla: sin datos (se necesitan 8+ minutos de clase medidos).</div>`;
@@ -4165,7 +4179,7 @@ async function loadAttendance() {
   // Match with assignments for group name and scheduled time
   cards.innerHTML = allRecords.map((r, idx) => {
     const roomData   = rooms.find(rm => rm.room === r._room);
-    const teacherName = roomData ? `Maestro ${roomData.teacherName||''}` : `Salón ${r._room}`;
+    const teacherName = roomData ? `${mwFor(roomData.room)} ${roomData.teacherName||''}` : `Salón ${r._room}`;
     // Use stamped data from record first — don't depend on assignment still existing
     const assignment = allAssignments.find(a => a.sessionId && a.sessionId === r.sessionId) || allAssignments.find(a => a.room === r._room && a.date === r.date);
     const groupName  = r.groupName || assignment?.groupName || '—';
@@ -4206,7 +4220,7 @@ function openAttDetail(idx) {
   document.getElementById('attendance-detail').style.display = 'block';
 
   const roomData    = rooms.find(rm => rm.room === r._room);
-  const teacherName = roomData ? `Maestro ${roomData.teacherName||''}` : `Salón ${r._room}`;
+  const teacherName = roomData ? `${mwFor(roomData.room)} ${roomData.teacherName||''}` : `Salón ${r._room}`;
   const assignment  = allAssignments.find(a => a.sessionId && a.sessionId === r.sessionId) || allAssignments.find(a => a.room === r._room && a.date === r.date);
   const groupName   = r.groupName || assignment?.groupName || '—';
   const scheduledTime = r.scheduledTime ? fmt12(r.scheduledTime) : (assignment ? fmt12(assignment.time) : '—');
@@ -5053,7 +5067,7 @@ function roomFieldHTML(type, currentRoom) {
   }
   return `<select id="be-room" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;">
     <option value="">-- Aún no asignado --</option>
-    ${rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room)===String(currentRoom)?' selected':''}>Maestro ${escHtml(r.teacherName||'—')} (Salón ${escHtml(r.room)})</option>`).join('')}
+    ${rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room)===String(currentRoom)?' selected':''}>${mwFor(r.room)} ${escHtml(r.teacherName||'—')} (Salón ${escHtml(r.room)})</option>`).join('')}
   </select>
   <div style="font-size:0.78rem;color:#888;margin-top:4px;">Al asignarlo, sus clases recurrentes se generan automáticamente según los días, hora y duración definidos arriba.</div>`;
 }
@@ -5820,9 +5834,10 @@ function renderScorecard() {
   const row = (k, v, bad) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid #f0f0f0;font-size:0.82rem;"><span>${k}</span><b style="color:${bad ? '#c62828' : '#1a1a2e'};">${v}</b></div>`;
   box.innerHTML = list.map(t => {
     const open = _scOpen.has(t.room);
+    const gw = mwFor(t.room), dm = gw === 'Maestra' ? 'de la maestra' : gw === 'Maestre' ? 'de le maestre' : gw === 'Maestro' ? 'del maestro' : 'del maestro/a';
     return `<div style="border:1px solid #eee;border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;" onclick="scToggle('${escJsAttr(t.room)}')">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <div><b>${escHtml(t.teacherName)}</b> <span style="color:#999;font-size:0.8rem;">· Salón ${escHtml(t.room)}</span>
+        <div><b>${mwFor(t.room)} ${escHtml(t.teacherName)}</b> <span style="color:#999;font-size:0.8rem;">· Salón ${escHtml(t.room)}</span>
           <div style="font-size:0.78rem;color:#666;margin-top:2px;">⏰ ${t.onTime}/${t.held + t.missed} a tiempo · 🗣 ${t.avgTalkPct != null ? t.avgTalkPct + '%' : '—'} · 📝 ${t.reviewsDone}/${t.reviewsTotal}</div></div>
         <div style="font-size:1.6rem;font-weight:900;color:${col(t.score)};">${t.score}</div>
       </div>
@@ -5833,8 +5848,8 @@ function renderScorecard() {
         ${row('Clases completas', t.completed)}
         ${row('Terminó antes', t.endedEarly, t.endedEarly > 0)}
         ${row('Se fue y no regresó', t.invalid, t.invalid > 0)}
-        ${row('Desconexiones del maestro', t.teacherDrops, t.teacherDrops >= 5)}
-        ${row('Tiempo de habla del maestro', t.avgTalkPct != null ? `${t.avgTalkPct}% · ${'★'.repeat(Math.round(t.avgRating))}${'☆'.repeat(5 - Math.round(t.avgRating))} (${t.talkClasses} clases)` : 'sin datos', t.avgTalkPct > 70)}
+        ${row(`Desconexiones ${dm}`, t.teacherDrops, t.teacherDrops >= 5)}
+        ${row(`Tiempo de habla ${dm}`, t.avgTalkPct != null ? `${t.avgTalkPct}% · ${'★'.repeat(Math.round(t.avgRating))}${'☆'.repeat(5 - Math.round(t.avgRating))} (${t.talkClasses} clases)` : 'sin datos', t.avgTalkPct > 70)}
         ${row('Tiempo de habla de los alumnos', t.avgStudentTalkPct != null ? t.avgStudentTalkPct + '%' : 'sin datos', t.avgStudentTalkPct != null && t.avgStudentTalkPct < 30)}
         ${row('Silencio largo (más de 1:30 sin hablar)', t.avgSilencePct != null ? t.avgSilencePct + '%' : 'sin datos', t.avgSilencePct != null && t.avgSilencePct > 30)}
         ${row('Se pasó del horario (3+ min)', t.overtimeClasses ? `${t.overtimeClasses} clases · promedio ${Math.round(t.overtimeMins / t.overtimeClasses)} min` : 0)}
@@ -5844,7 +5859,7 @@ function renderScorecard() {
         ${row('Clases muestra → se inscribieron', t.trialsTaught ? `${t.trialsEnrolled} de ${t.trialsTaught}` : 'ninguna este mes')}
         ${row('Alumnos que subieron de nivel (vs. reporte del mes pasado)', t.levelCompared ? `${t.levelUps} de ${t.levelCompared}` : 'sin datos')}
         ${row('Pausa tras hablar el alumno (ideal 2–8 s)', t.avgWaitSec != null ? t.avgWaitSec + ' s' : 'sin datos', t.avgWaitSec != null && (t.avgWaitSec < 1 || t.avgWaitSec > 10))}
-        ${row('Cámara y micrófono del maestro encendidos', t.reliabilityPct != null ? t.reliabilityPct + '%' : 'sin datos', t.reliabilityPct != null && t.reliabilityPct < 90)}
+        ${row(`Cámara y micrófono ${dm} encendidos`, t.reliabilityPct != null ? t.reliabilityPct + '%' : 'sin datos', t.reliabilityPct != null && t.reliabilityPct < 90)}
         ${row('Atención de alumnos (cámara encendida y en la clase)', t.engagementPct != null ? t.engagementPct + '%' : 'sin datos', t.engagementPct != null && t.engagementPct < 70)}
         ${row('Compartió pantalla en', t.engClasses ? `${t.shareClasses} de ${t.engClasses} clases` : 'sin datos', false)}
         ${row('Premios por clase', t.rewardsPerClass != null ? t.rewardsPerClass : 'sin datos', t.rewardsPerClass != null && t.rewardsPerClass < 1)}

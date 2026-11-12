@@ -698,18 +698,21 @@ async function loadRateBanner() {
   const mes = m => MESES[Number(m.slice(5, 7)) - 1];
   el.style.display = 'block';
   el.innerHTML = _rateItems.map((it, i) => `<div class="card" style="background:#fffbea;border-left:5px solid #ffb300;padding:16px 20px;">
-      <div style="font-weight:900;color:#1a1a2e;">⭐ ¿Cómo le fue a ${escHtml(it.studentName)} con ${escHtml(it.teacherName || 'su maestro(a)')}?</div>
+      <div style="font-weight:900;color:#1a1a2e;">⭐ ¿Cómo le fue a ${escHtml(it.studentName)} con ${escHtml(it.teacherName || tArt(it))}?</div>
       <div style="font-size:0.82rem;color:#666;margin:4px 0 10px;">Clases de ${mes(it.month)}. Es opcional y toma 1 minuto. Disponible hasta el ${Number(it.expiresOn.slice(8))} de ${mes(it.expiresOn)}.</div>
       <button class="btn btn-primary" style="width:auto;padding:8px 18px;" onclick="openRate(${i})">Calificar</button></div>`).join('');
 }
+// la maestra / el maestro / le maestre, from the teacher's profile
+function g_priv(it) { const g = it && it.teacherGender; return g === 'f' ? 'la maestra no ve quién la escribió.' : g === 'x' ? 'le maestre no ve quién la escribió.' : g === 'm' ? 'el maestro no ve quién la escribió.' : 'tu maestro(a) no ve quién la escribió.'; }
+function tArt(it, cap) { const g = it && it.teacherGender; const w = g === 'f' ? 'la maestra' : g === 'm' ? 'el maestro' : g === 'x' ? 'le maestre' : 'su maestro(a)'; return cap ? w.charAt(0).toUpperCase() + w.slice(1) : w; }
 function openRate(i) {
   const it = _rateItems[i]; if (!it) return;
   const sc = {};
   const wrap = document.createElement('div'); wrap.id = 'rate-modal';
   wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
   wrap.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:92vh;overflow:auto;padding:20px;">
-    <div style="font-weight:900;font-size:1.05rem;">Califica a ${escHtml(it.teacherName || 'la maestra')}</div>
-    <div style="font-size:0.8rem;color:#777;margin-bottom:10px;">Para ${escHtml(it.studentName)}. Tu opinión es privada: la maestra no ve quién la escribió.</div>
+    <div style="font-weight:900;font-size:1.05rem;">Califica a ${escHtml(it.teacherName || tArt(it))}</div>
+    <div style="font-size:0.8rem;color:#777;margin-bottom:10px;">Para ${escHtml(it.studentName)}. Tu opinión es privada: ${g_priv(it)}</div>
     ${RATE_CRIT.map(([k, l, req]) => `<div style="margin:10px 0 2px;font-weight:800;font-size:0.88rem;">${l}${req ? ' *' : ''}</div><div data-k="${k}" style="display:flex;gap:6px;">${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}" style="font-size:1.7rem;background:none;border:none;cursor:pointer;opacity:.3;padding:0;">⭐</button>`).join('')}</div>`).join('')}
     <div style="margin:12px 0 4px;font-weight:800;font-size:0.88rem;">Comentario (opcional)</div>
     <textarea id="rate-comment" maxlength="600" style="width:100%;min-height:80px;border:2px solid #e0e0e0;border-radius:10px;padding:8px;font-family:inherit;box-sizing:border-box;"></textarea>
