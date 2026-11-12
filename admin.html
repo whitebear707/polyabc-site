@@ -1040,7 +1040,7 @@
         <div style="font-weight:900;font-size:1rem;">📊 Calificación de maestros</div>
         <input type="month" id="sc-month" onchange="loadScorecard()" style="padding:6px;border:1px solid #ccc;border-radius:8px;"/>
       </div>
-      <div style="font-size:0.78rem;color:#777;margin:4px 0 8px;">Puntualidad 23 · Clases completas 15 · Tiempo de habla 15 · Reseñas 10 · Tareas 5 · Calificación de padres 10 · Cámara y micrófono 8 · Atención de alumnos 7 · Pausa tras hablar el alumno 7. Lo que aún no tiene datos cuenta completo. Toca un maestro para ver el detalle.</div>
+      <div style="font-size:0.78rem;color:#777;margin:4px 0 8px;">Puntualidad 30 · Clases completas 15 · Tiempo de habla 15 · Reseñas 10 · Tareas 5 · Calificación de padres 10 · Cámara y micrófono 8 · Atención de alumnos 7. Lo que aún no tiene datos cuenta completo. Toca un maestro para ver el detalle.</div>
       <div id="sc-list">Cargando…</div>
     </div>
     <div id="teachers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
@@ -5858,7 +5858,6 @@ function renderScorecard() {
         ${row('Cubrió clases de otros maestros', t.covered)}
         ${row('Clases muestra → se inscribieron', t.trialsTaught ? `${t.trialsEnrolled} de ${t.trialsTaught}` : 'ninguna este mes')}
         ${row('Alumnos que subieron de nivel (vs. reporte del mes pasado)', t.levelCompared ? `${t.levelUps} de ${t.levelCompared}` : 'sin datos')}
-        ${row('Pausa tras hablar el alumno (ideal 2–8 s)', t.avgWaitSec != null ? t.avgWaitSec + ' s' : 'sin datos', t.avgWaitSec != null && (t.avgWaitSec < 1 || t.avgWaitSec > 10))}
         ${row(`Cámara y micrófono ${dm} encendidos`, t.reliabilityPct != null ? t.reliabilityPct + '%' : 'sin datos', t.reliabilityPct != null && t.reliabilityPct < 90)}
         ${row('Atención de alumnos (cámara encendida y en la clase)', t.engagementPct != null ? t.engagementPct + '%' : 'sin datos', t.engagementPct != null && t.engagementPct < 70)}
         ${row('Compartió pantalla en', t.engClasses ? `${t.shareClasses} de ${t.engClasses} clases` : 'sin datos', false)}

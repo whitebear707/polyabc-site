@@ -3277,7 +3277,7 @@ async function teacherEndClass() {
   if (blocked) { showEndBlocked(blocked); return; }
   const debtPayoffMins = window._debtPayoffMins || 0;
   if (window._socket && typeof TT !== 'undefined' && TT.measuredMs >= 1000) window._socket.emit('talk-time', { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs, longSilenceMs: TT.longMs || 0,
-    waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU } });
+    use: { ...TU } });
   if (window._socket) {
     // the server checks the same rule (its clock is the one that counts)
     const res = await new Promise(resolve => {
@@ -4503,7 +4503,7 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
   setInterval(() => {
     const s = window._socket; if (!s || !s.connected || TT.measuredMs < 1000) return;
     const d = { teacherMs: TT.teacherMs, students: TT.students, measuredMs: TT.measuredMs, silenceMs: TT.silenceMs, longSilenceMs: TT.longMs || 0,
-      waitSumMs: TT.waitSumMs, waitN: TT.waitN, use: { ...TU } };
+      use: { ...TU } };
     s.emit('talk-time', d);
     TT.teacherMs = 0; TT.students = {}; TT.measuredMs = 0; TT.silenceMs = 0; TT.longMs = 0; TT.waitSumMs = 0; TT.waitN = 0;
     TU.shares = 0; TU.shareMs = 0; TU.strokes = 0; TU.rewards = 0;
