@@ -5789,13 +5789,15 @@ async function loadScorecard() {
   const box = document.getElementById('sc-list');
   try {
     const d = await (await fetch(`${SERVER_URL}/admin/teacher-scorecard?month=${mi.value}`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
-    window._sc = d.teachers || [];
+    window._sc = d.teachers || []; window._scHidden = d.hidden || [];
     renderScorecard();
   } catch (e) { box.innerHTML = '<div style="color:#e53935;">⚠️ No se pudo cargar.</div>'; }
 }
 function renderScorecard() {
   const box = document.getElementById('sc-list'), list = window._sc || [];
-  if (!list.length) { box.innerHTML = '<div style="color:#999;">Sin clases este mes.</div>'; return; }
+  const hid = (window._scHidden || []).map(h => `<span style="display:inline-flex;gap:6px;align-items:center;background:#f1f3f4;border-radius:8px;padding:4px 10px;margin:3px 6px 0 0;font-size:0.78rem;">${escHtml(h.teacherName || 'Salón ' + h.room)} <button onclick="scHide('${escJsAttr(h.room)}', false)" style="background:none;border:none;color:#1a73e8;font-weight:800;cursor:pointer;font-size:0.78rem;">Mostrar</button></span>`).join('');
+  const hidBox = hid ? `<div style="margin-top:10px;font-size:0.78rem;color:#888;">Ocultos del scorecard: ${hid}</div>` : '';
+  if (!list.length) { box.innerHTML = '<div style="color:#999;">Sin clases este mes.</div>' + hidBox; return; }
   const col = s => s >= 85 ? '#2e7d32' : s >= 70 ? '#f9a825' : '#c62828';
   const row = (k, v, bad) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid #f0f0f0;font-size:0.82rem;"><span>${k}</span><b style="color:${bad ? '#c62828' : '#1a1a2e'};">${v}</b></div>`;
   box.innerHTML = list.map(t => {
@@ -5834,9 +5836,18 @@ function renderScorecard() {
         ${row('Tareas: asignadas · entregadas · calificadas', `${t.homeworkAssigned} · ${t.handedIn} · ${t.graded}`)}
         ${row('Tareas sin calificar (3+ días)', t.slowGrading, t.slowGrading > 0)}
         ${row('Alumnos: mes pasado → se quedaron', `${t.studentsPrev} → ${t.studentsKept} (este mes ${t.studentsNow})`, t.studentsPrev && t.studentsKept < t.studentsPrev)}
+        <div style="padding:6px 0 0;"><button onclick="event.stopPropagation();scHide('${escJsAttr(t.room)}', true)" style="background:#fff;border:2px solid #bbb;color:#555;border-radius:8px;padding:5px 12px;font-weight:800;font-size:0.78rem;cursor:pointer;">🚫 Ocultar del scorecard (maestro de prueba)</button></div>
       </div>` : ''}
     </div>`;
-  }).join('');
+  }).join('') + hidBox;
+}
+async function scHide(room, hide) {
+  if (hide && !confirm('¿Ocultar a este maestro del scorecard? Sus clases y su pago no cambian; puedes mostrarlo otra vez cuando quieras.')) return;
+  try {
+    const r = await (await fetch(`${SERVER_URL}/admin/scorecard-hide`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ room, hide }) })).json();
+    if (!r.success) { showToast('⚠️ No se pudo'); return; }
+    loadScorecard();
+  } catch (e) { showToast('⚠️ No se pudo conectar con el servidor'); }
 }
 let _scComments = {};
 async function scComments(room) {
