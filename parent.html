@@ -284,6 +284,8 @@
 
     <!-- Payment reminder banner — filled in by renderPaymentBanner() -->
     <div id="payment-banner" style="display:none;"></div>
+    <!-- Monthly "rate your child's teacher" (optional, open the 1st–15th) -->
+    <div id="rate-banner" style="display:none;"></div>
 
     <div class="card">
       <div class="dashboard-nav">
@@ -682,6 +684,55 @@ async function doLogin() {
 }
 
 // Shows a payment reminder at the top of the dashboard: overdue, due today, or due soon.
+// ── Calificar a la maestra (opcional, del 1 al 15 de cada mes) ──
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const RATE_CRIT = [['overall', 'En general', true], ['clarity', 'Explica con claridad', false], ['kindness', 'Es amable y paciente', false], ['fun', 'La clase es dinámica y divertida', false]];
+let _rateItems = [];
+async function loadRateBanner() {
+  const el = document.getElementById('rate-banner'); if (!el) return;
+  try {
+    const r = await fetch(`${SERVER_URL}/parent/teacher-ratings`, { headers: { Authorization: `Bearer ${_parentToken}` } });
+    _rateItems = r.ok ? ((await r.json()).items || []) : [];
+  } catch (e) { _rateItems = []; }
+  if (!_rateItems.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const mes = m => MESES[Number(m.slice(5, 7)) - 1];
+  el.style.display = 'block';
+  el.innerHTML = _rateItems.map((it, i) => `<div class="card" style="background:#fffbea;border-left:5px solid #ffb300;padding:16px 20px;">
+      <div style="font-weight:900;color:#1a1a2e;">⭐ ¿Cómo le fue a ${escHtml(it.studentName)} con ${escHtml(it.teacherName || 'su maestro(a)')}?</div>
+      <div style="font-size:0.82rem;color:#666;margin:4px 0 10px;">Clases de ${mes(it.month)}. Es opcional y toma 1 minuto. Disponible hasta el ${Number(it.expiresOn.slice(8))} de ${mes(it.expiresOn)}.</div>
+      <button class="btn btn-primary" style="width:auto;padding:8px 18px;" onclick="openRate(${i})">Calificar</button></div>`).join('');
+}
+function openRate(i) {
+  const it = _rateItems[i]; if (!it) return;
+  const sc = {};
+  const wrap = document.createElement('div'); wrap.id = 'rate-modal';
+  wrap.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  wrap.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:92vh;overflow:auto;padding:20px;">
+    <div style="font-weight:900;font-size:1.05rem;">Califica a ${escHtml(it.teacherName || 'la maestra')}</div>
+    <div style="font-size:0.8rem;color:#777;margin-bottom:10px;">Para ${escHtml(it.studentName)}. Tu opinión es privada: la maestra no ve quién la escribió.</div>
+    ${RATE_CRIT.map(([k, l, req]) => `<div style="margin:10px 0 2px;font-weight:800;font-size:0.88rem;">${l}${req ? ' *' : ''}</div><div data-k="${k}" style="display:flex;gap:6px;">${[1,2,3,4,5].map(n => `<button type="button" data-n="${n}" style="font-size:1.7rem;background:none;border:none;cursor:pointer;opacity:.3;padding:0;">⭐</button>`).join('')}</div>`).join('')}
+    <div style="margin:12px 0 4px;font-weight:800;font-size:0.88rem;">Comentario (opcional)</div>
+    <textarea id="rate-comment" maxlength="600" style="width:100%;min-height:80px;border:2px solid #e0e0e0;border-radius:10px;padding:8px;font-family:inherit;box-sizing:border-box;"></textarea>
+    <div id="rate-err" style="color:#e53935;font-size:0.85rem;min-height:18px;margin-top:4px;"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;"><button class="btn btn-primary" id="rate-send" style="flex:1;">Enviar</button><button type="button" id="rate-cancel" style="flex:0 0 auto;background:#f1f3f4;border:none;border-radius:10px;padding:0 16px;font-weight:800;cursor:pointer;">Cerrar</button></div></div>`;
+  document.body.appendChild(wrap);
+  wrap.querySelectorAll('[data-k]').forEach(row => row.querySelectorAll('button').forEach(b => b.onclick = () => {
+    sc[row.dataset.k] = Number(b.dataset.n);
+    row.querySelectorAll('button').forEach(x => x.style.opacity = Number(x.dataset.n) <= sc[row.dataset.k] ? '1' : '.3');
+  }));
+  wrap.querySelector('#rate-cancel').onclick = () => wrap.remove();
+  wrap.querySelector('#rate-send').onclick = async () => {
+    const err = wrap.querySelector('#rate-err'), btn = wrap.querySelector('#rate-send');
+    if (!sc.overall) { err.textContent = 'Elige de 1 a 5 estrellas en "En general".'; return; }
+    btn.disabled = true; btn.textContent = 'Enviando…'; err.textContent = '';
+    try {
+      const r = await (await fetch(`${SERVER_URL}/parent/teacher-ratings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_parentToken}` },
+        body: JSON.stringify({ room: it.room, studentName: it.studentName, scores: sc, comment: wrap.querySelector('#rate-comment').value }) })).json();
+      if (!r.success) throw new Error(r.error || 'No se pudo enviar');
+      wrap.remove(); loadRateBanner();
+    } catch (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = 'Enviar'; }
+  };
+}
 function renderPaymentBanner(students) {
   const el = document.getElementById('payment-banner');
   if (!el) return;
@@ -748,6 +799,7 @@ async function loadDashboard() {
   _familyDiscount = data.familyDiscount || 0;
   await loadBillingData();
   renderPaymentBanner(data.students || []);
+  loadRateBanner();
 
   // Render students
   const list = document.getElementById('students-list');

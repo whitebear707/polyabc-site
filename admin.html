@@ -5788,6 +5788,8 @@ function renderScorecard() {
         ${row('Cubrió clases de otros maestros', t.covered)}
         ${row('Clases muestra → se inscribieron', t.trialsTaught ? `${t.trialsEnrolled} de ${t.trialsTaught}` : 'ninguna este mes')}
         ${row('Alumnos que subieron de nivel (vs. reporte del mes pasado)', t.levelCompared ? `${t.levelUps} de ${t.levelCompared}` : 'sin datos')}
+        ${row('Calificación de los padres (opcional)', t.parentRatingCount ? `${t.parentRatingAvg}/5 · ${t.parentRatingCount} ${t.parentRatingCount === 1 ? 'respuesta' : 'respuestas'}` : 'sin respuestas', t.parentRatingAvg != null && t.parentRatingAvg < 3.5)}
+        ${t.parentRatingCount ? `<div style="padding:4px 0;"><button onclick="event.stopPropagation();scComments('${escJsAttr(t.room)}')" style="background:#f1f3f4;border:none;border-radius:8px;padding:5px 12px;font-weight:800;font-size:0.78rem;cursor:pointer;">💬 Ver comentarios de padres</button>${(_scComments[t.room] || []).map(c => `<div style="font-size:0.8rem;border-top:1px solid #f0f0f0;padding:5px 0;"><b>${escHtml(c.studentName)}</b> · ${'★'.repeat(c.scores.overall || 0)}${'☆'.repeat(5 - (c.scores.overall || 0))}${c.comment ? '<br>' + escHtml(c.comment) : ''}</div>`).join('')}</div>` : ''}
         ${row('Reseñas mensuales', `${t.reviewsDone}/${t.reviewsTotal}`, t.reviewsDone < t.reviewsTotal)}
         ${row('Tareas: asignadas · entregadas · calificadas', `${t.homeworkAssigned} · ${t.handedIn} · ${t.graded}`)}
         ${row('Tareas sin calificar (3+ días)', t.slowGrading, t.slowGrading > 0)}
@@ -5795,6 +5797,14 @@ function renderScorecard() {
       </div>` : ''}
     </div>`;
   }).join('');
+}
+let _scComments = {};
+async function scComments(room) {
+  try {
+    const mi = document.getElementById('sc-month');
+    _scComments[room] = await (await fetch(`${SERVER_URL}/admin/teacher-ratings?room=${encodeURIComponent(room)}&month=${mi.value}`, { headers: { Authorization: `Bearer ${currentToken}` } })).json();
+    renderScorecard();
+  } catch (e) { showToast('⚠️ No se pudieron cargar los comentarios'); }
 }
 function scToggle(room) { _scOpen.has(room) ? _scOpen.delete(room) : _scOpen.add(room); renderScorecard(); }
 
