@@ -573,6 +573,11 @@
       : '';
     const list = document.getElementById('review-list');
     const prog = document.getElementById('review-progress');
+    if (_reviewData.open === false) {
+      const od = String(_reviewData.opensOn || '').split('-');
+      prog.textContent = ''; list.innerHTML = `<div style="color:#888;font-size:0.88rem;">Reviews for this month open on ${od[1]}/${od[2]} (5 days before the deadline).</div>`;
+      return;
+    }
     const studs = _reviewData.students || [];
     const done = studs.filter(s => s.submitted).length;
     prog.textContent = `${done} / ${studs.length} completed`;
