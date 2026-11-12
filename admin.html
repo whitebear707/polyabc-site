@@ -523,6 +523,25 @@
       <div id="pending-transfers-empty" style="text-align:center;color:#888;padding:20px;font-size:0.9rem;">No hay transferencias pendientes</div>
     </div>
 
+    <!-- Student vacation mode -->
+    <div style="background:#fff;border:2px solid #00897b;border-radius:14px;padding:20px;margin-bottom:22px;">
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">🏖️ Vacaciones de un alumno</div>
+      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
+        Pausa a un alumno que ya pagó: no se le programan clases en esas fechas, su fecha de pago se recorre los mismos días, y su horario con el maestro queda apartado para que nadie más lo tome. Al regresar todo sigue igual.
+      </div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;">
+        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Alumno</label>
+          <input type="text" id="vac-name" list="vac-names" placeholder="Nombre del alumno" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/><datalist id="vac-names"></datalist></div>
+        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Primer día sin clase</label>
+          <input type="date" id="vac-from" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
+        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Último día sin clase</label>
+          <input type="date" id="vac-to" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
+      </div>
+      <button onclick="saveVacation()" style="margin-top:14px;padding:10px 22px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Poner de vacaciones</button>
+      <div id="vac-msg" style="margin-top:10px;font-size:0.85rem;font-weight:700;"></div>
+      <div id="vac-list" style="margin-top:10px;"></div>
+    </div>
+
     <!-- Students Billing Table -->
     <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -704,25 +723,6 @@
       </div>
       <button onclick="previewClosure()" style="margin-top:14px;padding:10px 22px;background:#e65100;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">🔍 Ver a quién afecta</button>
       <div id="closure-preview" style="margin-top:14px;"></div>
-    </div>
-
-    <!-- Student vacation mode -->
-    <div style="background:#fff;border:2px solid #00897b;border-radius:14px;padding:20px;margin-bottom:22px;">
-      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:4px;">🏖️ Vacaciones de un alumno</div>
-      <div style="font-size:0.82rem;color:#888;margin-bottom:14px;">
-        Pausa a un alumno que ya pagó: no se le programan clases en esas fechas, su fecha de pago se recorre los mismos días, y su horario con el maestro queda apartado para que nadie más lo tome. Al regresar todo sigue igual.
-      </div>
-      <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;">
-        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Alumno</label>
-          <input type="text" id="vac-name" list="vac-names" placeholder="Nombre del alumno" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/><datalist id="vac-names"></datalist></div>
-        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Primer día sin clase</label>
-          <input type="date" id="vac-from" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
-        <div><label style="font-size:0.78rem;font-weight:700;color:#555;display:block;margin-bottom:4px;">Último día sin clase</label>
-          <input type="date" id="vac-to" style="width:100%;padding:9px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.9rem;"/></div>
-      </div>
-      <button onclick="saveVacation()" style="margin-top:14px;padding:10px 22px;background:#00897b;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">Poner de vacaciones</button>
-      <div id="vac-msg" style="margin-top:10px;font-size:0.85rem;font-weight:700;"></div>
-      <div id="vac-list" style="margin-top:10px;"></div>
     </div>
 
     <button onclick="openAddStaffModal()" style="margin-bottom:16px;padding:10px 20px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.9rem;cursor:pointer;">+ Agregar personal</button>
@@ -4860,6 +4860,7 @@ async function loadBillingStudents() {
     const res = await fetch(`${SERVER_URL}/billing/students`, { headers: { Authorization: `Bearer ${currentToken}` } });
     _billingStudents = await res.json();
     renderBillingTable(_billingStudents);
+    loadVacations();
   } catch(e) {}
 }
 
@@ -6135,7 +6136,6 @@ async function renderStaff() {
   const res = await fetch(`${SERVER_URL}/staff`, { headers: { Authorization: `Bearer ${currentToken}` } });
   _allStaff = await res.json();
   renderStaffList();
-  loadVacations();
 }
 
 async function loadEmailUsage() {
