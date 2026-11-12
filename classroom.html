@@ -864,6 +864,7 @@ function connectSocket() {
 
   socket.on('room-joined', async ({ name, teacherLoginAt, activeBreak }) => {
     _joinedName = name; _joinedSocket = socket;
+    keepClassAwake();
     // The server forgets open classes when it restarts (deploys, crashes). If this teacher's page still shows the class as open, re-announce it so students and spectators are let in again.
     if (IS_TEACHER && classIsOpen) socket.emit('class-opened', { room: ROOM });
     // Store original login time from server — used for owed timer on reconnects
@@ -3672,6 +3673,17 @@ async function callSsPeer(studentId) {
 // while working in another tab). Reuses the videos the
 // class already receives, so it adds no internet use. Browsers without it fall back to the shared picture only.
 let _float = null; // { win, timer }
+// Ask the browser not to put this class to sleep: a screen wake lock (re-asked when the tab comes back) and a web lock held while the page is open
+let _wakeLock = null, _lockHeld = false;
+function keepClassAwake() {
+  try { if (!_lockHeld && navigator.locks && navigator.locks.request) { _lockHeld = true; navigator.locks.request('polyabc-class-open', () => new Promise(() => {})).catch(() => { _lockHeld = false; }); } } catch (e) { _lockHeld = false; }
+  try {
+    if (navigator.wakeLock && navigator.wakeLock.request && document.visibilityState === 'visible' && (!_wakeLock || _wakeLock.released)) {
+      navigator.wakeLock.request('screen').then(l => { _wakeLock = l; }).catch(() => {});
+    }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window._joinedSocketOk !== false && typeof _joinedName !== 'undefined' && _joinedName) keepClassAwake(); });
 // The "Class has ended" screen must really end the call: close every audio/video link and the floating window, so nothing keeps running behind it
 function shutdownClassMedia() {
   try { [audioPeers, videoPeers, ssPeers].forEach(m => Object.keys(m).forEach(k => { try { m[k] && m[k].close && m[k].close(); } catch (e) {} delete m[k]; })); } catch (e) {}
