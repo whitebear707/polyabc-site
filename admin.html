@@ -366,6 +366,7 @@
     <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operaciones</div>
     <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Horario</div>
     <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Alumnos</div>
+    <div class="menu-item" id="menu-studentaccounts" onclick="menuNav('studentaccounts')">🔓 Cuentas de alumnos</div>
     <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Grupos</div>
     <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Padres</div>
     <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Asistencia</div>
@@ -864,6 +865,16 @@
   <!-- ══════════════════════════════════════════════════════ -->
   <!-- PANEL: JUNTAS (meetings, room 0) -->
   <!-- ══════════════════════════════════════════════════════ -->
+  <div id="panel-studentaccounts" class="panel">
+    <div class="panel-title">🔓 Cuentas de alumnos</div>
+    <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
+      Aquí se <b>desactiva</b> o se <b>reactiva</b> el acceso de un alumno. Una cuenta desactivada no puede entrar a clase, y al desactivarla se le avisa por correo al padre o madre.
+    </div>
+    <input type="text" id="sa-search" oninput="renderStudentAccounts()" placeholder="Buscar por nombre o número de ID" style="width:100%;padding:12px;border:2px solid #ddd;border-radius:10px;font-family:Nunito;font-size:0.95rem;margin-bottom:12px;"/>
+    <div id="sa-msg" style="font-size:0.85rem;font-weight:700;margin-bottom:8px;"></div>
+    <div id="sa-list"></div>
+  </div>
+
   <div id="panel-meetings" class="panel">
     <div class="panel-title">🤝 Juntas</div>
     <div style="background:#e8f0fe;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:0.88rem;color:#1a3a6e;line-height:1.5;">
@@ -1629,7 +1640,7 @@ function closeAdminIosPopup() { document.getElementById('admin-ios-popup').style
 // The assistant only schedules: calendar, students, groups, parents, attendance (view).
 // The server refuses anything else; this just hides what they can't use.
 let currentRole = 'admin';
-const ASSISTANT_PANELS = ['calendar', 'students', 'groups', 'parents', 'attendance', 'meetings'];
+const ASSISTANT_PANELS = ['calendar', 'students', 'studentaccounts', 'groups', 'parents', 'attendance', 'meetings'];
 function applyAssistantMode(name) {
   document.querySelectorAll('#hamburger-menu .menu-item').forEach(mi => {
     const panel = (mi.id || '').replace('menu-', '');
@@ -1806,7 +1817,7 @@ function menuNav(name) {
   closeMenu();
   showPanel(name);
   // Update active state in menu
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','studentaccounts','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
@@ -1814,7 +1825,7 @@ function menuNav(name) {
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
-  ['calendar','teachers','students','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
+  ['calendar','teachers','students','studentaccounts','groups','payroll','attendance','accounting','parents','staff','meetings','recordings','certificates','announcements','assistants','spectators','tickets'].forEach(p => {
     const panel = document.getElementById(`panel-${p}`);
     const btn   = document.getElementById(`nav-${p}`);
     if (panel) panel.classList.toggle('active', p === name);
@@ -1828,6 +1839,7 @@ function showPanel(name) {
   if (name === 'calendar')   { renderMasterCalendar(); }
   if (name === 'teachers')   { renderTeachers(); loadReviewStatus(); loadMakeupRequests(); loadScorecard(); }
   if (name === 'students')   renderAllStudents();
+  if (name === 'studentaccounts') loadStudentAccounts();
   if (name === 'groups')     renderGroups();
   if (name === 'accounting') { renderAccounting(); }
   if (name === 'parents')    renderParentsPanel();
@@ -1839,6 +1851,44 @@ function showPanel(name) {
   if (name === 'announcements') renderAnnouncements();
   if (name === 'assistants') renderAssistants();
   if (name === 'tickets')    { loadTicketSettings(); loadHelpVideos(); }
+}
+
+
+// ── Student accounts: turn access off or on (admin and assistant) ──
+let _saStudents = [];
+async function loadStudentAccounts() {
+  try {
+    const r = await fetch(`${SERVER_URL}/students`, { headers: { Authorization: `Bearer ${currentToken}` } });
+    const list = await r.json();
+    _saStudents = (Array.isArray(list) ? list : []).filter(s => s.name && s.classType !== 'Trial');
+  } catch (e) { _saStudents = []; }
+  renderStudentAccounts();
+}
+function renderStudentAccounts() {
+  const box = document.getElementById('sa-list'); if (!box) return;
+  const q = (document.getElementById('sa-search').value || '').trim().toLowerCase().replace(/^#/, '');
+  const rows = _saStudents.filter(s => !q || String(s.name).toLowerCase().includes(q) || String(s.fullName || '').toLowerCase().includes(q) || String(s.studentId || '').toLowerCase() === q)
+    .sort((a, b) => (b.manuallySuspended ? 1 : 0) - (a.manuallySuspended ? 1 : 0) || String(a.name).localeCompare(String(b.name))).slice(0, 80);
+  if (!rows.length) { box.innerHTML = '<div style="color:#999;">No hay alumnos con ese nombre.</div>'; return; }
+  box.innerHTML = rows.map(s => {
+    const off = !!s.manuallySuspended;
+    return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:2px solid ${off ? '#ffcdd2' : '#e0e0e0'};border-radius:12px;padding:10px 14px;margin-bottom:8px;">
+      <div style="flex:1;min-width:180px;"><b>${s.studentId ? '#' + escHtml(s.studentId) + ' · ' : ''}${escHtml(s.name)}</b>${s.fullName && s.fullName !== s.name ? ` <span style="color:#777;">(${escHtml(s.fullName)})</span>` : ''}
+        <div style="font-size:0.78rem;color:${off ? '#c62828' : '#2e7d32'};font-weight:800;">${off ? '🚫 Cuenta desactivada' : '✅ Cuenta activa'}</div></div>
+      <button onclick="saToggle('${escJsAttr(s.name)}', ${!off})" style="padding:8px 16px;border:none;border-radius:10px;font-family:Nunito;font-weight:900;font-size:0.85rem;cursor:pointer;background:${off ? '#2e7d32' : '#e53935'};color:#fff;">${off ? 'Reactivar' : 'Desactivar'}</button>
+    </div>`;
+  }).join('');
+}
+async function saToggle(name, suspend) {
+  if (!confirm(suspend ? `¿Desactivar la cuenta de ${name}? No podrá entrar a clase y se le avisará por correo al padre o madre.` : `¿Reactivar la cuenta de ${name}?`)) return;
+  const msg = document.getElementById('sa-msg');
+  try {
+    const r = await (await fetch(`${SERVER_URL}/admin/students/suspend`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: JSON.stringify({ name, suspended: suspend, reason: 'Non-payment' }) })).json();
+    if (!r.success) { msg.style.color = '#e53935'; msg.textContent = '❌ ' + (r.error || 'No se pudo'); return; }
+    msg.style.color = '#2e7d32'; msg.textContent = suspend ? `✅ Cuenta de ${name} desactivada.` : `✅ Cuenta de ${name} reactivada.`;
+    const s = _saStudents.find(x => x.name === name); if (s) s.manuallySuspended = suspend;
+    renderStudentAccounts();
+  } catch (e) { msg.style.color = '#e53935'; msg.textContent = '❌ No se pudo conectar con el servidor'; }
 }
 
 // ── MASTER CALENDAR ──
