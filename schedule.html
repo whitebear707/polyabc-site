@@ -1313,6 +1313,7 @@
         <div>
           <div style="font-weight:900;color:${isSubDuty?'#ce93d8':isToday?'#ffd740':'#a0c4ff'};font-size:0.9rem;">${isToday?'📍 Today':'📅'} ${localDate}</div>
           <div style="font-size:0.85rem;color:white;margin-top:2px;">🕐 ${localTime} · ${escHtml(a.classType||'')}${a.groupName?' · '+escHtml(a.groupName):''}</div>
+          ${(!a.groupName && a.studentName) ? `<div style="font-size:0.85rem;color:#fff;font-weight:800;margin-top:2px;">👤 ${escHtml(a.studentName)}</div>` : ''}
           ${isSubDuty ? `<div style="font-size:0.78rem;color:#ce93d8;font-weight:700;margin-top:4px;">🔁 Substituting for ${escHtml(a.originalTeacherName||'another teacher')} · Room ${escHtml(a.room)}</div>` : ''}
           ${isCoveredByOther ? `<div style="font-size:0.78rem;color:#888;font-weight:700;margin-top:4px;">Covered by substitute: ${escHtml(a.subTeacherName||'—')}</div>` : ''}
         </div>
