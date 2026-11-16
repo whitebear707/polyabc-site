@@ -254,16 +254,16 @@
   <div class="wrap nav-inner">
     <a href="login.html" class="nav-logo"><img src="LOGO.png" alt="PolyABC"/></a>
     <div class="nav-links">
-      <a href="#clases">Clases</a>
-      <a href="#como-funciona">Cómo funciona</a>
-      <a href="#niveles">Niveles</a>
+      <a href="clases.html">Clases</a>
+      <a href="escuela.html">Escuela</a>
+      <a href="preguntas.html">Preguntas</a>
       <a href="#ayuda" id="nav-help" class="btn btn-sm" style="display:none;background:#e8f0fe;color:#1a73e8;">❓ Ayuda</a>
-      <a href="login.html" class="btn btn-primary btn-sm">Entrar a clase</a>
+      <a href="login.html" class="btn btn-primary btn-sm" data-track="login">Entrar a clase</a>
     </div>
   </div>
 </nav>
 
-<header class="hero">
+<header class="hero" data-sec="hero">
   <div class="wrap hero-grid">
     <div>
       <span class="eyebrow">Escuela de inglés en línea</span>
@@ -273,7 +273,7 @@
         Sin apps que instalar — solo abre tu navegador y entra.
       </p>
       <div class="hero-cta">
-        <a href="login.html" class="btn btn-primary">Entrar a clase</a>
+        <a href="login.html" class="btn btn-primary" data-track="login">Entrar a clase</a>
         <a href="https://wa.me/523313208792?text=Hola%2C%20me%20interesa%20inscribir%20a%20un%20alumno%20en%20PolyABC%20y%20necesito%20un%20c%C3%B3digo%20de%20registro."
            target="_blank" rel="noopener" class="btn btn-wa js-wa">💬 Inscríbete por WhatsApp</a>
       </div>
@@ -314,7 +314,7 @@
   </div>
 </header>
 
-<section id="clases">
+<section id="clases" data-sec="clases">
   <div class="wrap">
     <div class="section-head">
       <h2>Dos formas de aprender</h2>
@@ -344,10 +344,11 @@
         </ul>
       </div>
     </div>
+    <p style="text-align:center;margin-top:26px;"><a href="clases.html" class="btn btn-ghost" data-track="ver-clases">Ver todos los detalles de las clases →</a></p>
   </div>
 </section>
 
-<section id="como-funciona" style="background:var(--paper);">
+<section id="como-funciona" style="background:var(--paper);" data-sec="como-funciona">
   <div class="wrap">
     <div class="section-head">
       <h2>Cómo empezar</h2>
@@ -373,7 +374,7 @@
   </div>
 </section>
 
-<section id="niveles">
+<section id="niveles" data-sec="niveles">
   <div class="wrap">
     <div class="section-head">
       <h2>Niveles</h2>
@@ -400,7 +401,7 @@
   </div>
 </section>
 
-<section style="padding-top:0;">
+<section style="padding-top:0;" data-sec="cta">
   <div class="wrap">
     <div class="cta-band">
       <h2>¿Listo para la primera clase?</h2>
@@ -416,10 +417,12 @@
     <div class="foot-inner">
       <div class="foot-logo"><img src="LOGO.png" alt="PolyABC"/></div>
       <div class="foot-links">
-        <a href="login.html">Entrar a clase</a>
-        <a href="parent.html">Panel de padres</a>
-        <a href="#clases">Clases</a>
-        <a href="#niveles">Niveles</a>
+        <a href="login.html" data-track="login">Entrar a clase</a>
+        <a href="parent.html" data-track="parent">Panel de padres</a>
+        <a href="clases.html">Clases</a>
+        <a href="escuela.html">Escuela</a>
+        <a href="preguntas.html">Preguntas y contacto</a>
+        <a href="privacy.html">Privacidad</a>
         <a href="#ayuda" id="foot-help" style="display:none;">Ayuda</a>
       </div>
     </div>
@@ -480,6 +483,7 @@
     } catch (e) {}
   })();
 </script>
+<script src="track.js" defer></script>
 <script src="live.js" defer></script>
 </body>
 </html>

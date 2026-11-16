@@ -98,6 +98,7 @@
     <button class="tab" id="tab-devices" data-tab="devices">🔧 Device checks</button>
     <button class="tab" id="tab-system" data-tab="system">🩺 System</button>
     <button class="tab" id="tab-videos" data-tab="videos">Help videos</button>
+    <button class="tab" id="tab-visits" data-tab="visits">📈 Website visits</button>
     <button class="tab" id="tab-live" data-tab="live">🟢 Live <span id="lv-badge" class="badge hidden"></span></button>
   </div>
 
@@ -137,6 +138,15 @@
       <div id="rp-body" style="margin-top:8px;">Loading…</div>
     </div>
     <div class="card"><div class="row"><b>🐞 Page errors (last 14 days)</b><button class="btn-ghost sm" id="er-refresh">Refresh</button></div><div id="er-list" style="margin-top:8px;"></div></div>
+  </section>
+
+  <!-- Website visits -->
+  <section id="sec-visits" class="hidden">
+    <div class="row" style="margin-bottom:10px;">
+      <span class="muted">Visitors to the public pages (home, classes, school, FAQ). Anonymous; your own visits are left out if you opened polyabc.academy/?notrack once.</span>
+      <span><select id="vs-days" class="sm" style="padding:6px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);font-family:inherit;font-weight:800;"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select> <button class="btn-ghost sm" id="vs-refresh">Refresh</button></span>
+    </div>
+    <div id="vs-body">Loading…</div>
   </section>
 
   <!-- Classes -->
@@ -298,22 +308,62 @@ async function reopenTicket(id) {
 }
 
 function showTab(name) {
-  ['board', 'classes', 'tickets', 'devices', 'system', 'videos', 'live'].forEach(t => {
+  ['board', 'classes', 'tickets', 'devices', 'system', 'videos', 'live', 'visits'].forEach(t => {
     document.getElementById('sec-' + t).classList.toggle('hidden', name !== t);
     document.getElementById('tab-' + t).classList.toggle('on', name === t);
   });
   document.getElementById('app-view').classList.toggle('wide', name === 'board');
   if (name === 'tickets') loadTickets();
   if (name === 'videos') loadVideos();
+  if (name === 'visits') loadVisits();
   if (name === 'board') loadBoard();
   if (name === 'devices') loadDeviceChecks();
   if (name === 'system') loadSystem();
   if (name === 'live') { LV.unread = 0; lvBadge(); lvRender(); }
 }
 
+
+// ── 📈 Website visits ──
+const VS_PAGE = { 'index.html': '🏠 Home', 'clases.html': '📚 Classes', 'escuela.html': '🏫 School', 'preguntas.html': '❓ FAQ & contact' };
+const VS_SEC = { hero: 'Top banner', clases: 'Two ways to learn', tipos: 'Group vs 1-on-1', 'como-funciona': 'How to start', 'como-es': 'What a class is like', niveles: 'Levels', empezar: 'How to start', cta: 'Sign-up banner (bottom)', quienes: 'Who we are', metodo: 'How we teach', padres: 'For families', maestros: 'Our teachers', faq: 'Questions list', contacto: 'Contact' };
+const VS_CLICK = { whatsapp: '💬 WhatsApp sign-up', login: '🔑 Enter class', parent: '👪 Parent panel', check: '🔧 Device check', 'precio-grupal': '💲 Group price', 'precio-1a1': '💲 1-on-1 price', 'ver-clases': '📚 See class details' };
+const fmtSec = s => s >= 60 ? Math.floor(s / 60) + 'm ' + String(s % 60).padStart(2, '0') + 's' : s + 's';
+function vsClickName(l) { if (l.startsWith('faq:')) return '❔ Opened question: ' + l.slice(4); return VS_CLICK[l] || l; }
+async function loadVisits() {
+  const body = document.getElementById('vs-body');
+  try {
+    const days = document.getElementById('vs-days').value;
+    const d = await (await api('/techsupport/site-stats?days=' + days)).json();
+    if (!d || d.error) { body.textContent = 'Could not load.'; return; }
+    const tile = (n, l) => `<div class="card" style="text-align:center;margin:0;"><div style="font-size:1.7rem;font-weight:900;">${n}</div><div class="muted">${l}</div></div>`;
+    const max = Math.max(1, ...d.daily.map(x => x.visitors));
+    const bars = d.daily.map(x => `<div title="${x.day}: ${x.visitors} visitors, ${x.views} page views" style="flex:1;min-width:2px;background:var(--purple);border-radius:3px 3px 0 0;height:${Math.max(2, Math.round(x.visitors / max * 100))}%;opacity:${x.visitors ? 1 : .2};"></div>`).join('');
+    const tbl = (head, rows) => `<table class="mini"><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${head.length}" class="muted">Nothing yet</td></tr>`}</table>`;
+    const f = d.funnel, pct = n => f.visitors ? Math.round(n / f.visitors * 100) + '%' : '–';
+    const dev = d.devices, devTot = (dev.phone + dev.tablet + dev.computer) || 1;
+    body.innerHTML = `
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:12px;">
+        ${tile(d.visitors, 'Visitors')}${tile(d.pageviews, 'Page views')}${tile(fmtSec(d.avgVisitSec), 'Avg time per visit')}${tile(d.bounceRate + '%', 'Left within 15 s')}${tile(d.returning, 'Came back')}
+      </div>
+      <div class="card"><b>Visitors per day</b><div style="display:flex;align-items:flex-end;gap:2px;height:90px;margin-top:8px;">${bars}</div></div>
+      <div class="card"><b>🎯 What visitors did</b>${tbl(['Step', 'Visitors', '% of all'], [
+        ['Visited the site', f.visitors, '100%'], ['Looked at Classes page', f.clases, pct(f.clases)], ['Looked at School page', f.escuela, pct(f.escuela)], ['Looked at FAQ page', f.preguntas, pct(f.preguntas)],
+        ['Tapped WhatsApp sign-up', f.whatsapp, pct(f.whatsapp)], ['Tapped Enter class (existing families)', f.login, pct(f.login)]])}</div>
+      <div class="card"><b>📄 Pages</b>${tbl(['Page', 'Visitors', 'Views', 'Avg time', 'Avg scrolled'], d.pages.map(p => [VS_PAGE[p.path] || esc(p.path), p.visitors, p.views, fmtSec(p.avgSec), p.avgScroll + '%']))}</div>
+      <div class="card"><b>🔎 Which parts get read</b><div class="muted">Time visitors actually spent with each section on screen (most first).</div>${tbl(['Page › Section', 'Visitors', 'Avg time', 'Total'], d.sections.map(s => [(VS_PAGE[s.path] || esc(s.path)) + ' › ' + esc(VS_SEC[s.id] || s.id), s.viewers, fmtSec(s.avgSec), fmtSec(s.totalSec)]))}</div>
+      <div class="card"><b>👆 What they tapped</b>${tbl(['Button / question', 'Visitors', 'Taps'], d.clicks.map(c => [esc(vsClickName(c.label)), c.visitors, c.clicks]))}</div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+        <div class="card"><b>🌐 Where they came from</b>${tbl(['Source', 'Visitors'], d.sources.map(s => [esc(s.name), s.visitors]))}</div>
+        <div class="card"><b>📱 Devices</b>${tbl(['Device', 'Share'], [['Phone', Math.round(dev.phone / devTot * 100) + '%'], ['Tablet', Math.round(dev.tablet / devTot * 100) + '%'], ['Computer', Math.round(dev.computer / devTot * 100) + '%']])}</div>
+      </div>`;
+  } catch (e) { body.textContent = 'Could not load.'; }
+}
+document.getElementById('vs-refresh').onclick = loadVisits;
+document.getElementById('vs-days').onchange = loadVisits;
+
 // ── 🟢 Live: who is on the website now ──
 const LV = { map: new Map(), sock: null, unread: 0, open: null, tick: null };
-const LV_PAGES = { 'index.html': '🏠 Home', '': '🏠 Home', 'login.html': '🔑 Login', 'parent.html': '👪 Parent panel', 'student.html': '🎓 Student panel', 'student-greeting.html': '🎓 Student welcome', 'homework.html': '📝 Homework', 'exam.html': '📝 Exam', 'check.html': '🔧 Device check', 'verify.html': '🏅 Certificate check', 'privacy.html': '📄 Privacy', 'terms.html': '📄 Terms' };
+const LV_PAGES = { 'clases.html': '📚 Classes', 'escuela.html': '🏫 School', 'preguntas.html': '❓ FAQ & contact', 'index.html': '🏠 Home', '': '🏠 Home', 'login.html': '🔑 Login', 'parent.html': '👪 Parent panel', 'student.html': '🎓 Student panel', 'student-greeting.html': '🎓 Student welcome', 'homework.html': '📝 Homework', 'exam.html': '📝 Exam', 'check.html': '🔧 Device check', 'verify.html': '🏅 Certificate check', 'privacy.html': '📄 Privacy', 'terms.html': '📄 Terms' };
 const LV_LINKS = [
   ['login.html', '🔑 Iniciar sesión', 'Log in'],
   ['parent.html', '👪 Panel de padres', 'Parent panel'],
