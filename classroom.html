@@ -582,6 +582,17 @@ const ICE_CONFIG = {
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
   ]
 };
+// Candidates can arrive before the offer/answer is applied; keep them instead of losing them
+// (the video link already did this; audio and screen share did not).
+function addIceQ(pc, cand) {
+  if (!pc) return;
+  if (!pc.remoteDescription) { (pc._iceQ = pc._iceQ || []).push(cand); return; }
+  try { pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {}); } catch (e) {}
+}
+async function flushIceQ(pc) {
+  const q = (pc && pc._iceQ) || []; if (pc) pc._iceQ = [];
+  for (const cand of q) { try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {} }
+}
 // Our own relay server (credentials come from the school's server, never from this file). If the server
 // has none configured, the free public relay above keeps working as before.
 (async () => {
@@ -876,6 +887,7 @@ function connectSocket() {
   socket.on('room-joined', async ({ name, teacherLoginAt, activeBreak }) => {
     _joinedName = name; _joinedSocket = socket;
     keepClassAwake();
+    addReconnectButton();
     // The server forgets open classes when it restarts (deploys, crashes). If this teacher's page still shows the class as open, re-announce it so students and spectators are let in again.
     if (IS_TEACHER && classIsOpen) socket.emit('class-opened', { room: ROOM });
     // Store original login time from server — used for owed timer on reconnects
@@ -1415,6 +1427,7 @@ function connectSocket() {
     };
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await flushIceQ(pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('ss-answer', { to: from, answer: pc.localDescription });
@@ -1434,14 +1447,16 @@ function connectSocket() {
   socket.on('ss-answer', async ({ from, answer }) => {
     const pc = ssPeers[from];
     if (pc && pc.signalingState === 'have-local-offer') {
-      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); } catch(e) {}
+      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); await flushIceQ(pc); } catch(e) {}
     }
   });
 
   socket.on('ss-ice', async ({ from, candidate }) => {
-    if (candidate && candidate.ssRetry) { if (IS_TEACHER && isSharing && screenStream) ssRetryPeer(from, 'student asked'); return; }
-    const pc = ssPeers[from];
-    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+    if (candidate && candidate.ssRetry) {
+      if (IS_TEACHER && isSharing && screenStream) { if (candidate.manual) _ssRetries[from] = 0; ssRetryPeer(from, candidate.manual ? 'student pressed reconnect' : 'student asked'); }
+      return;
+    }
+    addIceQ(ssPeers[from], candidate);
   });
 
   // When teacher gets answer back, call each student
@@ -1617,20 +1632,46 @@ function disableChatInputTemporarily() {
   const timer = setInterval(tick, 1000);
 }
 
+const audioTries = {};
+function remoteSendsAudio(pc) {
+  const sdp = pc.currentRemoteDescription && pc.currentRemoteDescription.sdp;
+  if (!sdp) return true;
+  const sec = sdp.split(/\r?\nm=/).find(x => /^(m=)?audio /.test(x));
+  return !!sec && /a=(sendrecv|sendonly)/.test(sec);
+}
+// Self-heal for sound: if nothing arrives within a few seconds, or the link fails, redo the call (up to 4 times)
+function watchAudioPeer(targetId, pc, socket) {
+  const check = () => {
+    if (audioPeers[targetId] !== pc) return;
+    if (!remoteRoles[targetId] && !studentSlots[targetId]) return;
+    const state = pc.connectionState;
+    if (pc._gotTrack && state !== 'failed' && state !== 'disconnected' && state !== 'closed') return;
+    if (!remoteSendsAudio(pc) && state === 'connected') return;
+    if ((audioTries[targetId] = (audioTries[targetId] || 0) + 1) > 4) return;
+    removeAudioPeer(targetId); callAudioPeer(targetId, socket);
+  };
+  setTimeout(check, 8000);
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') check(); };
+}
 function createAudioPeer(targetId, socket) {
   if (audioPeers[targetId]) return audioPeers[targetId];
   const pc = new RTCPeerConnection(ICE_CONFIG);
+  watchAudioPeer(targetId, pc, socket);
   if (localStream) localStream.getAudioTracks().forEach(t => pc.addTrack(t, localStream));
   pc.onicecandidate = (e) => { if (e.candidate) socket.emit('audio-ice', { to: targetId, candidate: e.candidate }); };
-  pc.ontrack = (e) => { const audio = new Audio(); audio.srcObject = e.streams[0]; audio.autoplay = true; audio.play().catch(() => { showSoundUnlock(); }); audio.id = `audio-${targetId}`; document.body.appendChild(audio); };
+  pc.ontrack = (e) => { pc._gotTrack = true; audioTries[targetId] = 0; const old = document.getElementById(`audio-${targetId}`); if (old) old.remove(); const audio = new Audio(); audio.srcObject = e.streams[0]; audio.autoplay = true; audio.play().catch(() => { showSoundUnlock(); }); audio.id = `audio-${targetId}`; document.body.appendChild(audio); };
   audioPeers[targetId] = pc; return pc;
 }
 
 async function callAudioPeer(targetId, socket) {
   const pc = createAudioPeer(targetId, socket);
-  const offer = await pc.createOffer({ offerToReceiveAudio: true });
-  await pc.setLocalDescription(offer);
-  socket.emit('audio-offer', { to: targetId, offer: pc.localDescription });
+  try {
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    // The other side may have offered while we were preparing ours; then ours is dropped and we answer theirs
+    if (audioPeers[targetId] !== pc || pc.signalingState !== 'stable') return;
+    await pc.setLocalDescription(offer);
+    socket.emit('audio-offer', { to: targetId, offer: pc.localDescription });
+  } catch (e) { console.warn('audio call error:', e.message); }
 }
 
 function removeAudioPeer(socketId) {
@@ -1738,6 +1779,7 @@ function startAudioRelay(socket) {
       }
       if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') return;
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await flushIceQ(pc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.emit('audio-answer', { to: from, answer: pc.localDescription });
@@ -1746,12 +1788,12 @@ function startAudioRelay(socket) {
   socket.on('audio-answer', async ({ from, answer }) => {
     const pc = audioPeers[from];
     if (pc && pc.signalingState === 'have-local-offer') {
-      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); } catch(e) {}
+      try { await pc.setRemoteDescription(new RTCSessionDescription(answer)); await flushIceQ(pc); } catch(e) {}
     }
   });
   socket.on('audio-ice', async ({ from, candidate }) => {
     const pc = audioPeers[from];
-    if (pc) { try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {} }
+    if (pc) { if (candidate && candidate.audioRetry) { removeAudioPeer(from); callAudioPeer(from, socket); return; } addIceQ(pc, candidate); }
   });
 }
 
@@ -3650,6 +3692,25 @@ async function ssCheck() {
       showShareProblem('noframes');
     }
   }
+}
+// Student: one tap redoes every link with the teacher (sound, camera and the shared screen)
+function reconnectMedia() {
+  const s = window._socket; if (!s) return;
+  const tsid = Object.keys(remoteRoles).find(k => remoteRoles[k] === 'teacher');
+  const btn = document.getElementById('reconnect-btn');
+  if (btn) { btn.textContent = '⏳ Reconnecting…'; btn.disabled = true; setTimeout(() => { btn.textContent = "🔄 Can't see or hear?"; btn.disabled = false; }, 8000); }
+  if (!tsid) return;
+  if (window.reportPageError) reportPageError('student pressed Reconnect', 'reconnect');
+  audioTries[tsid] = 0; videoTries[tsid] = 0;
+  removeAudioPeer(tsid); callAudioPeer(tsid, s);
+  s.emit('video-retry', { to: tsid });
+  s.emit('ss-ice', { to: tsid, candidate: { ssRetry: true, manual: true } });
+}
+function addReconnectButton() {
+  if (IS_TEACHER || IS_SPECTATOR || document.getElementById('reconnect-btn')) return;
+  const b = document.createElement('button'); b.id = 'reconnect-btn'; b.textContent = "🔄 Can't see or hear?";
+  b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;background:#1a73e8;color:#fff;border:none;border-radius:22px;padding:9px 16px;font-family:Nunito,sans-serif;font-weight:900;font-size:0.85rem;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,0.35);opacity:0.92;';
+  b.onclick = reconnectMedia; document.body.appendChild(b);
 }
 function showShareProblem(kind) {
   const id = 'ss-problem-' + kind;
