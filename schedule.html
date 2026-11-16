@@ -1595,6 +1595,7 @@
       <div class="assignment-row">
         <div class="a-time">🕐 ${fmt12(a.time)} ${statusBadge}</div>
         <div class="a-detail">👥 ${a.students} student${a.students !== 1 ? 's' : ''} &nbsp;|&nbsp; 🎓 Level ${escHtml(a.level)} &nbsp;|&nbsp; ⏱ ${escHtml(a.classType)}${a.groupName ? ' &nbsp;|&nbsp; 👤 '+escHtml(a.groupName) : ''}</div>
+        ${(!a.groupName && a.studentName) ? `<div class="a-detail" style="color:#fff;font-weight:800;">👤 ${escHtml(a.studentName)}</div>` : ''}
       </div>
     `}).join('') || '<div style="color:#888;text-align:center;">No classes assigned.</div>';
     modal.style.display = 'flex';
