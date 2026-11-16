@@ -382,11 +382,13 @@
     </div>
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
+      <button class="tool-btn" id="tool-text" onclick="setTool('text')">🔤 Text</button>
       <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
       <button class="tool-btn" id="tool-laser" onclick="setTool('laser')" style="display:none;">🔴 Laser</button>
       <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
-      <input type="range" id="brush-size" min="2" max="30" value="5" onchange="setBrushSize(this.value)"/>
+      <input type="range" id="brush-size" min="2" max="30" value="8" oninput="setBrushSize(this.value)" onchange="setBrushSize(this.value)" title="Pen thickness"/>
+      <select id="text-size" title="Text size" style="padding:4px 6px;border-radius:8px;font-weight:800;"><option value="32">Aa small</option><option value="48" selected>Aa medium</option><option value="72">Aa large</option></select>
       <div class="tool-separator"></div>
       <div id="teacher-only">
         <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
@@ -3889,6 +3891,27 @@ function initWhiteboard(socket) {
   if (window._whiteboardInit) return; window._whiteboardInit = true;
   canvas = new fabric.Canvas('whiteboard-canvas', { width: CANVAS_W, height: CANVAS_H, isDrawingMode: true, backgroundColor: '#ffffff' });
 
+  canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+  canvas.freeDrawingBrush.color = document.getElementById('color-picker').value;
+  canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value);
+
+  // Text tool: click the board to type; click an existing text in Text/Select mode to edit it
+  const _syncNow = () => { if (!suppressSync && window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); };
+  canvas.on('mouse:down', (opt) => {
+    if (currentTool !== 'text') return;
+    if (!IS_TEACHER && window._canDraw === false) return;
+    if (opt.target) { if (opt.target.type === 'i-text') { canvas.setActiveObject(opt.target); opt.target.enterEditing(); } return; }
+    const p = canvas.getPointer(opt.e);
+    const t = new fabric.IText('', { left: p.x, top: p.y, fontFamily: 'Nunito, Arial, sans-serif', fontWeight: 'bold',
+      fontSize: parseInt(document.getElementById('text-size').value) || 48, fill: document.getElementById('color-picker').value });
+    canvas.add(t); canvas.setActiveObject(t); t.enterEditing(); canvas.renderAll();
+  });
+  canvas.on('text:editing:exited', (e) => {
+    const t = e.target;
+    if (t && !String(t.text || '').trim()) canvas.remove(t);
+    canvas.renderAll(); _syncNow();
+  });
+
   // Apply draw permission immediately on init
   if (!IS_TEACHER) applyDrawPermission(window._canDraw !== false);
 
@@ -3998,7 +4021,9 @@ function setTool(tool) {
   document.getElementById(`tool-${tool}`)?.classList.add('selected');
   if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
   else if (tool === 'laser') { canvas.isDrawingMode = false; enterLaser(); }
+  else if (tool === 'text') { canvas.isDrawingMode = false; canvas.defaultCursor = 'text'; }
   else { canvas.isDrawingMode = false; }
+  if (tool !== 'text' && canvas) canvas.defaultCursor = 'default';
 }
 
 function enterLaser() {
@@ -4040,7 +4065,11 @@ function showRemoteLaser(xRatio, yRatio) {
   }
 }
 
-function setColor(c) { if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c; }
+function setColor(c) {
+  if (currentTool === 'draw' && canvas) canvas.freeDrawingBrush.color = c;
+  const a = canvas && canvas.getActiveObject();
+  if (a && a.type === 'i-text') { a.set('fill', c); canvas.renderAll(); if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }
+}
 function setBrushSize(s) { if (canvas && canvas.freeDrawingBrush) canvas.freeDrawingBrush.width = parseInt(s); }
 
 function confirmClearAll() {
