@@ -525,9 +525,11 @@ const toMin = t => { const [h, m] = String(t || '0:0').split(':').map(Number); r
 const fmtMin = m => { m = ((m % 1440) + 1440) % 1440; const h = Math.floor(m / 60), mm = m % 60; return `${h % 12 || 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`; };
 let _board = null, _alerts = [], _alertKeys = new Set(), _sound = false, _openDetails = new Set(), _firstLoad = true;
 try { _sound = localStorage.getItem('tsSound') === '1'; } catch (e) {}
+// No video bytes from the teacher only counts as a problem if the teacher's camera is on and the student's tab is visible
+function noTeacherVideo(h) { return h.seesTeacher === false && !window._tCamOff && !h.hidden; }
 function healthLevel(h) {
   if (!h) return '';
-  if ((h.loss != null && h.loss >= 8) || (h.rtt != null && h.rtt >= 700) || h.badPeers > 0 || h.seesTeacher === false) return 'r';
+  if ((h.loss != null && h.loss >= 8) || (h.rtt != null && h.rtt >= 700) || h.badPeers > 0 || noTeacherVideo(h)) return 'r';
   if ((h.loss != null && h.loss >= 3) || (h.rtt != null && h.rtt >= 350) || h.hidden) return 'y';
   return 'g';
 }
@@ -571,8 +573,9 @@ function evalClass(c, L, nowM) {
   const missing = (c.expected || []).filter(n => !inNames.has(n) && !waitNames.has(n));
   if (late >= 5 && missing.length) P.push({ lvl: 'y', code: 'missing:' + missing.join(','), text: `Not here: ${missing.join(', ')}` });
   media.forEach(m => P.push({ lvl: 'r', code: 'media:' + m.name + m.status, text: `${m.name}: camera/mic ${m.status === 'blocked' ? 'blocked' : m.status === 'no-device' ? 'not found' : m.status === 'in-use' ? 'used by another app' : 'error'}` }));
+  window._tCamOff = health.some(x => x.role === 'teacher' && !x.camOn);
   health.forEach(h => {
-    if (h.role === 'student' && h.seesTeacher === false) P.push({ lvl: 'r', code: 'nosee:' + h.name, text: `${h.name} is not receiving the teacher's video` });
+    if (h.role === 'student' && noTeacherVideo(h)) P.push({ lvl: 'r', code: 'nosee:' + h.name, text: `${h.name} is not receiving the teacher's video` });
     else if (h.role === 'student' && h.hearsTeacher === false) P.push({ lvl: 'r', code: 'nohear:' + h.name, text: `${h.name} is not receiving the teacher's sound` });
     else if (healthLevel(h) === 'r') P.push({ lvl: 'y', code: 'net:' + h.name, text: `Bad connection: ${h.name}${h.loss != null ? ` (${h.loss}% lost)` : ''}` });
     if (h.role === 'teacher' && !h.camOn && L.open) P.push({ lvl: 'y', code: 'tcam', text: 'Teacher camera is off' });
@@ -598,7 +601,7 @@ function personRows(c, L) {
     const h = r.h, lv = healthLevel(h);
     const drops = ((L && L.drops) || {})[`${r.role}:${r.name}`] || 0;
     const facts = h ? [h.device, h.browser, h.rtt != null ? `${h.rtt} ms` : null, h.loss != null ? `${h.loss}% lost` : null, h.inKbps != null ? `↓${h.inKbps} ↑${h.outKbps} kbps` : null,
-      h.camOn ? '📷 on' : '📷 off', h.micOn ? ('🎤 ' + (h.mic || 'on') + (h.micLevel != null ? ` (level ${h.micLevel}%)` : '')) : '🎤 off', h.seesTeacher === false ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
+      h.camOn ? '📷 on' : '📷 off', h.micOn ? ('🎤 ' + (h.mic || 'on') + (h.micLevel != null ? ` (level ${h.micLevel}%)` : '')) : '🎤 off', noTeacherVideo(h) ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
     const key = esc(c.room) + '|' + esc(r.sid);
     return `<div class="person"><b>${r.role === 'teacher' ? '👩‍🏫' : '🧒'} ${esc(r.name)}</b> <span class="dot ${lv}"></span> <span class="muted">${esc(r.where)}${drops ? ` · reconnected ${drops}×` : ''}</span>
       <div class="muted">${esc(facts)}</div>
