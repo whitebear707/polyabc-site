@@ -582,6 +582,15 @@ const ICE_CONFIG = {
     { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
   ]
 };
+// Our own relay server (credentials come from the school's server, never from this file). If the server
+// has none configured, the free public relay above keeps working as before.
+(async () => {
+  try {
+    const r = await fetch(SERVER_URL + '/ice-servers', { signal: AbortSignal.timeout(6000) });
+    const d = await r.json();
+    if (Array.isArray(d.iceServers) && d.iceServers.length) ICE_CONFIG.iceServers = d.iceServers.concat(ICE_CONFIG.iceServers);
+  } catch (e) {}
+})();
 
 window._selfCamOff = false;
 window._selfMuted  = false;
