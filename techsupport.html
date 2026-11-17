@@ -288,6 +288,7 @@ async function loadTickets() {
       return `<div class="card ${t.status === 'open' ? 'open' : 'done'}">
         <div class="row"><b>${esc(TK_LABEL[t.kind] || t.kind)}</b><span class="muted">${esc(when)}</span></div>
         <div style="margin-top:4px;">Class <b>${esc(t.room)}</b> · Teacher <b>${esc(t.teacherName)}</b>${who ? ' · Student <b>' + esc(who) + '</b>' : ''}${t.scheduledTime ? ' · ' + esc(t.scheduledTime) : ''}</div>
+        ${t.note ? `<div style="background:rgba(249,168,37,.15);border-left:4px solid #f9a825;border-radius:6px;padding:6px 10px;margin-top:6px;">📝 <b>Teacher's note:</b> ${esc(t.note)}</div>` : ''}
         ${t.status === 'resolved' ? `<div style="color:var(--green);font-size:.85rem;margin-top:4px;">✔ Resolved${t.resolutionNote ? ': ' + esc(t.resolutionNote) : ''}</div>` : ''}
         <div class="row" style="margin-top:10px;">
           ${t.status === 'open'

@@ -5610,6 +5610,7 @@ async function renderTickets(keepSettings) {
     return `<div class="card" style="margin-bottom:10px;padding:12px;${t.status === 'open' ? 'border-left:5px solid #e53935;' : 'opacity:0.8;border-left:5px solid #2e7d32;'}">
       <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><b>${TK_LABEL[t.kind] || specEsc(t.kind)}</b><span style="font-size:0.78rem;color:#888;">${specEsc(when)}</span></div>
       <div style="font-size:0.88rem;margin-top:4px;">Salón<b>${specEsc(t.room)}</b> · Teacher <b>${specEsc(t.teacherName)}</b>${who ? ' · Student <b>' + specEsc(who) + '</b>' : ''}${t.scheduledTime ? ' · ' + specEsc(t.scheduledTime) : ''}</div>
+      ${t.note ? `<div style="background:#fff8e1;border-left:4px solid #f9a825;border-radius:6px;padding:6px 10px;margin-top:6px;font-size:0.88rem;">📝 <b>Nota del maestro:</b> ${specEsc(t.note)}</div>` : ''}
       ${t.status === 'resolved' ? `<div style="font-size:0.8rem;color:#2e7d32;margin-top:4px;">✔ Resolved${t.resolutionNote ? ': ' + specEsc(t.resolutionNote) : ''}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
         ${t.status === 'open'
