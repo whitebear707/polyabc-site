@@ -4400,6 +4400,17 @@ async function collectHealth() {
       const isRelay = (l && l.candidateType === 'relay') || (rm && rm.candidateType === 'relay');
       const pk = kind === 'a' ? 'sound' : kind === 'v' ? 'video' : 'screen';
       if (isRelay || pathInfo[pk] !== 'relay') pathInfo[pk] = isRelay ? 'relay' : 'direct';
+      // Through the relay every byte costs money: cap video (camera 350 kbps, screen 800 kbps). Direct links stay uncapped.
+      if (isRelay && kind !== 'a' && !pc._relayCapped) {
+        pc._relayCapped = true;
+        try {
+          pc.getSenders().filter(s => s.track && s.track.kind === 'video').forEach(s => {
+            const p = s.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+            p.encodings[0].maxBitrate = (kind === 's' ? 800 : 350) * 1000;
+            s.setParameters(p).catch(() => {});
+          });
+        } catch (e) {}
+      }
     }
     st.forEach(r => {
       if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded' && r.currentRoundTripTime != null) rtts.push(r.currentRoundTripTime * 1000);
