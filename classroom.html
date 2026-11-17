@@ -932,7 +932,17 @@ function connectSocket() {
     }
   });
 
+  // The room is still running the previous student's class: say so, so the waiting screen doesn't look stuck
+  socket.on('wait-reason', (d) => {
+    if (!d || d.reason !== 'previous-class') return;
+    window._prevWait = true;
+    const show = () => { const sc = document.getElementById('waiting-screen'), b = document.getElementById('waiting-status-box'); if (!window._prevWait || !b || !sc || sc.style.display === 'none') return; b.innerHTML = PREV_TXT; };
+    if (!window._prevIv) window._prevIv = setInterval(show, 1500);
+    show();
+  });
+  const PREV_TXT = '⏳ Your teacher is wrapping up the previous class. One moment please.<div style="font-size:1rem;opacity:0.8;margin-top:6px;">Tu maestro está terminando la clase anterior. Un momento, por favor. Tu clase comenzará enseguida.</div>';
   socket.on('room-error', (msg) => {
+    window._prevWait = false;
     if (msg === 'CLASS_NOT_OPEN') {
       document.getElementById('connecting-screen').style.display = 'none';
       document.getElementById('waiting-screen').style.display = 'flex';
