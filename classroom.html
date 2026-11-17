@@ -2406,22 +2406,34 @@ async function helpPick(kind) {
     if (!d.success) throw new Error(d.message || 'error');
     _help.students = d.students || [];
   } catch (e) { _help.students = []; }
-  const list = _help.students.map((s, i) => _hBtn(_hEsc(s.fullName || s.name), `helpSend(${i})`, '#0f3460')).join('');
+  const list = _help.students.map((s, i) => _hBtn(_hEsc(s.fullName || s.name), `helpNote(${i})`, '#0f3460')).join('');
   if (kind === 'tech_help') {
-    _hSet('Technical Help', '<p style="margin:0 0 6px;color:#555;">Is this about a specific student?</p>' + list + _hBtn('No specific student', 'helpSend(-1)', '#6a1b9a') + '<button onclick="helpHome()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
+    _hSet('Technical Help', '<p style="margin:0 0 6px;color:#555;">Is this about a specific student?</p>' + list + _hBtn('No specific student', 'helpNote(-1)', '#6a1b9a') + '<button onclick="helpHome()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
   } else if (!_help.students.length) {
     _hSet('Which student?', '<p style="color:#c62828;">No students are scheduled for this class.</p><button onclick="helpStudentMenu()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
   } else {
     _hSet('Which student?', list + '<button onclick="helpStudentMenu()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
   }
 }
+// Step before sending: a short note so the office / tech support know exactly what this is about
+function helpNote(i) {
+  const st = i >= 0 ? _help.students[i] : null;
+  const ph = _help.kind === 'tech_help' ? 'What is happening? (e.g. student can\'t hear me, my screen share is frozen…)' : 'What is happening? (e.g. waiting 10 min, parent says internet is down…)';
+  _hSet(st ? (st.fullName || st.name) : 'Technical Help',
+    '<p style="margin:0 0 6px;color:#555;">Add a short note so we know exactly what it is about <span style="color:#999;">(optional)</span></p>' +
+    `<textarea id="help-note" maxlength="300" rows="3" placeholder="${_hEsc(ph)}" style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #ddd;border-radius:10px;font:600 0.95rem Nunito,sans-serif;resize:vertical;"></textarea>` +
+    _hBtn('📨 Send', `helpSend(${i})`, '#2e7d32') +
+    `<button onclick="helpPick('${_help.kind}')" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>`);
+  setTimeout(() => { const t = document.getElementById('help-note'); if (t) t.focus(); }, 50);
+}
 async function helpSend(i) {
   if (_help.busy) return; _help.busy = true;
+  const _noteEl = document.getElementById('help-note'), note = _noteEl ? _noteEl.value.trim().slice(0, 300) : '';
   const st = i >= 0 ? _help.students[i] : null;
   _hSet('Sending…', '<p style="color:#555;">One moment…</p>');
   let msg, good = false;
   try {
-    const r = await fetch(`${SERVER_URL}/teacher/support-ticket`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ kind: _help.kind, studentName: st ? st.name : undefined, sessionId: SESSION_ID || undefined }) });
+    const r = await fetch(`${SERVER_URL}/teacher/support-ticket`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ kind: _help.kind, studentName: st ? st.name : undefined, sessionId: SESSION_ID || undefined, note: note || undefined }) });
     const d = await r.json();
     if (d.success) { good = true; msg = d.duplicate ? 'Already reported — thank you, the team has it.' : (_help.kind === 'tech_help' ? 'Tech support has been notified.' : 'Reported. The office has been notified.'); }
     else msg = d.message || 'Could not send. Please try again.';
