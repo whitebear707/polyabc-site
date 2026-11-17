@@ -195,6 +195,8 @@
 
     /* day detail */
     #day-detail { flex: 1; padding: 16px; overflow-y: auto; }
+    .day-teacher-card summary::-webkit-details-marker { display: none; }
+    .day-teacher-card[open] .dt-arrow { display: inline-block; transform: rotate(90deg); }
     .day-teacher-card { background: #f8f9fa; border-radius: 12px; padding: 14px; margin-bottom: 10px; border-left: 4px solid #1a73e8; }
     .day-teacher-name { font-weight: 900; color: #1a1a2e; font-size: 0.95rem; }
     .day-teacher-hours { font-size: 0.82rem; color: #666; margin: 4px 0; }
@@ -2166,13 +2168,19 @@ function renderDayDetail(dateStr) {
           </button>
         </div>`;
       }).join('');
-      html += `<div class="day-teacher-card">
-        <div class="day-teacher-name">${mwFor(t.room)} ${t.teacherName || `Salón ${t.room}`} · Salón ${t.room}</div>
-        <div class="day-teacher-hours">🕐 ${hoursHtml}</div>
+      // One collapsible card per teacher: click the name to show / hide their classes (remembered while you browse)
+      window._dayOpen = window._dayOpen || new Set();
+      const _ok = dateStr + '|' + t.room;
+      const _isOpen = window._dayOpen.has(_ok) || !!filterTeacherSel || display.length === 1;
+      html += `<details class="day-teacher-card" ${_isOpen ? 'open' : ''} ontoggle="if(this.open)window._dayOpen.add('${_ok}');else window._dayOpen.delete('${_ok}')">
+        <summary style="cursor:pointer;list-style:none;">
+          <div class="day-teacher-name"><span class="dt-arrow">▸</span> ${mwFor(t.room)} ${t.teacherName || `Salón ${t.room}`} · Salón ${t.room} <span style="font-size:0.75rem;color:#e65100;font-weight:800;">(${assignments.length} ${assignments.length === 1 ? 'clase' : 'clases'})</span></div>
+          <div class="day-teacher-hours">🕐 ${hoursHtml}</div>
+        </summary>
         ${assignHtml}
         <button onclick="openAssignGroupModal('${dateStr}','${t.room}')"
           style="margin-top:8px;background:#1a73e8;color:white;border:none;padding:6px 14px;border-radius:8px;font-family:Nunito;font-size:0.8rem;font-weight:700;cursor:pointer;">➕ Asignar grupo</button>
-      </div>`;
+      </details>`;
     });
   }
   detail.innerHTML = html;
