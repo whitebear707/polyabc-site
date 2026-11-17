@@ -201,7 +201,17 @@
     document.getElementById('net-title').textContent = '✅ Test complete';
     document.getElementById('net-enter-btn').style.display = 'block';
 
-    const result = { avgPing, jitter, packetLoss, quality, testedAt: new Date().toISOString() };
+    // Second test: can this network reach the relay server? (the road video takes on strict networks)
+    document.getElementById('net-title').textContent = '📡 Checking video route...';
+    const relayOk = await testRelay();
+    const result = { avgPing, jitter, packetLoss, quality, relayOk, testedAt: new Date().toISOString() };
+    if (!relayOk) {
+      postLobby('relay-failed');
+      lbl.textContent = '⚠️ Your network may block video in class. Please try another Wi-Fi or use your phone data, or tell your teacher / Tu red podría bloquear el video. Prueba otro Wi-Fi o datos del celular, o avisa a tu maestra.';
+      lbl.style.color = '#ff8a65'; lbl.style.fontSize = '.9rem'; lbl.style.display = 'block';
+      document.getElementById('net-verdict').textContent = '⚠️';
+    } else postLobby('relay-ok');
+    document.getElementById('net-title').textContent = '✅ Test complete';
     _netResult = result;
     if (_sessionId) {
       localStorage.setItem(`nettest_${_sessionId}`, JSON.stringify(result));
@@ -211,6 +221,24 @@
       }).catch(() => {});
     }
     unlockEnterBtn(result);
+  }
+
+  // True if the relay (TURN) server can be reached from this network. Fails open if we can't get the server list.
+  async function testRelay() {
+    try {
+      const r = await fetch(`${SERVER_URL}/ice-servers`).then(x => x.json());
+      let servers = r && r.iceServers; if (servers && !Array.isArray(servers)) servers = [servers];
+      if (!servers || !servers.length) return true;
+      return await new Promise(resolve => {
+        let done = false;
+        const pc = new RTCPeerConnection({ iceServers: servers, iceTransportPolicy: 'relay' });
+        const fin = ok => { if (done) return; done = true; try { pc.close(); } catch (e) {} resolve(ok); };
+        pc.onicecandidate = e => { if (e.candidate && /typ relay/.test(e.candidate.candidate)) fin(true); };
+        setTimeout(() => fin(false), 7000);
+        pc.createDataChannel('t');
+        pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => fin(true));
+      });
+    } catch (e) { return true; }
   }
 
   function proceedToClass() {

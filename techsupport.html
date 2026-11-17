@@ -624,7 +624,8 @@ function personRows(c, L) {
 function tileHtml(c, st, L) {
   const exp = c.expected || [];
   const lobbyNames = new Set((c.lobby || []).filter(l => l.events && l.events['lobby-opened']).map(l => l.name));
-  const chips = exp.map(n => st.inNames.has(n) ? `<span class="chip in">✅ ${esc(n)}</span>` : st.waitNames.has(n) ? `<span class="chip wait">⏳ ${esc(n)}</span>` : lobbyNames.has(n) && st.section !== 'done' ? `<span class="chip lobby">🚪 ${esc(n)}</span>` : st.section === 'now' ? `<span class="chip out">✖ ${esc(n)}</span>` : `<span class="chip">${esc(n)}</span>`).join('');
+  const relayBad = new Set((c.lobby || []).filter(l => l.events && l.events['relay-failed'] && !l.events['relay-ok']).map(l => l.name));
+  const chips = exp.map(n => st.inNames.has(n) ? `<span class="chip in">✅ ${esc(n)}</span>` : st.waitNames.has(n) ? `<span class="chip wait">⏳ ${esc(n)}</span>` : lobbyNames.has(n) && st.section !== 'done' ? `<span class="chip lobby">🚪 ${esc(n)}</span>` : st.section === 'now' ? `<span class="chip out">✖ ${esc(n)}</span>` : `<span class="chip">${esc(n)}</span>`).join('') + [...relayBad].filter(n => exp.includes(n)).map(n => `<span class="chip out">⚠️ ${esc(n)}: red bloquea video / network may block video</span>`).join('');
   const extra = [...st.inNames].filter(n => !exp.includes(n)).map(n => `<span class="chip in">✅ ${esc(n)}</span>`).join('');
   const th = L && (L.health || []).find(h => h.role === 'teacher');
   const rec = (c.recordings || []).length ? (c.recordings.some(r => r.status === 'recording') ? '⏺ recording' : c.recordings.every(r => r.status === 'complete') ? '🎥 saved' : '⚠️ recording incomplete') : '';
