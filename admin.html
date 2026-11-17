@@ -2136,7 +2136,8 @@ function renderDayDetail(dateStr) {
     const filtered = filterTime ? teachers.filter(t => inAvail(t.hours, filterTime)) : teachers;
     const display = filtered.length > 0 ? filtered : teachers;
     display.forEach(t => {
-      const assignments = allAssignments.filter(a => a.date === dateStr && a.room === t.room);
+      const _tm = x => { const m = String(x || '').match(/(\d+):(\d+)/); return m ? +m[1] * 60 + +m[2] : 0; };
+      const assignments = allAssignments.filter(a => a.date === dateStr && a.room === t.room).sort((x, y) => _tm(x.time) - _tm(y.time));
       const hoursHtml = availWindows(t.hours).length ? `${availText(t.hours)}${t.hours.tz ? ' <span style="font-size:0.75rem;color:#aaa;">('+t.hours.tz.split('/').pop().replace(/_/g,' ')+')</span>' : ''}` : 'Hours not set';
       const assignHtml = assignments.map(a => {
         const g = allGroups.find(g => g._id === a.groupId);
