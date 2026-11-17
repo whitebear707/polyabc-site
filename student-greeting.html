@@ -220,6 +220,12 @@
 
   function enterClass() { proceedToClass(); }
 
+  // Tech Support can send a stuck student here with ?enter=1: as soon as the page is ready, go straight into class
+  if (/[?&]enter=1\b/.test(location.search)) {
+    const _t = setInterval(() => { const b = document.getElementById('enter-btn'); if (b && !b.disabled) { clearInterval(_t); proceedToClass(); } }, 400);
+    setTimeout(() => clearInterval(_t), 45000);
+  }
+
   // Tell the server what the student does in the lobby (best effort, never blocks anything)
   function postLobby(event) {
     if (!_sessionId) return;
