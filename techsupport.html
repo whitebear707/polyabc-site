@@ -593,6 +593,12 @@ function evalClass(c, L, nowM) {
   st.label = st.level === 'green' ? `✅ In class · ${inNames.size}/${(c.expected || []).length || inNames.size} students` : P[0].text;
   return st;
 }
+// Which road each link uses: 🟢 direct, 🟠 through the relay (TURN, uses data)
+function pathText(h) {
+  const p = h && h.path; if (!p) return null;
+  const parts = [['video', '🎥'], ['sound', '🔊'], ['screen', '🖥']].filter(([k]) => p[k]).map(([k, ic]) => `${ic}${p[k] === 'relay' ? '🟠relay' : '🟢direct'}`);
+  return parts.length ? parts.join(' ') : null;
+}
 function personRows(c, L) {
   const rows = [];
   const hBy = {}; ((L && L.health) || []).forEach(h => hBy[h.sid] = h);
@@ -602,7 +608,7 @@ function personRows(c, L) {
     const h = r.h, lv = healthLevel(h);
     const drops = ((L && L.drops) || {})[`${r.role}:${r.name}`] || 0;
     const facts = h ? [h.device, h.browser, h.rtt != null ? `${h.rtt} ms` : null, h.loss != null ? `${h.loss}% lost` : null, h.inKbps != null ? `↓${h.inKbps} ↑${h.outKbps} kbps` : null,
-      h.camOn ? '📷 on' : '📷 off', h.micOn ? ('🎤 ' + (h.mic || 'on') + (h.micLevel != null ? ` (level ${h.micLevel}%)` : '')) : '🎤 off', noTeacherVideo(h) ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
+      h.camOn ? '📷 on' : '📷 off', h.micOn ? ('🎤 ' + (h.mic || 'on') + (h.micLevel != null ? ` (level ${h.micLevel}%)` : '')) : '🎤 off', pathText(h), noTeacherVideo(h) ? '❌ no teacher video' : null, h.hearsTeacher === false ? '❌ no teacher sound' : null, h.hidden ? '🙈 tab hidden' : null].filter(Boolean).join(' · ') : (r.where === 'waiting' ? 'On the waiting screen' : 'No health data yet');
     const key = esc(c.room) + '|' + esc(r.sid);
     return `<div class="person"><b>${r.role === 'teacher' ? '👩‍🏫' : '🧒'} ${esc(r.name)}</b> <span class="dot ${lv}"></span> <span class="muted">${esc(r.where)}${drops ? ` · reconnected ${drops}×` : ''}</span>
       <div class="muted">${esc(facts)}</div>

@@ -4381,6 +4381,7 @@ async function collectHealth() {
   const pcs = [];
   [audioPeers, videoPeers, ssPeers].forEach(m => Object.entries(m).forEach(([sid, pc]) => pc && pc.getStats && pcs.push({ sid, pc, kind: m === audioPeers ? 'a' : m === videoPeers ? 'v' : 's' })));
   let rtts = [], lost = 0, got = 0, inB = 0, outB = 0, fps = [], badPeers = 0;
+  const pathInfo = {};
   const teacherSid = Object.keys(remoteRoles).find(k => remoteRoles[k] === 'teacher');
   let seesTeacher = null, hearsTeacher = null;
   const now = Date.now();
@@ -4388,6 +4389,18 @@ async function collectHealth() {
     if (['failed', 'disconnected'].includes(pc.connectionState)) badPeers++;
     let st; try { st = await pc.getStats(); } catch (e) { continue; }
     let inBytes = 0, outBytes = 0, pl = 0, pr = 0;
+    // which road this link uses: relay = goes through the TURN server, direct = straight between the two computers
+    const cands = {}; let selPair = null;
+    st.forEach(r => {
+      if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands[r.id] = r;
+      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') selPair = r;
+    });
+    if (selPair) {
+      const l = cands[selPair.localCandidateId], rm = cands[selPair.remoteCandidateId];
+      const isRelay = (l && l.candidateType === 'relay') || (rm && rm.candidateType === 'relay');
+      const pk = kind === 'a' ? 'sound' : kind === 'v' ? 'video' : 'screen';
+      if (isRelay || pathInfo[pk] !== 'relay') pathInfo[pk] = isRelay ? 'relay' : 'direct';
+    }
     st.forEach(r => {
       if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded' && r.currentRoundTripTime != null) rtts.push(r.currentRoundTripTime * 1000);
       if (r.type === 'inbound-rtp') { inBytes += r.bytesReceived || 0; pl += r.packetsLost || 0; pr += r.packetsReceived || 0; if (r.kind === 'video' && r.framesPerSecond) fps.push(r.framesPerSecond); }
@@ -4412,7 +4425,8 @@ async function collectHealth() {
     fps: fps.length ? fps.reduce((a, b) => a + b, 0) / fps.length : null, camOn: !!(localStream && localStream.getVideoTracks().some(t => t.readyState === 'live' && t.enabled)),
     micOn: !!(localStream && localStream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled)), seesTeacher: IS_TEACHER ? null : seesTeacher, hearsTeacher: IS_TEACHER ? null : hearsTeacher,
     peers: pcs.length, badPeers, device: ua.device, browser: ua.browser, hidden: document.visibilityState === 'hidden',
-    mic: micLabel(), micLevel: micPeakTake() };
+    mic: micLabel(), micLevel: micPeakTake(),
+    path: { video: pathInfo.video || '', sound: pathInfo.sound || '', screen: pathInfo.screen || '' } };
 }
 if (!IS_SPECTATOR) setInterval(async () => {
   const s = window._socket; if (!s || !s.connected || !_joinedName) return;
