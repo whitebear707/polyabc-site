@@ -326,6 +326,7 @@
       <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
       <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
       <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
+      <button id="reward-party-btn" onclick="setRewardType('party')" title="Celebration! (fireworks + music, for something outstanding)" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🎉</button>
     </div>
     <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1190,6 +1191,10 @@ function connectSocket() {
     }
   });
   socket.on('star-given', ({ name, emoji, type, counts }) => {
+    if (type === 'party') {            // the teacher already saw and heard it when pressing the button
+      if (!IS_TEACHER) { playPartySound(); showPartyCelebration(name); }
+      return;
+    }
     showStarCelebration(name, emoji || '⭐');
     if (IS_TEACHER && counts) { const sid = curSid(name); rewardCounts[sid] = { ...counts }; updateRewardCounter(sid); }
     if (!IS_TEACHER) {
@@ -2807,12 +2812,12 @@ function muteAll() {
 }
 
 let currentRewardType = 'star';
-const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇' };
+const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇', party: '🎉' };
 const rewardCounts = {}; // { socketId: { star: 0, trophy: 0, medal: 0 } }
 
 function setRewardType(type) {
   currentRewardType = type;
-  ['star','trophy','medal'].forEach(t => {
+  ['star','trophy','medal','party'].forEach(t => {
     const btn = document.getElementById(`reward-${t}-btn`);
     if (btn) btn.style.border = t === type ? '2px solid #ffd740' : '2px solid transparent';
   });
@@ -2828,6 +2833,13 @@ function giveStar(socketId, name) {
   const emoji = REWARD_EMOJI[type];
   if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
 
+  // 🎉 Celebration: just a show for something outstanding, it is not counted like stars / trophies / medals
+  if (type === 'party') {
+    if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji, counts: { ...rewardCounts[socketId] } });
+    playPartySound();
+    showPartyCelebration(name);
+    return;
+  }
   // Increment FIRST, then emit the up-to-date counts
   rewardCounts[socketId][type]++; if (IS_TEACHER) TU.rewards++;
   const updatedCounts = { ...rewardCounts[socketId] };
@@ -2870,6 +2882,54 @@ function playTadaSound() {
       o.start(t); o.stop(t + 0.15);
     });
   } catch(e) {}
+}
+
+// ── 🎉 Celebration: fireworks + confetti over the whole screen, with a short fanfare (~6 s) ──
+function playPartySound() {
+  try {
+    const ctx = getAudioCtx(), t0 = ctx.currentTime + 0.05;
+    const tone = (f, t, d, type, v) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t0 + t); g.gain.exponentialRampToValueAtTime(v, t0 + t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + t + d); o.start(t0 + t); o.stop(t0 + t + d + 0.05); };
+    // Fanfare: quick rising notes, then a bright held chord
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.14, 0.22, 'triangle', 0.3));
+    [[523, 659, 784, 1047], [587, 740, 880, 1175]].forEach((ch, k) => ch.forEach(f => tone(f, 0.62 + k * 0.55, 0.5, 'triangle', 0.16)));
+    [1047, 1319, 1568].forEach(f => tone(f, 1.8, 1.4, 'sine', 0.14));
+    // Firework pops (short noise bursts) and sparkles
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    [0.2, 0.7, 1.15, 1.7, 2.3, 2.9, 3.5, 4.2].forEach(t => { const src = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+      src.buffer = buf; f.type = 'lowpass'; f.frequency.value = 1800; g.gain.value = 0.35; src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t0 + t); });
+    [0.4, 0.9, 1.4, 2.0, 2.6, 3.2, 3.9].forEach((t, i) => tone(1800 + (i % 3) * 400, t, 0.12, 'sine', 0.08));
+  } catch (e) {}
+}
+function showPartyCelebration(name) {
+  const old = document.getElementById('party-overlay'); if (old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'party-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99991;pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(10,10,40,0.35),rgba(5,5,25,0.55));';
+  const cv = document.createElement('canvas'); cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'; ov.appendChild(cv);
+  const msg = document.createElement('div');
+  msg.style.cssText = 'position:relative;z-index:2;text-align:center;font-family:Nunito,sans-serif;font-weight:900;color:#fff;font-size:clamp(2rem,6vw,4.2rem);line-height:1.15;padding:0 16px;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 30px #ffd740,0 0 60px #ff4081;animation:starPop 0.7s ease-out forwards;';
+  msg.innerHTML = `🎉 AMAZING JOB! 🎉<br><span style="color:#ffd740;">${escapeHtml(name)}</span>`;
+  ov.appendChild(msg); document.body.appendChild(ov);
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const colors = ['#ffd740', '#ff4081', '#69f0ae', '#40c4ff', '#e040fb', '#ff9800', '#ffffff', '#ff5252'];
+  const sparks = [], confetti = [];
+  const burst = (x, y) => { const c = colors[Math.floor(Math.random() * colors.length)], c2 = colors[Math.floor(Math.random() * colors.length)], n = 70;
+    for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random() * 0.1, sp = 2.5 + Math.random() * 4.5; sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.008 + Math.random() * 0.01, color: i % 3 ? c : c2, r: 2 + Math.random() * 2 }); } };
+  for (let i = 0; i < 140; i++) confetti.push({ x: Math.random() * W, y: -Math.random() * H * 0.8, w: 6 + Math.random() * 8, h: 3 + Math.random() * 5, vy: 2 + Math.random() * 3, vx: Math.random() * 2 - 1, rot: Math.random() * 6, vr: Math.random() * 0.3 - 0.15, color: colors[Math.floor(Math.random() * colors.length)] });
+  const burstAt = [12, 40, 70, 100, 140, 180, 215, 255]; // frames (~60 fps)
+  const TOTAL = 330; let frame = 0;
+  (function draw() {
+    ctx.clearRect(0, 0, W, H);
+    burstAt.forEach(f => { if (frame === f) burst(W * (0.15 + Math.random() * 0.7), H * (0.12 + Math.random() * 0.4)); });
+    sparks.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.vx *= 0.99; p.life -= p.decay; if (p.life > 0) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.3); ctx.fill(); } });
+    ctx.globalAlpha = 1;
+    if (frame < TOTAL - 60) confetti.forEach(c => { c.y += c.vy; c.x += c.vx + Math.sin(frame / 15 + c.rot); c.rot += c.vr; if (c.y > H + 20) { c.y = -20; c.x = Math.random() * W; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.fillStyle = c.color; ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); ctx.restore(); });
+    frame++;
+    if (frame < TOTAL) requestAnimationFrame(draw); else ov.remove();
+  })();
 }
 
 function toggleLeaderboard() {
