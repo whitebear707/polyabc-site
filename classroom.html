@@ -906,6 +906,27 @@ function connectSocket() {
       }
       return;
     }
+    // The link to the server blinked (Wi-Fi hiccup, server restart) while we were already in class: the connection
+    // is back, so do NOT bring the Welcome / Enter screen back over the live class (for a teacher past the class end it
+    // stayed locked and hid the Close Class button). Just re-link whoever has no live connection.
+    if (window._entered) {
+      document.getElementById('waiting-screen').style.display = 'none';
+      document.getElementById('connecting-screen').style.display = 'none';
+      document.getElementById('room-label').style.background = '#2e7d32';
+      if (activeBreak) showBreakScreen(activeBreak.durationMins);
+      setTimeout(() => {
+        Object.keys(remoteRoles).forEach(sid => {
+          const live = pc => pc && !['failed', 'closed', 'disconnected'].includes(pc.connectionState);
+          if (IS_TEACHER) {
+            if (!live(audioPeers[sid])) callAudioPeer(sid, _joinedSocket);
+            if (!live(videoPeers[sid])) callVideoPeer(sid, _joinedSocket);
+          } else if (remoteRoles[sid] === 'teacher') {
+            if (!live(audioPeers[sid])) callAudioPeer(sid, _joinedSocket);
+          }
+        });
+      }, 1500);
+      return;
+    }
     document.getElementById('waiting-screen').style.display = 'none';
     document.getElementById('connecting-screen').style.display = 'flex';
     document.getElementById('spinner').style.display = 'none';
@@ -926,7 +947,7 @@ function connectSocket() {
       startAutoEnterCountdown();
       }
       // Re-check every minute in case time crosses the unlock window
-      setInterval(() => { checkTeacherRoomLock(); }, 30000);
+      if (!window._lockIv) window._lockIv = setInterval(() => { checkTeacherRoomLock(); }, 30000);
     } else {
       document.getElementById('enter-btn').style.display = 'block';
     }
@@ -2146,6 +2167,7 @@ function checkTeacherRoomLock() {
     syncOpenClassBtnVisibility();
   } else {
     const next = sorted.find(a => a.sm-20 > nowMins);
+    if (window._entered) return; // already in class (running over time): never lock the teacher's buttons
     if (next) {
       const uh = Math.floor((next.sm-20)/60), um = (next.sm-20)%60;
       const uStr = fmtTime12(`${String(uh).padStart(2,'0')}:${String(um).padStart(2,'0')}`);
@@ -2506,6 +2528,7 @@ function updateSpectatorEye(count) {
 }
 
 function enterClass() {
+  window._entered = true;
   stopAutoEnterCountdown();
   if (!IS_TEACHER && window._autoEntered) showSoundUnlock();
   if (!IS_TEACHER && !IS_SPECTATOR) document.documentElement.requestFullscreen().catch(() => {});
