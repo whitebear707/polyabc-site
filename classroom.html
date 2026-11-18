@@ -384,6 +384,7 @@
     <div id="toolbar">
       <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
       <button class="tool-btn" id="tool-text" onclick="setTool('text')">🔤 Text</button>
+      <button class="tool-btn" id="tool-erase" onclick="setTool('erase')" title="Eraser: drag over a drawing or text to remove it">🧽 Eraser</button>
       <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
       <button class="tool-btn" id="tool-laser" onclick="setTool('laser')" style="display:none;">🔴 Laser</button>
       <div class="tool-separator"></div>
@@ -4087,6 +4088,32 @@ function initWhiteboard(socket) {
     canvas.renderAll(); _syncNow();
   });
 
+  // Eraser: drag over a line or a text to remove it (slides are never erased)
+  let _erasing = false, _erased = false;
+  const eraseAt = (p) => {
+    const slides = new Set(typeof getSlideObjects === 'function' ? getSlideObjects() : []);
+    const objs = canvas.getObjects().slice().reverse();
+    for (const o of objs) {
+      if (slides.has(o) || (o.data && o.data.locked)) continue;
+      const hit = [[0, 0], [7, 0], [-7, 0], [0, 7], [0, -7]].some(([dx, dy]) => { try { return o.containsPoint({ x: p.x + dx, y: p.y + dy }) && !canvas.isTargetTransparent(o, p.x + dx, p.y + dy); } catch (e) { return false; } });
+      if (hit) { canvas.remove(o); _erased = true; }
+    }
+  };
+  canvas.on('mouse:down', (opt) => {
+    if (currentTool !== 'erase') return;
+    if (!IS_TEACHER && window._canDraw === false) return;
+    _erasing = true; _erased = false; eraseAt(canvas.getPointer(opt.e)); canvas.renderAll();
+  });
+  canvas.on('mouse:move', (opt) => {
+    if (!_erasing) return;
+    eraseAt(canvas.getPointer(opt.e)); canvas.renderAll();
+  });
+  canvas.on('mouse:up', () => {
+    if (!_erasing) return;
+    _erasing = false;
+    if (_erased) { _erased = false; _syncNow(); }
+  });
+
   // Apply draw permission immediately on init
   if (!IS_TEACHER) applyDrawPermission(window._canDraw !== false);
 
@@ -4198,7 +4225,8 @@ function setTool(tool) {
   else if (tool === 'laser') { canvas.isDrawingMode = false; enterLaser(); }
   else if (tool === 'text') { canvas.isDrawingMode = false; canvas.defaultCursor = 'text'; }
   else { canvas.isDrawingMode = false; }
-  if (tool !== 'text' && canvas) canvas.defaultCursor = 'default';
+  if (tool !== 'text' && canvas) canvas.defaultCursor = tool === 'erase' ? 'crosshair' : 'default';
+  if (canvas) { canvas.selection = tool === 'select'; canvas.skipTargetFind = tool === 'erase'; }
 }
 
 function enterLaser() {
