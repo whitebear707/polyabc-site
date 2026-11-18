@@ -3483,7 +3483,7 @@ async function startScreenShare() {
     const pick = async () => {
       try {
         return await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always', displaySurface: 'browser' },
+          video: { cursor: 'always', displaySurface: 'browser', frameRate: { ideal: 15, max: 20 } },
           audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
           systemAudio: 'include', selfBrowserSurface: 'exclude', surfaceSwitching: 'include', preferCurrentTab: false
         });
@@ -3833,6 +3833,21 @@ function showShareProblem(kind) {
 }
 function hideShareProblem(kind) { const d = document.getElementById('ss-problem-' + kind); if (d) d.remove(); }
 
+// The shared screen must never flood a home connection (that is what makes it freeze and then rush to catch up):
+// at most ~1.2 Mbps, 15 pictures per second, and big screens are sent smaller (text stays readable at 1600 px wide).
+function capScreenSender(pc) {
+  try {
+    pc.getSenders().filter(s => s.track && s.track.kind === 'video').forEach(snd => {
+      const p = snd.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      let w = 0; try { w = snd.track.getSettings().width || 0; } catch (e) {}
+      p.encodings[0].maxBitrate = SS_MAX_KBPS * 1000;
+      p.encodings[0].maxFramerate = 15;
+      p.encodings[0].scaleResolutionDownBy = w > 1600 ? Math.round(w / 1600 * 100) / 100 : 1;
+      snd.setParameters(p).catch(() => {});
+    });
+  } catch (e) {}
+}
+const SS_MAX_KBPS = 1200;
 async function callSsPeer(studentId) {
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
   if (!screenStream) return;
@@ -3843,6 +3858,7 @@ async function callSsPeer(studentId) {
   pc.onicecandidate = (e) => { if (e.candidate) window._socket.emit('ss-ice', { to: studentId, candidate: e.candidate }); };
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  capScreenSender(pc);
   window._socket.emit('ss-offer', { to: studentId, offer: pc.localDescription });
 }
 
