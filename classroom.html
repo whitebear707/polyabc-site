@@ -398,6 +398,7 @@
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
+        <button id="push-share-btn" class="tool-btn" onclick="pushScreenShare()" style="background:#ef6c00;display:none;" title="Students can't see your screen? Press this to send it to them again">📤 Push</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
         <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
@@ -3517,6 +3518,7 @@ async function startScreenShare() {
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
     const areaBtn = document.getElementById('sharearea-btn');
     if (areaBtn) areaBtn.style.display = shareCrop ? '' : 'none';
+    const pushB = document.getElementById('push-share-btn'); if (pushB) pushB.style.display = '';
 
     // Show teacher's own screen behind canvas
     showScreenBehindCanvas(screenStream, true);
@@ -3833,6 +3835,26 @@ function showShareProblem(kind) {
 }
 function hideShareProblem(kind) { const d = document.getElementById('ss-problem-' + kind); if (d) d.remove(); }
 
+// Teacher's "📤 Push" button: the student says they can't see the shared screen -> send it to everyone again, from scratch.
+// First a short-lived extra viewer is attached to the share (the same thing that happens when a spectator joins, which makes the
+// browser produce a fresh picture even when the shared page is not changing), then every student link is rebuilt.
+async function pushScreenShare() {
+  if (!isSharing || !screenStream) return;
+  const btn = document.getElementById('push-share-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending…'; }
+  try {
+    const tmp = new RTCPeerConnection();
+    screenStream.getVideoTracks().forEach(tr => tmp.addTrack(tr, screenStream));
+    await tmp.setLocalDescription(await tmp.createOffer());
+    setTimeout(() => { try { tmp.close(); } catch (e) {} }, 2000);
+  } catch (e) {}
+  _ssRetries = {}; _ssWarned = false;
+  document.querySelectorAll('.ss-problem').forEach(d => d.remove());
+  Object.keys(studentSlots).forEach(sid => { if (sid !== '__self__') callSsPeer(sid).catch(() => {}); });
+  (window._spectatorIds || []).forEach(sid => callSsPeer(sid).catch(() => {}));
+  if (window.reportPageError) reportPageError('teacher pressed Push (screen share)', 'screenshare-push');
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '📤 Push'; } }, 4000);
+}
 // The shared screen must never flood a home connection (that is what makes it freeze and then rush to catch up):
 // at most ~1.2 Mbps, 15 pictures per second, and big screens are sent smaller (text stays readable at 1600 px wide).
 function capScreenSender(pc) {
@@ -3962,6 +3984,7 @@ function stopScreenShare() {
   if (rawScreenStream) { rawScreenStream.getTracks().forEach(t => t.stop()); rawScreenStream = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
   const areaBtn = document.getElementById('sharearea-btn'); if (areaBtn) areaBtn.style.display = 'none';
+  const pushB = document.getElementById('push-share-btn'); if (pushB) pushB.style.display = 'none';
   const modal = document.getElementById('share-mode-modal'); if (modal) modal.remove();
   Object.keys(ssPeers).forEach(id => { ssPeers[id].close(); delete ssPeers[id]; });
 
