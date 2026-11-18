@@ -4384,6 +4384,16 @@ function openAttDetail(idx) {
           ${buildStatusTags(r)}
           ${r.debtPayoffMins > 0 ? `<span style="background:#ffd700;color:#1a1a2e;padding:3px 10px;border-radius:10px;font-size:0.78rem;font-weight:900;">🏅 ${r.debtPayoffMins} min debt paid${r.debtCleared ? ' — DEBT CLEARED ✅' : ''}</span>` : ''}
         </div>
+        ${r.adminOverride
+          ? `<div style="margin-top:8px;background:#e8f5e9;border:1px solid #81c784;border-radius:8px;padding:8px 10px;font-size:0.82rem;color:#2e7d32;font-weight:800;">✔ Corregida por admin: ${escHtml(r.adminOverride.reason || '')}${r.adminOverride.minutesGivenBack ? ` · se devolvieron ${r.adminOverride.minutesGivenBack} min al alumno/grupo` : ''}</div>`
+          : `<div style="margin-top:10px;">
+              <button id="ov-open" onclick="document.getElementById('ov-box').style.display='flex';this.style.display='none';" style="background:#2e7d32;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-family:Nunito;font-weight:800;font-size:0.82rem;cursor:pointer;">✔ Marcar como completada</button>
+              <div id="ov-box" style="display:none;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;">
+                <input id="ov-reason" type="text" maxlength="300" placeholder="Motivo (ej. falla del sistema, el maestro sí terminó a tiempo)" style="flex:1;min-width:220px;padding:7px 10px;border:2px solid #ddd;border-radius:8px;font-family:Nunito;">
+                <button onclick="markClassComplete(${idx})" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-family:Nunito;font-weight:800;cursor:pointer;">Confirmar</button>
+                <div style="width:100%;font-size:0.74rem;color:#888;">Se guarda una copia del registro original. El pago se calcula como clase completa y se devuelven los minutos de reposición por terminar antes o desconexiones (el retraso no se borra).</div>
+              </div>
+            </div>`}
         ${r.disconnects?.length ? `
         <div style="margin-top:10px;">
           <div style="font-size:0.78rem;font-weight:700;color:#b71c1c;margin-bottom:6px;">⚠️ DISCONNECT LOG (${r.disconnects.length} disconnect${r.disconnects.length!==1?'s':''} · ${r.totalDisconnectMins||0} min total)</div>
@@ -4417,6 +4427,22 @@ function openAttDetail(idx) {
         <tbody>${studentRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px;">No hay alumnos registrados</td></tr>'}</tbody>
       </table>
     </div>`;
+}
+
+async function markClassComplete(idx) {
+  const r = window._attRecords[idx]; if (!r) return;
+  const reason = (document.getElementById('ov-reason').value || '').trim();
+  if (reason.length < 3) { showToast('Escribe el motivo de la corrección'); return; }
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/attendance/mark-complete`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ room: r._room, date: r.date, scheduledTime: r.scheduledTime, reason }) });
+    const d = await res.json();
+    if (!d.success) { showToast(d.error || 'No se pudo corregir'); return; }
+    showToast('Clase marcada como completada ✔');
+    await loadAttendance();
+    const i = (window._attRecords || []).findIndex(x => x._room === r._room && x.date === r.date && x.scheduledTime === r.scheduledTime);
+    if (i >= 0) openAttDetail(i); else closeAttDetail();
+  } catch (e) { showToast('Error de conexión'); }
 }
 
 function closeAttDetail() {
