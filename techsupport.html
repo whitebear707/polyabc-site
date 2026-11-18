@@ -617,6 +617,7 @@ function personRows(c, L) {
         <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','reload')">↻ Reload page</button>
         <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','camera')">📷 Ask camera/mic</button>
         <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','mic')">🎙️ Choose mic</button>
+        <button class="btn-ghost" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','push-screen')" title="Sends the teacher's shared screen to the students again">📤 Push screen</button>
         <input id="msg-${key}" type="text" maxlength="300" placeholder="Message…" style="flex:1;min-width:120px;padding:5px 8px;font-size:.8rem;">
         <button class="btn-blue" onclick="itAction('${esc(c.room)}','${esc(r.sid)}','message', document.getElementById('msg-${key}').value)">Send</button>
       </div></div>`;
@@ -651,7 +652,7 @@ function toggleDetails(id) { _openDetails.has(id) ? _openDetails.delete(id) : _o
 async function itAction(room, sid, action, text) {
   try {
     const r = await (await api('/techsupport/action', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, auth()), body: JSON.stringify({ room, sid, action, text }) })).json();
-    alertToast(r.success ? (action === 'reload' ? 'Page reload sent ✅' : action === 'camera' ? 'Camera/mic request sent ✅' : action === 'mic' ? 'Mic chooser opened on their screen ✅' : 'Message sent ✅') : ('⚠️ ' + (r.error || 'Failed')));
+    alertToast(r.success ? (action === 'reload' ? 'Page reload sent ✅' : action === 'camera' ? 'Camera/mic request sent ✅' : action === 'mic' ? 'Mic chooser opened on their screen ✅' : action === 'push-screen' ? 'Screen pushed to the students again ✅' : 'Message sent ✅') : ('⚠️ ' + (r.error || 'Failed')));
     if (r.success && action === 'message') { const el = document.getElementById(`msg-${room}|${sid}`); if (el) el.value = ''; }
   } catch (e) {}
 }

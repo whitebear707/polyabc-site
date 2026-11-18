@@ -326,7 +326,6 @@
       <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
       <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
       <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
-      <button id="reward-party-btn" onclick="setRewardType('party')" title="Celebration! (fireworks + music, for something outstanding)" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🎉</button>
     </div>
     <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -364,6 +363,7 @@
         <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
         <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
         <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
       </div>
       <!-- Divider -->
       <div style="border-top:1px solid rgba(255,255,255,0.15);margin:8px 0;"></div>
@@ -398,7 +398,6 @@
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
-        <button id="push-share-btn" class="tool-btn" onclick="pushScreenShare()" style="background:#ef6c00;display:none;" title="Students can't see your screen? Press this to send it to them again">📤 Push</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
         <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
@@ -879,6 +878,7 @@ function connectSocket() {
     if (action === 'reload') { location.reload(); return; }
     if (action === 'message' && text) showItMessage(text);
     if (action === 'mic') openMicPicker(true);
+    if (action === 'push-screen' && IS_TEACHER) pushScreenShare();
   });
 
   socket.on('connect', () => {
@@ -1193,10 +1193,6 @@ function connectSocket() {
     }
   });
   socket.on('star-given', ({ name, emoji, type, counts }) => {
-    if (type === 'party') {            // the teacher already saw and heard it when pressing the button
-      if (!IS_TEACHER) { playPartySound(); showPartyCelebration(name); }
-      return;
-    }
     showStarCelebration(name, emoji || '⭐');
     if (IS_TEACHER && counts) { const sid = curSid(name); rewardCounts[sid] = { ...counts }; updateRewardCounter(sid); }
     if (!IS_TEACHER) {
@@ -1236,7 +1232,7 @@ function connectSocket() {
   socket.on('break-ended', () => hideBreakScreen());
   socket.on('break-error', ({ message }) => { if (IS_TEACHER) alert(message); });
 
-  socket.on('reaction', ({ emoji }) => showReaction(emoji));
+  socket.on('reaction', ({ emoji }) => { if (emoji === '🎆') startCelebration(); else showReaction(emoji); });
   socket.on('show-result', ({ text, sub, type, extra }) => {
     if (!IS_TEACHER) {
       if (type === 'coin' && extra) {
@@ -2814,12 +2810,12 @@ function muteAll() {
 }
 
 let currentRewardType = 'star';
-const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇', party: '🎉' };
+const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇' };
 const rewardCounts = {}; // { socketId: { star: 0, trophy: 0, medal: 0 } }
 
 function setRewardType(type) {
   currentRewardType = type;
-  ['star','trophy','medal','party'].forEach(t => {
+  ['star','trophy','medal'].forEach(t => {
     const btn = document.getElementById(`reward-${t}-btn`);
     if (btn) btn.style.border = t === type ? '2px solid #ffd740' : '2px solid transparent';
   });
@@ -2835,13 +2831,6 @@ function giveStar(socketId, name) {
   const emoji = REWARD_EMOJI[type];
   if (!rewardCounts[socketId]) rewardCounts[socketId] = { star: 0, trophy: 0, medal: 0 };
 
-  // 🎉 Celebration: just a show for something outstanding, it is not counted like stars / trophies / medals
-  if (type === 'party') {
-    if (window._socket) window._socket.emit('give-star', { room: ROOM, name, socketId, type, emoji, counts: { ...rewardCounts[socketId] } });
-    playPartySound();
-    showPartyCelebration(name);
-    return;
-  }
   // Increment FIRST, then emit the up-to-date counts
   rewardCounts[socketId][type]++; if (IS_TEACHER) TU.rewards++;
   const updatedCounts = { ...rewardCounts[socketId] };
@@ -2911,7 +2900,7 @@ function showPartyCelebration(name) {
   const cv = document.createElement('canvas'); cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'; ov.appendChild(cv);
   const msg = document.createElement('div');
   msg.style.cssText = 'position:relative;z-index:2;text-align:center;font-family:Nunito,sans-serif;font-weight:900;color:#fff;font-size:clamp(2rem,6vw,4.2rem);line-height:1.15;padding:0 16px;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 0 30px #ffd740,0 0 60px #ff4081;animation:starPop 0.7s ease-out forwards;';
-  msg.innerHTML = `🎉 AMAZING JOB! 🎉<br><span style="color:#ffd740;">${escapeHtml(name)}</span>`;
+  msg.innerHTML = `🎉 AMAZING JOB! 🎉${name ? `<br><span style="color:#ffd740;">${escapeHtml(name)}</span>` : ''}`;
   ov.appendChild(msg); document.body.appendChild(ov);
   cv.width = window.innerWidth; cv.height = window.innerHeight;
   const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
@@ -3394,8 +3383,17 @@ function sendReaction(emoji) {
   btns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
   setTimeout(() => btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; }), 3000);
 
-  showReaction(emoji);
+  if (emoji === '🎆') { startCelebration(); } else showReaction(emoji);
   if (window._socket) window._socket.emit('reaction', { room: ROOM, emoji });
+}
+// 🎆 Celebration (an emoji like the others): fireworks + confetti + fanfare. In a 1v1 class it names the student.
+function startCelebration() {
+  let name = '';
+  try {
+    const a = window._curAssign;
+    if (a && /1v1/.test(a.classType || '')) name = IS_TEACHER ? (a.studentName || '') : (MY_NAME || '');
+  } catch (e) {}
+  playPartySound(); showPartyCelebration(name);
 }
 
 function leaveClass() {
@@ -3518,7 +3516,6 @@ async function startScreenShare() {
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
     const areaBtn = document.getElementById('sharearea-btn');
     if (areaBtn) areaBtn.style.display = shareCrop ? '' : 'none';
-    const pushB = document.getElementById('push-share-btn'); if (pushB) pushB.style.display = '';
 
     // Show teacher's own screen behind canvas
     showScreenBehindCanvas(screenStream, true);
@@ -3984,7 +3981,6 @@ function stopScreenShare() {
   if (rawScreenStream) { rawScreenStream.getTracks().forEach(t => t.stop()); rawScreenStream = null; }
   if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
   const areaBtn = document.getElementById('sharearea-btn'); if (areaBtn) areaBtn.style.display = 'none';
-  const pushB = document.getElementById('push-share-btn'); if (pushB) pushB.style.display = 'none';
   const modal = document.getElementById('share-mode-modal'); if (modal) modal.remove();
   Object.keys(ssPeers).forEach(id => { ssPeers[id].close(); delete ssPeers[id]; });
 
