@@ -3844,7 +3844,7 @@ function capScreenSender(pc) {
     });
   } catch (e) {}
 }
-const SS_MAX_KBPS = 2500;
+const SS_MAX_KBPS = 3500;
 async function callSsPeer(studentId) {
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
   if (!screenStream) return;
@@ -4576,13 +4576,13 @@ async function collectHealth() {
       const isRelay = (l && l.candidateType === 'relay') || (rm && rm.candidateType === 'relay');
       const pk = kind === 'a' ? 'sound' : kind === 'v' ? 'video' : 'screen';
       if (isRelay || pathInfo[pk] !== 'relay') pathInfo[pk] = isRelay ? 'relay' : 'direct';
-      // Through the relay every byte costs money: cap video (camera 500 kbps, screen 1500 kbps). Direct links stay uncapped.
+      // Through the relay every byte costs money: cap video (camera 800 kbps, screen 2500 kbps). Direct links stay uncapped.
       if (isRelay && kind !== 'a' && !pc._relayCapped) {
         pc._relayCapped = true;
         try {
           pc.getSenders().filter(s => s.track && s.track.kind === 'video').forEach(s => {
             const p = s.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-            p.encodings[0].maxBitrate = (kind === 's' ? 1500 : 500) * 1000;
+            p.encodings[0].maxBitrate = (kind === 's' ? 2500 : 800) * 1000;
             s.setParameters(p).catch(() => {});
           });
         } catch (e) {}
