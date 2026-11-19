@@ -3870,7 +3870,7 @@ function capScreenSender(pc) {
     });
   } catch (e) {}
 }
-const SS_MAX_KBPS = 1200;
+const SS_MAX_KBPS = 2500;
 async function callSsPeer(studentId) {
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
   if (!screenStream) return;
