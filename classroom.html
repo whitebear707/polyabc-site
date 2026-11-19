@@ -4589,23 +4589,26 @@ async function collectHealth() {
     let st; try { st = await pc.getStats(); } catch (e) { continue; }
     let inBytes = 0, outBytes = 0, pl = 0, pr = 0;
     // which road this link uses: relay = goes through the TURN server, direct = straight between the two computers
-    const cands = {}; let selPair = null;
+    const cands = {}, pairs = {}; let selPair = null, selId = null;
     st.forEach(r => {
       if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands[r.id] = r;
-      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') selPair = r;
+      if (r.type === 'candidate-pair') { pairs[r.id] = r; if (r.nominated && r.state === 'succeeded') selPair = r; }
+      if (r.type === 'transport' && r.selectedCandidatePairId) selId = r.selectedCandidatePairId;
     });
+    // The pair the link is really using (not an old nominated one left over after a reconnect)
+    if (selId && pairs[selId]) selPair = pairs[selId];
     if (selPair) {
       const l = cands[selPair.localCandidateId], rm = cands[selPair.remoteCandidateId];
       const isRelay = (l && l.candidateType === 'relay') || (rm && rm.candidateType === 'relay');
       const pk = kind === 'a' ? 'sound' : kind === 'v' ? 'video' : 'screen';
       if (isRelay || pathInfo[pk] !== 'relay') pathInfo[pk] = isRelay ? 'relay' : 'direct';
-      // Through the relay every byte costs money: cap video (camera 350 kbps, screen 800 kbps). Direct links stay uncapped.
+      // Through the relay every byte costs money: cap video (camera 500 kbps, screen 1500 kbps). Direct links stay uncapped.
       if (isRelay && kind !== 'a' && !pc._relayCapped) {
         pc._relayCapped = true;
         try {
           pc.getSenders().filter(s => s.track && s.track.kind === 'video').forEach(s => {
             const p = s.getParameters(); if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-            p.encodings[0].maxBitrate = (kind === 's' ? 800 : 350) * 1000;
+            p.encodings[0].maxBitrate = (kind === 's' ? 1500 : 500) * 1000;
             s.setParameters(p).catch(() => {});
           });
         } catch (e) {}
