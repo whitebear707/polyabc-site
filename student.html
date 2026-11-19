@@ -68,6 +68,7 @@
     <div class="dashboard-nav">
       <button class="nav-tab active" onclick="showTab('calendar')" id="tab-calendar">🗓 Calendar</button>
       <button class="nav-tab" onclick="showTab('homework')" id="tab-homework">📚 Homework</button>
+      <button class="nav-tab" onclick="showTab('classes')" id="tab-classes">🎥 My Classes</button>
       <button class="nav-tab" onclick="showTab('tests')" id="tab-tests">📝 Tests</button>
       <button class="nav-tab" onclick="showTab('help')" id="tab-help">❓ Help</button>
     </div>
@@ -92,6 +93,11 @@
     <!-- Homework tab: the student's homework; tapping one opens it to work on -->
     <div id="panel-homework" style="display:none;">
       <div id="hw-panel-list" style="padding:6px 0;">Loading…</div>
+    </div>
+
+    <!-- My Classes tab: recordings of the student's own classes, to download and study -->
+    <div id="panel-classes" style="display:none;">
+      <div id="rec-list" style="padding:6px 0;">Loading…</div>
     </div>
 
     <!-- Tests tab — scaffolded for future use, not implemented yet -->
@@ -132,12 +138,13 @@
   }
 
   function showTab(tab) {
-    ['calendar','homework','tests','help'].forEach(t => {
+    ['calendar','homework','classes','tests','help'].forEach(t => {
       document.getElementById(`panel-${t}`).style.display = t === tab ? 'block' : 'none';
       document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     });
     if (tab === 'help') loadHelpVideos();
     if (tab === 'homework') loadStudentHomework();
+    if (tab === 'classes') loadMyRecordings();
   }
 
   // ---- Homework ----
@@ -299,6 +306,28 @@
   function escHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // ---- Recorded classes: download your own class to study it (kept for 14 days) ----
+  async function loadMyRecordings() {
+    const box = document.getElementById('rec-list'); if (!box || !token) return;
+    let recs = [];
+    try { recs = await (await fetch(`${SERVER_URL}/student/recordings`, { headers: { Authorization: `Bearer ${token}` } })).json(); } catch (e) { box.innerHTML = '<div style="color:#e53935;">Could not load your classes.</div>'; return; }
+    if (!Array.isArray(recs) || !recs.length) { box.innerHTML = '<div style="color:#888;text-align:center;padding:24px;">No recorded classes yet. Your classes stay here for 14 days.<br>Aún no hay clases grabadas. Tus clases se quedan aquí 14 días.</div>'; return; }
+    box.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:8px;">Your classes from the last 14 days. Download one to watch it again and study. / Tus clases de los últimos 14 días. Descarga una para repasarla.</div>' +
+      recs.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;border:1px solid #e2e6ee;border-radius:12px;background:#fff;flex-wrap:wrap;">
+        <div style="font-size:0.9rem;font-weight:700;color:#1a1a2e;">${escHtml(new Date(r.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))} · ${escHtml(r.time || '')}${r.part > 1 ? ' (part ' + r.part + ')' : ''}<div style="font-size:0.75rem;color:#888;font-weight:600;">${escHtml(r.teacherName || '')}${r.groupName ? ' · ' + escHtml(r.groupName) : ''}</div></div>
+        <button onclick="downloadMyRecording('${escHtml(r.id)}', this)" style="background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:800;font-size:0.85rem;cursor:pointer;font-family:inherit;white-space:nowrap;">⬇️ Download</button></div>`).join('');
+  }
+  async function downloadMyRecording(id, el) {
+    const w = window.open('', '_blank');   // opened right on the tap so the browser doesn't block it
+    const old = el.textContent; el.disabled = true; el.textContent = 'Preparing…';
+    try {
+      const r = await (await fetch(`${SERVER_URL}/student/recordings/${encodeURIComponent(id)}/link`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })).json();
+      if (!r.success) { if (w) w.close(); alert(r.error || 'Could not download.'); }
+      else if (w) w.location.href = r.url; else window.location.href = r.url;
+    } catch (e) { if (w) w.close(); alert('Connection error. Try again. / Error de conexión.'); }
+    el.disabled = false; el.textContent = old;
   }
 
   loadCalendar();
