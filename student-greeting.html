@@ -81,7 +81,7 @@
 
   if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
     document.addEventListener('click', () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+      if (!document.fullscreenElement) try { const el = document.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen; if (fs) { const r = fs.call(el); if (r && r.catch) r.catch(() => {}); } } catch (e) {}
     }, { once: true });
   }
 

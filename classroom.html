@@ -407,7 +407,7 @@
       </div>
       <div class="tool-separator"></div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
-      <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
+      <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
       <button id="leaderboard-btn" class="tool-btn" onclick="toggleLeaderboard()" style="background:#f57f17;">🏆 Leaderboard</button>
       <div id="chat-btn-wrap" style="display:none;position:relative;">
         <button class="tool-btn" onclick="toggleChat()" style="background:#1565c0;">💬 Messages</button>
@@ -2511,7 +2511,7 @@ function showSoundUnlock() {
   const unlock = () => {
     document.querySelectorAll('audio').forEach(a => { try { a.play().catch(() => {}); } catch (e) {} });
     try { if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume(); } catch (e) {}
-    document.documentElement.requestFullscreen().catch(() => {});
+    goFullscreen();
     const el = document.getElementById('sound-unlock'); if (el) el.remove();
     document.removeEventListener('pointerdown', unlock, true);
     document.removeEventListener('keydown', unlock, true);
@@ -2530,16 +2530,19 @@ function updateSpectatorEye(count) {
   eye.title = count === 1 ? '1 spectator watching' : `${count} spectators watching`;
 }
 
+function goFullscreen() { try { const el = document.documentElement, f = el.requestFullscreen || el.webkitRequestFullscreen; if (f) { const r = f.call(el); if (r && r.catch) r.catch(() => {}); } } catch (e) {} }
+// (iPhone Safari has no fullscreen for pages: calling it used to crash here, so Enter Class did nothing)
 function enterClass() {
   window._entered = true;
   stopAutoEnterCountdown();
   if (!IS_TEACHER && window._autoEntered) showSoundUnlock();
-  if (!IS_TEACHER && !IS_SPECTATOR) document.documentElement.requestFullscreen().catch(() => {});
+  if (!IS_TEACHER && !IS_SPECTATOR) goFullscreen();
   document.getElementById('connecting-screen').style.display = 'none';
   document.getElementById('room-label').style.background = '#2e7d32';
-  initWhiteboard(_joinedSocket);
-  startVideoCapture(_joinedSocket);
-  startAudioRelay(_joinedSocket);
+  // one broken part must never stop the others (or leave the student stuck on the Enter screen)
+  try { initWhiteboard(_joinedSocket); } catch (e) { console.error('enter: whiteboard', e); }
+  try { startVideoCapture(_joinedSocket); } catch (e) { console.error('enter: video', e); }
+  try { startAudioRelay(_joinedSocket); } catch (e) { console.error('enter: audio', e); }
   Object.keys(remoteRoles).forEach(sid => {
     if (IS_TEACHER) {
       setTimeout(() => callAudioPeer(sid, _joinedSocket), 500);
