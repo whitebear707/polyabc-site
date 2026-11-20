@@ -572,6 +572,199 @@ let classIsOpen     = false;
 let _joinedSocket   = null;
 let _joinedName     = null;
 
+// ══ New video engine (LiveKit) — OFF unless this device is switched on ══
+// Switch on with ?engine=lk in the address (stays on for this device), off again with ?engine=old.
+// While it is off, nothing below runs and the page works exactly as before (direct peer-to-peer links).
+const USE_LK = (() => {
+  try {
+    const q = params.get('engine');
+    if (q === 'lk') localStorage.setItem('polyEngine', 'lk');
+    else if (q === 'old') localStorage.removeItem('polyEngine');
+    return localStorage.getItem('polyEngine') === 'lk';
+  } catch (e) { return params.get('engine') === 'lk'; }
+})();
+const LKE = { room: null, lib: null, starting: false, pubs: {}, screenStream: null, tick: null, prev: null, remoteScreen: null, err: 0 };
+function lkLog(m) { try { console.log('[lk] ' + m); } catch (e) {} }
+function lkLoadLib() {
+  if (window.LivekitClient) return Promise.resolve(window.LivekitClient);
+  if (LKE.lib) return LKE.lib;
+  LKE.lib = new Promise((res, rej) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/livekit-client@2.22.4/dist/livekit-client.umd.js';
+    sc.onload = () => window.LivekitClient ? res(window.LivekitClient) : rej(new Error('library missing'));
+    sc.onerror = () => { LKE.lib = null; rej(new Error('could not load the video library')); };
+    document.head.appendChild(sc);
+  });
+  return LKE.lib;
+}
+// Which page-side person (socket id) is this LiveKit participant? Matched by role + name.
+function lkSidFor(p) {
+  let role = ''; try { role = (JSON.parse(p.metadata || '{}').role) || ''; } catch (e) {}
+  if (role === 'teacher' && teacherSocketId) return teacherSocketId;
+  const nm = p.name;
+  return Object.keys(remoteNames).find(k => remoteNames[k] === nm && (!role || remoteRoles[k] === role)) || Object.keys(remoteNames).find(k => remoteNames[k] === nm) || null;
+}
+// Put a remote camera picture into the same tile the old links used
+function lkPlaceVideo(p, track) {
+  const sid = lkSidFor(p); if (!sid) return false;
+  const existing = document.getElementById(`vimg-${getIdentity(sid)}`); if (!existing) return false;
+  if (existing.srcObject && existing.srcObject.getVideoTracks && existing.srcObject.getVideoTracks()[0] === track.mediaStreamTrack) return true;
+  const vid = document.createElement('video');
+  vid.id = existing.id; vid.autoplay = true; vid.playsInline = true; vid.muted = true;
+  vid.style.cssText = existing.style.cssText || 'width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;';
+  vid.srcObject = new MediaStream([track.mediaStreamTrack]);
+  if (existing.dataset && existing.dataset.camOff) vid.dataset.camOff = existing.dataset.camOff;
+  existing.replaceWith(vid);
+  const pp = vid.play(); if (pp && pp.catch) pp.catch(() => {});
+  return true;
+}
+function lkPlaceAudio(p, track) {
+  const id = 'audio-lk-' + p.identity + '-' + track.sid;
+  if (document.getElementById(id)) return;
+  const a = new Audio(); a.srcObject = new MediaStream([track.mediaStreamTrack]); a.autoplay = true; a.id = id; a.dataset.lk = '1';
+  document.body.appendChild(a);
+  a.play().catch(() => { if (typeof showSoundUnlock === 'function') showSoundUnlock(); });
+}
+function lkRemoveFor(track) {
+  document.querySelectorAll('audio[data-lk="1"]').forEach(a => { if (a.id.endsWith('-' + track.sid)) a.remove(); });
+}
+// Every 2 s: make sure every remote camera is shown in its tile (tiles can appear after the picture arrives)
+function lkRefreshTiles() {
+  const room = LKE.room; if (!room) return;
+  room.remoteParticipants.forEach(p => {
+    p.trackPublications.forEach(pub => {
+      if (pub.track && pub.kind === 'video' && pub.source === window.LivekitClient.Track.Source.Camera) lkPlaceVideo(p, pub.track);
+    });
+  });
+}
+function lkShowScreen(track) {
+  if (!LKE.remoteScreen) LKE.remoteScreen = new MediaStream();
+  LKE.remoteScreen.addTrack(track.mediaStreamTrack);
+  showScreenBehindCanvas(LKE.remoteScreen, false);
+}
+async function lkStart() {
+  if (!USE_LK || LKE.starting || (LKE.room && LKE.room.state !== 'disconnected')) return;
+  if (!IS_SPECTATOR && !localStream) return;
+  LKE.starting = true;
+  try {
+    const LK = await lkLoadLib();
+    const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + MY_TOKEN }, body: JSON.stringify({ room: ROOM }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) throw new Error(d.error || ('video server said ' + r.status));
+    const room = new LK.Room({ adaptiveStream: true, dynacast: true });
+    LKE.room = room;
+    room.on(LK.RoomEvent.TrackSubscribed, (track, pub, p) => {
+      if (track.kind === 'audio') {
+        if (pub.source === LK.Track.Source.ScreenShareAudio) lkShowScreen(track); else lkPlaceAudio(p, track);
+      } else if (pub.source === LK.Track.Source.ScreenShare) lkShowScreen(track);
+      else lkPlaceVideo(p, track);
+    });
+    room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub) => {
+      lkRemoveFor(track);
+      if (LKE.remoteScreen) { try { LKE.remoteScreen.removeTrack(track.mediaStreamTrack); } catch (e) {} }
+    });
+    room.on(LK.RoomEvent.Disconnected, () => { lkLog('disconnected'); setTimeout(() => { if (USE_LK && (!LKE.room || LKE.room.state === 'disconnected')) { LKE.room = null; lkStart(); } }, 2500); });
+    room.on(LK.RoomEvent.Reconnecting, () => lkLog('reconnecting'));
+    room.on(LK.RoomEvent.Reconnected, () => lkLog('reconnected'));
+    room.on(LK.RoomEvent.AudioPlaybackStatusChanged, () => { if (!room.canPlaybackAudio && typeof showSoundUnlock === 'function') showSoundUnlock(); });
+    await room.connect(d.url, d.token);
+    lkLog('joined ' + d.room);
+    if (!IS_SPECTATOR && localStream) {
+      const at = localStream.getAudioTracks()[0], vt = localStream.getVideoTracks()[0];
+      if (at) LKE.pubs.audio = await room.localParticipant.publishTrack(new LK.LocalAudioTrack(at), { source: LK.Track.Source.Microphone });
+      if (vt) LKE.pubs.video = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.Camera, simulcast: true, videoEncoding: { maxBitrate: 700000, maxFramerate: 24 } });
+    }
+    if (IS_TEACHER && isSharing && screenStream) lkPublishScreen();
+    clearInterval(LKE.tick); LKE.tick = setInterval(lkRefreshTiles, 2000);
+    LKE.err = 0;
+  } catch (e) {
+    console.warn('[lk] start failed:', e.message);
+    LKE.room = null;
+    if (++LKE.err <= 3 && window.reportPageError) reportPageError('video engine: ' + e.message, 'livekit');
+    setTimeout(() => lkStart(), Math.min(15000, 3000 * LKE.err));
+  } finally { LKE.starting = false; }
+}
+async function lkPublishScreen() {
+  const room = LKE.room; if (!room || !screenStream || room.state !== 'connected') return;
+  const LK = window.LivekitClient;
+  try {
+    await lkUnpublishScreen();
+    const vt = screenStream.getVideoTracks()[0], at = screenStream.getAudioTracks()[0];
+    if (vt) { try { vt.contentHint = 'detail'; } catch (e) {} LKE.pubs.screen = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.ScreenShare, simulcast: false, videoEncoding: { maxBitrate: 3000000, maxFramerate: 15 }, degradationPreference: 'maintain-resolution' }); }
+    if (at) LKE.pubs.screenAudio = await room.localParticipant.publishTrack(new LK.LocalAudioTrack(at), { source: LK.Track.Source.ScreenShareAudio });
+  } catch (e) { console.warn('[lk] screen publish failed:', e.message); if (window.reportPageError) reportPageError('video engine screen: ' + e.message, 'livekit'); }
+}
+async function lkUnpublishScreen() {
+  const room = LKE.room;
+  for (const k of ['screen', 'screenAudio']) {
+    const pub = LKE.pubs[k]; LKE.pubs[k] = null;
+    if (pub && pub.track && room) { try { await room.localParticipant.unpublishTrack(pub.track, false); } catch (e) {} }
+  }
+}
+function lkReconnect() {
+  const room = LKE.room;
+  if (!room || room.state === 'disconnected') { LKE.room = null; lkStart(); return; }
+  lkRefreshTiles();
+  try { room.startAudio(); } catch (e) {}
+}
+function lkStop() {
+  clearInterval(LKE.tick); LKE.tick = null;
+  const room = LKE.room; LKE.room = null;
+  if (room) { try { room.removeAllListeners(); room.disconnect(); } catch (e) {} }
+  document.querySelectorAll('audio[data-lk="1"]').forEach(a => a.remove());
+}
+async function lkReplaceMic(nt) {
+  const pub = LKE.pubs.audio;
+  if (pub && pub.track && pub.track.replaceTrack) { try { await pub.track.replaceTrack(nt); } catch (e) { console.warn('[lk] mic swap failed:', e.message); } }
+}
+// Same numbers the old links reported to Tech Support (speed, delay, loss, which road, can they see/hear the teacher)
+async function lkCollectHealth() {
+  const room = LKE.room, LK = window.LivekitClient;
+  let rtt = null, lost = 0, got = 0, inV = 0, inA = 0, inAll = 0, outAll = 0, fps = [], path = '';
+  const pm = room && room.engine && room.engine.pcManager;
+  const pcs = pm ? [pm.subscriber, pm.publisher].map(t => t && (t.getPC ? t.getPC() : t.pc || t._pc)).filter(Boolean) : [];
+  for (const pc of pcs) {
+    let st; try { st = await pc.getStats(); } catch (e) { continue; }
+    const cands = {}, pairs = {}; let selId = null;
+    st.forEach(r => {
+      if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands[r.id] = r;
+      if (r.type === 'candidate-pair') pairs[r.id] = r;
+      if (r.type === 'transport' && r.selectedCandidatePairId) selId = r.selectedCandidatePairId;
+      if (r.type === 'inbound-rtp') { inAll += r.bytesReceived || 0; if (r.kind === 'video') { inV += r.bytesReceived || 0; if (r.framesPerSecond) fps.push(r.framesPerSecond); } else inA += r.bytesReceived || 0; lost += r.packetsLost || 0; got += r.packetsReceived || 0; }
+      if (r.type === 'outbound-rtp') outAll += r.bytesSent || 0;
+    });
+    const sp = selId && pairs[selId];
+    if (sp) {
+      const l = cands[sp.localCandidateId] || {}, rm = cands[sp.remoteCandidateId] || {};
+      const relay = l.candidateType === 'relay' || rm.candidateType === 'relay';
+      if (!path || relay) path = relay ? 'relay' : 'direct';
+      if (sp.currentRoundTripTime != null) rtt = sp.currentRoundTripTime * 1000;
+    }
+  }
+  const now = Date.now(), prev = LKE.prev; LKE.prev = { t: now, inAll, outAll, inV, inA, lost, got };
+  let inK = 0, outK = 0, seesT = null, hearsT = null, lossPct = 0;
+  if (prev) {
+    const dt = Math.max(1, (now - prev.t) / 1000);
+    inK = Math.max(0, inAll - prev.inAll) * 8 / 1000 / dt; outK = Math.max(0, outAll - prev.outAll) * 8 / 1000 / dt;
+    const dl = Math.max(0, lost - prev.lost), dr = Math.max(0, got - prev.got); lossPct = dl + dr ? dl * 100 / (dl + dr) : 0;
+    if (!IS_TEACHER && room) {
+      const t = Array.from(room.remoteParticipants.values()).find(p => { try { return JSON.parse(p.metadata || '{}').role === 'teacher'; } catch (e) { return false; } });
+      if (t) {
+        const hasV = Array.from(t.trackPublications.values()).some(x => x.kind === 'video' && x.source === LK.Track.Source.Camera && x.track);
+        const hasA = Array.from(t.trackPublications.values()).some(x => x.kind === 'audio' && x.source === LK.Track.Source.Microphone && x.track);
+        seesT = hasV ? inV > prev.inV : false; hearsT = hasA ? inA > prev.inA : false;
+      }
+    }
+  }
+  const ua = _uaInfo();
+  return { rtt, loss: lossPct, inKbps: inK, outKbps: outK, fps: fps.length ? fps.reduce((a, b) => a + b, 0) / fps.length : null,
+    camOn: !!(localStream && localStream.getVideoTracks().some(t => t.readyState === 'live' && t.enabled)),
+    micOn: !!(localStream && localStream.getAudioTracks().some(t => t.readyState === 'live' && t.enabled)),
+    seesTeacher: IS_TEACHER ? null : seesT, hearsTeacher: IS_TEACHER ? null : hearsT,
+    peers: room ? room.remoteParticipants.size : 0, badPeers: room && room.state !== 'connected' ? 1 : 0, device: ua.device, browser: ua.browser, hidden: document.visibilityState === 'hidden',
+    mic: micLabel(), micLevel: micPeakTake(), path: { video: path, sound: path, screen: path } };
+}
+
 // WebRTC audio
 const audioPeers = {};
 const videoPeers = {}; // WebRTC video connections
@@ -1698,6 +1891,7 @@ function createAudioPeer(targetId, socket) {
 }
 
 async function callAudioPeer(targetId, socket) {
+  if (USE_LK) return;
   const pc = createAudioPeer(targetId, socket);
   try {
     const offer = await pc.createOffer({ offerToReceiveAudio: true });
@@ -1776,6 +1970,7 @@ function createVideoPeer(targetId, socket) {
 }
 
 async function callVideoPeer(targetId, socket) {
+  if (USE_LK) return;
   const pc = createVideoPeer(targetId, socket);
   const offer = await pc.createOffer({ offerToReceiveVideo: true });
   await pc.setLocalDescription(offer);
@@ -1788,6 +1983,7 @@ function removeVideoPeer(socketId) {
 
 function startAudioRelay(socket) {
   if (!localStream && !IS_SPECTATOR) return;
+  if (USE_LK) { window._audioSocket = socket; lkStart(); return; }
   // Remove any existing listeners first to prevent duplicates on reconnect
   socket.off('audio-offer');
   socket.off('audio-answer');
@@ -3509,6 +3705,7 @@ async function startScreenShare() {
       Object.keys(studentSlots).forEach(sid => callSsPeer(sid));
       (window._spectatorIds || []).forEach(sid => callSsPeer(sid));
     }
+    if (USE_LK) lkPublishScreen();
 
     // The browser's own "Stop sharing" bar ends the original track
     raw.getVideoTracks()[0].onended = () => stopScreenShare();
@@ -3778,6 +3975,7 @@ async function ssCheck() {
 }
 // Student: one tap redoes every link with the teacher (sound, camera and the shared screen)
 function reconnectMedia() {
+  if (USE_LK) { lkReconnect(); const b = document.getElementById('reconnect-btn'); if (b) { b.textContent = '⏳ Reconnecting…'; b.disabled = true; setTimeout(() => { b.textContent = "🔄 Can't see or hear?"; b.disabled = false; }, 4000); } return; }
   const s = window._socket; if (!s) return;
   const tsid = Object.keys(remoteRoles).find(k => remoteRoles[k] === 'teacher');
   const btn = document.getElementById('reconnect-btn');
@@ -3815,6 +4013,7 @@ function hideShareProblem(kind) { const d = document.getElementById('ss-problem-
 // browser produce a fresh picture even when the shared page is not changing), then every student link is rebuilt.
 async function pushScreenShare() {
   if (!isSharing || !screenStream) return;
+  if (USE_LK) { await lkPublishScreen(); return; }
   const btn = document.getElementById('push-share-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending…'; }
   try {
@@ -3846,6 +4045,7 @@ function capScreenSender(pc) {
 }
 const SS_MAX_KBPS = 3500;
 async function callSsPeer(studentId) {
+  if (USE_LK) return;
   if (ssPeers[studentId]) { ssPeers[studentId].close(); delete ssPeers[studentId]; }
   if (!screenStream) return;
   const pc = new RTCPeerConnection(ICE_CONFIG);
@@ -3904,6 +4104,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 })();
 // The "Class has ended" screen must really end the call: close every audio/video link and the floating window, so nothing keeps running behind it
 function shutdownClassMedia() {
+  if (USE_LK) { try { lkStop(); } catch (e) {} }
   try { [audioPeers, videoPeers, ssPeers].forEach(m => Object.keys(m).forEach(k => { try { m[k] && m[k].close && m[k].close(); } catch (e) {} delete m[k]; })); } catch (e) {}
   try { document.querySelectorAll('audio,video').forEach(el => { try { el.pause(); el.srcObject = null; } catch (e) {} }); } catch (e) {}
   try { if (_float && _float.win && !_float.win.closed) _float.win.close(); } catch (e) {}
@@ -3978,6 +4179,7 @@ async function openSharePip(auto) {
 
 function stopScreenShare() {
   isSharing = false;
+  if (USE_LK) lkUnpublishScreen();
   try { if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {}); } catch (e) {}
   const pipB = document.getElementById('sharepip-btn'); if (pipB && !window.documentPictureInPicture) pipB.style.display = 'none';
   clearInterval(_ssWatchT);
@@ -4551,6 +4753,7 @@ function _uaInfo() {
   return { browser: browser + (ver ? ' ' + ver : ''), device };
 }
 async function collectHealth() {
+  if (USE_LK) return lkCollectHealth();
   const pcs = [];
   [audioPeers, videoPeers, ssPeers].forEach(m => Object.entries(m).forEach(([sid, pc]) => pc && pc.getStats && pcs.push({ sid, pc, kind: m === audioPeers ? 'a' : m === videoPeers ? 'v' : 's' })));
   let rtts = [], lost = 0, got = 0, inB = 0, outB = 0, fps = [], badPeers = 0;
@@ -4679,6 +4882,7 @@ async function switchMic(deviceId) {
   const ns = await navigator.mediaDevices.getUserMedia({ audio: deviceId ? { deviceId: { exact: deviceId } } : true });
   const nt = ns.getAudioTracks()[0];
   nt.enabled = old ? old.enabled : true;
+  if (USE_LK) lkReplaceMic(nt);
   // send the new mic on every audio connection without reconnecting anyone
   Object.values(audioPeers).forEach(pc => {
     try { const snd = pc.getSenders().find(x => x.track ? x.track.kind === 'audio' : (x.dtmf != null)); if (snd) snd.replaceTrack(nt); } catch (e) {}
