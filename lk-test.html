@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PolyABC video test</title>
+<style>
+  :root { --bg:#0b1020; --card:#151c33; --line:#26304f; --txt:#e8ecf8; --mut:#9aa6c8; --ok:#2ecc71; --warn:#f5a524; --bad:#ff5c5c; --acc:#3b82f6; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding:16px; max-width:900px; margin-inline:auto; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  p.sub { color:var(--mut); margin:0 0 14px; font-size:.92rem; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button { font:inherit; font-weight:700; border:0; border-radius:10px; padding:10px 14px; background:var(--acc); color:#fff; cursor:pointer; }
+  button.sec { background:#2a3558; }
+  button.bad { background:#b3261e; }
+  button:disabled { opacity:.45; cursor:default; }
+  input { font:inherit; padding:9px 10px; border-radius:10px; border:1px solid var(--line); background:#0d1428; color:var(--txt); min-width:0; }
+  #grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+  .tile { position:relative; background:#05080f; border-radius:10px; overflow:hidden; aspect-ratio:16/10; border:1px solid var(--line); }
+  .tile video { width:100%; height:100%; object-fit:contain; background:#000; }
+  .tile .lbl { position:absolute; left:6px; bottom:6px; background:rgba(0,0,0,.65); padding:2px 8px; border-radius:8px; font-size:.8rem; }
+  .tile.screen { grid-column:1/-1; aspect-ratio:16/9; }
+  #stat { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:.92rem; }
+  #stat b { color:var(--mut); font-weight:600; }
+  .pill { display:inline-block; padding:1px 9px; border-radius:99px; font-weight:800; font-size:.85rem; }
+  .p-ok { background:rgba(46,204,113,.18); color:var(--ok); } .p-warn { background:rgba(245,165,36,.18); color:var(--warn); } .p-bad { background:rgba(255,92,92,.18); color:var(--bad); }
+  #log { font:12px/1.5 ui-monospace, Menlo, Consolas, monospace; color:var(--mut); max-height:200px; overflow:auto; white-space:pre-wrap; }
+  .note { color:var(--mut); font-size:.88rem; }
+</style>
+</head>
+<body>
+<h1>🎥 Video test (new system)</h1>
+<p class="sub">Test page for the new video engine. Not used by real classes. Open it on two devices, tap Join on both, and check you can see and hear each other.</p>
+
+<div class="card">
+  <div id="who" class="note">Checking your login…</div>
+  <div class="row" id="roomRow" style="margin-top:8px;display:none;">
+    <input id="roomName" placeholder="Test room name (e.g. mesa1)" value="mesa1" maxlength="40">
+  </div>
+  <div class="row" style="margin-top:10px;">
+    <button id="joinBtn" disabled>Join test call</button>
+    <button id="camBtn" class="sec" disabled>📷 Camera</button>
+    <button id="micBtn" class="sec" disabled>🎤 Mic</button>
+    <button id="scrBtn" class="sec" disabled>🖥️ Share screen</button>
+    <button id="leaveBtn" class="bad" disabled>Leave</button>
+  </div>
+</div>
+
+<div class="card">
+  <div id="stat">
+    <b>Status</b><span id="sConn"><span class="pill p-warn">not joined</span></span>
+    <b>Connection path</b><span id="sPath">—</span>
+    <b>Speed (down / up)</b><span id="sRate">—</span>
+    <b>Delay</b><span id="sRtt">—</span>
+    <b>People in room</b><span id="sPeople">—</span>
+  </div>
+</div>
+
+<div class="card"><div id="grid"></div><div id="empty" class="note">No video yet. Tap Join.</div></div>
+
+<div class="card"><div class="note" style="margin-bottom:6px;">Log (send me a screenshot of this if something fails)</div><div id="log"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.4/dist/livekit-client.umd.js"></script>
+<script>
+const SERVER_URL = 'https://polyabc-server.onrender.com';
+const $ = id => document.getElementById(id);
+const LK = window.LivekitClient;
+let room = null, statsTimer = null, prevBytes = null;
+
+function log(m) { const t = new Date().toLocaleTimeString(); $('log').textContent += `[${t}] ${m}\n`; $('log').scrollTop = 1e9; }
+function pill(txt, cls) { return `<span class="pill ${cls}">${txt}</span>`; }
+
+// Any existing PolyABC login works (teacher, student, admin or tech support)
+function findLogin() {
+  const keys = [['teacherToken', 'Teacher'], ['studentToken', 'Student'], ['adminToken', 'Admin'], ['techToken', 'Tech support']];
+  for (const [k, label] of keys) { try { const v = localStorage.getItem(k); if (v) return { token: v, label }; } catch (e) {} }
+  return null;
+}
+const login = findLogin();
+if (!LK) { $('who').innerHTML = pill('video library did not load', 'p-bad') + ' Check your internet and reload.'; }
+else if (!login) { $('who').innerHTML = 'You are not logged in. <a href="login.html" style="color:#8ab4ff">Log in</a> first (as a teacher or student), then come back to this page.'; }
+else {
+  $('who').innerHTML = `Logged in as: <b>${login.label}</b>`;
+  if (['Admin', 'Tech support'].includes(login.label)) $('roomRow').style.display = 'flex';
+  $('joinBtn').disabled = false;
+}
+
+function addTile(id, label, isScreen) {
+  let el = $('t_' + id);
+  if (el) return el.querySelector('video');
+  el = document.createElement('div'); el.className = 'tile' + (isScreen ? ' screen' : ''); el.id = 't_' + id;
+  el.innerHTML = `<video autoplay playsinline></video><div class="lbl"></div>`;
+  el.querySelector('.lbl').textContent = label;
+  $('grid').appendChild(el); $('empty').style.display = 'none';
+  return el.querySelector('video');
+}
+function dropTile(id) { const el = $('t_' + id); if (el) el.remove(); if (!$('grid').children.length) $('empty').style.display = 'block'; }
+function refreshPeople() { if (room) $('sPeople').textContent = String(1 + room.remoteParticipants.size); }
+
+function attach(track, participant, pub) {
+  const isScreen = pub && pub.source === LK.Track.Source.ScreenShare;
+  const id = participant.sid + '_' + track.sid;
+  if (track.kind === 'video') {
+    const v = addTile(id, (participant.name || participant.identity) + (isScreen ? ' (screen)' : ''), isScreen);
+    track.attach(v);
+    if (participant.isLocal) v.muted = true;
+  } else if (track.kind === 'audio' && !participant.isLocal) {
+    const a = track.attach(); a.style.display = 'none'; document.body.appendChild(a); a.dataset.tid = track.sid;
+  }
+}
+function detach(track, participant) {
+  track.detach().forEach(e => { if (e.tagName === 'AUDIO') e.remove(); });
+  dropTile(participant.sid + '_' + track.sid);
+}
+
+async function join() {
+  if (!login || !LK) return;
+  $('joinBtn').disabled = true; log('Asking the school server for a pass…');
+  try {
+    const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token }, body: JSON.stringify({ room: $('roomName').value.trim() }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) throw new Error(d.error || ('server said ' + r.status));
+    log(`Pass received. Room: ${d.room}`);
+    room = new LK.Room({ adaptiveStream: true, dynacast: true, publishDefaults: { simulcast: true, videoCodec: 'vp8', screenShareEncoding: { maxBitrate: 2500000, maxFramerate: 15 } }, videoCaptureDefaults: { resolution: LK.VideoPresets.h540 } });
+    room.on(LK.RoomEvent.TrackSubscribed, (t, p, pub) => { log(`Receiving ${t.kind} from ${p.name || p.identity}`); attach(t, p, pub); });
+    room.on(LK.RoomEvent.TrackUnsubscribed, (t, p) => detach(t, p));
+    room.on(LK.RoomEvent.LocalTrackPublished, (pub, p) => { if (pub.track) attach(pub.track, p, pub); });
+    room.on(LK.RoomEvent.LocalTrackUnpublished, (pub, p) => { if (pub.track) detach(pub.track, p); });
+    room.on(LK.RoomEvent.ParticipantConnected, p => { log(`${p.name || p.identity} joined`); refreshPeople(); });
+    room.on(LK.RoomEvent.ParticipantDisconnected, p => { log(`${p.name || p.identity} left`); refreshPeople(); });
+    room.on(LK.RoomEvent.ConnectionStateChanged, s => { log('Connection: ' + s); showConn(s); });
+    room.on(LK.RoomEvent.Reconnecting, () => log('Reconnecting…'));
+    room.on(LK.RoomEvent.Reconnected, () => log('Reconnected'));
+    room.on(LK.RoomEvent.Disconnected, reason => { log('Disconnected' + (reason ? ' (' + reason + ')' : '')); cleanup(); });
+    room.on(LK.RoomEvent.MediaDevicesError, e => log('Camera/mic problem: ' + (e && e.message || e)));
+    room.on(LK.RoomEvent.AudioPlaybackStatusChanged, () => { if (!room.canPlaybackAudio) { log('Tap anywhere on the page to enable sound'); document.addEventListener('click', () => room && room.startAudio(), { once: true }); } });
+    await room.connect(d.url, d.token);
+    log('Joined the room');
+    $('camBtn').disabled = $('micBtn').disabled = $('scrBtn').disabled = $('leaveBtn').disabled = false;
+    if (d.role !== 'techsupport') { await toggleCam(true); await toggleMic(true); }
+    refreshPeople(); statsTimer = setInterval(readStats, 3000);
+  } catch (e) { log('Could not join: ' + (e && e.message || e)); $('joinBtn').disabled = false; cleanup(); }
+}
+function showConn(s) { const m = { connected: ['connected', 'p-ok'], connecting: ['connecting…', 'p-warn'], reconnecting: ['reconnecting…', 'p-warn'], disconnected: ['disconnected', 'p-bad'] }[s] || [s, 'p-warn']; $('sConn').innerHTML = pill(m[0], m[1]); }
+async function toggleCam(on) { try { await room.localParticipant.setCameraEnabled(on === undefined ? !room.localParticipant.isCameraEnabled : on); $('camBtn').textContent = room.localParticipant.isCameraEnabled ? '📷 Camera on' : '📷 Camera off'; } catch (e) { log('Camera: ' + (e.message || e)); } }
+async function toggleMic(on) { try { await room.localParticipant.setMicrophoneEnabled(on === undefined ? !room.localParticipant.isMicrophoneEnabled : on); $('micBtn').textContent = room.localParticipant.isMicrophoneEnabled ? '🎤 Mic on' : '🎤 Mic off'; } catch (e) { log('Mic: ' + (e.message || e)); } }
+async function toggleScreen() { try { const on = !room.localParticipant.isScreenShareEnabled; await room.localParticipant.setScreenShareEnabled(on, on ? { contentHint: 'detail', resolution: { width: 1600, height: 900, frameRate: 15 } } : undefined); $('scrBtn').textContent = room.localParticipant.isScreenShareEnabled ? '🖥️ Stop sharing' : '🖥️ Share screen'; } catch (e) { log('Screen: ' + (e.message || e)); } }
+
+// Which road the video really takes (direct, or through a relay; udp or tcp) plus live speed
+async function readStats() {
+  try {
+    const pm = room && room.engine && room.engine.pcManager; if (!pm) return;
+    const pcs = [pm.subscriber, pm.publisher].map(t => t && (t.getPC ? t.getPC() : t.pc || t._pc)).filter(Boolean);
+    let path = '', rtt = null, inB = 0, outB = 0;
+    for (const pc of pcs) {
+      const st = await pc.getStats(); const cands = {}, pairs = {}; let selId = null;
+      st.forEach(r => {
+        if (r.type === 'local-candidate' || r.type === 'remote-candidate') cands[r.id] = r;
+        if (r.type === 'candidate-pair') pairs[r.id] = r;
+        if (r.type === 'transport' && r.selectedCandidatePairId) selId = r.selectedCandidatePairId;
+        if (r.type === 'inbound-rtp') inB += r.bytesReceived || 0;
+        if (r.type === 'outbound-rtp') outB += r.bytesSent || 0;
+      });
+      const p = selId && pairs[selId];
+      if (p) {
+        const l = cands[p.localCandidateId] || {}, rm = cands[p.remoteCandidateId] || {};
+        const relay = l.candidateType === 'relay' || rm.candidateType === 'relay';
+        const proto = (l.relayProtocol || l.protocol || '').toUpperCase();
+        path = (relay ? pill('relay', 'p-warn') : pill('direct to server', 'p-ok')) + ' ' + proto;
+        if (p.currentRoundTripTime != null) rtt = Math.round(p.currentRoundTripTime * 1000);
+        if (proto === 'TCP' || relay) log(`Path: ${relay ? 'relay' : 'direct'} over ${proto}`);
+      }
+    }
+    const now = Date.now();
+    if (prevBytes) { const dt = (now - prevBytes.t) / 1000; $('sRate').textContent = `${Math.round((inB - prevBytes.i) * 8 / 1000 / dt)} / ${Math.round((outB - prevBytes.o) * 8 / 1000 / dt)} kbps`; }
+    prevBytes = { t: now, i: inB, o: outB };
+    if (path) $('sPath').innerHTML = path; if (rtt != null) $('sRtt').textContent = rtt + ' ms';
+  } catch (e) {}
+}
+function cleanup() { clearInterval(statsTimer); statsTimer = null; prevBytes = null; room = null; $('grid').innerHTML = ''; $('empty').style.display = 'block'; document.querySelectorAll('audio[data-tid]').forEach(a => a.remove()); $('camBtn').disabled = $('micBtn').disabled = $('scrBtn').disabled = $('leaveBtn').disabled = true; $('joinBtn').disabled = !login; showConn('disconnected'); $('sPeople').textContent = '—'; }
+$('joinBtn').onclick = join;
+$('camBtn').onclick = () => toggleCam();
+$('micBtn').onclick = () => toggleMic();
+$('scrBtn').onclick = toggleScreen;
+$('leaveBtn').onclick = async () => { try { await room.disconnect(); } catch (e) {} };
+window.addEventListener('beforeunload', () => { try { room && room.disconnect(); } catch (e) {} });
+</script>
+</body>
+</html>
