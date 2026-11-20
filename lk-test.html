@@ -134,7 +134,7 @@ async function join() {
   if (!login || !LK) return;
   $('joinBtn').disabled = true; log('Asking the school server for a pass…');
   try {
-    const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token }, body: JSON.stringify({ room: $('roomName').value.trim() }) });
+    const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token }, body: JSON.stringify({ room: $('roomName').value.trim(), test: true }) });
     const d = await r.json().catch(() => ({}));
     if (r.status === 401) { $('who').innerHTML = pill('login expired', 'p-bad') + ' <a href="login.html" style="color:#8ab4ff">Log in again</a>, then come back to this page.'; throw new Error('Your login expired. Log in again.'); }
     if (!r.ok || !d.token) throw new Error(d.error || ('server said ' + r.status));

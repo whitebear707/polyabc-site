@@ -573,15 +573,15 @@ let _joinedSocket   = null;
 let _joinedName     = null;
 
 // ══ New video engine (LiveKit) — OFF unless this device is switched on ══
-// Switch on with ?engine=lk in the address (stays on for this device), off again with ?engine=old.
-// While it is off, nothing below runs and the page works exactly as before (direct peer-to-peer links).
+// ON for everyone. Emergency way back to the old direct peer-to-peer links: open the class with ?engine=old
+// (stays that way on that device) and ?engine=lk to return. The old code below is kept but only runs in that case.
 const USE_LK = (() => {
   try {
     const q = params.get('engine');
-    if (q === 'lk') localStorage.setItem('polyEngine', 'lk');
-    else if (q === 'old') localStorage.removeItem('polyEngine');
-    return localStorage.getItem('polyEngine') === 'lk';
-  } catch (e) { return params.get('engine') === 'lk'; }
+    if (q === 'old') localStorage.setItem('polyEngine', 'old');
+    else if (q === 'lk') localStorage.removeItem('polyEngine');
+    return localStorage.getItem('polyEngine') !== 'old';
+  } catch (e) { return params.get('engine') !== 'old'; }
 })();
 const LKE = { room: null, lib: null, starting: false, pubs: {}, screenStream: null, tick: null, prev: null, remoteScreen: null, err: 0 };
 function lkLog(m) { try { console.log('[lk] ' + m); } catch (e) {} }
@@ -597,6 +597,7 @@ function lkLoadLib() {
   });
   return LKE.lib;
 }
+function lkRole(p) { try { return JSON.parse(p.metadata || '{}').role || ''; } catch (e) { return ''; } }
 // Which page-side person (socket id) is this LiveKit participant? Matched by role + name.
 function lkSidFor(p) {
   let role = ''; try { role = (JSON.parse(p.metadata || '{}').role) || ''; } catch (e) {}
@@ -643,7 +644,7 @@ function lkShowScreen(track) {
   showScreenBehindCanvas(LKE.remoteScreen, false);
 }
 // A small corner label on devices using the new system (testing only)
-if (USE_LK) {
+if (USE_LK && (IS_TEACHER || TECH_MODE)) {
   const addTag = () => { if (document.getElementById('lk-tag') || !document.body) return; const d = document.createElement('div'); d.id = 'lk-tag'; d.textContent = 'new system'; d.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:99998;background:rgba(46,204,113,.85);color:#04210f;font:800 11px Nunito,sans-serif;padding:2px 8px;border-radius:10px;pointer-events:none;'; document.body.appendChild(d); };
   if (document.body) addTag(); else document.addEventListener('DOMContentLoaded', addTag);
 }
@@ -5004,7 +5005,8 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
     { const bs = document.getElementById('break-screen'); if (bs && bs.style.display !== 'none') { TT.run = 0; TT.localMax = 0; return; } } // nothing is measured during a break
     TT.busy = true;
     try {
-      if (!Object.keys(audioPeers).some(sid => remoteNames[sid] && remoteRoles[sid] === 'student')) { TT.localMax = 0; return; }
+      const lkStu = USE_LK && LKE.room ? Array.from(LKE.room.remoteParticipants.values()).filter(p => lkRole(p) === 'student' && p.name) : null;
+      if (USE_LK ? !(lkStu && lkStu.length) : !Object.keys(audioPeers).some(sid => remoteNames[sid] && remoteRoles[sid] === 'student')) { TT.localMax = 0; return; }
       const now = Date.now(); let any = false;
       // the teacher's own mic: energy of what is being sent (no audio player needed); falls back to a direct mic reading
       let tl = null;
@@ -5028,6 +5030,8 @@ if (IS_TEACHER && ROOM !== '0' && !TECH_MODE) {
         const name = remoteNames[sid]; if (!name || remoteRoles[sid] !== 'student') continue;
         if (ttSpeaking(name, await ttRemoteLevel(sid, pc), now)) { TT.students[name] = (TT.students[name] || 0) + 500; any = true; sSpeak = true; }
       }
+      // new engine: each student's voice level comes from the video service
+      if (lkStu) for (const p of lkStu) { if (ttSpeaking(p.name, p.audioLevel || 0, now)) { TT.students[p.name] = (TT.students[p.name] || 0) + 500; any = true; sSpeak = true; } }
       TT.measuredMs += 500; if (!any) TT.silenceMs += 500;
       // Silence only counts when nobody speaks for more than 90 s in a row (a question, writing time, thinking are normal)
       if (any) TT.run = 0; else { TT.run = (TT.run || 0) + 500; if (TT.run === 90500) TT.longMs = (TT.longMs || 0) + 90500; else if (TT.run > 90500) TT.longMs = (TT.longMs || 0) + 500; }
