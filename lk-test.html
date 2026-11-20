@@ -88,10 +88,10 @@ function findLogin() {
   for (const [k, label] of keys) { try { const v = localStorage.getItem(k); if (v) return { token: v, label }; } catch (e) {} }
   return null;
 }
-function engineOn() { try { return localStorage.getItem('polyEngine') === 'lk'; } catch (e) { return false; } }
+function engineOn() { try { return localStorage.getItem('polyEngine') !== 'old'; } catch (e) { return true; } }
 function showEngine() { $('engineState').innerHTML = 'This device is using: ' + (engineOn() ? pill('NEW system', 'p-ok') : pill('old system', 'p-warn')); }
-$('engOn').onclick = () => { try { localStorage.setItem('polyEngine', 'lk'); } catch (e) {} showEngine(); };
-$('engOff').onclick = () => { try { localStorage.removeItem('polyEngine'); } catch (e) {} showEngine(); };
+$('engOn').onclick = () => { try { localStorage.removeItem('polyEngine'); } catch (e) {} showEngine(); };
+$('engOff').onclick = () => { try { localStorage.setItem('polyEngine', 'old'); } catch (e) {} showEngine(); };
 showEngine();
 const login = findLogin();
 if (!LK) { $('who').innerHTML = pill('video library did not load', 'p-bad') + ' Check your internet and reload.'; }
