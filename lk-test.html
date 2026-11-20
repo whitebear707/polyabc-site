@@ -122,6 +122,7 @@ async function join() {
   try {
     const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token }, body: JSON.stringify({ room: $('roomName').value.trim() }) });
     const d = await r.json().catch(() => ({}));
+    if (r.status === 401) { $('who').innerHTML = pill('login expired', 'p-bad') + ' <a href="login.html" style="color:#8ab4ff">Log in again</a>, then come back to this page.'; throw new Error('Your login expired. Log in again.'); }
     if (!r.ok || !d.token) throw new Error(d.error || ('server said ' + r.status));
     log(`Pass received. Room: ${d.room}`);
     room = new LK.Room({ adaptiveStream: true, dynacast: true, publishDefaults: { simulcast: true, videoCodec: 'vp8', screenShareEncoding: { maxBitrate: 2500000, maxFramerate: 15 } }, videoCaptureDefaults: { resolution: LK.VideoPresets.h540 } });
