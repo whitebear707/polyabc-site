@@ -724,6 +724,52 @@ async function lkReplaceMic(nt) {
   const pub = LKE.pubs.audio;
   if (pub && pub.track && pub.track.replaceTrack) { try { await pub.track.replaceTrack(nt); } catch (e) { console.warn('[lk] mic swap failed:', e.message); } }
 }
+// Diagnostic panel (press Ctrl+Shift+D in the classroom): what this device sends and receives, to find out why a picture stutters
+function lkDeepText(pcsStats, prev, dt) {
+  const L = [];
+  for (const st of pcsStats) {
+    const cp = {};
+    st.forEach(r => { if (r.type === 'candidate-pair' && (r.nominated || r.state === 'succeeded')) cp[r.id] = r; });
+    st.forEach(r => {
+      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
+        L.push(`link: rtt ${r.currentRoundTripTime != null ? Math.round(r.currentRoundTripTime * 1000) : '?'} ms, my uplink estimate ${r.availableOutgoingBitrate ? Math.round(r.availableOutgoingBitrate / 1000) + ' kbps' : '-'}, downlink estimate ${r.availableIncomingBitrate ? Math.round(r.availableIncomingBitrate / 1000) + ' kbps' : '-'}`);
+      }
+      if (r.type === 'outbound-rtp' && r.kind === 'video') {
+        const k = 'o' + r.id, b = prev[k]; prev[k] = r.bytesSent;
+        const kb = b != null ? Math.round((r.bytesSent - b) * 8 / 1000 / dt) : '?';
+        L.push(`SEND video ${r.rid || ''}: ${r.frameWidth || 0}x${r.frameHeight || 0} @ ${Math.round(r.framesPerSecond || 0)} fps, ${kb} kbps, limited by: ${r.qualityLimitationReason || 'none'}${r.active === false ? ' (paused)' : ''}`);
+      }
+      if (r.type === 'outbound-rtp' && r.kind === 'audio') { const k = 'o' + r.id, b = prev[k]; prev[k] = r.bytesSent; L.push(`SEND audio: ${b != null ? Math.round((r.bytesSent - b) * 8 / 1000 / dt) : '?'} kbps`); }
+      if (r.type === 'inbound-rtp' && r.kind === 'video') {
+        const k = 'i' + r.id, b = prev[k]; prev[k] = r.bytesReceived;
+        L.push(`RECEIVE video: ${r.frameWidth || 0}x${r.frameHeight || 0} @ ${Math.round(r.framesPerSecond || 0)} fps, ${b != null ? Math.round((r.bytesReceived - b) * 8 / 1000 / dt) : '?'} kbps, lost ${r.packetsLost || 0}, freezes ${r.freezeCount || 0} (${(r.totalFreezesDuration || 0).toFixed(1)} s), dropped ${r.framesDropped || 0}, jitter ${Math.round((r.jitter || 0) * 1000)} ms`);
+      }
+      if (r.type === 'inbound-rtp' && r.kind === 'audio') L.push(`RECEIVE audio: lost ${r.packetsLost || 0}, jitter ${Math.round((r.jitter || 0) * 1000)} ms, concealed ${r.concealedSamples || 0}`);
+    });
+  }
+  return L.join('\n');
+}
+(function lkDebugPanel() {
+  if (!USE_LK) return;
+  let el = null, timer = null; const prev = {}; let last = Date.now();
+  async function tick() {
+    if (!el) return;
+    const room = LKE.room, pm = room && room.engine && room.engine.pcManager;
+    const pcs = pm ? [pm.publisher, pm.subscriber].map(t => t && (t.getPC ? t.getPC() : t.pc || t._pc)).filter(Boolean) : [];
+    const sts = []; for (const pc of pcs) { try { sts.push(await pc.getStats()); } catch (e) {} }
+    const now = Date.now(), dt = Math.max(1, (now - last) / 1000); last = now;
+    const hidden = document.visibilityState === 'hidden' ? '   [THIS TAB IS HIDDEN]' : '';
+    el.textContent = `new system · ${room ? room.state : 'no room'} · people ${room ? room.remoteParticipants.size : 0}${hidden}\n` + (sts.length ? lkDeepText(sts, prev, dt) : 'no stats yet');
+  }
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
+    e.preventDefault();
+    if (el) { el.remove(); el = null; clearInterval(timer); return; }
+    el = document.createElement('pre');
+    el.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;max-width:94vw;margin:0;padding:8px 10px;background:rgba(0,0,0,.82);color:#9fffb0;font:11px/1.35 ui-monospace,Consolas,monospace;border-radius:8px;white-space:pre-wrap;pointer-events:none;';
+    document.body.appendChild(el); last = Date.now(); timer = setInterval(tick, 2000); tick();
+  });
+})();
 // Same numbers the old links reported to Tech Support (speed, delay, loss, which road, can they see/hear the teacher)
 async function lkCollectHealth() {
   const room = LKE.room, LK = window.LivekitClient;
