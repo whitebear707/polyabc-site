@@ -679,7 +679,7 @@ async function lkStart() {
     if (!IS_SPECTATOR && localStream) {
       const at = localStream.getAudioTracks()[0], vt = localStream.getVideoTracks()[0];
       if (at) LKE.pubs.audio = await room.localParticipant.publishTrack(new LK.LocalAudioTrack(at), { source: LK.Track.Source.Microphone });
-      if (vt) LKE.pubs.video = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.Camera, simulcast: true, videoEncoding: { maxBitrate: 700000, maxFramerate: 24 } });
+      if (vt) LKE.pubs.video = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.Camera, simulcast: IS_TEACHER, videoEncoding: IS_TEACHER ? { maxBitrate: 700000, maxFramerate: 24 } : { maxBitrate: 250000, maxFramerate: 15 } });
     }
     if (IS_TEACHER && isSharing && screenStream) lkPublishScreen();
     clearInterval(LKE.tick); LKE.tick = setInterval(lkRefreshTiles, 2000);
