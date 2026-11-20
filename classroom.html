@@ -657,7 +657,8 @@ async function lkStart() {
     const r = await fetch(SERVER_URL + '/livekit/token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + MY_TOKEN }, body: JSON.stringify({ room: ROOM }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.token) throw new Error(d.error || ('video server said ' + r.status));
-    const room = new LK.Room({ adaptiveStream: true, dynacast: true });
+    // adaptiveStream off: it shrinks or pauses any picture the service cannot see on screen, and our tiles are drawn by the page itself. Classes are small, so every picture stays at full quality.
+    const room = new LK.Room({ adaptiveStream: false, dynacast: true });
     LKE.room = room;
     room.on(LK.RoomEvent.TrackSubscribed, (track, pub, p) => {
       if (track.kind === 'audio') {
