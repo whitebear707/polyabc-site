@@ -761,14 +761,23 @@ function lkDeepText(pcsStats, prev, dt) {
     const hidden = document.visibilityState === 'hidden' ? '   [THIS TAB IS HIDDEN]' : '';
     el.textContent = `new system · ${room ? room.state : 'no room'} · people ${room ? room.remoteParticipants.size : 0}${hidden}\n` + (sts.length ? lkDeepText(sts, prev, dt) : 'no stats yet');
   }
-  document.addEventListener('keydown', e => {
-    if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
-    e.preventDefault();
+  function toggle() {
     if (el) { el.remove(); el = null; clearInterval(timer); return; }
     el = document.createElement('pre');
     el.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;max-width:94vw;margin:0;padding:8px 10px;background:rgba(0,0,0,.82);color:#9fffb0;font:11px/1.35 ui-monospace,Consolas,monospace;border-radius:8px;white-space:pre-wrap;pointer-events:none;';
     document.body.appendChild(el); last = Date.now(); timer = setInterval(tick, 2000); tick();
+  }
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
+    e.preventDefault(); toggle();
   });
+  // Phones: tap the bottom-right corner 5 times within 4 seconds
+  let taps = [];
+  document.addEventListener('pointerdown', e => {
+    if (e.clientX < innerWidth - 80 || e.clientY < innerHeight - 70) return;
+    const now = Date.now(); taps = taps.filter(t => now - t < 4000); taps.push(now);
+    if (taps.length >= 5) { taps = []; toggle(); }
+  }, true);
 })();
 // Same numbers the old links reported to Tech Support (speed, delay, loss, which road, can they see/hear the teacher)
 async function lkCollectHealth() {
