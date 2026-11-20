@@ -771,6 +771,8 @@ function lkDeepText(pcsStats, prev, dt) {
     if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
     e.preventDefault(); toggle();
   });
+  // Fast taps must not zoom the page (pinch zoom still works)
+  const zs = document.createElement('style'); zs.textContent = 'html,body{touch-action:manipulation;}'; document.head.appendChild(zs);
   // Phones: tap the bottom-right corner 5 times within 4 seconds
   let taps = [];
   document.addEventListener('pointerdown', e => {
