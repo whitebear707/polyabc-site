@@ -36,6 +36,15 @@
 <p class="sub">Test page for the new video engine. Not used by real classes. Open it on two devices, tap Join on both, and check you can see and hear each other.</p>
 
 <div class="card">
+  <div id="engineState" class="note" style="margin-bottom:8px;"></div>
+  <div class="row">
+    <button id="engOn" class="sec">Use new system on this device</button>
+    <button id="engOff" class="sec">Go back to the old system</button>
+  </div>
+  <div class="note" style="margin-top:6px;">This only affects this device. After switching, log in and enter class the normal way.</div>
+</div>
+
+<div class="card">
   <div id="who" class="note">Checking your login…</div>
   <div class="row" id="roomRow" style="margin-top:8px;display:none;">
     <input id="roomName" placeholder="Test room name (e.g. mesa1)" value="mesa1" maxlength="40">
@@ -79,6 +88,11 @@ function findLogin() {
   for (const [k, label] of keys) { try { const v = localStorage.getItem(k); if (v) return { token: v, label }; } catch (e) {} }
   return null;
 }
+function engineOn() { try { return localStorage.getItem('polyEngine') === 'lk'; } catch (e) { return false; } }
+function showEngine() { $('engineState').innerHTML = 'This device is using: ' + (engineOn() ? pill('NEW system', 'p-ok') : pill('old system', 'p-warn')); }
+$('engOn').onclick = () => { try { localStorage.setItem('polyEngine', 'lk'); } catch (e) {} showEngine(); };
+$('engOff').onclick = () => { try { localStorage.removeItem('polyEngine'); } catch (e) {} showEngine(); };
+showEngine();
 const login = findLogin();
 if (!LK) { $('who').innerHTML = pill('video library did not load', 'p-bad') + ' Check your internet and reload.'; }
 else if (!login) { $('who').innerHTML = 'You are not logged in. <a href="login.html" style="color:#8ab4ff">Log in</a> first (as a teacher or student), then come back to this page.'; }
