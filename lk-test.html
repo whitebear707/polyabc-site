@@ -125,8 +125,8 @@ async function join() {
     if (!r.ok || !d.token) throw new Error(d.error || ('server said ' + r.status));
     log(`Pass received. Room: ${d.room}`);
     room = new LK.Room({ adaptiveStream: true, dynacast: true, publishDefaults: { simulcast: true, videoCodec: 'vp8', screenShareEncoding: { maxBitrate: 2500000, maxFramerate: 15 } }, videoCaptureDefaults: { resolution: LK.VideoPresets.h540 } });
-    room.on(LK.RoomEvent.TrackSubscribed, (t, p, pub) => { log(`Receiving ${t.kind} from ${p.name || p.identity}`); attach(t, p, pub); });
-    room.on(LK.RoomEvent.TrackUnsubscribed, (t, p) => detach(t, p));
+    room.on(LK.RoomEvent.TrackSubscribed, (t, pub, p) => { log(`Receiving ${t.kind} from ${p.name || p.identity}`); attach(t, p, pub); });
+    room.on(LK.RoomEvent.TrackUnsubscribed, (t, pub, p) => detach(t, p));
     room.on(LK.RoomEvent.LocalTrackPublished, (pub, p) => { if (pub.track) attach(pub.track, p, pub); });
     room.on(LK.RoomEvent.LocalTrackUnpublished, (pub, p) => { if (pub.track) detach(pub.track, p); });
     room.on(LK.RoomEvent.ParticipantConnected, p => { log(`${p.name || p.identity} joined`); refreshPeople(); });
