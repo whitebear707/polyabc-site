@@ -642,6 +642,11 @@ function lkShowScreen(track) {
   LKE.remoteScreen.addTrack(track.mediaStreamTrack);
   showScreenBehindCanvas(LKE.remoteScreen, false);
 }
+// A small corner label on devices using the new system (testing only)
+if (USE_LK) {
+  const addTag = () => { if (document.getElementById('lk-tag') || !document.body) return; const d = document.createElement('div'); d.id = 'lk-tag'; d.textContent = 'new system'; d.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:99998;background:rgba(46,204,113,.85);color:#04210f;font:800 11px Nunito,sans-serif;padding:2px 8px;border-radius:10px;pointer-events:none;'; document.body.appendChild(d); };
+  if (document.body) addTag(); else document.addEventListener('DOMContentLoaded', addTag);
+}
 async function lkStart() {
   if (!USE_LK || LKE.starting || (LKE.room && LKE.room.state !== 'disconnected')) return;
   if (!IS_SPECTATOR && !localStream) return;
