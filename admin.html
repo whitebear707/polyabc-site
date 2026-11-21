@@ -1529,6 +1529,10 @@
           <option value="">-- Sin asignar --</option>
         </select>
       </div>
+      <div class="field-group"><label>Otro maestro en ciertos días (opcional)</label>
+        <div id="group-dayrooms" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
+        <div style="font-size:0.75rem;color:#888;margin-top:3px;">Si un día lo da otro maestro, elígelo aquí. En los demás días se queda el maestro de arriba.</div>
+      </div>
       <div class="field-group"><label>Hora de clase</label>
         <input type="time" id="group-time"/>
         <div style="font-size:0.75rem;color:#888;margin-top:3px;">Hora de Guadalajara. Las clases se crean automáticamente de lunes a jueves.</div>
@@ -3749,6 +3753,7 @@ function openAddGroupModal() {
   document.getElementById('group-level').value = 'A0';
   document.getElementById('group-type').value = 'Group - 40 Min';
   populateGroupRoomSelect('');
+  renderGroupDayRooms({});
   document.getElementById('group-time').value = '';
   document.getElementById('group-private').checked = false;
   _groupStudents = [];
@@ -3772,6 +3777,7 @@ function openEditGroupModal(id) {
   document.getElementById('group-level').value = g.level || 'A0';
   document.getElementById('group-type').value = g.classType || 'Group - 40 Min';
   populateGroupRoomSelect(g.room || '');
+  renderGroupDayRooms(g.dayRooms || {});
   document.getElementById('group-time').value = g.time || '';
   document.getElementById('group-private').checked = !!g.privateGroup;
   _groupStudents = [...(g.students || [])];
@@ -3787,6 +3793,13 @@ function populateGroupRoomSelect(selected) {
   if (!sel) return;
   sel.innerHTML = '<option value="">-- Sin asignar --</option>' +
     rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(selected) ? ' selected' : ''}>${mwFor(r.room)} ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('');
+}
+
+function renderGroupDayRooms(cur) {
+  const box = document.getElementById('group-dayrooms'); if (!box) return;
+  const names = { 1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves' };
+  box.innerHTML = [1, 2, 3, 4].map(d => `<div><div style="font-size:0.75rem;font-weight:700;color:#555;">${names[d]}</div><select id="group-dayroom-${d}"><option value="">Mismo maestro</option>` +
+    rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(cur[d] || cur[String(d)] || '') ? ' selected' : ''}>${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('') + '</select></div>').join('');
 }
 
 function populateGroupStudentSelect() {
@@ -3828,7 +3841,10 @@ async function saveGroup() {
   if (!name) { showAlert('😬','¡Ups!','El nombre del grupo es obligatorio.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
   if (room && !time) { showAlert('😬','¡Ups!','Pick a class time for this group, or leave the teacher unassigned.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
 
-  const payload = JSON.stringify({ name, level, classType, time, room, students: _groupStudents, privateGroup: document.getElementById('group-private').checked });
+  const dayRooms = {};
+  for (const d of [1, 2, 3, 4]) { const v = document.getElementById('group-dayroom-' + d)?.value; if (v) dayRooms[d] = v; }
+  if (!room && Object.keys(dayRooms).length) { showAlert('😬','¡Ups!','Primero elige el maestro principal del grupo.',[{label:'Entendido',fn:'closeAlert()',primary:true}]); return; }
+  const payload = JSON.stringify({ name, level, classType, time, room, dayRooms, students: _groupStudents, privateGroup: document.getElementById('group-private').checked });
   if (id) {
     await fetch(`${SERVER_URL}/groups/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
@@ -5112,6 +5128,12 @@ function beSlotsHTML() {
         ${[...new Set([...BE_MINS, sl.minutes])].sort((a,b)=>a-b).map(m => `<option value="${m}" ${sl.minutes===m?'selected':''}>${m} min</option>`).join('')}
       </select>
       <button type="button" onclick="beRemoveSlot(${i})" title="Quitar" style="background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:900;">✕</button>
+    </div>
+    <div style="margin:-4px 0 10px;">
+      <select onchange="_beSlots[${i}].room=this.value" style="width:100%;padding:7px 4px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.82rem;color:#555;">
+        <option value="">Maestro principal</option>
+        ${(typeof rooms !== 'undefined' ? rooms : []).map(r => `<option value="${escHtml(r.room)}" ${String(sl.room||'')===String(r.room)?'selected':''}>Otro maestro: ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('')}
+      </select>
     </div>`).join('');
   const total = _beSlots.reduce((t, x) => t + (x.minutes || 0), 0);
   return rows + `<button type="button" onclick="beAddSlot()" style="padding:9px 14px;background:#e8f0fe;color:#1a73e8;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">➕ Agregar clase</button>
@@ -5170,7 +5192,7 @@ function openBillingEdit(name) {
   if (!s) return;
   const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
   const daysChecked = d => (s.scheduledDays || []).includes(d) ? 'checked' : '';
-  _beSlots = (s.slots || []).map(x => ({ day: x.day, time: x.time || '', minutes: x.minutes }));
+  _beSlots = (s.slots || []).map(x => ({ day: x.day, time: x.time || '', minutes: x.minutes, room: x.room || '' }));
   document.getElementById('billing-edit-modal').style.display = 'flex';
   document.getElementById('billing-edit-modal').innerHTML = `
     <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
@@ -5275,7 +5297,7 @@ async function saveBillingEdit(name) {
     if (bad) { showToast('⚠️ Falta la hora en una de las clases'); return; }
     const days = _beSlots.map(x => x.day);
     if (new Set(days).size !== days.length) { showToast('⚠️ Hay dos clases el mismo día'); return; }
-    body.slots = _beSlots.map(x => ({ day: x.day, time: x.time, minutes: x.minutes }));
+    body.slots = _beSlots.map(x => ({ day: x.day, time: x.time, minutes: x.minutes, room: x.room || '' }));
     delete body.scheduledDays; delete body.scheduledTime; delete body.minutesPerClass; delete body.classesPerWeek;
   }
   // Payment dates: only sent when changed by hand
