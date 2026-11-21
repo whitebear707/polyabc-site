@@ -3345,7 +3345,7 @@ function playTadaSound() {
   } catch(e) {}
 }
 
-// ── 🎉 Celebration: fireworks + confetti over the whole screen, with a short fanfare (~6 s) ──
+// ── 🎉 Celebration: fireworks + confetti over the whole screen, with a short fanfare (~3.5 s) ──
 function playPartySound() {
   try {
     const ctx = getAudioCtx(), t0 = ctx.currentTime + 0.05;
@@ -3354,13 +3354,13 @@ function playPartySound() {
     // Fanfare: quick rising notes, then a bright held chord
     [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.14, 0.22, 'triangle', 0.3));
     [[523, 659, 784, 1047], [587, 740, 880, 1175]].forEach((ch, k) => ch.forEach(f => tone(f, 0.62 + k * 0.55, 0.5, 'triangle', 0.16)));
-    [1047, 1319, 1568].forEach(f => tone(f, 1.8, 1.4, 'sine', 0.14));
+    [1047, 1319, 1568].forEach(f => tone(f, 1.5, 1.1, 'sine', 0.14));
     // Firework pops (short noise bursts) and sparkles
     const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
-    [0.2, 0.7, 1.15, 1.7, 2.3, 2.9, 3.5, 4.2].forEach(t => { const src = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    [0.2, 0.65, 1.15, 1.65, 2.3, 2.9].forEach(t => { const src = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter();
       src.buffer = buf; f.type = 'lowpass'; f.frequency.value = 1800; g.gain.value = 0.35; src.connect(f); f.connect(g); g.connect(ctx.destination); src.start(t0 + t); });
-    [0.4, 0.9, 1.4, 2.0, 2.6, 3.2, 3.9].forEach((t, i) => tone(1800 + (i % 3) * 400, t, 0.12, 'sine', 0.08));
+    [0.4, 0.9, 1.4, 2.0, 2.6].forEach((t, i) => tone(1800 + (i % 3) * 400, t, 0.12, 'sine', 0.08));
   } catch (e) {}
 }
 function showPartyCelebration(name) {
@@ -3379,17 +3379,18 @@ function showPartyCelebration(name) {
   const burst = (x, y) => { const c = colors[Math.floor(Math.random() * colors.length)], c2 = colors[Math.floor(Math.random() * colors.length)], n = 70;
     for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random() * 0.1, sp = 2.5 + Math.random() * 4.5; sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.008 + Math.random() * 0.01, color: i % 3 ? c : c2, r: 2 + Math.random() * 2 }); } };
   for (let i = 0; i < 140; i++) confetti.push({ x: Math.random() * W, y: -Math.random() * H * 0.8, w: 6 + Math.random() * 8, h: 3 + Math.random() * 5, vy: 2 + Math.random() * 3, vx: Math.random() * 2 - 1, rot: Math.random() * 6, vr: Math.random() * 0.3 - 0.15, color: colors[Math.floor(Math.random() * colors.length)] });
-  const burstAt = [12, 40, 70, 100, 140, 180, 215, 255]; // frames (~60 fps)
-  const TOTAL = 330; let frame = 0;
+  // Timed in seconds (not frames) so it lasts the same on slow computers: about 3.6 s in total
+  const burstAt = [0.2, 0.65, 1.15, 1.65, 2.3, 2.9], TOTAL = 3.6, t0 = performance.now(); let frame = 0, fired = 0;
   (function draw() {
+    const el = (performance.now() - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
-    burstAt.forEach(f => { if (frame === f) burst(W * (0.15 + Math.random() * 0.7), H * (0.12 + Math.random() * 0.4)); });
+    while (fired < burstAt.length && el >= burstAt[fired]) { burst(W * (0.15 + Math.random() * 0.7), H * (0.12 + Math.random() * 0.4)); fired++; }
     sparks.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.vx *= 0.99; p.life -= p.decay; if (p.life > 0) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.3); ctx.fill(); } });
     ctx.globalAlpha = 1;
-    if (frame < TOTAL - 60) confetti.forEach(c => { c.y += c.vy; c.x += c.vx + Math.sin(frame / 15 + c.rot); c.rot += c.vr; if (c.y > H + 20) { c.y = -20; c.x = Math.random() * W; }
+    if (el < TOTAL - 1) confetti.forEach(c => { c.y += c.vy; c.x += c.vx + Math.sin(frame / 15 + c.rot); c.rot += c.vr; if (c.y > H + 20) { c.y = -20; c.x = Math.random() * W; }
       ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.fillStyle = c.color; ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h); ctx.restore(); });
     frame++;
-    if (frame < TOTAL) requestAnimationFrame(draw); else ov.remove();
+    if (el < TOTAL) requestAnimationFrame(draw); else ov.remove();
   })();
 }
 
