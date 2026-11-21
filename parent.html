@@ -376,7 +376,7 @@
       <div style="background:white;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:85vh;overflow-y:auto;">
         <div id="reschedule-pick-view">
           <h2 style="margin-bottom:8px;">📅 Pedir nuevo horario</h2>
-          <p style="color:#888;font-size:0.9rem;margin-bottom:16px;">Elige una hora preferida y un día disponible. Un administrador debe aprobar el cambio antes de que sea definitivo.</p>
+          <p style="color:#888;font-size:0.9rem;margin-bottom:16px;">Elige una hora preferida y un día disponible. Buscaremos un maestro disponible y te confirmaremos por correo cuando acepte.</p>
           <div class="resched-time-row">
             <div>
               <label>Hora preferida:</label>
@@ -1362,7 +1362,7 @@ async function loadMakeups() {
     <div style="font-weight:900;color:#1a73e8;margin-bottom:6px;">🔁 Clases por reponer</div>
     ${_mk.list.map(m => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #c5d8f8;">
       ${m.awaitingApproval
-        ? `<div style="font-size:0.88rem;"><b>${_mkDate(m.requestedDate)}</b> · ${_mkT12(m.requestedTime)}<br><span style="color:#e65100;font-weight:700;font-size:0.76rem;">⏳ Solicitud enviada — pendiente de aprobación de la escuela</span></div>
+        ? `<div style="font-size:0.88rem;"><b>${_mkDate(m.requestedDate)}</b> · ${_mkT12(m.requestedTime)}<br><span style="color:#e65100;font-weight:700;font-size:0.76rem;">⏳ Solicitud enviada — buscando maestro, te avisamos por correo</span></div>
            <span style="font-size:0.78rem;color:#888;">Te avisaremos por correo</span>`
         : `<div style="font-size:0.88rem;"><b>${_mkDate(m.date)}</b> · ${_mkT12(m.time)} · ${m.minutes} min<br><span style="color:#666;font-size:0.76rem;">${m.pending ? 'Cancelación pendiente de confirmar' : 'Cancelada'} · puedes reponerla hasta el ${_mkDate(m.lastDay)}</span></div>`}
       ${m.awaitingApproval ? '' : `<button onclick="openMakeup('${m.id}')" style="background:#1a73e8;color:white;border:none;border-radius:10px;padding:9px 14px;font-family:Nunito;font-weight:900;cursor:pointer;">📅 Reprogramar</button>`}
@@ -1385,7 +1385,7 @@ function renderMakeup() {
   const ov = document.getElementById('makeup-modal'), d = _mk.data, m = _mk.cur; if (!ov) return;
   let body;
   if (!d || !d.success) body = `<div style="color:#c62828;font-weight:700;">${d && d.error || 'No se pudo cargar.'}</div>`;
-  else if (!d.days.length) body = '<div style="color:#e65100;font-weight:700;">No hay horarios libres con el mismo maestro. Contacta a la escuela para reponerla.</div>';
+  else if (!d.days.length) body = '<div style="color:#e65100;font-weight:700;">No hay horarios libres. Contacta a la escuela para reponerla.</div>';
   else {
     const btn = (on, nw) => `padding:8px 10px;border:2px solid ${on ? '#1a73e8' : nw ? '#ffcc80' : '#ddd'};border-radius:10px;background:${on ? '#e8f0fe' : 'white'};color:${on ? '#1a73e8' : '#1a1a2e'};font-family:Nunito;font-weight:700;font-size:0.8rem;cursor:pointer;`;
     const day = d.days.find(x => x.date === _mk.day);

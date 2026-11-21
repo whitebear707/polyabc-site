@@ -2777,16 +2777,18 @@ async function loadMakeupRequests() {
     if (!res.ok || !Array.isArray(rows)) throw new Error('bad');
     if (!rows.length) { box.innerHTML = ''; return; }
     box.innerHTML = `<div style="background:#fff8e1;border:2px solid #f9a825;border-radius:14px;padding:16px;">
-      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">🔁 Reposiciones por aprobar (${rows.length})</div>
+      <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:10px;">🔁 Reposiciones en proceso (${rows.length})</div>
       ${rows.map(r => {
         const opts = r.rooms.map(x => `<option value="${escHtml(x.room)}" ${x.room === r.room ? 'selected' : ''} ${x.free ? '' : 'disabled'}>Salón ${escHtml(x.room)} · ${escHtml(x.teacherName)}${x.free ? '' : ' (ocupado)'}</option>`).join('');
         return `<div style="background:white;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #f3e0a0;">
           <div style="font-weight:900;color:#333;">${escHtml(r.shownName || r.studentName)}</div>
           <div style="font-size:0.85rem;color:#555;margin-top:2px;">Clase cancelada: ${escHtml(r.originalDate)} · ${escHtml(r.originalTime)} (Salón ${escHtml(r.room)})</div>
+          <div style="font-size:0.82rem;font-weight:800;margin-top:6px;color:${r.offerStatus === 'unfilled' ? '#c62828' : '#1565c0'};">${r.offerStatus === 'offering' ? '📨 Preguntando al maestro del Salón ' + escHtml(r.offeredTo || '?') + ' (ya preguntados: ' + (r.triedRooms || []).length + ')' : r.offerStatus === 'unfilled' ? '⚠️ Ningún maestro aceptó — asígnala tú o niégala' : '⏳ Pendiente de aprobación'}</div>
           <div style="font-size:0.85rem;color:#1a1a2e;margin-top:2px;">Pide: <strong>${escHtml(r.date)} · ${escHtml(r.time)}</strong> · ${r.mins} min${r.nextWeek ? ' <span style="color:#e65100;">(cuenta para la próxima semana)</span>' : ''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
             <select id="mkr-room-${escHtml(r.id)}" style="flex:1;min-width:200px;padding:8px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.88rem;">${opts}</select>
-            <button onclick="approveMakeupRequest('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">✅ Aprobar</button>
+            ${r.offerStatus === 'offering' ? `<button onclick="skipMakeupTeacher('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#1565c0;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">⏭ Siguiente maestro</button>` : ''}
+            <button onclick="approveMakeupRequest('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#2e7d32;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">✅ Asignar a este salón</button>
             <button onclick="denyMakeupRequest('${escJsAttr(r.id)}')" style="padding:8px 14px;background:#c62828;color:white;border:none;border-radius:8px;font-family:Nunito;font-weight:900;cursor:pointer;">✖ Negar</button>
           </div></div>`;
       }).join('')}
@@ -2804,6 +2806,15 @@ async function approveMakeupRequest(id) {
     const d = await res.json();
     if (d.success) showToast('✅ Reposición aprobada');
     else alert(d.error || 'No se pudo aprobar');
+  } catch(e) { alert('Error de red'); }
+  loadMakeupRequests();
+}
+
+async function skipMakeupTeacher(id) {
+  try {
+    const res = await fetch(`${SERVER_URL}/admin/makeup-requests/${encodeURIComponent(id)}/skip-teacher`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }, body: '{}' });
+    const d = await res.json();
+    if (d.success) showToast('📨 Pasó al siguiente maestro'); else alert(d.error || 'No se pudo pasar al siguiente');
   } catch(e) { alert('Error de red'); }
   loadMakeupRequests();
 }
