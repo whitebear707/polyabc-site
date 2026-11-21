@@ -2255,6 +2255,7 @@ function showStudentSlot(socketId, name, isBirthday) {
 }
 
 function addDrawControlBtn(socketId, name) {
+  return; // the same on/off switch is the colored name under each student's video (toggleDrawByName); no second list in the left panel
   let drawControls = document.getElementById('draw-controls');
   if (!drawControls) { drawControls = document.createElement('div'); drawControls.id = 'draw-controls'; drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;'; document.getElementById('left-panel').insertBefore(drawControls, document.getElementById('left-tools')); }
   const btn = document.createElement('button'); btn.id = `draw-btn-${socketId}`; btn.style.cssText = 'padding:5px 8px;border-radius:8px;border:none;font-family:Nunito,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:#2e7d32;color:white;text-align:left;'; btn.textContent = `✏️ ${name || 'Student'}`; btn.onclick = () => toggleStudentDraw(socketId, btn); drawControls.appendChild(btn);
