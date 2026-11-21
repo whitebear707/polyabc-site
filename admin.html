@@ -5132,7 +5132,7 @@ function beSlotsHTML() {
     <div style="margin:-4px 0 10px;">
       <select onchange="_beSlots[${i}].room=this.value" style="width:100%;padding:7px 4px;border:1px solid #ddd;border-radius:8px;font-family:Nunito;font-size:0.82rem;color:#555;">
         <option value="">Maestro principal</option>
-        ${(typeof rooms !== 'undefined' ? rooms : []).map(r => `<option value="${escHtml(r.room)}" ${String(sl.room||'')===String(r.room)?'selected':''}>Otro maestro: ${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('')}
+        ${(typeof rooms !== 'undefined' ? rooms : []).map(r => `<option value="${escHtml(r.room)}" ${String(sl.room||'')===String(r.room)?'selected':''}>${escHtml(r.teacherName || '—')} (Salón ${escHtml(r.room)})</option>`).join('')}
       </select>
     </div>`).join('');
   const total = _beSlots.reduce((t, x) => t + (x.minutes || 0), 0);
