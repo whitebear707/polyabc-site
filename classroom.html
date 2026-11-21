@@ -58,6 +58,8 @@
     .tool-btn { background: #0f3460; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
     .tool-btn:hover { background: #1a73e8; }
     .tool-btn.selected { background: #1a73e8; outline: 2px solid #a0c4ff; }
+    #toolbar { padding: 6px 12px; gap: 8px; }
+    #toolbar .tool-btn { padding: 5px 9px; font-size: 0.8rem; }
     #color-picker { width: 36px; height: 36px; border-radius: 8px; border: 3px solid #0f3460; cursor: pointer; padding: 0; }
     #brush-size { width: 90px; accent-color: #1a73e8; }
     .tool-separator { width: 2px; height: 30px; background: #0f3460; border-radius: 2px; }
@@ -362,7 +364,7 @@
         <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
       </div>
     </div>
-    <div id="left-tools" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:auto;padding-top:8px;">
+    <div id="left-tools" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:8px;">
       <button style="" class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'right')">✏️ Canvas ▸</button>
       <div id="left-teacher-tools" style="display:none;">
         <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'right')">📚 Lesson ▸</button>
@@ -383,8 +385,7 @@
       <select id="text-size" title="Text size" style="padding:4px 6px;border-radius:8px;font-weight:800;"><option value="32">Aa small</option><option value="48" selected>Aa medium</option><option value="72">Aa large</option></select>
       <div class="tool-separator"></div>
       <div id="teacher-only">
-        <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
-        <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
+        <button class="tool-btn" id="clear-menu-btn" style="background:#e53935;" onclick="togglePop('pop-clear',this,'up')">🗑️ Clear ▴</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
@@ -442,6 +443,10 @@
 <div id="pop-lesson" class="pop-menu col">
   <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="closePops();document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
   <button id="screenshare-btn" class="tool-btn" onclick="closePops();toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
+</div>
+<div id="pop-clear" class="pop-menu col">
+  <button class="tool-btn" id="clear-btn" onclick="closePops();clearBoard()" style="background:#e53935;" title="Removes drawings and text, keeps the slide">🗑️ Clear drawings</button>
+  <button class="tool-btn" id="clear-all-btn" onclick="closePops();confirmClearAll()" style="background:#b71c1c;" title="Removes everything, including the slide">🗑️ Clear all (and slide)</button>
 </div>
 <div id="pop-canvas" class="pop-menu col">
   <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw');closePops()">✏️ Draw</button>
@@ -576,7 +581,6 @@ if (IS_TEACHER) {
 } else {
   document.getElementById('my-controls').style.display = 'none';
   document.getElementById('student-chat-bar').style.display = IS_SPECTATOR ? 'none' : 'flex';
-  if (!IS_SPECTATOR) document.getElementById('left-tools').style.marginBottom = '48px'; // keeps clear of the "Can't see or hear?" button
 }
 
 const capCanvas = document.createElement('canvas');
@@ -4570,7 +4574,7 @@ function togglePop(id, btn, dir) {
   top = Math.max(6, Math.min(top, window.innerHeight - ph - 6));
   p.style.left = left + 'px'; p.style.top = top + 'px';
 }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn,#lesson-menu-btn')) closePops(); });
+document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn,#lesson-menu-btn,#clear-menu-btn')) closePops(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
 window.addEventListener('resize', closePops);
 const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', erase: '🧽', select: '☝️', laser: '🔴' };
