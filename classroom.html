@@ -62,6 +62,7 @@
     #brush-size { width: 90px; accent-color: #1a73e8; }
     .tool-separator { width: 2px; height: 30px; background: #0f3460; border-radius: 2px; }
     #teacher-only { display: none; gap: 8px; }
+    .row-break { flex-basis: 100%; height: 0; margin-top: -10px; }
 
     #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-left: 2px solid #0f3460; overflow-y: auto; }
     #right-panel-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; text-align: center; }
@@ -231,6 +232,7 @@
       #right-panel { width: 80px; padding: 4px; gap: 4px; }
       #right-panel-title { font-size: 0.75rem; }
       #teacher-only { flex-wrap: wrap; gap: 3px; }
+      .row-break { margin-top: -4px; }
       #teacher-only .tool-btn { padding: 5px 8px; font-size: 0.75rem; }
       #toolbar { padding: 4px 8px; gap: 4px; }
       .tool-btn { padding: 6px 10px; font-size: 0.8rem; }
@@ -375,24 +377,24 @@
       <select id="text-size" title="Text size" style="padding:4px 6px;border-radius:8px;font-weight:800;"><option value="32">Aa small</option><option value="48" selected>Aa medium</option><option value="72">Aa large</option></select>
       <div class="tool-separator"></div>
       <div id="teacher-only">
+        <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
+        <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
+        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
+        <div class="row-break"></div>
         <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'up')">📚 Lesson ▴</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
-        <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
-        <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
-        <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
-        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
-        <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
-        <button id="sharepip-btn" class="tool-btn" onclick="openFloatWindow(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs with your students' cameras">📌 Floating window</button>
+        <div class="row-break"></div>
       </div>
-      <div class="tool-separator"></div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
       <div id="chat-btn-wrap" style="display:none;position:relative;">
         <button class="tool-btn" onclick="toggleChat()" style="background:#1565c0;">💬 Messages</button>
         <div id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:0.65rem;font-weight:900;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center;"></div>
       </div>
+      <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
+      <button id="sharepip-btn" class="tool-btn" onclick="openFloatWindow(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs with your students' cameras">📌 Floating window</button>
     </div>
     <div id="student-chat-bar">
       <input id="student-chat-input" type="text" placeholder="✉️ Message teacher privately..." maxlength="200"
@@ -511,6 +513,7 @@
     <p style="font-size:1.3rem;font-weight:900;color:white;margin-bottom:8px;">Leaving class?</p>
     <p style="font-size:0.95rem;color:#888;margin-bottom:28px;">Choose what happens to your students</p>
     <button onclick="teacherBRB()" style="display:block;width:100%;padding:16px;background:#1a73e8;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">⏱️ I'll be back in 5 minutes</button>
+    <button id="take-break-btn"  onclick="document.getElementById('leave-modal').style.display='none';openBreakModal()" style="display:block;width:100%;padding:16px;background:#8d6e63;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">☕ Take a Break</button>
     <button onclick="teacherEndClass()" style="display:block;width:100%;padding:16px;background:#e53935;color:white;border:none;border-radius:12px;font-family:Nunito,sans-serif;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:12px;">🏁 End Class</button>
     <button onclick="document.getElementById('leave-modal').style.display='none'" style="display:block;width:100%;padding:12px;background:none;color:#888;border:none;font-family:Nunito,sans-serif;font-size:0.95rem;cursor:pointer;">Cancel</button>
   </div>
@@ -567,7 +570,7 @@ document.getElementById('room-label').textContent = SESSION_ID
 document.getElementById('room-label').style.background = '#e65100';
 if (ROOM === '0') { document.getElementById('room-label').textContent = '🤝 Junta / Meeting'; document.getElementById('room-label').style.background = '#6a1b9a'; const tb = document.getElementById('take-break-btn'); if (tb) tb.style.display = 'none'; } // meetings have no breaks
 if (IS_TEACHER) {
-  document.getElementById('teacher-only').style.display = 'flex';
+  document.getElementById('teacher-only').style.display = 'contents';
   document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
