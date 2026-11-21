@@ -1156,6 +1156,8 @@ function connectSocket() {
 
   // Tech support remote fixes: reload this page, allow camera/mic again, or a message
   socket.on('request-media-again', showMediaRetry);
+  socket.on('audio-test-start', ({ teacherId }) => { if (!IS_TEACHER && !IS_SPECTATOR) atOpen(teacherId); });
+  socket.on('audio-test-progress', audOnProgress);
   socket.on('it-action', ({ action, text }) => {
     if (action === 'reload') { location.reload(); return; }
     if (action === 'message' && text) showItMessage(text);
@@ -2706,10 +2708,10 @@ function _hSet(title, html) { document.getElementById('help-title').textContent 
 function openHelp() { if (!IS_TEACHER) return; _help = { kind: null, students: null, busy: false }; helpHome(); document.getElementById('help-modal').style.display = 'flex'; }
 function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
 function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a') + _hBtn('🎙️ Microphone', 'closeHelp();openMicPicker()', '#37474f')); }
-function helpStudentMenu() { _hSet('Student Help', _hBtn('🚫 Student not here', "helpPick('student_absent')", '#e65100') + _hBtn('⚠️ Student having problems', "helpPick('student_problem')", '#f9a825') + '<button onclick="helpHome()" style="margin-top:6px;border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); }
+function helpStudentMenu() { _hSet('Student Help', _hBtn('🚫 Student not here', "helpPick('student_absent')", '#e65100') + _hBtn('⚠️ Student having problems', "helpPick('student_problem')", '#f9a825') + _hBtn('🔊 Audio problems (guided test)', "helpPick('audio_test')", '#00838f') + '<button onclick="helpHome()" style="margin-top:6px;border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); }
 async function helpPick(kind) {
   _help.kind = kind;
-  _hSet(kind === 'tech_help' ? 'Technical Help' : 'Which student?', '<p style="color:#555;">Loading…</p>');
+  _hSet(kind === 'tech_help' ? 'Technical Help' : (kind === 'audio_test' ? 'Audio test: which student?' : 'Which student?'), '<p style="color:#555;">Loading…</p>');
   try {
     const q = SESSION_ID ? '&sessionId=' + encodeURIComponent(SESSION_ID) : '';
     const r = await fetch(`${SERVER_URL}/teacher/class-roster?room=${encodeURIComponent(ROOM)}${q}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
@@ -2717,7 +2719,7 @@ async function helpPick(kind) {
     if (!d.success) throw new Error(d.message || 'error');
     _help.students = d.students || [];
   } catch (e) { _help.students = []; }
-  const list = _help.students.map((s, i) => _hBtn(_hEsc(s.fullName || s.name), `helpNote(${i})`, '#0f3460')).join('');
+  const list = _help.students.map((s, i) => _hBtn(_hEsc(s.fullName || s.name), kind === 'audio_test' ? `helpAudioStart(${i})` : `helpNote(${i})`, '#0f3460')).join('');
   if (kind === 'tech_help') {
     _hSet('Technical Help', '<p style="margin:0 0 6px;color:#555;">Is this about a specific student?</p>' + list + _hBtn('No specific student', 'helpNote(-1)', '#6a1b9a') + '<button onclick="helpHome()" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>');
   } else if (!_help.students.length) {
@@ -2751,6 +2753,184 @@ async function helpSend(i) {
   } catch (e) { msg = 'Connection problem. Please try again.'; }
   _help.busy = false;
   _hSet(good ? '✅ Done' : '⚠️ Not sent', `<p style="font-size:1rem;">${_hEsc(msg)}</p>` + _hBtn('Close', 'closeHelp()', good ? '#2e7d32' : '#555'));
+}
+
+// ══════════ Audio test (guided speaker + microphone check) ══════════
+// Teacher: Help → Student Help → Audio problems → student. The student gets a Spanish step-by-step test; each step is reported back here.
+// If the student's device is fine, the student's connection is refreshed once; if the teacher still can't hear, a ticket is sent.
+let _aud = null;
+function _audNames(a) { return { full: a.full || a.name, name: a.name }; }
+function helpAudioStart(i) {
+  const st = _help.students && _help.students[i]; if (!st) return;
+  const sid = Object.keys(remoteNames).find(k => remoteNames[k] === st.name && remoteRoles[k] === 'student');
+  if (!sid) { _hSet('Audio test', '<p style="color:#c62828;">' + _hEsc(st.fullName || st.name) + ' is not connected to the class yet.</p><button onclick="helpPick(\'audio_test\')" style="border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); return; }
+  clearTimeout(_aud && _aud.timer);
+  _aud = { sid, name: st.name, full: st.fullName || st.name, lines: [], stage: 'waiting', final: null };
+  if (window._socket) window._socket.emit('audio-test-start', { targetId: sid });
+  _aud.lines.push('📨 Test sent to the student…');
+  _aud.timer = setTimeout(() => { if (_aud && _aud.stage === 'waiting') { _aud.stage = 'silent'; helpAudioRender(); } }, 60000);
+  helpAudioRender();
+}
+function helpAudioRender() {
+  if (!_aud) return;
+  const a = _aud, nm = _hEsc(a.full);
+  let body = '<div style="text-align:left;line-height:1.6;">' + a.lines.map(l => '<div>' + l + '</div>').join('') + '</div>';
+  if (a.stage === 'ask') {
+    body += '<p style="margin:12px 0 4px;font-weight:800;">Can you hear ' + nm + ' now?</p>' + _hBtn('✅ Yes, solved', 'helpAudioSolved()', '#2e7d32') + _hBtn('❌ No, send a ticket to Tech Support', 'helpAudioTicket()', '#c62828');
+  } else if (a.stage === 'silent') {
+    body += '<p style="color:#e65100;font-weight:700;">No answer from the student yet. They may not have seen the test.</p>' + _hBtn('📨 Send ticket to Tech Support', 'helpAudioTicket()', '#c62828') + _hBtn('Close', 'closeHelp()', '#555');
+  } else if (a.stage === 'failed') {
+    body += _hBtn('Close', 'closeHelp()', '#555');
+  } else if (a.stage === 'done') {
+    body += _hBtn('Close', 'closeHelp()', '#2e7d32');
+  } else {
+    body += '<button onclick="helpAudioCancel()" style="margin-top:10px;border:none;background:none;color:#555;cursor:pointer;">Cancel test</button>';
+  }
+  _hSet('🔊 Audio test · ' + nm, body);
+  const m = document.getElementById('help-modal'); if (m && (a.stage === 'ask' || a.stage === 'failed' || a.stage === 'silent' || a.stage === 'done')) m.style.display = 'flex';
+}
+function helpAudioCancel() { if (_aud) { clearTimeout(_aud.timer); _aud = null; } closeHelp(); }
+function helpAudioSolved() { if (!_aud) return; clearTimeout(_aud.timer); _aud.stage = 'done'; _aud.lines.push('✅ Solved after refreshing the connection.'); helpAudioRender(); }
+async function helpAudioTicket() {
+  if (!_aud || _aud.sending) return; const a = _aud; a.sending = true;
+  _hSet('Sending…', '<p style="color:#555;">One moment…</p>');
+  const note = ('Audio test: ' + a.lines.filter(l => !/Test sent|opened the test/.test(l)).map(l => l.replace(/<[^>]+>/g, '').replace(/^[^A-Za-z]+/, '')).join(' · ') + ' · Teacher still cannot hear the student.').slice(0, 300);
+  let msg, good = false;
+  try {
+    const r = await fetch(`${SERVER_URL}/teacher/support-ticket`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MY_TOKEN}` }, body: JSON.stringify({ kind: 'tech_help', studentName: a.name, sessionId: SESSION_ID || undefined, note }) });
+    const d = await r.json();
+    if (d.success) { good = true; msg = d.duplicate ? 'Already reported — thank you, the team has it.' : 'Tech Support has been notified, with the test results.'; } else msg = d.message || 'Could not send. Please try again.';
+  } catch (e) { msg = 'Connection problem. Please try again.'; }
+  a.sending = false; a.stage = good ? 'done' : 'failed'; if (good) a.lines.push('🎫 Ticket sent to Tech Support.');
+  _hSet(good ? '✅ Done' : '⚠️ Not sent', '<p style="font-size:1rem;">' + _hEsc(msg) + '</p>' + _hBtn('Close', 'closeHelp()', good ? '#2e7d32' : '#555'));
+  const m = document.getElementById('help-modal'); if (m) m.style.display = 'flex';
+}
+// Teacher: the student's progress arrives here
+function audOnProgress(p) {
+  if (!IS_TEACHER || !_aud || p.fromId !== _aud.sid) return;
+  const a = _aud, d = p.detail || {};
+  if (a.stage === 'waiting' || a.stage === 'silent') a.stage = 'running';
+  if (p.step === 'opened') a.lines.push('👀 The student opened the test.');
+  else if (p.step === 'speaker') a.lines.push(p.ok ? '🔊 Speaker: the student hears the sound ✅' : '🔊 Speaker: the student does NOT hear the sound' + (d.note ? ' (' + _hEsc(d.note) + ')' : '') + ' ❌');
+  else if (p.step === 'mic') a.lines.push(p.ok ? '🎙️ Microphone: the student hears themselves ✅' + (d.micLabel ? ' (' + _hEsc(d.micLabel) + ')' : '') : '🎙️ Microphone: problem' + (d.note ? ' (' + _hEsc(d.note) + ')' : '') + ' ❌');
+  else if (p.step === 'passed') a.lines.push("✅ The student's speaker and microphone work. Refreshing the student's connection…");
+  else if (p.step === 'reconnected') { a.lines.push('🔄 Connection refreshed.'); a.stage = 'ask'; }
+  else if (p.step === 'failed') { a.stage = 'failed'; a.lines.push('❌ ' + (d.note ? _hEsc(d.note) : "The student's device has a problem.")); clearTimeout(a.timer); helpAudioTicket(); return; }
+  else if (p.step === 'cancelled') { a.stage = 'failed'; a.lines.push('The student closed the test.'); clearTimeout(a.timer); }
+  helpAudioRender();
+}
+
+// Student: the Spanish test screens
+const AT = { teacherId: null, spk: 0, mic: 0, outId: '', micId: '', dingUrl: null, ov: null };
+function atReport(step, ok, detail) { if (window._socket && AT.teacherId) window._socket.emit('audio-test-progress', { toId: AT.teacherId, step, ok, detail: detail || {} }); }
+function atDing() {
+  if (AT.dingUrl) return AT.dingUrl;
+  const sr = 22050, n = Math.floor(sr * 1.2), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) { const t = i / sr, ph = t % 0.6, f = t < 0.6 ? 880 : 1320; v.setInt16(44 + i * 2, Math.sin(2 * Math.PI * f * t) * Math.exp(-4 * ph) * 0.85 * 32767, true); }
+  AT.dingUrl = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  return AT.dingUrl;
+}
+async function atPlay(url) {
+  const a = new Audio(url); a.volume = 1;
+  if (AT.outId && a.setSinkId) { try { await a.setSinkId(AT.outId); } catch (e) {} }
+  try { await a.play(); } catch (e) {}
+  return a;
+}
+async function atDevices(kind) { try { const d = await navigator.mediaDevices.enumerateDevices(); return d.filter(x => x.kind === kind); } catch (e) { return []; } }
+function atShow(title, step, html) {
+  if (!AT.ov) return;
+  AT.ov.querySelector('#at-card').innerHTML = `<div style="font-size:1.2rem;font-weight:900;color:#1a1a2e;">🔊 Prueba de audio</div>
+    <div style="color:#1a73e8;font-weight:800;font-size:0.85rem;margin:2px 0 10px;">${step}</div>
+    <div style="font-size:1.05rem;font-weight:800;color:#1a1a2e;margin-bottom:8px;">${title}</div>${html}`;
+}
+const AT_BTN = (label, fn, color) => `<button onclick="${fn}" style="display:block;width:100%;margin:6px 0;padding:13px;border:none;border-radius:12px;background:${color || '#1a73e8'};color:#fff;font:800 1rem Nunito,sans-serif;cursor:pointer;">${label}</button>`;
+function atClose() { if (AT.ov) AT.ov.remove(); AT.ov = null; }
+function atCancel() { atReport('cancelled', null); atClose(); }
+function atOpen(teacherId) {
+  if (AT.ov) return;
+  AT.teacherId = teacherId; AT.spk = 0; AT.mic = 0; AT.outId = ''; AT.micId = '';
+  const ov = document.createElement('div'); ov.id = 'audio-test'; AT.ov = ov;
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100001;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+  ov.innerHTML = '<div id="at-card" style="background:#fff;border-radius:16px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.5);text-align:center;"></div>';
+  document.body.appendChild(ov);
+  atReport('opened', null); atStep1(true);
+}
+async function atStep1(auto, retry) {
+  const outs = (typeof Audio !== 'undefined' && Audio.prototype.setSinkId) ? await atDevices('audiooutput') : [];
+  const sel = outs.length > 1 ? `<div style="text-align:left;font-size:0.85rem;color:#555;margin:6px 0;">Bocinas:<select id="at-out" onchange="AT.outId=this.value;atPlay(atDing())" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font:700 0.9rem Nunito,sans-serif;">${outs.map(o => `<option value="${_hEsc(o.deviceId)}" ${o.deviceId === AT.outId ? 'selected' : ''}>${_hEsc(o.label || 'Bocinas')}</option>`).join('')}</select></div>` : '';
+  const tips = retry ? '<div style="background:#fff8e1;border-left:4px solid #f9a825;border-radius:8px;padding:8px 10px;text-align:left;font-size:0.88rem;margin-bottom:8px;">Sube el volumen de tu dispositivo (y en el celular, quita el modo silencio). Si usas audífonos, desconéctalos y vuelve a conectarlos.</div>' : '';
+  atShow('¿Escuchas este sonido?', 'Paso 1 de 2 · Bocinas', tips + sel + AT_BTN('▶ Reproducir sonido', 'atPlay(atDing())', '#607d8b') + AT_BTN('✅ Sí, lo escucho', 'atSpeakerYes()', '#2e7d32') + AT_BTN('❌ No lo escucho', 'atSpeakerNo()', '#c62828') + '<button onclick="atCancel()" style="border:none;background:none;color:#777;cursor:pointer;margin-top:4px;">Cancelar</button>');
+  if (auto || retry) atPlay(atDing());
+}
+function atSpeakerYes() { atReport('speaker', true, { outLabel: '' }); atStep2(); }
+function atSpeakerNo() {
+  AT.spk++; atReport('speaker', false, { note: 'intento ' + AT.spk });
+  if (AT.spk >= 2) return atFail('El estudiante no escucha el sonido de prueba en su dispositivo (bocinas / volumen / audífonos).', 'bocinas');
+  atStep1(false, true);
+}
+async function atStep2(retryMsg) {
+  const ins = await atDevices('audioinput');
+  if (!AT.micId) { const t = (typeof localStream !== 'undefined' && localStream) ? localStream.getAudioTracks()[0] : null; AT.micId = (t && t.getSettings && t.getSettings().deviceId) || ''; }
+  const sel = ins.length ? `<div style="text-align:left;font-size:0.85rem;color:#555;margin:6px 0;">Micrófono:<select id="at-mic" onchange="AT.micId=this.value" style="width:100%;padding:8px;border-radius:8px;border:2px solid #ddd;font:700 0.9rem Nunito,sans-serif;">${ins.map(o => `<option value="${_hEsc(o.deviceId)}" ${o.deviceId === AT.micId ? 'selected' : ''}>${_hEsc(o.label || 'Micrófono')}</option>`).join('')}</select></div>` : '';
+  const warn = retryMsg ? `<div style="background:#fff8e1;border-left:4px solid #f9a825;border-radius:8px;padding:8px 10px;text-align:left;font-size:0.88rem;margin-bottom:8px;">${retryMsg}</div>` : '';
+  atShow('Habla y escúchate', 'Paso 2 de 2 · Micrófono', warn + '<div style="color:#555;font-size:0.92rem;margin-bottom:6px;">Presiona <b>Grabar</b> y di durante 3 segundos: <i>«Hola, me llamo…»</i>. Luego te lo reproducimos. Si usas bocinas, sube un poco el volumen.</div>' + sel + AT_BTN('🎙️ Grabar (3 s)', 'atRecord()', '#e65100') + '<button onclick="atCancel()" style="border:none;background:none;color:#777;cursor:pointer;margin-top:4px;">Cancelar</button>');
+}
+async function atRecord() {
+  const card = AT.ov && AT.ov.querySelector('#at-card'); if (!card) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: AT.micId ? { deviceId: { exact: AT.micId } } : true }); }
+  catch (e) { AT.mic++; atReport('mic', false, { note: 'sin permiso o no se pudo abrir el micrófono' }); if (AT.mic >= 2) return atFail('No se pudo abrir el micrófono del estudiante (permiso bloqueado o micrófono no disponible).', 'micrófono'); return atStep2('No pudimos abrir tu micrófono. Revisa el permiso del navegador o elige otro micrófono.'); }
+  const label = (stream.getAudioTracks()[0] && stream.getAudioTracks()[0].label) || '';
+  atShow('Grabando… habla ahora', 'Paso 2 de 2 · Micrófono', '<div style="height:16px;background:#eee;border-radius:8px;overflow:hidden;margin:14px 0;"><div id="at-bar" style="height:100%;width:0%;background:#2e7d32;transition:width .1s;"></div></div><div id="at-count" style="font-size:1.4rem;font-weight:900;color:#e65100;">3</div>');
+  let peak = 0, ac, an, buf, tick;
+  try { ac = new (window.AudioContext || window.webkitAudioContext)(); an = ac.createAnalyser(); an.fftSize = 512; ac.createMediaStreamSource(stream).connect(an); buf = new Uint8Array(an.fftSize); } catch (e) {}
+  const chunks = []; let rec = null;
+  try { const mt = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)); rec = window.MediaRecorder ? new MediaRecorder(stream, mt ? { mimeType: mt } : undefined) : null; if (rec) { rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(); } } catch (e) { rec = null; }
+  const t0 = Date.now();
+  tick = setInterval(() => {
+    if (an) { an.getByteTimeDomainData(buf); let m = 0; for (let i = 0; i < buf.length; i++) m = Math.max(m, Math.abs(buf[i] - 128) / 128); peak = Math.max(peak, m); const b = document.getElementById('at-bar'); if (b) b.style.width = Math.min(100, m * 300) + '%'; }
+    const left = Math.max(0, 3 - Math.floor((Date.now() - t0) / 1000)); const c = document.getElementById('at-count'); if (c) c.textContent = left;
+  }, 80);
+  await new Promise(r => setTimeout(r, 3000));
+  clearInterval(tick);
+  let url = null;
+  if (rec && rec.state !== 'inactive') { await new Promise(r => { rec.onstop = r; try { rec.stop(); } catch (e) { r(); } }); if (chunks.length) url = URL.createObjectURL(new Blob(chunks, { type: chunks[0].type || 'audio/webm' })); }
+  stream.getTracks().forEach(t => t.stop()); try { ac && ac.close(); } catch (e) {}
+  AT.lastLabel = label;
+  if (peak < 0.02) {
+    AT.mic++; atReport('mic', false, { note: 'no se detectó voz', micLabel: label });
+    if (AT.mic >= 2) return atFail('No se detecta voz en el micrófono del estudiante (' + (label || 'micrófono') + ').', 'micrófono');
+    return atStep2('No detectamos tu voz. Prueba con otro micrófono de la lista y vuelve a grabar.');
+  }
+  if (!url) { // browser can't record: ask about the green bar instead
+    return atShow('¿Se movió la barra verde cuando hablaste?', 'Paso 2 de 2 · Micrófono', AT_BTN('✅ Sí', 'atMicYes()', '#2e7d32') + AT_BTN('❌ No', 'atMicNo()', '#c62828'));
+  }
+  AT.playUrl = url;
+  atShow('¿Te escuchas?', 'Paso 2 de 2 · Micrófono', '<div style="color:#555;font-size:0.92rem;margin-bottom:6px;">Esto es lo que grabamos:</div>' + AT_BTN('▶ Escuchar otra vez', 'atPlay(AT.playUrl)', '#607d8b') + AT_BTN('✅ Sí, me escucho', 'atMicYes()', '#2e7d32') + AT_BTN('❌ No me escucho', 'atMicNo()', '#c62828'));
+  atPlay(url);
+}
+async function atMicYes() {
+  atReport('mic', true, { micLabel: AT.lastLabel || '' });
+  // if the student picked a different microphone in the test and it works, use it in class too
+  try { const cur = (typeof localStream !== 'undefined' && localStream) ? localStream.getAudioTracks()[0] : null; const curId = cur && cur.getSettings && cur.getSettings().deviceId; if (AT.micId && AT.micId !== curId) await switchMic(AT.micId); } catch (e) {}
+  atPass();
+}
+function atMicNo() {
+  AT.mic++; atReport('mic', false, { note: 'el estudiante no se escucha', micLabel: AT.lastLabel || '' });
+  if (AT.mic >= 2) return atFail('El estudiante no se escucha al grabar con su micrófono (' + (AT.lastLabel || 'micrófono') + ').', 'micrófono');
+  atStep2('Elige otro micrófono de la lista y vuelve a grabar.');
+}
+function atPass() {
+  atReport('passed', true);
+  atShow('✅ Tu audio funciona bien', 'Listo', '<div style="color:#555;margin:8px 0 12px;">Vamos a reconectar tu conexión con la clase. Puede tardar unos segundos…</div><div class="spinner" style="margin:10px auto;width:34px;height:34px;border-width:4px;"></div>');
+  try { reconnectMedia(); } catch (e) {}
+  setTimeout(() => { atReport('reconnected', true); atShow('✅ Todo listo', 'Listo', '<div style="color:#555;margin:8px 0 12px;">Tu equipo funciona bien y ya reconectamos tu conexión. Tu maestro verificará si te escucha. Si no, avisaremos a soporte técnico.</div>' + AT_BTN('Cerrar', 'atClose()', '#2e7d32')); }, 7000);
+}
+function atFail(why, which) {
+  atReport('failed', false, { note: why });
+  atShow('Encontramos un problema', 'Resultado', '<div style="color:#444;margin:8px 0 12px;">Parece que el problema está en tu ' + (which === 'bocinas' ? 'bocinas o volumen' : 'micrófono') + '. Ya avisamos a tu maestro y a soporte técnico para ayudarte.</div>' + AT_BTN('Cerrar', 'atClose()', '#555'));
 }
 
 function startAutoEnterCountdown() {
