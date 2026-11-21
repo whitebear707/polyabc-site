@@ -3967,7 +3967,7 @@ async function startScreenShare() {
     // A small always-on-top window with exactly what students see, so the teacher doesn't have to come back to this tab
     const pipBtn = document.getElementById('sharepip-btn');
     if (pipBtn && (window.documentPictureInPicture || document.pictureInPictureEnabled)) pipBtn.style.display = '';
-    openFloatWindow(true);
+    // (the floating window opens only when the teacher presses the Floating window button)
 
     // Notify students and call each connected student peer
     if (window._socket) {
@@ -4428,7 +4428,8 @@ async function openFloatWindow(auto) {
   _float = { win, timer };
   win.addEventListener('pagehide', () => { clearInterval(timer); if (_float && _float.win === win) _float = null; });
 }
-try { if (IS_TEACHER) navigator.mediaSession.setActionHandler('enterpictureinpicture', () => openFloatWindow(true)); } catch (e) {}
+// No automatic pop-up when the teacher switches tabs or minimizes: the floating window only opens from its button.
+try { if (IS_TEACHER) navigator.mediaSession.setActionHandler('enterpictureinpicture', null); } catch (e) {}
 window.addEventListener('DOMContentLoaded', () => {
   const b = document.getElementById('sharepip-btn');
   if (b && IS_TEACHER && window.documentPictureInPicture) b.style.display = '';
