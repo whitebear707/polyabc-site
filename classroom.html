@@ -355,23 +355,9 @@
     <!-- Reactions Panel -->
     <div id="reactions-panel" style="margin-top:8px;display:none;">
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
-        <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
-        <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
-        <button class="reaction-btn" onclick="sendReaction('😊')">😊</button>
-        <button class="reaction-btn" onclick="sendReaction('😢')">😢</button>
-        <button class="reaction-btn" onclick="sendReaction('😱')">😱</button>
-        <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
-        <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
-        <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+        <button class="reaction-btn" id="emoji-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-emoji',this,'right')">😊 Emojis</button>
+        <button class="reaction-btn" id="fun-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-fun',this,'right')">🎲 Fun</button>
         <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
-      </div>
-      <!-- Divider -->
-      <div style="border-top:1px solid rgba(255,255,255,0.15);margin:8px 0;"></div>
-      <!-- Coin & Dice -->
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
-        <button class="reaction-btn" onclick="flipCoin()" title="Coin Flip">🪙</button>
-        <button class="reaction-btn" onclick="openDice(1)" title="Roll 1 Die">🎲</button>
-        <button class="reaction-btn" style="grid-column:span 2;" onclick="openDice(2)" title="Roll 2 Dice">🎲🎲</button>
       </div>
     </div>
   </div><!-- end left-panel -->
@@ -382,11 +368,8 @@
       <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
     <div id="toolbar">
-      <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw')">✏️ Draw</button>
-      <button class="tool-btn" id="tool-text" onclick="setTool('text')">🔤 Text</button>
+      <button class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'up')">✏️ Canvas ▴</button>
       <button class="tool-btn" id="tool-erase" onclick="setTool('erase')" title="Eraser: drag over a drawing or text to remove it">🧽 Eraser</button>
-      <button class="tool-btn" id="tool-select" onclick="setTool('select')">☝️ Select</button>
-      <button class="tool-btn" id="tool-laser" onclick="setTool('laser')" style="display:none;">🔴 Laser</button>
       <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
       <input type="range" id="brush-size" min="2" max="30" value="8" oninput="setBrushSize(this.value)" onchange="setBrushSize(this.value)" title="Pen thickness"/>
@@ -408,7 +391,6 @@
       <div class="tool-separator"></div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
       <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
-      <button id="leaderboard-btn" class="tool-btn" onclick="toggleLeaderboard()" style="background:#f57f17;">🏆 Leaderboard</button>
       <div id="chat-btn-wrap" style="display:none;position:relative;">
         <button class="tool-btn" onclick="toggleChat()" style="background:#1565c0;">💬 Messages</button>
         <div id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:0.65rem;font-weight:900;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center;"></div>
@@ -431,6 +413,37 @@
 </div>
 
 <div id="laser-dot"></div>
+
+<!-- Small pop-up menus (emojis, fun, canvas tools) -->
+<style>
+  .pop-menu { display:none; position:fixed; z-index:9500; background:#16213e; border:2px solid #0f3460; border-radius:12px; padding:8px; box-shadow:0 8px 28px rgba(0,0,0,0.5); }
+  .pop-menu.open { display:grid; }
+  .pop-menu.cols { grid-template-columns:repeat(4,1fr); gap:4px; }
+  .pop-menu.col { grid-template-columns:1fr; gap:6px; min-width:150px; }
+  .pop-menu .reaction-btn { font-size:1.5rem; padding:8px 10px; }
+  .pop-menu .tool-btn { width:100%; text-align:left; }
+</style>
+<div id="pop-emoji" class="pop-menu cols">
+  <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+  <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+  <button class="reaction-btn" onclick="sendReaction('😊')">😊</button>
+  <button class="reaction-btn" onclick="sendReaction('😢')">😢</button>
+  <button class="reaction-btn" onclick="sendReaction('😱')">😱</button>
+  <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
+  <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+  <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+</div>
+<div id="pop-fun" class="pop-menu col">
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();flipCoin()">🪙 Coin flip</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();openDice(1)">🎲 1 die</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();openDice(2)">🎲🎲 2 dice</button>
+</div>
+<div id="pop-canvas" class="pop-menu col">
+  <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw');closePops()">✏️ Draw</button>
+  <button class="tool-btn" id="tool-text" onclick="setTool('text');closePops()">🔤 Text</button>
+  <button class="tool-btn" id="tool-select" onclick="setTool('select');closePops()">☝️ Select</button>
+  <button class="tool-btn" id="tool-laser" onclick="setTool('laser');closePops()" style="display:none;">🔴 Laser</button>
+</div>
 
 <!-- COIN FLIP OVERLAY -->
 <div id="coin-overlay" onclick="closeCoinOnBg(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;flex-direction:column;font-family:Nunito,sans-serif;">
@@ -2679,7 +2692,7 @@ function _hBtn(label, fn, color) { return `<button onclick="${fn}" style="displa
 function _hSet(title, html) { document.getElementById('help-title').textContent = title; document.getElementById('help-body').innerHTML = html; }
 function openHelp() { if (!IS_TEACHER) return; _help = { kind: null, students: null, busy: false }; helpHome(); document.getElementById('help-modal').style.display = 'flex'; }
 function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
-function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a')); }
+function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a') + _hBtn('🎙️ Microphone', 'closeHelp();openMicPicker()', '#37474f')); }
 function helpStudentMenu() { _hSet('Student Help', _hBtn('🚫 Student not here', "helpPick('student_absent')", '#e65100') + _hBtn('⚠️ Student having problems', "helpPick('student_problem')", '#f9a825') + '<button onclick="helpHome()" style="margin-top:6px;border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); }
 async function helpPick(kind) {
   _help.kind = kind;
@@ -4520,6 +4533,26 @@ function startOwedTimer(owedSecsTotal, classDuration) {
   }, 1000);
 }
 
+// ── small pop-up menus ──
+function closePops() { document.querySelectorAll('.pop-menu.open').forEach(p => p.classList.remove('open')); }
+function togglePop(id, btn, dir) {
+  const p = document.getElementById(id); if (!p) return;
+  const wasOpen = p.classList.contains('open');
+  closePops();
+  if (wasOpen) return;
+  p.classList.add('open');
+  const r = btn.getBoundingClientRect(), pw = p.offsetWidth, ph = p.offsetHeight;
+  let left, top;
+  if (dir === 'up') { left = r.left; top = r.top - ph - 8; } else { left = r.right + 8; top = r.top; }
+  left = Math.max(6, Math.min(left, window.innerWidth - pw - 6));
+  top = Math.max(6, Math.min(top, window.innerHeight - ph - 6));
+  p.style.left = left + 'px'; p.style.top = top + 'px';
+}
+document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn')) closePops(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
+window.addEventListener('resize', closePops);
+const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', select: '☝️', laser: '🔴' };
+
 function setTool(tool) {
   if (!IS_TEACHER && window._canDraw === false) return;
   // Exit laser mode if switching away
@@ -4527,6 +4560,8 @@ function setTool(tool) {
   currentTool = tool;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById(`tool-${tool}`)?.classList.add('selected');
+  const cmb = document.getElementById('canvas-menu-btn');
+  if (cmb && CANVAS_TOOL_ICON[tool]) { cmb.textContent = CANVAS_TOOL_ICON[tool] + ' Canvas ▴'; cmb.classList.add('selected'); }
   if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
   else if (tool === 'laser') { canvas.isDrawingMode = false; enterLaser(); }
   else if (tool === 'text') { canvas.isDrawingMode = false; canvas.defaultCursor = 'text'; }
@@ -4915,7 +4950,7 @@ function micTick() {
 if (!IS_SPECTATOR) {
   setInterval(micTick, 150);
   document.addEventListener('click', () => { if (MIC.ac && MIC.ac.state === 'suspended') MIC.ac.resume().catch(() => {}); });
-  setTimeout(() => { const b = document.getElementById('mic-pick-btn'); if (b) b.style.display = 'inline-flex'; }, 0);
+  setTimeout(() => { const b = document.getElementById('mic-pick-btn'); if (b && !IS_TEACHER) b.style.display = 'inline-flex'; }, 0); // teachers pick the mic from Help
   // Mic unplugged in the middle of class: move to another one by itself
   if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', () => {
     setTimeout(() => {
