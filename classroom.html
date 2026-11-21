@@ -4538,6 +4538,17 @@ function startOwedTimer(owedSecsTotal, classDuration) {
   }, 1000);
 }
 
+// The class screen never scrolls. Typing text near the bottom makes the browser scroll the whole page to reveal fabric's hidden
+// text box (the top bar and left panel slide away and can't be scrolled back). Snap back whenever that happens.
+(function () {
+  const fix = () => {
+    [document.scrollingElement, document.body, document.getElementById('main'), document.getElementById('center-panel'), document.getElementById('whiteboard-wrap')]
+      .forEach(el => { if (el && (el.scrollTop || el.scrollLeft)) { el.scrollTop = 0; el.scrollLeft = 0; } });
+  };
+  document.addEventListener('scroll', fix, true);
+  window.addEventListener('scroll', fix);
+})();
+
 // ── small pop-up menus ──
 function closePops() { document.querySelectorAll('.pop-menu.open').forEach(p => p.classList.remove('open')); }
 function togglePop(id, btn, dir) {
