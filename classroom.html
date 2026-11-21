@@ -3346,20 +3346,7 @@ function playTadaSound() {
 }
 
 // ── 🎉 Celebration: fireworks + confetti over the whole screen, with a short fanfare (~4.5 s) ──
-// A few high-pitched, excited "Yay!" cheers using the device's built-in voice (silent if the device has none)
-function partyYay() {
-  try {
-    const ss = window.speechSynthesis; if (!ss || typeof SpeechSynthesisUtterance === 'undefined') return;
-    ss.cancel();
-    const voices = ss.getVoices ? ss.getVoices() : [];
-    const v = voices.find(x => /^en[-_]US/i.test(x.lang) && /female|samantha|zira|google us english|aria|jenny/i.test(x.name)) || voices.find(x => /^en/i.test(x.lang));
-    [[900, 'Yay!', 1.9, 1.15], [1500, 'Yay! Yay!', 1.7, 1.25], [2500, 'Woo hoo!', 1.9, 1.2]].forEach(([ms, text, pitch, rate]) => setTimeout(() => {
-      try { const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; if (v) u.voice = v; u.pitch = pitch; u.rate = rate; u.volume = 1; ss.speak(u); } catch (e) {}
-    }, ms));
-  } catch (e) {}
-}
 function playPartySound() {
-  partyYay();
   try {
     const ctx = getAudioCtx(), t0 = ctx.currentTime + 0.05;
     const tone = (f, t, d, type, v) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
