@@ -2150,6 +2150,8 @@ function renderDayDetail(dateStr) {
         const debtBadge = g?.debtMins > 0
           ? `<span style="background:#b71c1c;color:white;font-size:0.68rem;padding:1px 6px;border-radius:8px;font-weight:900;margin-left:4px;">-${g.debtMins} min</span>`
           : '';
+        const movedBadge = a.rescheduledFrom
+          ? `<div style="font-size:0.7rem;color:#1a73e8;font-weight:900;margin-top:2px;">🗓 Reprogramada (era ${escHtml(a.rescheduledFrom.date)} ${fmt12(a.rescheduledFrom.time)})</div>` : '';
         const subBadge = a.subTeacherRoom
           ? `<div style="font-size:0.7rem;color:#6a1b9a;font-weight:900;margin-top:2px;">🔁 Sub: ${a.subTeacherName || '—'}</div>`
           : '';
@@ -2165,10 +2167,14 @@ function renderDayDetail(dateStr) {
             <span>${a.cancelPending ? '❗ ' : ''}${a.makeup ? '🔁 ' : ''}${fmt12(a.time)} · ${g ? g.name : (a.studentName ? a.studentName + ' · ' : '') + a.level+' '+a.classType}${a.makeup ? ' <b style="background:#e8f0fe;color:#1a73e8;border-radius:5px;padding:0 5px;font-size:0.68rem;">Reposición</b>' : ''}${debtBadge}</span>
             <button onclick="deleteAssignmentFromDetail('${a._id}','${t.room}','${dateStr}')" style="background:none;border:none;color:#e53935;cursor:pointer;font-size:0.9rem;">🗑</button>
           </div>
-          ${cancelBox}${subBadge}
+          ${cancelBox}${subBadge}${movedBadge}
           <button onclick="${a.subTeacherRoom ? `removeSubFromClass('${a._id}','${dateStr}')` : `openAssignSubModal('${a._id}','${t.room}','${dateStr}','${a.time}')`}"
             style="margin-top:4px;background:none;border:1px solid #6a1b9a;color:#6a1b9a;padding:2px 8px;border-radius:6px;font-family:Nunito;font-size:0.7rem;font-weight:700;cursor:pointer;">
             ${a.subTeacherRoom ? '❌ Remove Sub' : '🔁 Assign Sub'}
+          </button>
+          <button onclick="openRescheduleModal('${a._id}','${t.room}','${dateStr}','${a.time}')"
+            style="margin-top:4px;background:none;border:1px solid #1a73e8;color:#1a73e8;padding:2px 8px;border-radius:6px;font-family:Nunito;font-size:0.7rem;font-weight:700;cursor:pointer;">
+            🗓 Reprogramar
           </button>
         </div>`;
       }).join('');
@@ -2358,6 +2364,55 @@ async function assignTrialToExisting(bookingId, studentName) {
   allTrialBookings = allTrialBookings.map(b => b._id === bookingId ? {...b, status:'assigned'} : b);
   renderMasterCalendar();
   renderDayDetail(assignment.date);
+}
+
+function openRescheduleModal(assignmentId, room, dateStr, time) {
+  const options = rooms.map(r => `<option value="${escHtml(r.room)}"${String(r.room) === String(room) ? ' selected' : ''}>${mwFor(r.room)} ${escHtml(r.teacherName || '—')} · Salón ${escHtml(r.room)}</option>`).join('');
+  const panel = document.getElementById('assign-day-panel');
+  panel.innerHTML = `
+    <div style="font-size:1rem;font-weight:900;color:#1a1a2e;margin-bottom:14px;">🗓 Reprogramar clase</div>
+    <div style="background:#e8f0fe;border-radius:10px;padding:12px;margin-bottom:14px;font-size:0.85rem;">
+      Ahora: 📅 ${escHtml(dateStr)} · 🕐 ${fmt12(time)} · Salón ${escHtml(room)}
+    </div>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Nueva fecha</label>
+      <input type="date" id="resched-date" value="${escHtml(dateStr)}" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"></div>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Nueva hora (hora de Guadalajara)</label>
+      <input type="time" id="resched-time" value="${escHtml(time)}" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;"></div>
+    <div class="field-group"><label style="font-size:0.82rem;font-weight:700;color:#555;display:block;margin-bottom:5px;">Maestro</label>
+      <select id="resched-room" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;">${options}</select></div>
+    <div style="font-size:0.78rem;color:#888;margin-bottom:14px;">Solo se mueve esta clase. El horario semanal y los pagos no cambian, y las siguientes clases siguen igual. Se avisa por correo al padre y al maestro.</div>
+    <div id="resched-status" style="font-size:0.8rem;margin-bottom:10px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('assign-day-overlay').style.display='none'" style="flex:1;padding:10px;background:#eee;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button id="resched-btn" onclick="saveReschedule('${assignmentId}','${escHtml(dateStr)}',false)" style="flex:1;padding:10px;background:#1a73e8;color:white;border:none;border-radius:10px;font-family:Nunito;font-weight:700;cursor:pointer;">Reprogramar</button>
+    </div>`;
+  document.getElementById('assign-day-overlay').style.display = 'flex';
+}
+
+async function saveReschedule(assignmentId, oldDate, force) {
+  const status = document.getElementById('resched-status');
+  const date = document.getElementById('resched-date').value, time = document.getElementById('resched-time').value, room = document.getElementById('resched-room').value;
+  if (!date || !time) { status.textContent = '⚠️ Elige fecha y hora'; status.style.color = '#e53935'; return; }
+  const btn = document.getElementById('resched-btn'); if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${SERVER_URL}/assignments/${assignmentId}/reschedule`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      body: JSON.stringify({ date, time, room, force: !!force })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      status.style.color = '#e53935';
+      if (data.clash) {
+        status.innerHTML = '⚠️ ' + escHtml(data.error) + ' <button onclick="saveReschedule(\'' + assignmentId + '\',\'' + oldDate + '\',true)" style="margin-left:6px;background:#fff3e0;border:1px solid #e65100;color:#e65100;border-radius:6px;padding:2px 8px;font-family:Nunito;font-weight:800;cursor:pointer;">Reprogramar de todos modos</button>';
+      } else status.textContent = '❌ ' + (data.error || 'No se pudo reprogramar');
+      if (btn) btn.disabled = false;
+      return;
+    }
+    document.getElementById('assign-day-overlay').style.display = 'none';
+    showToast('✅ Clase reprogramada');
+    await loadAllAssignmentsData();
+    renderDayDetail(oldDate);
+  } catch (e) { status.textContent = '❌ No se pudo reprogramar'; status.style.color = '#e53935'; if (btn) btn.disabled = false; }
 }
 
 function openAssignSubModal(assignmentId, room, dateStr, time) {
