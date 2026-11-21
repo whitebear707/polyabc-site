@@ -28,7 +28,7 @@
 
     #main { display: flex; flex: 1; overflow: hidden; }
 
-    #left-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
+    #left-panel { overflow-y: auto; width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
     #chat-panel { position:fixed; bottom:70px; right:16px; width:300px; max-height:420px; background:#16213e; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; flex-direction:column; z-index:9001; font-family:Nunito,sans-serif; overflow:hidden; }
     #chat-messages { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; max-height:320px; }
     #chat-messages::-webkit-scrollbar { width:4px; } #chat-messages::-webkit-scrollbar-thumb { background:#0f3460; border-radius:4px; }
@@ -232,7 +232,7 @@
       #right-panel { width: 80px; padding: 4px; gap: 4px; }
       #right-panel-title { font-size: 0.75rem; }
       #teacher-only { flex-wrap: wrap; gap: 3px; }
-      .row-break { margin-top: -4px; }
+      #left-tools .tool-btn { padding: 6px 4px; font-size: 0.7rem; }
       #teacher-only .tool-btn { padding: 5px 8px; font-size: 0.75rem; }
       #toolbar { padding: 4px 8px; gap: 4px; }
       .tool-btn { padding: 6px 10px; font-size: 0.8rem; }
@@ -362,6 +362,14 @@
         <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
       </div>
     </div>
+    <div id="left-tools" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <button style="width:100%;text-align:left;" class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'right')">✏️ Canvas ▸</button>
+      <div id="left-teacher-tools" style="display:none;flex-direction:column;gap:6px;">
+        <button class="tool-btn" id="lesson-menu-btn" style="width:100%;text-align:left;background:#1a73e8;" onclick="togglePop('pop-lesson',this,'right')">📚 Lesson ▸</button>
+        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="width:100%;text-align:left;background:#c62828;">☰ Help</button>
+      </div>
+      <button style="width:100%;text-align:left;" id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
+    </div>
   </div><!-- end left-panel -->
 
   <div id="center-panel">
@@ -370,8 +378,6 @@
       <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
     <div id="toolbar">
-      <button class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'up')">✏️ Canvas ▴</button>
-      <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
       <input type="range" id="brush-size" min="2" max="30" value="8" oninput="setBrushSize(this.value)" onchange="setBrushSize(this.value)" title="Pen thickness"/>
       <select id="text-size" title="Text size" style="padding:4px 6px;border-radius:8px;font-weight:800;"><option value="32">Aa small</option><option value="48" selected>Aa medium</option><option value="72">Aa large</option></select>
@@ -379,16 +385,11 @@
       <div id="teacher-only">
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
         <button class="tool-btn" id="clear-all-btn" onclick="confirmClearAll()" style="background:#b71c1c;">🗑️ Clear All</button>
-        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
-        <div class="row-break"></div>
-        <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'up')">📚 Lesson ▴</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
-        <div class="row-break"></div>
       </div>
       <button id="mic-pick-btn" class="tool-btn" onclick="openMicPicker()" style="background:#37474f;display:none;align-items:center;gap:6px;" title="Choose microphone">🎙️ Mic <span style="display:inline-block;width:34px;height:8px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;vertical-align:middle;"><span id="mic-pick-lvl" style="display:block;height:100%;width:0%;background:#69f0ae;transition:width .15s;"></span></span></button>
-      <button id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
       <div id="chat-btn-wrap" style="display:none;position:relative;">
         <button class="tool-btn" onclick="toggleChat()" style="background:#1565c0;">💬 Messages</button>
         <div id="chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53935;color:white;font-size:0.65rem;font-weight:900;border-radius:50%;width:18px;height:18px;align-items:center;justify-content:center;"></div>
@@ -570,7 +571,7 @@ document.getElementById('room-label').textContent = SESSION_ID
 document.getElementById('room-label').style.background = '#e65100';
 if (ROOM === '0') { document.getElementById('room-label').textContent = '🤝 Junta / Meeting'; document.getElementById('room-label').style.background = '#6a1b9a'; const tb = document.getElementById('take-break-btn'); if (tb) tb.style.display = 'none'; } // meetings have no breaks
 if (IS_TEACHER) {
-  document.getElementById('teacher-only').style.display = 'contents';
+  document.getElementById('teacher-only').style.display = 'contents'; document.getElementById('left-teacher-tools').style.display = 'flex';
   document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
@@ -3771,7 +3772,7 @@ async function startScreenShare() {
 
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
-    const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '🔴 Lesson · sharing ▴'; lb.style.background = '#e53935'; }
+    const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '🔴 Lesson · sharing ▸'; lb.style.background = '#e53935'; }
     const areaBtn = document.getElementById('sharearea-btn');
     if (areaBtn) areaBtn.style.display = shareCrop ? '' : 'none';
 
@@ -4290,7 +4291,7 @@ function stopScreenShare() {
 
   const btn = document.getElementById('screenshare-btn');
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
-  const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '📚 Lesson ▴'; lb.style.background = '#1a73e8'; }
+  const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '📚 Lesson ▸'; lb.style.background = '#1a73e8'; }
   if (window._socket) {
     window._socket.emit('screenshare-stop', { room: ROOM });
     setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }, 300);
@@ -4580,7 +4581,7 @@ function setTool(tool) {
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById(`tool-${tool}`)?.classList.add('selected');
   const cmb = document.getElementById('canvas-menu-btn');
-  if (cmb && CANVAS_TOOL_ICON[tool]) { cmb.textContent = CANVAS_TOOL_ICON[tool] + ' Canvas ▴'; cmb.classList.add('selected'); }
+  if (cmb && CANVAS_TOOL_ICON[tool]) { cmb.textContent = CANVAS_TOOL_ICON[tool] + ' Canvas ▸'; cmb.classList.add('selected'); }
   if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
   else if (tool === 'laser') { canvas.isDrawingMode = false; enterLaser(); }
   else if (tool === 'text') { canvas.isDrawingMode = false; canvas.defaultCursor = 'text'; }
