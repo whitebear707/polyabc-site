@@ -62,7 +62,7 @@
     #brush-size { width: 90px; accent-color: #1a73e8; }
     .tool-separator { width: 2px; height: 30px; background: #0f3460; border-radius: 2px; }
     #teacher-only { display: none; gap: 8px; }
-    .row-break { flex-basis: 100%; height: 0; margin-top: -10px; }
+    #left-tools .tool-btn { width: 100%; padding: 6px 4px; font-size: 0.85rem; font-weight: 800; border-radius: 10px; text-align: center; line-height: 1.2; }
 
     #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-left: 2px solid #0f3460; overflow-y: auto; }
     #right-panel-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; text-align: center; }
@@ -362,13 +362,13 @@
         <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
       </div>
     </div>
-    <div id="left-tools" style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-      <button style="width:100%;text-align:left;" class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'right')">✏️ Canvas ▸</button>
-      <div id="left-teacher-tools" style="display:none;flex-direction:column;gap:6px;">
-        <button class="tool-btn" id="lesson-menu-btn" style="width:100%;text-align:left;background:#1a73e8;" onclick="togglePop('pop-lesson',this,'right')">📚 Lesson ▸</button>
-        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="width:100%;text-align:left;background:#c62828;">☰ Help</button>
+    <div id="left-tools" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:auto;padding-top:8px;">
+      <button style="" class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'right')">✏️ Canvas ▸</button>
+      <div id="left-teacher-tools" style="display:none;">
+        <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'right')">📚 Lesson ▸</button>
+        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
       </div>
-      <button style="width:100%;text-align:left;" id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
+      <button style="" id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
     </div>
   </div><!-- end left-panel -->
 
@@ -571,11 +571,12 @@ document.getElementById('room-label').textContent = SESSION_ID
 document.getElementById('room-label').style.background = '#e65100';
 if (ROOM === '0') { document.getElementById('room-label').textContent = '🤝 Junta / Meeting'; document.getElementById('room-label').style.background = '#6a1b9a'; const tb = document.getElementById('take-break-btn'); if (tb) tb.style.display = 'none'; } // meetings have no breaks
 if (IS_TEACHER) {
-  document.getElementById('teacher-only').style.display = 'contents'; document.getElementById('left-teacher-tools').style.display = 'flex';
+  document.getElementById('teacher-only').style.display = 'contents'; document.getElementById('left-teacher-tools').style.display = 'contents';
   document.getElementById('chat-btn-wrap').style.display = 'block';
 } else {
   document.getElementById('my-controls').style.display = 'none';
   document.getElementById('student-chat-bar').style.display = IS_SPECTATOR ? 'none' : 'flex';
+  if (!IS_SPECTATOR) document.getElementById('left-tools').style.marginBottom = '48px'; // keeps clear of the "Can't see or hear?" button
 }
 
 const capCanvas = document.createElement('canvas');
@@ -2255,7 +2256,7 @@ function showStudentSlot(socketId, name, isBirthday) {
 
 function addDrawControlBtn(socketId, name) {
   let drawControls = document.getElementById('draw-controls');
-  if (!drawControls) { drawControls = document.createElement('div'); drawControls.id = 'draw-controls'; drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;'; document.getElementById('left-panel').appendChild(drawControls); }
+  if (!drawControls) { drawControls = document.createElement('div'); drawControls.id = 'draw-controls'; drawControls.style.cssText = 'display:flex;flex-direction:column;gap:4px;margin-top:4px;'; document.getElementById('left-panel').insertBefore(drawControls, document.getElementById('left-tools')); }
   const btn = document.createElement('button'); btn.id = `draw-btn-${socketId}`; btn.style.cssText = 'padding:5px 8px;border-radius:8px;border:none;font-family:Nunito,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:#2e7d32;color:white;text-align:left;'; btn.textContent = `✏️ ${name || 'Student'}`; btn.onclick = () => toggleStudentDraw(socketId, btn); drawControls.appendChild(btn);
 }
 
