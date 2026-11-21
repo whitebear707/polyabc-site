@@ -361,7 +361,7 @@
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
         <button class="reaction-btn" id="emoji-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-emoji',this,'right')">😊 Emojis</button>
         <button class="reaction-btn" id="fun-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-fun',this,'right')">🎲 Fun</button>
-        <button class="reaction-btn" style="grid-column:span 2;" onclick="sendReaction('🎆')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate</button>
+        <button class="reaction-btn" style="grid-column:span 2;" id="celebrate-menu-btn" onclick="togglePop('pop-celebrate',this,'right')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate ▸</button>
       </div>
     </div>
     <div id="left-tools" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:8px;">
@@ -434,6 +434,11 @@
   <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
   <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
   <button class="reaction-btn" onclick="sendReaction('👍')">👍</button>
+</div>
+<div id="pop-celebrate" class="pop-menu col">
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();sendReaction('🎆')">🎆 1 · Fireworks</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();sendReaction('🎆2')">🎉 2 · Celebrate</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();sendReaction('🎆3')">👏 3 · Congratulations</button>
 </div>
 <div id="pop-fun" class="pop-menu col">
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();flipCoin()">🪙 Coin flip</button>
@@ -1516,7 +1521,7 @@ function connectSocket() {
   socket.on('break-ended', () => hideBreakScreen());
   socket.on('break-error', ({ message }) => { if (IS_TEACHER) alert(message); });
 
-  socket.on('reaction', ({ emoji }) => { if (emoji === '🎆') startCelebration(); else showReaction(emoji); });
+  socket.on('reaction', ({ emoji }) => { if (typeof emoji === 'string' && emoji.indexOf('🎆') === 0) startCelebration(parseInt(emoji.slice(2)) || 1); else showReaction(emoji); });
   socket.on('show-result', ({ text, sub, type, extra }) => {
     if (!IS_TEACHER) {
       if (type === 'coin' && extra) {
@@ -3363,7 +3368,7 @@ function playPartySound() {
     [0.4, 0.9, 1.4, 2.0, 2.6, 3.2].forEach((t, i) => tone(1800 + (i % 3) * 400, t, 0.12, 'sine', 0.08));
   } catch (e) {}
 }
-function showPartyCelebration(name) {
+function showPartyCelebration(name, dur) {
   const old = document.getElementById('party-overlay'); if (old) old.remove();
   const ov = document.createElement('div'); ov.id = 'party-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99991;pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(10,10,40,0.35),rgba(5,5,25,0.55));';
@@ -3380,7 +3385,9 @@ function showPartyCelebration(name) {
     for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2 + Math.random() * 0.1, sp = 2.5 + Math.random() * 4.5; sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: 0.008 + Math.random() * 0.01, color: i % 3 ? c : c2, r: 2 + Math.random() * 2 }); } };
   for (let i = 0; i < 140; i++) confetti.push({ x: Math.random() * W, y: -Math.random() * H * 0.8, w: 6 + Math.random() * 8, h: 3 + Math.random() * 5, vy: 2 + Math.random() * 3, vx: Math.random() * 2 - 1, rot: Math.random() * 6, vr: Math.random() * 0.3 - 0.15, color: colors[Math.floor(Math.random() * colors.length)] });
   // Timed in seconds (not frames) so it lasts the same on slow computers: about 4.5 s in total
-  const burstAt = [0.2, 0.65, 1.15, 1.65, 2.3, 2.9, 3.5], TOTAL = 4.5, t0 = performance.now(); let frame = 0, fired = 0;
+  const base = [0.2, 0.65, 1.15, 1.65, 2.3, 2.9, 3.5], TOTAL = dur || 4.5, k = TOTAL / 4.5;
+  const burstAt = TOTAL <= 5 ? base : Array.from({ length: Math.round(7 * k * 0.8) }, (_, i) => 0.2 + i * (TOTAL - 1.2) / Math.round(7 * k * 0.8)),
+         t0 = performance.now(); let frame = 0, fired = 0;
   (function draw() {
     const el = (performance.now() - t0) / 1000;
     ctx.clearRect(0, 0, W, H);
@@ -3828,18 +3835,24 @@ function sendReaction(emoji) {
   btns.forEach(b => { b.disabled = true; b.style.opacity = '0.4'; });
   setTimeout(() => btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; }), 3000);
 
-  if (emoji === '🎆') { startCelebration(); } else showReaction(emoji);
+  if (emoji.indexOf('🎆') === 0) { startCelebration(parseInt(emoji.slice(2)) || 1); } else showReaction(emoji);
   if (window._socket) window._socket.emit('reaction', { room: ROOM, emoji });
 }
 // 🎆 Celebration (an emoji like the others): fireworks + confetti + fanfare. In a 1v1 class it names the student.
-function startCelebration() {
-  let name = '';
-  try {
-    const a = window._curAssign;
-    if (a && /1v1/.test(a.classType || '')) name = IS_TEACHER ? (a.studentName || '') : (MY_NAME || '');
-  } catch (e) {}
-  playPartySound(); showPartyCelebration(name);
+const CELEB_FILES = { 2: 'sounds/celebrate.mp3', 3: 'sounds/congratulations.mp3' };
+const CELEB_LEN = { 1: 4.5, 2: 10.4, 3: 13.1 };   // seconds; #3's file ends with a silent second
+const _celebAudio = {};
+function preloadCelebAudio() { Object.keys(CELEB_FILES).forEach(k => { try { if (!_celebAudio[k]) { const a = new Audio(CELEB_FILES[k]); a.preload = 'auto'; a.load(); _celebAudio[k] = a; } } catch (e) {} }); }
+let _celebPlaying = null;
+function startCelebration(variant) {
+  variant = CELEB_FILES[variant] ? variant : 1;
+  if (_celebPlaying) { try { _celebPlaying.pause(); } catch (e) {} _celebPlaying = null; }
+  const dur = CELEB_LEN[variant];
+  if (variant === 1) playPartySound();
+  else { try { preloadCelebAudio(); const a = _celebAudio[variant]; a.currentTime = 0; a.volume = 1; _celebPlaying = a; const pr = a.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {} }
+  showPartyCelebration('', dur);
 }
+setTimeout(preloadCelebAudio, 4000);
 
 function leaveClass() {
   if (!IS_TEACHER) {
@@ -4756,7 +4769,7 @@ function togglePop(id, btn, dir) {
   top = Math.max(6, Math.min(top, window.innerHeight - ph - 6));
   p.style.left = left + 'px'; p.style.top = top + 'px';
 }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn,#lesson-menu-btn,#clear-menu-btn')) closePops(); });
+document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#celebrate-menu-btn,#canvas-menu-btn,#lesson-menu-btn,#clear-menu-btn')) closePops(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
 window.addEventListener('resize', closePops);
 const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', erase: '🧽', select: '☝️', laser: '🔴' };
