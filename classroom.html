@@ -369,14 +369,13 @@
     </div>
     <div id="toolbar">
       <button class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'up')">✏️ Canvas ▴</button>
-      <button class="tool-btn" id="tool-erase" onclick="setTool('erase')" title="Eraser: drag over a drawing or text to remove it">🧽 Eraser</button>
       <div class="tool-separator"></div>
       <input type="color" id="color-picker" value="#000000" onchange="setColor(this.value)"/>
       <input type="range" id="brush-size" min="2" max="30" value="8" oninput="setBrushSize(this.value)" onchange="setBrushSize(this.value)" title="Pen thickness"/>
       <select id="text-size" title="Text size" style="padding:4px 6px;border-radius:8px;font-weight:800;"><option value="32">Aa small</option><option value="48" selected>Aa medium</option><option value="72">Aa large</option></select>
       <div class="tool-separator"></div>
       <div id="teacher-only">
-        <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+        <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'up')">📚 Lesson ▴</button>
         <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="uploadImage(event)"/>
         <button class="tool-btn" id="slide-resize-btn" style="background:#00838f;" onclick="toggleSlideEdit()">📐 Resize Slide</button>
         <button class="tool-btn" id="clear-btn" onclick="clearBoard()" style="background:#e53935;">🗑️ Clear</button>
@@ -384,7 +383,6 @@
         <button id="open-class-btn" class="tool-btn" onclick="toggleClassOpen()" style="background:#2e7d32;position:relative;">🔓 Open Class<span id="waiting-badge" style="display:none;position:absolute;top:-8px;right:-8px;background:#e53935;color:white;border-radius:50%;width:22px;height:22px;font-size:0.7rem;font-weight:900;align-items:center;justify-content:center;line-height:22px;text-align:center;z-index:10;"></span></button>
         <button id="take-break-btn" class="tool-btn" onclick="openBreakModal()" style="background:#8d6e63;">☕ Take a Break</button>
         <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
-        <button id="screenshare-btn" class="tool-btn" onclick="toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
         <button id="sharearea-btn" class="tool-btn" onclick="changeShareArea()" style="background:#00897b;display:none;">✂️ Change area</button>
         <button id="sharepip-btn" class="tool-btn" onclick="openFloatWindow(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs with your students' cameras">📌 Floating window</button>
       </div>
@@ -438,9 +436,14 @@
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();openDice(1)">🎲 1 die</button>
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();openDice(2)">🎲🎲 2 dice</button>
 </div>
+<div id="pop-lesson" class="pop-menu col">
+  <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="closePops();document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+  <button id="screenshare-btn" class="tool-btn" onclick="closePops();toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
+</div>
 <div id="pop-canvas" class="pop-menu col">
   <button class="tool-btn selected" id="tool-draw" onclick="setTool('draw');closePops()">✏️ Draw</button>
   <button class="tool-btn" id="tool-text" onclick="setTool('text');closePops()">🔤 Text</button>
+  <button class="tool-btn" id="tool-erase" onclick="setTool('erase');closePops()" title="Eraser: drag over a drawing or text to remove it">🧽 Eraser</button>
   <button class="tool-btn" id="tool-select" onclick="setTool('select');closePops()">☝️ Select</button>
   <button class="tool-btn" id="tool-laser" onclick="setTool('laser');closePops()" style="display:none;">🔴 Laser</button>
 </div>
@@ -3765,6 +3768,7 @@ async function startScreenShare() {
 
     const btn = document.getElementById('screenshare-btn');
     if (btn) { btn.textContent = '🛑 Stop Sharing'; btn.style.background = '#e53935'; }
+    const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '🔴 Lesson · sharing ▴'; lb.style.background = '#e53935'; }
     const areaBtn = document.getElementById('sharearea-btn');
     if (areaBtn) areaBtn.style.display = shareCrop ? '' : 'none';
 
@@ -4283,6 +4287,7 @@ function stopScreenShare() {
 
   const btn = document.getElementById('screenshare-btn');
   if (btn) { btn.textContent = '🖥️ Share Screen'; btn.style.background = '#6a1b9a'; }
+  const lb = document.getElementById('lesson-menu-btn'); if (lb) { lb.textContent = '📚 Lesson ▴'; lb.style.background = '#1a73e8'; }
   if (window._socket) {
     window._socket.emit('screenshare-stop', { room: ROOM });
     setTimeout(() => { if (canvas) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }, 300);
@@ -4548,10 +4553,10 @@ function togglePop(id, btn, dir) {
   top = Math.max(6, Math.min(top, window.innerHeight - ph - 6));
   p.style.left = left + 'px'; p.style.top = top + 'px';
 }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn')) closePops(); });
+document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#canvas-menu-btn,#lesson-menu-btn')) closePops(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
 window.addEventListener('resize', closePops);
-const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', select: '☝️', laser: '🔴' };
+const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', erase: '🧽', select: '☝️', laser: '🔴' };
 
 function setTool(tool) {
   if (!IS_TEACHER && window._canDraw === false) return;
