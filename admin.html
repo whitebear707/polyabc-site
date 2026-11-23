@@ -204,6 +204,12 @@
       .cal-day-num { font-size: 0.8rem; }
       .cal-day-count, .cal-day-assigned { font-size: 0.6rem; margin-top: 2px; }
       .master-cal-day.is-past { opacity: 0.72; }
+      /* the calendar always fits the screen: no scrolling, cells share the height */
+      #cal-main { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+      .master-cal-grid { flex: 1; min-height: 0; grid-template-rows: auto; grid-auto-rows: minmax(0, 1fr); }
+      .master-cal-day { min-height: 0 !important; overflow: hidden; }
+      .master-cal-header { padding: 2px 0; }
+      #cal-main > div[style*="margin-top:16px"] { margin-top: 8px !important; gap: 10px !important; }
     }
     #filters-box > summary { cursor: pointer; list-style: none; padding: 12px 16px; font-size: 0.85rem; font-weight: 900; color: #555; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     #filters-box > summary::-webkit-details-marker { display: none; }
