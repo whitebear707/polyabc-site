@@ -193,6 +193,23 @@
     #panel-calendar.active #cal-sidebar { display: flex; }
     #cal-main { flex: 1; padding: 24px; overflow-y: auto; }
 
+    @media (min-width: 769px) {
+      #cal-main { order: 1; flex: 0 0 auto; width: min(540px, 46%); padding: 14px 16px; }
+      #cal-sidebar { order: 2; flex: 1; width: auto; min-width: 340px; border-right: none; border-left: 2px solid #e0e0e0; }
+      .master-cal-nav { margin-bottom: 10px; }
+      .master-cal-nav h2 { font-size: 1.15rem; }
+      .master-cal-nav button { width: 30px; height: 30px; font-size: 1rem; }
+      .master-cal-grid { gap: 4px; }
+      .master-cal-day { min-height: 56px !important; padding: 5px 5px !important; border-radius: 9px !important; }
+      .cal-day-num { font-size: 0.8rem; }
+      .cal-day-count, .cal-day-assigned { font-size: 0.6rem; margin-top: 2px; }
+      .master-cal-day.is-past { opacity: 0.72; }
+    }
+    #filters-box > summary { cursor: pointer; list-style: none; padding: 12px 16px; font-size: 0.85rem; font-weight: 900; color: #555; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+    #filters-box > summary::-webkit-details-marker { display: none; }
+    #filters-box > summary::after { content: '▸'; color: #999; transition: transform 0.2s; }
+    #filters-box[open] > summary::after { transform: rotate(90deg); }
+    #filters-box.active-filter > summary { color: #1a73e8; }
     .sidebar-section { padding: 16px; border-bottom: 1px solid #eee; }
     .sidebar-title { font-size: 0.85rem; font-weight: 900; color: #888; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
 
@@ -1003,8 +1020,9 @@
 
     <!-- SIDEBAR -->
     <div id="cal-sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-title">Filtrar por día y hora</div>
+      <div class="sidebar-section" style="padding:0;">
+       <details id="filters-box"><summary><span id="filters-title">🔍 Filtrar por día y hora</span></summary>
+       <div style="padding:0 16px 16px;">
         <select id="teacher-filter" onchange="renderMasterCalendar();if(selectedDate)renderDayDetail(selectedDate)" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font-family:Nunito;font-size:0.9rem;outline:none;margin-bottom:8px;">
           <option value="">-- Cualquier maestro --</option>
         </select>
@@ -1027,6 +1045,8 @@
 
         <button onclick="document.getElementById('time-filter').value='';document.getElementById('day-filter').value='';document.getElementById('teacher-filter').value='';clearExtraDayTimeRows();renderMasterCalendar();"
           style="margin-top:8px;width:100%;background:#eee;border:none;padding:7px;border-radius:8px;font-family:Nunito;font-size:0.85rem;font-weight:700;cursor:pointer;">Limpiar filtros</button>
+       </div>
+       </details>
       </div>
 
       <div id="day-detail">
@@ -2038,6 +2058,8 @@ function renderMasterCalendar() {
   const daysInMonth = new Date(masterYear, masterMonth + 1, 0).getDate();
   const prevDays = new Date(masterYear, masterMonth, 0).getDate();
 
+  const _fb = document.getElementById('filters-box');
+  if (_fb) { const on = !!(filterTime || filterDay || filterTeacher); _fb.classList.toggle('active-filter', on); document.getElementById('filters-title').textContent = '🔍 Filtrar por día y hora' + (on ? '  ● activo' : ''); }
   let html = DAYS.map(d => `<div class="master-cal-header">${d}</div>`).join('');
 
   for (let i = firstDay - 1; i >= 0; i--) {
@@ -2066,6 +2088,7 @@ function renderMasterCalendar() {
     const matches     = hasFilter && dayMatches && timeMatches && teachers.length > 0;
 
     let cls = 'master-cal-day';
+    if (date < today) cls += ' is-past';
     if (isToday) cls += ' today';
     if (isSelected) cls += ' selected';
     if (matches) cls += ' has-filter-match';
@@ -2110,12 +2133,63 @@ function renderMasterCalendar() {
 }
 
 function selectDay(dateStr) {
-  // Block past dates — no time machine for teachers! 😄
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
-  if (dateStr < today) return; // silently ignore clicks on past days
+  if (dateStr < today) { openPastDay(dateStr); return; }   // past days: a pop-up with the classes that were given
   selectedDate = dateStr;
   renderMasterCalendar();
   renderDayDetail(dateStr);
+}
+
+async function openPastDay(dateStr) {
+  let ov = document.getElementById('past-day-overlay');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'past-day-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9997;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.onclick = e => { if (e.target === ov) ov.style.display = 'none'; };
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+  const dn = new Date(dateStr + 'T12:00:00');
+  const title = dn.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+  const _tm = x => { const m = String(x || '').match(/(\d+):(\d+)/); return m ? +m[1] * 60 + +m[2] : 0; };
+  const list = allAssignments.filter(a => a.date === dateStr).sort((x, y) => _tm(x.time) - _tm(y.time));
+  const shell = body => `<div style="background:white;border-radius:16px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;font-family:Nunito,sans-serif;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div style="font-weight:900;font-size:1.05rem;color:#1a1a2e;">📅 ${title}</div>
+    <button onclick="document.getElementById('past-day-overlay').style.display='none'" style="background:#eee;border:none;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;">✕</button></div>${body}</div>`;
+  if (!list.length) { ov.innerHTML = shell('<div style="color:#aaa;text-align:center;padding:24px;">No hubo clases este día.</div>'); return; }
+  ov.innerHTML = shell('<div style="color:#aaa;text-align:center;padding:24px;">Cargando…</div>');
+  // attendance records tell us which classes actually took place
+  const recs = [];
+  for (const room of [...new Set(list.map(a => String(a.room)))]) {
+    try {
+      const r = await fetch(`${SERVER_URL}/attendance/${room}`, { headers: { Authorization: `Bearer ${currentToken}` } });
+      const d = await r.json(); (Array.isArray(d) ? d : []).filter(x => x.date === dateStr).forEach(x => recs.push({ ...x, _room: room }));
+    } catch (e) {}
+  }
+  const CH = 'padding:2px 8px;border-radius:10px;';
+  const rows = list.map(a => {
+    const rec = recs.find(r => (r.sessionId && r.sessionId === a.sessionId) || (String(r._room) === String(a.room) && (r.scheduledTime || a.time) === a.time));
+    const rm = (typeof rooms !== 'undefined' && Array.isArray(rooms) ? rooms : []).find(x => String(x.room) === String(a.room));
+    const g = allGroups.find(g => g._id === a.groupId);
+    const who = g ? g.name : ((a.studentName ? a.studentName + ' · ' : '') + (a.level || '') + ' ' + (a.classType || ''));
+    const n = rec ? (rec.students || []).length : 0;
+    const status = a.cancelPending ? `<span style="${CH}background:#ffebee;color:#b71c1c;">❗ Cancelada</span>`
+      : rec ? `<span style="${CH}background:#e8f5e9;color:#2e7d32;">✅ Se dio · ${n} alumno${n !== 1 ? 's' : ''}</span>`
+      : `<span style="${CH}background:#fff3e0;color:#e65100;">⚠️ Sin registro de asistencia</span>`;
+    const flag = rec && rec.earlyEnd && rec.earlyEnd.flag ? `<span style="${CH}background:#b71c1c;color:#fff;">Terminó antes</span>` : '';
+    return `<div style="border-left:4px solid ${rec ? '#2e7d32' : '#e65100'};background:#f8f9fa;border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-weight:900;color:#1a1a2e;font-size:0.92rem;">${fmt12(a.time)} · ${escHtml(who)}</div>
+      <div style="font-size:0.8rem;color:#666;margin:2px 0 6px;">${rm ? mwFor(rm.room) + ' ' + escHtml(rm.teacherName || '') + ' · ' : ''}Salón ${escHtml(String(a.room))}${a.subTeacherName ? ' · Sub: ' + escHtml(a.subTeacherName) : ''}${a.makeup ? ' · 🔁 Reposición' : ''}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:0.74rem;font-weight:800;">${status}${flag}</div>
+    </div>`;
+  }).join('');
+  ov.innerHTML = shell(rows + `<button onclick="openAttendanceForDate('${dateStr}')" style="width:100%;margin-top:6px;background:#1a73e8;color:white;border:none;padding:10px;border-radius:10px;font-family:Nunito;font-weight:800;cursor:pointer;">📋 Ver detalle en Asistencia</button>`);
+}
+function openAttendanceForDate(dateStr) {
+  document.getElementById('past-day-overlay').style.display = 'none';
+  menuNav('attendance');
+  document.getElementById('att-from').value = dateStr; document.getElementById('att-to').value = dateStr;
+  if (typeof loadAttendance === 'function') loadAttendance();
 }
 
 function renderDayDetail(dateStr) {
