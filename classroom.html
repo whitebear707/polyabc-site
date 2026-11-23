@@ -56,9 +56,13 @@
     #leave-btn { background: #e53935; color: white; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; }
     #leave-btn:hover { background: #c62828; }
 
-    #main { display: flex; flex: 1; overflow: hidden; }
-    #stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-    #stage-row { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+    /* the top bar runs across the whole screen; teacher video, board and students sit below it */
+    #main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); flex: 1; overflow: hidden; min-height: 0; }
+    #stage, #stage-row { display: contents; }
+    #topbar { grid-column: 1 / -1; grid-row: 1; }
+    #left-panel { grid-column: 1; grid-row: 2; min-height: 0; }
+    #center-panel { grid-column: 2; grid-row: 2; }
+    #right-panel { grid-column: 3; grid-row: 2; min-height: 0; }
 
     #left-panel { overflow-y: auto; width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
     #chat-panel { position:fixed; bottom:70px; right:16px; width:300px; max-height:420px; background:#16213e; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; flex-direction:column; z-index:9001; font-family:Nunito,sans-serif; overflow:hidden; }
@@ -71,6 +75,8 @@
     body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
     @media (max-width: 700px) { body.student-view #left-panel { width: 96px; padding: 10px 4px 4px; } }
     body.student-view #left-panel { width: 132px; padding: 6px; }
+    body.student-view #left-panel { padding-top: 28px !important; }
+    body:not(.student-view) #left-panel { padding-top: 6px !important; }
     #class-timer { display: none !important; }
     #stu-clock { display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 9px; border-radius: 17px; background: #37474f; }
     body:not(.student-view) #left-panel { width: 148px; padding: 10px 6px; }
@@ -86,7 +92,7 @@
     @keyframes fsflash { 0%, 100% { background: #e53935; box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { background: #7f1d1d; box-shadow: 0 0 12px 3px rgba(229,57,53,0.9); } }
     #celebrate-menu-btn { font-size: 0.72rem !important; }
     body.student-view #left-panel { position: relative; }
-    body.student-view #teacher-frame { margin: auto 0; transform: translateY(-28px); }
+    body.student-view #teacher-frame { margin: 0; }
     body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
     body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
