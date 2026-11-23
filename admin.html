@@ -94,6 +94,13 @@
     }
     .menu-item:hover { background: #0f3460; color: white; }
     .menu-item.active { background: #1a73e8; color: white; }
+    .menu-head { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 0.85rem; font-weight: 900; letter-spacing: 0.4px; text-transform: uppercase; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .menu-head:hover { background: #0f3460; }
+    .menu-head .chev { transition: transform 0.2s; color: #5d7a9e; }
+    .menu-group.open .menu-head .chev { transform: rotate(90deg); }
+    .menu-sub { display: none; background: rgba(0,0,0,0.18); }
+    .menu-group.open .menu-sub { display: block; }
+    .menu-sub .menu-item { padding-left: 34px; }
 
     @media (max-width: 768px) {
       #header { display: none; }
@@ -365,30 +372,43 @@
     </div>
     <div class="menu-item" id="menu-new-trial" style="display:none;color:#ce93d8;" onclick="goToTrialStudents();closeMenu();">🎓 ¡Nueva prueba!</div>
 
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Operaciones</div>
-    <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Horario</div>
-    <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Alumnos</div>
-    <div class="menu-item" id="menu-studentaccounts" onclick="menuNav('studentaccounts')">🔓 Cuentas de alumnos</div>
-    <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Grupos</div>
-    <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Padres</div>
-    <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Asistencia</div>
-
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Personal y pagos</div>
-    <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Maestros</div>
-    <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Personal administrativo</div>
-    <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Nómina</div>
-
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Finanzas</div>
-    <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Contabilidad</div>
-
-    <div style="padding:8px 20px 3px;font-size:0.65rem;font-weight:900;color:#5d7a9e;text-transform:uppercase;letter-spacing:0.8px;">Sistema</div>
-    <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
-    <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
-    <div class="menu-item" id="menu-certificates" onclick="menuNav('certificates')">🎓 Certificados</div>
-    <div class="menu-item" id="menu-announcements" onclick="menuNav('announcements')">📢 Anuncios</div>
-    <div class="menu-item" id="menu-assistants" onclick="menuNav('assistants')">🧑‍💼 Asistentes</div>
-    <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
-        <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
+    <div class="menu-group open" id="mg-ops">
+      <div class="menu-head" onclick="toggleMenuGroup('ops')"><span>Operaciones</span><span class="chev">▸</span></div>
+      <div class="menu-sub">
+      <div class="menu-item" id="menu-calendar" onclick="menuNav('calendar')">🗓 Horario</div>
+      <div class="menu-item" id="menu-teachers" onclick="menuNav('teachers')">👩‍🏫 Maestros</div>
+      <div class="menu-item" id="menu-students" onclick="menuNav('students')">🎓 Alumnos</div>
+      <div class="menu-item" id="menu-groups" onclick="menuNav('groups')">👥 Grupos</div>
+      <div class="menu-item" id="menu-parents" onclick="menuNav('parents')">👪 Padres</div>
+      </div>
+    </div>
+    <div class="menu-group" id="mg-admin">
+      <div class="menu-head" onclick="toggleMenuGroup('admin')"><span>Admin</span><span class="chev">▸</span></div>
+      <div class="menu-sub">
+      <div class="menu-item" id="menu-staff" onclick="menuNav('staff')">👔 Personal administrativo</div>
+      <div class="menu-item" id="menu-meetings" onclick="menuNav('meetings')">🤝 Juntas</div>
+      <div class="menu-item" id="menu-announcements" onclick="menuNav('announcements')">📢 Anuncios</div>
+      <div class="menu-item" id="menu-assistants" onclick="menuNav('assistants')">🧑‍💼 Asistentes</div>
+      <div class="menu-item" id="menu-spectators" onclick="menuNav('spectators')">👁 Espectadores</div>
+      <div class="menu-item" id="menu-tickets" onclick="menuNav('tickets')">✉ Correos de soporte</div>
+      <div class="menu-item" id="menu-studentaccounts" onclick="menuNav('studentaccounts')">🔓 Cuentas de alumnos</div>
+      <div class="menu-item" id="menu-certificates" onclick="menuNav('certificates')">🎓 Certificados</div>
+      </div>
+    </div>
+    <div class="menu-group" id="mg-qa">
+      <div class="menu-head" onclick="toggleMenuGroup('qa')"><span>QA</span><span class="chev">▸</span></div>
+      <div class="menu-sub">
+      <div class="menu-item" id="menu-attendance" onclick="menuNav('attendance')">📋 Asistencia</div>
+      <div class="menu-item" id="menu-recordings" onclick="menuNav('recordings')">🎥 Grabaciones</div>
+      </div>
+    </div>
+    <div class="menu-group" id="mg-fin">
+      <div class="menu-head" onclick="toggleMenuGroup('fin')"><span>Finanzas</span><span class="chev">▸</span></div>
+      <div class="menu-sub">
+      <div class="menu-item" id="menu-accounting" onclick="menuNav('accounting')">🧾 Contabilidad</div>
+      <div class="menu-item" id="menu-payroll" onclick="menuNav('payroll')">💰 Nómina</div>
+      </div>
+    </div>
     <div class="menu-item" onclick="generateRegCode();closeMenu();">🔑 Generar código de alumno</div>
   </div>
 
@@ -1652,11 +1672,8 @@ function applyAssistantMode(name) {
     const panel = (mi.id || '').replace('menu-', '');
     if (!ASSISTANT_PANELS.includes(panel)) mi.style.display = 'none';
   });
-  document.querySelectorAll('#hamburger-menu > div:not(.menu-item)').forEach(h => { if (/Finanzas|Sistema|Personal|Dinero/i.test(h.textContent)) h.style.display = 'none'; });
+  document.querySelectorAll('#hamburger-menu .menu-group').forEach(g => { if (![...g.querySelectorAll('.menu-item')].some(m => m.style.display !== 'none')) g.style.display = 'none'; });
   document.querySelectorAll('[id^="nav-"]').forEach(b => { if (!ASSISTANT_PANELS.includes(b.id.replace('nav-', ''))) b.style.display = 'none'; });
-  // Juntas sits under "Sistema", which assistants don't see: show it with the other day-to-day items
-  const mtItem = document.getElementById('menu-meetings'), attItem = document.getElementById('menu-attendance');
-  if (mtItem && attItem) attItem.after(mtItem);
   const tag = document.createElement('div');
   tag.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:5000;background:#6a1b9a;color:#fff;font-weight:800;font-size:0.75rem;padding:5px 10px;border-radius:14px;font-family:Nunito,sans-serif;';
   tag.textContent = '🧑‍💼 Asistente: ' + (name || '');
@@ -1827,7 +1844,10 @@ function menuNav(name) {
     const item = document.getElementById(`menu-${p}`);
     if (item) item.classList.toggle('active', p === name);
   });
+  const cur = document.getElementById(`menu-${name}`), g = cur && cur.closest('.menu-group');
+  document.querySelectorAll('#hamburger-menu .menu-group').forEach(x => { if (x === g) x.classList.add('open'); });
 }
+function toggleMenuGroup(id) { const g = document.getElementById('mg-' + id); if (g) g.classList.toggle('open'); }
 
 // ── PANEL NAVIGATION ──
 function showPanel(name) {
