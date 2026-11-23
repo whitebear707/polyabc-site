@@ -70,9 +70,9 @@
     .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
     body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
     @media (max-width: 700px) { body.student-view #left-panel { width: 96px; padding: 10px 4px 4px; } }
-    body.student-view #left-panel { width: 132px; padding: 22px 6px 6px; }
+    body.student-view #left-panel { width: 132px; padding: 6px; }
     #class-timer { display: none !important; }
-    #stu-clock { display: flex; align-items: center; justify-content: center; padding: 0 0 2px; }
+    #stu-clock { display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 9px; border-radius: 17px; background: #37474f; }
     body:not(.student-view) #left-panel { width: 148px; padding: 10px 6px; }
     body:not(.student-view) #left-panel button { min-width: 0; }
     #toolbar { justify-content: center; }
@@ -86,16 +86,14 @@
     @keyframes fsflash { 0%, 100% { background: #e53935; box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { background: #7f1d1d; box-shadow: 0 0 12px 3px rgba(229,57,53,0.9); } }
     #celebrate-menu-btn { font-size: 0.72rem !important; }
     body.student-view #left-panel { position: relative; }
-    body.student-view #stu-clock { position: absolute; top: 22px; left: 0; right: 0; }
     body.student-view #teacher-frame { margin: auto 0; transform: translateY(-28px); }
     body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
     body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
-        #stu-clock .ring { position: relative; width: 62px; height: 62px; }
-    #stu-clock svg { width: 62px; height: 62px; transform: rotate(-90deg); }
+        #stu-clock svg { width: 22px; height: 22px; transform: rotate(-90deg); flex: none; }
     #stu-clock .bg { fill: #0a1c30; stroke: rgba(255,255,255,0.14); stroke-width: 6; }
     #stu-clock .fg { fill: none; stroke: #69f0ae; stroke-width: 6; stroke-linecap: round; transition: stroke 0.6s, stroke-dashoffset 0.9s linear; }
-    #stu-clock .tm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 0.95rem Nunito, sans-serif; color: #69f0ae; transition: color 0.6s; letter-spacing: -0.3px; }
+    #stu-clock .tm { font: 900 0.95rem Nunito, sans-serif; color: #69f0ae; transition: color 0.6s; letter-spacing: 0; min-width: 2.9em; text-align: left; }
     #student-chat-bar { justify-content:center; display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
     #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
     #student-chat-input::placeholder { color:#555; }
@@ -378,7 +376,6 @@
 
 <div id="main">
   <div id="left-panel">
-    <div id="stu-clock"><div class="ring"><svg viewBox="0 0 62 62"><circle class="bg" cx="31" cy="31" r="26"/><circle class="fg" id="stu-clock-ring" cx="31" cy="31" r="26" stroke-dasharray="163.4" stroke-dashoffset="0"/></svg><div class="tm" id="stu-clock-tm">--:--</div></div></div>
     <div id="teacher-frame">
     <div id="teacher-name-above" style="display:none;align-items:center;justify-content:center;gap:7px;font-size:0.9rem;font-weight:800;color:#fff;padding:2px 0 4px;"><span id="teacher-name-text"></span><span class="sig" data-sigkey="teacher"><i></i><i></i><i></i><i></i></span></div>
     <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="if(IS_TEACHER)toggleCam()">
@@ -422,6 +419,7 @@
   <div id="stage">
 <div id="topbar">
   <div style="display:flex;align-items:center;gap:10px;">
+    <div id="stu-clock"><svg viewBox="0 0 62 62"><circle class="bg" cx="31" cy="31" r="26"/><circle class="fg" id="stu-clock-ring" cx="31" cy="31" r="26" stroke-dasharray="163.4" stroke-dashoffset="0"/></svg><span class="tm" id="stu-clock-tm">--:--</span></div>
     <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
     <div id="owed-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#e53935;background:rgba(229,57,53,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #e53935;">⏱ Owed: 0:00</div>
     <div id="debt-payoff-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#ffd700;background:rgba(255,215,0,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #ffd700;">🏅 +0:00 paying debt</div>
