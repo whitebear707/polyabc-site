@@ -73,11 +73,18 @@
     body.student-view #left-panel { width: 132px; padding: 22px 6px 6px; }
     #class-timer { display: none !important; }
     #stu-clock { display: flex; align-items: center; justify-content: center; padding: 0 0 2px; }
-    body:not(.student-view) #left-panel { width: 176px; padding: 10px 8px; }
+    body:not(.student-view) #left-panel { width: 148px; padding: 10px 6px; }
+    body:not(.student-view) #left-panel button { min-width: 0; }
+    #toolbar { justify-content: center; }
+    #reactions-panel > div { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    #celebrate-menu-btn { grid-column: span 1 !important; }
+    #left-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    body:not(.student-view) #left-tools .tool-btn { font-size: 0.75rem; padding: 6px 2px; }
+    #celebrate-menu-btn { line-height: 1.1; padding: 6px 2px !important; }
     #stu-fs-btn { display: none; }
     body.student-view.not-fs #stu-fs-btn { display: block; position: absolute; left: 6px; right: 6px; top: calc(50% + 28px + 100px); margin: 0; padding: 8px 4px; border: 0; border-radius: 10px; background: #e53935; color: #fff; font: 900 0.8rem Nunito, sans-serif; cursor: pointer; animation: fsflash 0.9s infinite; }
     @keyframes fsflash { 0%, 100% { background: #e53935; box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { background: #7f1d1d; box-shadow: 0 0 12px 3px rgba(229,57,53,0.9); } }
-    #celebrate-menu-btn { font-size: 0.85rem !important; }
+    #celebrate-menu-btn { font-size: 0.72rem !important; }
     body.student-view #left-panel { position: relative; }
     body.student-view #stu-clock { position: absolute; top: 22px; left: 0; right: 0; }
     body.student-view #teacher-frame { margin: auto 0; transform: translateY(-28px); }
