@@ -76,13 +76,13 @@
     body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
     body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
-    body.student-view #stu-clock { display: flex; align-items: center; justify-content: center; background: #0f2a45; padding: 5px 0 3px; }
+    body.student-view #stu-clock { display: flex; align-items: center; justify-content: center; padding: 0 0 2px; }
     #stu-clock .ring { position: relative; width: 62px; height: 62px; }
     #stu-clock svg { width: 62px; height: 62px; transform: rotate(-90deg); }
     #stu-clock .bg { fill: #0a1c30; stroke: rgba(255,255,255,0.14); stroke-width: 6; }
     #stu-clock .fg { fill: none; stroke: #69f0ae; stroke-width: 6; stroke-linecap: round; transition: stroke 0.6s, stroke-dashoffset 0.9s linear; }
     #stu-clock .tm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 0.95rem Nunito, sans-serif; color: #69f0ae; transition: color 0.6s; letter-spacing: -0.3px; }
-    #student-chat-bar { display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
+    #student-chat-bar { justify-content:center; display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
     #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
     #student-chat-input::placeholder { color:#555; }
     #chat-badge { position:absolute; top:-4px; right:-4px; background:#e53935; color:white; font-size:0.65rem; font-weight:900; border-radius:50%; width:18px; height:18px; display:none; align-items:center; justify-content:center; }
@@ -364,8 +364,8 @@
 
 <div id="main">
   <div id="left-panel">
-    <div id="teacher-frame">
     <div id="stu-clock"><div class="ring"><svg viewBox="0 0 62 62"><circle class="bg" cx="31" cy="31" r="26"/><circle class="fg" id="stu-clock-ring" cx="31" cy="31" r="26" stroke-dasharray="163.4" stroke-dashoffset="0"/></svg><div class="tm" id="stu-clock-tm">--:--</div></div></div>
+    <div id="teacher-frame">
     <div id="teacher-name-above" style="display:none;align-items:center;justify-content:center;gap:7px;font-size:0.9rem;font-weight:800;color:#fff;padding:2px 0 4px;"><span id="teacher-name-text"></span><span class="sig" data-sigkey="teacher"><i></i><i></i><i></i><i></i></span></div>
     <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="if(IS_TEACHER)toggleCam()">
       <video id="left-video" autoplay playsinline></video>
@@ -4440,8 +4440,10 @@ function reconnectMedia() {
 function addReconnectButton() {
   if (IS_TEACHER || IS_SPECTATOR || document.getElementById('reconnect-btn')) return;
   const b = document.createElement('button'); b.id = 'reconnect-btn'; b.textContent = "🔄 ¿No ves o no oyes?";
-  b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;background:#1a73e8;color:#fff;border:none;border-radius:22px;padding:9px 16px;font-family:Nunito,sans-serif;font-weight:900;font-size:0.85rem;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,0.35);opacity:0.92;';
-  b.onclick = reconnectMedia; document.body.appendChild(b);
+  b.style.cssText = 'background:#1a73e8;color:#fff;border:none;border-radius:17px;height:34px;padding:0 14px;font-family:Nunito,sans-serif;font-weight:900;font-size:0.82rem;cursor:pointer;white-space:nowrap;';
+  b.onclick = reconnectMedia;
+  const g = document.getElementById('gear-btn');
+  if (g && g.parentNode) g.parentNode.insertBefore(b, g); else { b.style.cssText += 'position:fixed;left:12px;bottom:12px;z-index:9000;'; document.body.appendChild(b); }
 }
 function showShareProblem(kind) {
   const id = 'ss-problem-' + kind;
