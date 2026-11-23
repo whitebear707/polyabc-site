@@ -69,6 +69,19 @@
     .chat-msg .msg-text { font-size:0.9rem; color:#e0e0e0; }
     .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
     body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
+    #stu-clock { display: none; }
+    @media (max-width: 700px) { body.student-view #left-panel { width: 96px; padding: 10px 4px 4px; } }
+    body.student-view #left-panel { width: 132px; padding: 22px 6px 6px; }
+    body.student-view #class-timer { display: none !important; }
+    body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+    body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
+    body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
+    body.student-view #stu-clock { display: flex; align-items: center; justify-content: center; background: #0f2a45; padding: 5px 0 3px; }
+    #stu-clock .ring { position: relative; width: 62px; height: 62px; }
+    #stu-clock svg { width: 62px; height: 62px; transform: rotate(-90deg); }
+    #stu-clock .bg { fill: #0a1c30; stroke: rgba(255,255,255,0.14); stroke-width: 6; }
+    #stu-clock .fg { fill: none; stroke: #69f0ae; stroke-width: 6; stroke-linecap: round; transition: stroke 0.6s, stroke-dashoffset 0.9s linear; }
+    #stu-clock .tm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 900 0.95rem Nunito, sans-serif; color: #69f0ae; transition: color 0.6s; letter-spacing: -0.3px; }
     #student-chat-bar { display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
     #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
     #student-chat-input::placeholder { color:#555; }
@@ -351,6 +364,8 @@
 
 <div id="main">
   <div id="left-panel">
+    <div id="teacher-frame">
+    <div id="stu-clock"><div class="ring"><svg viewBox="0 0 62 62"><circle class="bg" cx="31" cy="31" r="26"/><circle class="fg" id="stu-clock-ring" cx="31" cy="31" r="26" stroke-dasharray="163.4" stroke-dashoffset="0"/></svg><div class="tm" id="stu-clock-tm">--:--</div></div></div>
     <div id="teacher-name-above" style="display:none;align-items:center;justify-content:center;gap:7px;font-size:0.9rem;font-weight:800;color:#fff;padding:2px 0 4px;"><span id="teacher-name-text"></span><span class="sig" data-sigkey="teacher"><i></i><i></i><i></i><i></i></span></div>
     <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="if(IS_TEACHER)toggleCam()">
       <video id="left-video" autoplay playsinline></video>
@@ -363,6 +378,7 @@
       <div id="mic-overlay" onclick="event.stopPropagation();if(IS_TEACHER)toggleMic();" style="position:absolute;bottom:6px;left:6px;z-index:5;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle Mic">🔊</div>
       <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;position:absolute;bottom:0;left:0;right:0;z-index:4;">⚠️ Teacher disconnected...</div>
     </div>
+    </div><!-- end teacher-frame -->
     <div id="all-ctrl" style="display:none;gap:5px;margin-top:6px;">
       <button id="draw-all-btn" class="allbtn" onclick="toggleDrawAll()" title="Allow / stop drawing for ALL students">🖱️</button>
       <button id="cam-all-btn" class="allbtn" onclick="toggleCamAll()" title="Turn ALL student cameras on / off">📷</button>
@@ -2059,7 +2075,7 @@ function disableChatInputTemporarily() {
   const tick = () => {
     remaining--;
     if (remaining > 0) {
-      input.placeholder = `You can send another message in ${remaining}s`;
+      input.placeholder = `Puedes enviar otro mensaje en ${remaining}s`;
     } else {
       input.disabled = false;
       input.placeholder = original;
@@ -2067,7 +2083,7 @@ function disableChatInputTemporarily() {
       clearInterval(timer);
     }
   };
-  input.placeholder = `You can send another message in ${remaining}s`;
+  input.placeholder = `Puedes enviar otro mensaje en ${remaining}s`;
   const timer = setInterval(tick, 1000);
 }
 
@@ -2602,6 +2618,16 @@ function checkTeacherRoomLock() {
   }
 }
 
+function updateStuClock(elapsed, duration) {
+  const tm = document.getElementById('stu-clock-tm'), ring = document.getElementById('stu-clock-ring');
+  if (!tm || !ring) return;
+  const left = Math.max(0, duration - Math.max(0, elapsed));
+  const secs = Math.ceil(left * 60 - 1e-6), m = Math.floor(secs / 60), sc = secs % 60;
+  tm.textContent = `${m}:${String(sc).padStart(2, '0')}`;
+  const col = left <= 3 ? '#ff5252' : left <= 10 ? '#ffd740' : '#69f0ae';
+  tm.style.color = col; ring.style.stroke = col;
+  ring.style.strokeDashoffset = String(163.4 * (1 - Math.min(1, left / duration)));
+}
 function startTimer(assignment) {
   if (timerInterval) clearInterval(timerInterval);
   const timerEl = document.getElementById('class-timer');
@@ -2655,7 +2681,7 @@ function startTimer(assignment) {
 
     if (elapsed < 0) {
       const s = Math.round(-elapsed*60), mm=Math.floor(s/60), ss=s%60;
-      timerEl.textContent=`-${mm}:${String(ss).padStart(2,'0')}`; timerEl.style.color='#a0c4ff'; return;
+      timerEl.textContent=`-${mm}:${String(ss).padStart(2,'0')}`; timerEl.style.color='#a0c4ff'; updateStuClock(0, duration); return;
     }
 
     // Timer hit 0 — official class start
@@ -2678,6 +2704,7 @@ function startTimer(assignment) {
     const em=Math.floor(elapsed), es=Math.floor((elapsed%1)*60);
     timerEl.textContent=`${em}:${String(es).padStart(2,'0')}`;
     timerEl.style.color = elapsed>=duration ? '#e53935' : elapsed>=warnAt ? '#ffd740' : '#69f0ae';
+    updateStuClock(elapsed, duration);
 
     // Debt payoff counter — starts after class duration ends
     // Total owed = previous group/student debt + THIS class's disconnects + lateness
@@ -4829,8 +4856,9 @@ function fitLayout() {
   let lw = bl, rw = br >= 120 ? Math.max(MINR, Math.min(190, tileW + 16)) : br;
   const totalCenter = window.innerWidth - lw - rw, wantW = availH * RATIO;
   let bw, bh;
+  const stuV = document.body.classList.contains('student-view');
   if (totalCenter >= wantW) {                                   // spare width: the left column (teacher video) grows, then margins
-    bw = wantW; bh = availH; lw += Math.min(totalCenter - bw, bl * 1.4);
+    bw = wantW; bh = availH; if (!stuV) lw += Math.min(totalCenter - bw, bl * 1.4);
   } else {                                                      // not enough width: slim the side columns a little
     const need = wantW - totalCenter, giveR = Math.min(need, Math.max(0, rw - MINR)), giveL = Math.min(need - giveR, bl * 0.1);
     rw -= giveR; lw -= giveL;
