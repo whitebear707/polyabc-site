@@ -66,7 +66,7 @@
     .ctrl-btn:hover { background: #1a73e8; }
     .ctrl-btn.active { background: #e53935; }
 
-    #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+    #center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; min-width: 0; background: #16213e; }
     #whiteboard-wrap { flex: 1; position: relative; overflow: hidden; background: #ffffff; min-height: 0; min-width: 0; }
     #whiteboard-canvas { display: block; }
 
@@ -4628,7 +4628,7 @@ function showScreenBehindCanvas(stream, isTeacher) {
     vid = document.createElement('video');
     vid.id = 'screenshare-vid';
     vid.autoplay = true; vid.playsInline = true; vid.muted = true;
-    vid.style.cssText = `position:absolute;top:0;left:0;width:${CANVAS_W}px;height:${CANVAS_H}px;z-index:20;display:block;background:#1a1a2e;transform-origin:top left;object-fit:contain;`;
+    vid.style.cssText = `position:absolute;top:0;left:0;width:${CANVAS_W}px;height:${CANVAS_H}px;z-index:20;display:block;background:#000;transform-origin:top left;object-fit:contain;`;
     wrap.appendChild(vid);
     scaleCanvas();
   }
@@ -4661,7 +4661,7 @@ function showTapForShareSound(vid) {
   document.body.appendChild(b);
 }
 
-const CANVAS_W = 1440, CANVAS_H = 810;
+const CANVAS_W = 1440, CANVAS_H = 900;   // 16:10 — the board is always this size for everyone; the classroom layout adapts around it
 let canvas, currentTool = 'draw', suppressSync = false;
 
 function applyDrawPermission(canDraw) {
@@ -4785,10 +4785,34 @@ function initWhiteboard(socket) {
   });
 }
 
+// The board has one fixed shape (CANVAS_W x CANVAS_H). Instead of leaving empty gray bands around it, the classroom
+// makes the board as big as the screen allows and gives any spare width to the student / left columns.
+let _fitPasses = 0;
+function fitLayout() {
+  const L = document.getElementById('left-panel'), R = document.getElementById('right-panel'), wrap = document.getElementById('whiteboard-wrap'), tb = document.getElementById('toolbar'), top = document.getElementById('topbar');
+  if (!L || !R || !wrap || !tb || !top) return;
+  L.style.width = ''; R.style.width = '';                       // start from the CSS widths (they differ on phones)
+  const bl = L.getBoundingClientRect().width, br = R.getBoundingClientRect().width;
+  const cb = document.getElementById('student-chat-bar'), cbh = cb && cb.offsetParent ? cb.offsetHeight : 0;
+  const availH = window.innerHeight - top.offsetHeight - tb.offsetHeight - cbh;
+  if (availH < 80) return;
+  const RATIO = CANVAS_W / CANVAS_H, totalCenter = window.innerWidth - bl - br, wantW = availH * RATIO;
+  let lw = bl, rw = br, bw, bh;
+  if (totalCenter >= wantW) {                                   // spare width: students get bigger, then the left column
+    bw = wantW; bh = availH; let extra = totalCenter - bw;
+    const addR = Math.min(extra, br * 1.4); rw += addR; extra -= addR;
+    const addL = Math.min(extra, bl * 1.0); lw += addL;
+  } else {                                                      // not enough width: slim the side columns a little
+    const need = wantW - totalCenter, give = Math.min(need, (bl + br) * 0.1);
+    lw -= give * bl / (bl + br); rw -= give * br / (bl + br);
+    bw = Math.min(totalCenter + give, wantW); bh = bw / RATIO;
+  }
+  L.style.width = Math.floor(lw) + 'px'; R.style.width = Math.floor(rw) + 'px';
+  wrap.style.flex = 'none'; wrap.style.width = Math.floor(bw) + 'px'; wrap.style.height = Math.floor(bh) + 'px'; wrap.style.margin = '0 auto';
+}
 function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
-  wrap.style.width = '100%';
-  wrap.style.height = '100%';
+  fitLayout();
   const w = wrap.clientWidth;
   const h = wrap.clientHeight;
   const scaleW = w / CANVAS_W;
@@ -4811,8 +4835,16 @@ function scaleCanvas() {
     sc.style.height = CANVAS_H + 'px';
   }
   wrap.style.overflow = 'hidden';
-  wrap.style.background = '#1a1a2e';
+  wrap.style.background = '#ffffff';
 }
+// Re-fit when the bars above / below the board change height (buttons appear, the toolbar wraps…)
+window.addEventListener('resize', () => { _fitPasses = 0; });
+(function () {
+  if (!window.ResizeObserver) return;
+  const ro = new ResizeObserver(() => { if (_fitPasses++ < 6) requestAnimationFrame(() => { try { scaleCanvas(); } catch (e) {} }); });
+  ['topbar', 'toolbar', 'student-chat-bar'].forEach(id => { const e = document.getElementById(id); if (e) ro.observe(e); });
+  setInterval(() => { _fitPasses = 0; }, 1500);
+})();
 
 function showLateWarning(type, secs) {
   const mm = Math.floor(secs/60), ss = secs % 60;
