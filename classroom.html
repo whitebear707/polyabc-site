@@ -28,6 +28,11 @@
     .sig[data-q="good"] i:nth-child(-n+3) { background: #b2ff59; }
     .sig[data-q="poor"] i:nth-child(-n+2) { background: #ffb300; }
     .sig[data-q="lost"] i:nth-child(1) { background: #ff5252; }
+    .stu-dot { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); z-index: 2; }
+    .stu-dot:not([data-c]) { display: none; }
+    .stu-dot.pick { cursor: pointer; }
+    .allbtn { flex: 1; background: #0f3460; color: #fff; border: none; border-radius: 8px; padding: 6px 0; cursor: pointer; font-size: 1.05rem; }
+    .allbtn.off { background: #e53935; }
     .sig-abs { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); }
     body.spectator #student-chat-bar, body.spectator #my-controls, body.spectator #my-schedule-btn, body.spectator #leave-btn { display: none !important; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
@@ -341,21 +346,26 @@
       <div id="mic-overlay" onclick="event.stopPropagation();if(IS_TEACHER)toggleMic();" style="position:absolute;bottom:6px;left:6px;z-index:5;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;" title="Toggle Mic">🔊</div>
       <div id="teacher-status" style="display:none;background:#e65100;color:white;font-size:0.8rem;font-weight:700;padding:6px 10px;border-radius:8px;text-align:center;position:absolute;bottom:0;left:0;right:0;z-index:4;">⚠️ Teacher disconnected...</div>
     </div>
+    <div id="all-ctrl" style="display:none;gap:5px;margin-top:6px;">
+      <button id="draw-all-btn" class="allbtn" onclick="toggleDrawAll()" title="Allow / stop drawing for ALL students">🖱️</button>
+      <button id="cam-all-btn" class="allbtn" onclick="toggleCamAll()" title="Turn ALL student cameras on / off">📷</button>
+      <button id="spk-all-btn" class="allbtn" onclick="toggleMuteAll()" title="Mute / unmute ALL students">🔊</button>
+    </div>
     <div id="my-controls" style="display:none;"></div>
 
     <!-- Reactions Panel -->
     <div id="reactions-panel" style="margin-top:8px;display:none;">
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;">
-        <button class="reaction-btn" id="emoji-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-emoji',this,'right')">😊 Emojis</button>
-        <button class="reaction-btn" id="fun-menu-btn" style="font-size:0.85rem;font-weight:800;color:white;font-family:Nunito,sans-serif;" onclick="togglePop('pop-fun',this,'right')">🎲 Fun</button>
-        <button class="reaction-btn" style="grid-column:span 2;" id="celebrate-menu-btn" onclick="togglePop('pop-celebrate',this,'right')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate ▸</button>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+        <button class="reaction-btn" id="reward-menu-btn" title="Give a star, trophy or medal" style="font-size:1.25rem;" onclick="togglePop('pop-reward',this,'right')">🏆</button>
+        <button class="reaction-btn" id="emoji-menu-btn" title="Emojis" style="font-size:1.25rem;" onclick="togglePop('pop-emoji',this,'right')">😊</button>
+        <button class="reaction-btn" id="fun-menu-btn" title="Coin and dice" style="font-size:1.25rem;" onclick="togglePop('pop-fun',this,'right')">🎲</button>
+        <button class="reaction-btn" style="grid-column:span 3;" id="celebrate-menu-btn" onclick="togglePop('pop-celebrate',this,'right')" title="Celebration! Fireworks, confetti and music for something outstanding">🎆 Celebrate ▸</button>
       </div>
     </div>
     <div id="left-tools" style="display:grid;grid-template-columns:repeat(2,1fr);gap:4px;margin-top:8px;">
       <button style="" class="tool-btn selected" id="canvas-menu-btn" onclick="togglePop('pop-canvas',this,'right')">✏️ Canvas ▸</button>
       <div id="left-teacher-tools" style="display:none;">
         <button class="tool-btn" id="lesson-menu-btn" style="background:#1a73e8;" onclick="togglePop('pop-lesson',this,'right')">📚 Lesson ▸</button>
-        <button id="help-btn" class="tool-btn" onclick="openHelp()" style="background:#c62828;">☰ Help</button>
       </div>
       <button style="" id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
     </div>
@@ -371,10 +381,9 @@
   <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
   <div style="display:flex;gap:8px;align-items:center;">
 
-    <div id="reward-selector" style="display:none;gap:4px;align-items:center;">
-      <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
-      <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
-      <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
+    <div id="teacher-topbtns" style="display:none;gap:8px;align-items:center;">
+      <button id="gear-btn" onclick="togglePop('pop-gear',this,'down')" title="Microphone and webcam" style="background:#37474f;color:#fff;border:none;height:34px;padding:0 12px;border-radius:17px;font-size:1.05rem;cursor:pointer;">⚙️</button>
+      <button id="help-btn" onclick="openHelp()" style="background:#c62828;color:#fff;border:none;height:34px;padding:0 14px;border-radius:17px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;">☰ Help</button>
     </div>
     <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -419,10 +428,6 @@
   </div>
 
   <div id="right-panel">
-    <div id="right-panel-controls" style="display:none;gap:6px;margin-bottom:6px;">
-      <button id="spk-all-btn" onclick="toggleMuteAll()" title="Mute/Unmute All" style="flex:1;background:#0f3460;color:white;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:1rem;">🔊 All</button>
-      <button id="cam-all-btn" onclick="toggleCamAll()" title="Enable/Disable All Cameras" style="flex:1;background:#0f3460;color:white;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:1rem;">📷 All</button>
-    </div>
     <div id="right-panel-title">Students</div>
   </div>
   </div><!-- end stage-row -->
@@ -435,6 +440,8 @@
 <style>
   .pop-menu { display:none; position:fixed; z-index:9500; background:#16213e; border:2px solid #0f3460; border-radius:12px; padding:8px; box-shadow:0 8px 28px rgba(0,0,0,0.5); }
   .pop-menu.open { display:grid; }
+  .pop-menu.swatches { grid-template-columns:repeat(5,1fr); gap:6px; }
+  .pop-menu.swatches .sw { width:30px; height:30px; border-radius:50%; border:3px solid #fff; cursor:pointer; padding:0; }
   .pop-menu.cols { grid-template-columns:repeat(4,1fr); gap:4px; }
   .pop-menu.col { grid-template-columns:1fr; gap:6px; min-width:150px; }
   .pop-menu .reaction-btn { font-size:1.5rem; padding:8px 10px; }
@@ -455,6 +462,17 @@
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();sendReaction('🎆2')">🎉 2 · Celebrate</button>
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();sendReaction('🎆3')">👏 3 · Congratulations</button>
 </div>
+<div id="pop-gear" class="pop-menu col">
+  <button class="tool-btn" style="background:#37474f;" onclick="closePops();openMicPicker()">🎙️ Microphone</button>
+  <button class="tool-btn" style="background:#37474f;" onclick="closePops();openCamPicker()">📷 Webcam</button>
+</div>
+<div id="pop-reward" class="pop-menu col">
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="pickReward('star')">⭐ Star</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="pickReward('trophy')">🏆 Trophy</button>
+  <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="pickReward('medal')">🥇 Medal</button>
+</div>
+<div id="pop-reward-who" class="pop-menu col"></div>
+<div id="pop-color" class="pop-menu swatches"></div>
 <div id="pop-fun" class="pop-menu col">
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();flipCoin()">🪙 Coin flip</button>
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="closePops();openDice(1)">🎲 1 die</button>
@@ -592,6 +610,38 @@ function lkQualityKey(p, room) {
   if (!role && room && p === room.localParticipant) role = IS_TEACHER ? 'teacher' : 'student';
   return role === 'teacher' ? 'teacher' : (room && p === room.localParticipant ? MY_NAME : p.name);
 }
+// ── Student pen colors: each student gets a vivid color; only the teacher can change it ──
+const STU_PALETTE = ['#9c27ff', '#ffd600', '#00e5ff', '#ff1493', '#ff6d00', '#76ff03', '#2979ff', '#ff1744', '#00c853'];
+const STU_COLOR = {};   // teacher side: student name -> color
+function dotNode(identity) {
+  const e = document.createElement('span'); e.className = 'stu-dot' + (IS_TEACHER ? ' pick' : ''); e.dataset.dotkey = identity;
+  if (STU_COLOR[identity]) { e.style.background = STU_COLOR[identity]; e.dataset.c = STU_COLOR[identity]; }
+  if (IS_TEACHER) { e.title = 'Pen color — click to change'; e.onclick = (ev) => { ev.stopPropagation(); openStudentColorPicker(identity, e); }; }
+  return e;
+}
+function dotsApply(identity, color) {
+  STU_COLOR[identity] = color;
+  document.querySelectorAll('.stu-dot').forEach(e => { if (e.dataset.dotkey === identity) { e.style.background = color; e.dataset.c = color; } });
+}
+function sendStudentColor(identity) {
+  const sid = curSid(identity); if (window._socket && STU_COLOR[identity] && sid) window._socket.emit('set-student-color', { room: ROOM, targetId: sid, color: STU_COLOR[identity] });
+}
+function ensureStudentColor(identity) {
+  if (!IS_TEACHER) return;
+  if (!STU_COLOR[identity]) {
+    const here = new Set(Object.keys(studentSlots).filter(k => k !== '__self__').map(k => studentSlots[k]));
+    const used = new Set(Object.keys(STU_COLOR).filter(n => n !== identity && here.has(n)).map(n => STU_COLOR[n]));
+    dotsApply(identity, STU_PALETTE.find(c => !used.has(c)) || STU_PALETTE[here.size % STU_PALETTE.length]);
+  }
+  sendStudentColor(identity);
+}
+function openStudentColorPicker(identity, anchor) {
+  const p = document.getElementById('pop-color'); p.innerHTML = '';
+  STU_PALETTE.concat(['#ffffff']).forEach(c => { const b = document.createElement('button'); b.className = 'sw'; b.style.background = c; b.onclick = () => { closePops(); dotsApply(identity, c); sendStudentColor(identity); }; p.appendChild(b); });
+  const cu = document.createElement('input'); cu.type = 'color'; cu.value = STU_COLOR[identity] || '#ff1493'; cu.title = 'Any color'; cu.style.cssText = 'width:30px;height:30px;border:none;padding:0;background:none;cursor:pointer;';
+  cu.onchange = () => { closePops(); dotsApply(identity, cu.value); sendStudentColor(identity); }; p.appendChild(cu);
+  closePops(); togglePop('pop-color', anchor, 'right');
+}
 function lkPollQuality() {
   const room = LKE.room; if (!room || room.state === 'disconnected') return;
   try { setSig(lkQualityKey(room.localParticipant, room), room.localParticipant.connectionQuality); room.remoteParticipants.forEach(p => setSig(lkQualityKey(p, room), p.connectionQuality)); } catch (e) {}
@@ -607,6 +657,7 @@ function curSid(identity) {
   return Object.keys(studentSlots).find(k => k !== '__self__' && studentSlots[k] === identity) || identity;
 }
 
+if (!IS_TEACHER) { const cp = document.getElementById('color-picker'); if (cp) cp.style.display = 'none'; } // students' pen color comes from the teacher
 if (IS_TEACHER) { // the teacher's own name above their own video
   try { const nm = (JSON.parse(atob(String(MY_TOKEN).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))).name) || ''; if (nm) { document.getElementById('teacher-name-text').textContent = nm; document.getElementById('teacher-name-above').style.display = 'flex'; } } catch (e) {}
 }
@@ -1533,8 +1584,13 @@ function connectSocket() {
   // Student came back mid-class: their own tally is restored
   socket.on('reward-counts', ({ counts }) => { if (!IS_TEACHER && counts) updateOwnStarCounter(counts); });
   // Teacher: a returning student's saved state (mute, whiteboard, rewards) -> make the buttons match
-  socket.on('student-state', ({ socketId, name, muted, canDraw, counts }) => {
+  socket.on('student-color', ({ color }) => {
+    if (IS_TEACHER || !/^#[0-9a-f]{6}$/i.test(String(color))) return;
+    window._myPenColor = color; const cp = document.getElementById('color-picker'); if (cp) cp.value = color; setColor(color); dotsApply(MY_NAME, color);
+  });
+  socket.on('student-state', ({ socketId, name, muted, canDraw, counts, color }) => {
     if (!IS_TEACHER) return;
+    if (color && name) dotsApply(name, color);
     const id = getIdentity(socketId);
     if (counts) { rewardCounts[socketId] = { ...counts }; updateRewardCounter(socketId); }
     const lbl = document.getElementById('lbl-' + id); if (lbl) lbl.style.background = canDraw === false ? '#e53935' : '#2e7d32';
@@ -2230,6 +2286,10 @@ function applyBirthdayTheme(identity, name) {
 
 function showStudentSlot(socketId, name, isBirthday) {
   const identity = name || socketId; // stable key — survives reconnects
+  if (IS_TEACHER) setTimeout(() => {   // give the student a pen color (a returning student keeps theirs)
+    ensureStudentColor(identity);
+    if (_allDrawOff) { const l = document.getElementById('lbl-' + identity); if (l) l.style.background = '#e53935'; if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: curSid(identity), canDraw: false }); }
+  }, 1800);
 
   // If slot already exists for this identity, just update socketId mapping and return
   if (document.getElementById(`wrap-${identity}`)) {
@@ -2285,14 +2345,8 @@ function showStudentSlot(socketId, name, isBirthday) {
     lbl.title = 'Click to toggle drawing permission';
     lbl.onclick = () => toggleDrawByName(curSid(identity), name || 'Student', lbl);
   }
-  const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(sigNode(identity));
+  const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(dotNode(identity)); nameRow.appendChild(sigNode(identity));
   wrap.appendChild(slot); wrap.appendChild(nameRow);
-  if (IS_TEACHER) {
-    const ctrls = document.createElement('div');
-    ctrls.className = 'student-controls-row';
-    ctrls.innerHTML = `<button class="star-btn" onclick="giveStar(curSid('${escapeJsAttr(identity)}'),'${escapeJsAttr(name||'Student')}')">⭐</button>`;
-    wrap.appendChild(ctrls);
-  }
   document.getElementById('right-panel').appendChild(wrap);
   studentSlots[socketId] = identity;
 
@@ -2328,7 +2382,7 @@ function setupOwnSlot() {
     box.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video>`;
     const lbl = document.createElement('div');
     lbl.className = 'student-label-below'; lbl.textContent = `${MY_NAME} (You)`;
-    const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(sigNode(MY_NAME));
+    const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(dotNode(MY_NAME)); nameRow.appendChild(sigNode(MY_NAME));
     wrap.appendChild(box); wrap.appendChild(nameRow);
     document.getElementById('right-panel').appendChild(wrap);
     document.getElementById('self-slot-video').srcObject = localStream;
@@ -2396,11 +2450,10 @@ async function loadTodayAssignment() {
     const res = await fetch(`${SERVER_URL}/today-assignment/${ROOM}`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
     todayAssignments = await res.json();
     if (IS_TEACHER) {
-    const ctrl = document.getElementById('right-panel-controls');
-    if (ctrl) ctrl.style.display = 'flex';
     document.getElementById('reactions-panel').style.display = 'block';
     document.getElementById('tool-laser').style.display = 'inline-flex';
-    document.getElementById('reward-selector').style.display = 'flex';
+    document.getElementById('teacher-topbtns').style.display = 'flex';
+    const allc = document.getElementById('all-ctrl'); if (allc) allc.style.display = 'flex';
     checkTeacherRoomLock();
   } else {
     const leaveBtn = document.getElementById('leave-btn');
@@ -3216,11 +3269,22 @@ function toggleDrawByName(socketId, name, lbl) {
 let _allMuted = false;
 let _allCamOff = false;
 
+let _allDrawOff = false;
+function toggleDrawAll() {
+  _allDrawOff = !_allDrawOff;
+  const btn = document.getElementById('draw-all-btn'); btn.classList.toggle('off', _allDrawOff); btn.title = _allDrawOff ? 'Drawing is OFF for all students (click to allow)' : 'Allow / stop drawing for ALL students';
+  Object.keys(studentSlots).forEach(socketId => {
+    if (socketId === '__self__') return;
+    const idn = getIdentity(socketId), lbl = document.getElementById('lbl-' + idn);
+    if (lbl) lbl.style.background = _allDrawOff ? '#e53935' : '#2e7d32';
+    if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: !_allDrawOff });
+  });
+}
 function toggleMuteAll() {
   _allMuted = !_allMuted;
   const btn = document.getElementById('spk-all-btn');
-  btn.textContent = _allMuted ? '🔇 All' : '🔊 All';
-  btn.style.background = _allMuted ? '#e53935' : '#0f3460';
+  btn.textContent = _allMuted ? '🔇' : '🔊';
+  btn.classList.toggle('off', _allMuted);
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: _allMuted });
@@ -3232,8 +3296,8 @@ function toggleMuteAll() {
 function toggleCamAll() {
   _allCamOff = !_allCamOff;
   const btn = document.getElementById('cam-all-btn');
-  btn.textContent = _allCamOff ? '🚫 All' : '📷 All';
-  btn.style.background = _allCamOff ? '#e53935' : '#0f3460';
+  btn.textContent = _allCamOff ? '🚫' : '📷';
+  btn.classList.toggle('off', _allCamOff);
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: !_allCamOff });
@@ -3327,6 +3391,15 @@ let currentRewardType = 'star';
 const REWARD_EMOJI = { star: '⭐', trophy: '🏆', medal: '🥇' };
 const rewardCounts = {}; // { socketId: { star: 0, trophy: 0, medal: 0 } }
 
+function pickReward(type) {
+  setRewardType(type); closePops();
+  const who = document.getElementById('pop-reward-who'); who.innerHTML = '';
+  const ids = Object.keys(studentSlots).filter(k => k !== '__self__');
+  const head = document.createElement('div'); head.style.cssText = 'color:#a0c4ff;font-weight:800;font-size:0.85rem;padding:2px 4px;'; head.textContent = REWARD_EMOJI[type] + ' Give to…'; who.appendChild(head);
+  if (!ids.length) { const n = document.createElement('div'); n.style.cssText = 'color:#fff;font-size:0.85rem;padding:4px;'; n.textContent = 'No students in class yet.'; who.appendChild(n); }
+  ids.forEach(sid => { const nm = remoteNames[sid] || getIdentity(sid), b = document.createElement('button'); b.className = 'reaction-btn'; b.style.cssText = 'font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;'; b.textContent = nm; b.onclick = () => { closePops(); setRewardType(type); giveStar(sid, nm); }; who.appendChild(b); });
+  togglePop('pop-reward-who', document.getElementById('reward-menu-btn'), 'right');
+}
 function setRewardType(type) {
   currentRewardType = type;
   ['star','trophy','medal'].forEach(t => {
@@ -4803,12 +4876,12 @@ function togglePop(id, btn, dir) {
   p.classList.add('open');
   const r = btn.getBoundingClientRect(), pw = p.offsetWidth, ph = p.offsetHeight;
   let left, top;
-  if (dir === 'up') { left = r.left; top = r.top - ph - 8; } else { left = r.right + 8; top = r.top; }
+  if (dir === 'up') { left = r.left; top = r.top - ph - 8; } else if (dir === 'down') { left = r.right - pw; top = r.bottom + 8; } else { left = r.right + 8; top = r.top; }
   left = Math.max(6, Math.min(left, window.innerWidth - pw - 6));
   top = Math.max(6, Math.min(top, window.innerHeight - ph - 6));
   p.style.left = left + 'px'; p.style.top = top + 'px';
 }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#celebrate-menu-btn,#canvas-menu-btn,#lesson-menu-btn,#clear-menu-btn')) closePops(); });
+document.addEventListener('mousedown', e => { if (!e.target.closest('.pop-menu') && !e.target.closest('#emoji-menu-btn,#fun-menu-btn,#celebrate-menu-btn,#canvas-menu-btn,#lesson-menu-btn,#clear-menu-btn,#gear-btn,#reward-menu-btn,.stu-dot')) closePops(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
 window.addEventListener('resize', closePops);
 const CANVAS_TOOL_ICON = { draw: '✏️', text: '🔤', erase: '🧽', select: '☝️', laser: '🔴' };
@@ -5250,6 +5323,44 @@ async function switchMic(deviceId) {
   try { if (deviceId) localStorage.setItem('micDeviceId', deviceId); else localStorage.removeItem('micDeviceId'); } catch (e) {}
   MIC.warned = false; MIC.quietSince = Date.now();
   return nt;
+}
+async function switchCam(deviceId) {
+  const old = localStream && localStream.getVideoTracks()[0];
+  const ns = await navigator.mediaDevices.getUserMedia({ video: deviceId ? Object.assign({}, CAM_VIDEO, { deviceId: { exact: deviceId } }) : CAM_VIDEO });
+  const nt = ns.getVideoTracks()[0];
+  nt.enabled = typeof myCamOn === 'boolean' ? myCamOn : true;
+  const pub = USE_LK && LKE.pubs && LKE.pubs.video;
+  if (pub && pub.track && pub.track.replaceTrack) { try { await pub.track.replaceTrack(nt); } catch (e) { console.warn('[lk] cam swap failed:', e.message); } }
+  Object.values(videoPeers).forEach(pc => { try { const snd = pc.getSenders().find(x => x.track && x.track.kind === 'video'); if (snd) snd.replaceTrack(nt); } catch (e) {} });
+  if (localStream) { if (old) { localStream.removeTrack(old); old.stop(); } localStream.addTrack(nt); } else localStream = ns;
+  const lv = document.getElementById('left-video'); if (lv) { lv.srcObject = localStream; const pp = lv.play(); if (pp && pp.catch) pp.catch(() => {}); }
+  try { if (deviceId) localStorage.setItem('camDeviceId', deviceId); } catch (e) {}
+  return nt;
+}
+async function openCamPicker() {
+  if (document.getElementById('cam-picker')) return;
+  const ov = document.createElement('div'); ov.id = 'cam-picker';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.4);">
+    <div style="font-size:1.25rem;font-weight:900;color:#1a1a2e;">📷 Choose your webcam</div>
+    <div id="cp-list" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;"><button id="cp-close" style="border:none;background:#888;color:#fff;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">Close</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#cp-close').onclick = () => ov.remove();
+  const list = ov.querySelector('#cp-list');
+  let devs = []; try { devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput'); } catch (e) {}
+  if (!devs.length) { list.innerHTML = '<div style="color:#c62828;font-weight:800;">No webcam found. Plug one in or allow the camera in the browser.</div>'; return; }
+  const cur = localStream && localStream.getVideoTracks()[0], curId = cur && cur.getSettings ? cur.getSettings().deviceId : '';
+  list.innerHTML = '';
+  devs.slice(0, 8).forEach(d => {
+    const using = d.deviceId === curId, row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:2px solid ${using ? '#2e7d32' : '#e0e0e0'};background:${using ? '#e8f5e9' : '#fafafa'};`;
+    row.innerHTML = `<div style="flex:1;min-width:0;font-weight:800;font-size:0.9rem;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(d.label || 'Webcam')}</div>`;
+    const b = document.createElement('button'); b.style.cssText = `border:none;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer;font-family:inherit;white-space:nowrap;${using ? 'background:#c8e6c9;color:#1b5e20;' : 'background:#1a73e8;color:#fff;'}`;
+    b.textContent = using ? '✓ In use' : 'Use this';
+    b.onclick = async () => { b.disabled = true; b.textContent = '…'; try { await switchCam(d.deviceId); ov.remove(); } catch (e) { b.disabled = false; b.textContent = '⚠️ Try again'; } };
+    row.appendChild(b); list.appendChild(row);
+  });
 }
 async function openMicPicker(fromHelper) {
   if (IS_SPECTATOR || document.getElementById('mic-picker')) return;
