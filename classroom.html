@@ -451,6 +451,13 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
+      <div id="lesson-nav" style="display:none;position:absolute;left:10px;bottom:8px;z-index:6;align-items:center;gap:6px;background:rgba(15,23,42,0.88);color:#fff;border-radius:22px;padding:5px 8px;font:800 0.85rem Nunito,sans-serif;">
+        <button onclick="lessonStep(-1)" title="Previous slide (←)" style="border:none;background:#37474f;color:#fff;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;">◀</button>
+        <span id="lesson-nav-label" style="min-width:92px;text-align:center;">A0 · L1 · 1/1</span>
+        <button onclick="lessonStep(1)" title="Next slide (→)" style="border:none;background:#2e7d32;color:#fff;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;">▶</button>
+        <button onclick="openLessonPicker()" title="Choose another lesson" style="border:none;background:#37474f;color:#fff;border-radius:14px;height:30px;padding:0 10px;font:800 0.78rem Nunito,sans-serif;cursor:pointer;">📖</button>
+        <button onclick="closeLesson()" title="Close lesson" style="border:none;background:#c62828;color:#fff;border-radius:50%;width:30px;height:30px;font-size:0.9rem;cursor:pointer;">✕</button>
+      </div>
       <img id="board-logo" src="LOGO.png" alt="" style="position:absolute;right:10px;bottom:8px;height:9%;max-height:64px;opacity:0.4;pointer-events:none;z-index:30;"/>
       <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
@@ -537,6 +544,7 @@
 </div>
 <div id="pop-lesson" class="pop-menu col">
   <button class="tool-btn" id="upload-slide-btn" style="background:#1a73e8;" onclick="closePops();document.getElementById('img-upload').click()">🖼️ Upload Slide</button>
+  <button class="tool-btn" id="poly-lessons-btn" style="background:#2e7d32;" onclick="closePops();openLessonPicker()">📖 PolyABC Lessons</button>
   <button id="screenshare-btn" class="tool-btn" onclick="closePops();toggleScreenShare()" style="background:#6a1b9a;">🖥️ Share Screen</button>
 </div>
 <div id="pop-clear" class="pop-menu col">
@@ -5164,6 +5172,102 @@ function toggleSlideEdit() {
   }
   canvas.renderAll();
 }
+
+// ── 📖 PolyABC Lessons: slides uploaded in the tech support panel (A0_L1_01 = level, lesson, slide) ──
+// The slide is a locked picture on the board (like Upload Slide). Moving to another slide swaps the picture and
+// keeps what was drawn on each slide, so going back shows it again. Students get the whole board through whiteboard-sync.
+let LESSON = null;   // { level, lesson, slides:[1,2,4], idx, notes:{slide:[objects]} }
+async function lessonFetchIndex() {
+  const r = await fetch(`${SERVER_URL}/lessons`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
+  if (!r.ok) throw new Error('index');
+  return r.json();
+}
+async function openLessonPicker() {
+  if (!IS_TEACHER) return;
+  document.getElementById('lesson-picker')?.remove();
+  const ov = document.createElement('div'); ov.id = 'lesson-picker';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.4);color:#1a1a2e;">
+    <div style="font-size:1.25rem;font-weight:900;">📖 PolyABC Lessons</div>
+    <div id="lp-body" style="margin:14px 0;color:#666;">Loading…</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;"><button id="lp-cancel" style="border:none;background:#888;color:#fff;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;">Cancel</button><button id="lp-open" disabled style="border:none;background:#2e7d32;color:#fff;border-radius:10px;padding:9px 18px;font-weight:800;cursor:pointer;opacity:0.5;">Open lesson</button></div></div>`;
+  document.body.appendChild(ov); ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.querySelector('#lp-cancel').onclick = () => ov.remove();
+  let idx; try { idx = await lessonFetchIndex(); } catch (e) { ov.querySelector('#lp-body').innerHTML = '<span style="color:#c62828;font-weight:800;">Could not load the lessons. Check your connection and try again.</span>'; return; }
+  const levels = Object.keys(idx).filter(L => Object.values(idx[L]).some(x => x.slides)).sort();
+  if (!levels.length) { ov.querySelector('#lp-body').textContent = 'There are no lessons yet.'; return; }
+  const sel = 'width:100%;padding:10px;border-radius:8px;border:2px solid #ddd;font:700 0.95rem Nunito,sans-serif;margin-top:4px;';
+  ov.querySelector('#lp-body').innerHTML = `<label style="font-weight:800;font-size:0.85rem;">Level</label><select id="lp-level" style="${sel}">${levels.map(L => `<option>${L}</option>`).join('')}</select>
+    <label style="font-weight:800;font-size:0.85rem;display:block;margin-top:12px;">Lesson</label><select id="lp-lesson" style="${sel}"></select>`;
+  const fill = () => { const L = ov.querySelector('#lp-level').value; ov.querySelector('#lp-lesson').innerHTML = Object.keys(idx[L]).map(Number).sort((a, b) => a - b).filter(n => idx[L][n].slides).map(n => `<option value="${n}">Lesson ${n} · ${idx[L][n].slides} slides${idx[L][n].audio.length ? ' · 🔊' : ''}</option>`).join(''); };
+  ov.querySelector('#lp-level').onchange = fill; fill();
+  if (LESSON) { ov.querySelector('#lp-level').value = LESSON.level; fill(); ov.querySelector('#lp-lesson').value = LESSON.lesson; }
+  const go = ov.querySelector('#lp-open'); go.disabled = false; go.style.opacity = 1;
+  go.onclick = async () => {
+    const L = ov.querySelector('#lp-level').value, n = +ov.querySelector('#lp-lesson').value; go.textContent = 'Loading…'; go.disabled = true;
+    try { await startLesson(L, n, idx[L][n].slideNumbers); ov.remove(); } catch (e) { go.textContent = 'Open lesson'; go.disabled = false; alert('Could not load that lesson. Try again.'); }
+  };
+}
+async function lessonImageDataUrl(level, lesson, slide) {
+  const r = await fetch(`${SERVER_URL}/lessons/${level}/${lesson}/${slide}/image`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
+  if (!r.ok) throw new Error('image');
+  const bmp = await createImageBitmap(await r.blob());
+  const k = Math.min(1, CANVAS_W / bmp.width, CANVAS_H / bmp.height);
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  let q = 0.85, url = c.toDataURL('image/jpeg', q);
+  while (url.length > 650000 && q > 0.45) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }   // stay well under the socket limit
+  return { url, w: c.width, h: c.height };
+}
+async function startLesson(level, lesson, slides) {
+  const first = await lessonImageDataUrl(level, lesson, slides[0]);   // fail early, before touching the board
+  LESSON = { level, lesson, slides, idx: -1, notes: {}, preload: { [slides[0]]: first } };
+  await showLessonSlide(0);
+  const b = document.getElementById('lesson-menu-btn'); if (b) b.textContent = `📖 ${level} · L${lesson} ▸`;
+  document.getElementById('lesson-nav').style.display = 'flex';
+}
+function lessonSaveNotes() {
+  if (!LESSON || LESSON.idx < 0) return;
+  LESSON.notes[LESSON.slides[LESSON.idx]] = canvas.getObjects().filter(o => !(o.type === 'image' && o.data && o.data.locked)).map(o => o.toObject(['data']));
+}
+async function showLessonSlide(i) {
+  if (!LESSON || i < 0 || i >= LESSON.slides.length) return;
+  const num = LESSON.slides[i];
+  let img = LESSON.preload[num]; if (!img) { img = await lessonImageDataUrl(LESSON.level, LESSON.lesson, num); LESSON.preload[num] = img; }
+  lessonSaveNotes();
+  LESSON.idx = i;
+  suppressSync = true;
+  canvas.clear(); canvas.backgroundColor = '#ffffff';
+  await new Promise(res => fabric.Image.fromURL(img.url, (fi) => {
+    fi.set({ left: Math.round((CANVAS_W - img.w) / 2), top: Math.round((CANVAS_H - img.h) / 2), selectable: false, evented: false, lockMovementX: true, lockMovementY: true, hasControls: false, hasBorders: false, data: { locked: true, lessonSlide: true } });
+    canvas.add(fi); canvas.sendToBack(fi); res();
+  }));
+  const notes = LESSON.notes[num];
+  if (notes && notes.length) await new Promise(res => fabric.util.enlivenObjects(notes, objs => { objs.forEach(o => canvas.add(o)); res(); }));
+  canvas.renderAll(); suppressSync = false;
+  if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) });
+  const lbl = document.getElementById('lesson-nav-label'); if (lbl) lbl.textContent = `${LESSON.level} · L${LESSON.lesson} · ${i + 1}/${LESSON.slides.length}`;
+  // warm up the next slide so ▶ is instant
+  const nx = LESSON.slides[i + 1]; if (nx && !LESSON.preload[nx]) lessonImageDataUrl(LESSON.level, LESSON.lesson, nx).then(x => { if (LESSON) LESSON.preload[nx] = x; }).catch(() => {});
+}
+let _lessonBusy = false;
+async function lessonStep(d) {
+  if (!LESSON || _lessonBusy) return; const n = LESSON.idx + d; if (n < 0 || n >= LESSON.slides.length) return;
+  _lessonBusy = true; try { await showLessonSlide(n); } catch (e) { alert('Could not load that slide. Try again.'); } _lessonBusy = false;
+}
+function closeLesson() {
+  if (!LESSON) return;
+  if (!confirm('Close the lesson? The slide and what you drew on it will be removed from the board.')) return;
+  LESSON = null; suppressSync = true; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
+  if (window._socket) { window._socket.emit('clear-all', { room: ROOM }); window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }
+  document.getElementById('lesson-nav').style.display = 'none';
+  const b = document.getElementById('lesson-menu-btn'); if (b) b.textContent = '📚 Lesson ▸';
+}
+document.addEventListener('keydown', e => {
+  if (!LESSON || !IS_TEACHER || e.target.closest('input,textarea,select,[contenteditable]') || (canvas && canvas.getActiveObject() && canvas.getActiveObject().isEditing)) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { lessonStep(1); e.preventDefault(); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { lessonStep(-1); e.preventDefault(); }
+});
 
 function uploadImage(event) {
   if (!IS_TEACHER) return;
