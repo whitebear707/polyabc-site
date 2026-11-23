@@ -20,6 +20,15 @@
 
     #topbar { background: #16213e; padding: 6px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f3460; flex-shrink: 0; gap: 10px; position: relative; }
     #topbar img { height: 40px; }
+    .sig { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: 0 0 auto; }
+    .sig:not([data-q]) { display: none; }
+    .sig i { display: block; width: 3px; border-radius: 1px; background: rgba(255,255,255,.28); }
+    .sig i:nth-child(1) { height: 4px; } .sig i:nth-child(2) { height: 7px; } .sig i:nth-child(3) { height: 10px; } .sig i:nth-child(4) { height: 13px; }
+    .sig[data-q="excellent"] i { background: #69f0ae; }
+    .sig[data-q="good"] i:nth-child(-n+3) { background: #b2ff59; }
+    .sig[data-q="poor"] i:nth-child(-n+2) { background: #ffb300; }
+    .sig[data-q="lost"] i:nth-child(1) { background: #ff5252; }
+    .sig-abs { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); }
     body.spectator #student-chat-bar, body.spectator #my-controls, body.spectator #my-schedule-btn, body.spectator #leave-btn { display: none !important; }
     #room-label { font-size: 1rem; font-weight: 700; color: #ffffff; position: absolute; left: 50%; transform: translateX(-50%); background: #0f3460; padding: 4px 16px; border-radius: 20px; white-space: nowrap; }
     #status-bar { font-size: 0.8rem; color: #a0c4ff; background: #0f3460; padding: 4px 10px; border-radius: 8px; }
@@ -27,6 +36,8 @@
     #leave-btn:hover { background: #c62828; }
 
     #main { display: flex; flex: 1; overflow: hidden; }
+    #stage { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+    #stage-row { flex: 1; min-height: 0; display: flex; overflow: hidden; }
 
     #left-panel { overflow-y: auto; width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-right: 2px solid #0f3460; }
     #chat-panel { position:fixed; bottom:70px; right:16px; width:300px; max-height:420px; background:#16213e; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; flex-direction:column; z-index:9001; font-family:Nunito,sans-serif; overflow:hidden; }
@@ -316,33 +327,9 @@
   <button onclick="requestDevices()" style="margin-top:30px;background:none;border:2px solid #444;color:#888;padding:8px 20px;border-radius:10px;font-family:Nunito,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;">❓ Camera / Mic Help</button>
 </div>
 
-<div id="topbar">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <img src="LOGO.png" alt="PolyABC"/>
-    <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
-    <div id="owed-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#e53935;background:rgba(229,57,53,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #e53935;">⏱ Owed: 0:00</div>
-    <div id="debt-payoff-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#ffd700;background:rgba(255,215,0,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #ffd700;">🏅 +0:00 paying debt</div>
-  </div>
-  <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
-  <div style="display:flex;gap:8px;align-items:center;">
-
-    <div id="reward-selector" style="display:none;gap:4px;align-items:center;">
-      <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
-      <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
-      <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
-    </div>
-    <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
-        <line x1="12" y1="2" x2="12" y2="12"/>
-      </svg>
-    </button>
-  </div>
-</div>
-
 <div id="main">
   <div id="left-panel">
-    <div id="teacher-name-above" style="display:none;font-size:0.8rem;font-weight:700;color:#a0c4ff;text-align:center;padding:4px 0;"></div>
+    <div id="teacher-name-above" style="display:none;align-items:center;justify-content:center;gap:7px;font-size:0.9rem;font-weight:800;color:#fff;padding:2px 0 4px;"><span id="teacher-name-text"></span><span class="sig" data-sigkey="teacher"><i></i><i></i><i></i><i></i></span></div>
     <div class="video-box teacher-border" style="position:relative;cursor:pointer;" onclick="if(IS_TEACHER)toggleCam()">
       <video id="left-video" autoplay playsinline></video>
       <div class="video-label" id="left-label">...</div>
@@ -373,6 +360,32 @@
       <button style="" id="fullscreen-toolbar-btn" class="tool-btn" onclick="if(!document.fullscreenElement){goFullscreen()}else{document.exitFullscreen()}">⛶ Fullscreen</button>
     </div>
   </div><!-- end left-panel -->
+
+  <div id="stage">
+<div id="topbar">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="class-timer" style="display:none;font-family:Nunito,sans-serif;font-size:1.1rem;font-weight:900;color:#69f0ae;background:rgba(255,255,255,0.1);padding:4px 14px;border-radius:20px;min-width:80px;text-align:center;">0:00</div>
+    <div id="owed-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#e53935;background:rgba(229,57,53,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #e53935;">⏱ Owed: 0:00</div>
+    <div id="debt-payoff-timer" style="display:none;font-family:Nunito,sans-serif;font-size:0.9rem;font-weight:900;color:#ffd700;background:rgba(255,215,0,0.15);padding:4px 10px;border-radius:20px;text-align:center;border:1px solid #ffd700;">🏅 +0:00 paying debt</div>
+  </div>
+  <span id="room-label" style="background:#e65100;color:white;padding:4px 14px;border-radius:20px;font-weight:700;font-size:0.9rem;transition:background 0.3s;">Room: —</span>
+  <div style="display:flex;gap:8px;align-items:center;">
+
+    <div id="reward-selector" style="display:none;gap:4px;align-items:center;">
+      <button id="reward-star-btn" onclick="setRewardType('star')" title="Give Star" style="background:#f57f17;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid #ffd740;">⭐</button>
+      <button id="reward-trophy-btn" onclick="setRewardType('trophy')" title="Give Trophy" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🏆</button>
+      <button id="reward-medal-btn" onclick="setRewardType('medal')" title="Give Medal" style="background:#0f3460;border:none;width:30px;height:30px;border-radius:8px;font-size:1rem;cursor:pointer;border:2px solid transparent;">🥇</button>
+    </div>
+    <button id="leave-btn" onclick="leaveClass()" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
+        <line x1="12" y1="2" x2="12" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+  <div id="stage-row">
 
   <div id="center-panel">
     <div id="whiteboard-wrap">
@@ -412,6 +425,8 @@
     </div>
     <div id="right-panel-title">Students</div>
   </div>
+  </div><!-- end stage-row -->
+  </div><!-- end stage -->
 </div>
 
 <div id="laser-dot"></div>
@@ -565,6 +580,23 @@ const IS_IT        = IS_SPECTATOR && (MY_TOKEN_ROLE === 'spectator_it' || MY_TOK
 if (IS_SPECTATOR) { document.body.classList.add('spectator'); window._canDraw = false; }
 const studentSlots = {};
 
+// Connection-quality bars (from LiveKit). Keyed by 'teacher' or the student's name.
+const SIGQ = {};
+function sigNode(key) { const e = document.createElement('span'); e.className = 'sig sig-abs'; e.dataset.sigkey = key; e.title = 'Connection'; e.innerHTML = '<i></i><i></i><i></i><i></i>'; if (SIGQ[key]) e.dataset.q = SIGQ[key]; return e; }
+function setSig(key, q) {
+  if (!q || q === 'unknown') return; SIGQ[key] = q;
+  document.querySelectorAll('[data-sigkey]').forEach(e => { if (e.dataset.sigkey === key) { e.dataset.q = q; e.title = 'Connection: ' + q; } });
+}
+function lkQualityKey(p, room) {
+  let role = ''; try { role = (JSON.parse(p.metadata || '{}').role) || ''; } catch (e) {}
+  if (!role && room && p === room.localParticipant) role = IS_TEACHER ? 'teacher' : 'student';
+  return role === 'teacher' ? 'teacher' : (room && p === room.localParticipant ? MY_NAME : p.name);
+}
+function lkPollQuality() {
+  const room = LKE.room; if (!room || room.state === 'disconnected') return;
+  try { setSig(lkQualityKey(room.localParticipant, room), room.localParticipant.connectionQuality); room.remoteParticipants.forEach(p => setSig(lkQualityKey(p, room), p.connectionQuality)); } catch (e) {}
+}
+
 // Get the stable identity (name) for a socketId — used for DOM lookups
 function getIdentity(socketId) {
   return studentSlots[socketId] || socketId;
@@ -575,6 +607,9 @@ function curSid(identity) {
   return Object.keys(studentSlots).find(k => k !== '__self__' && studentSlots[k] === identity) || identity;
 }
 
+if (IS_TEACHER) { // the teacher's own name above their own video
+  try { const nm = (JSON.parse(atob(String(MY_TOKEN).split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))).name) || ''; if (nm) { document.getElementById('teacher-name-text').textContent = nm; document.getElementById('teacher-name-above').style.display = 'flex'; } } catch (e) {}
+}
 document.getElementById('room-label').textContent = SESSION_ID
   ? `Room: ${ROOM} · #${SESSION_ID.slice(-6)}`
   : `Room: ${ROOM}`;
@@ -662,6 +697,7 @@ function lkRemoveFor(track) {
 // Every 2 s: make sure every remote camera is shown in its tile (tiles can appear after the picture arrives)
 function lkRefreshTiles() {
   const room = LKE.room; if (!room) return;
+  lkPollQuality();
   room.remoteParticipants.forEach(p => {
     p.trackPublications.forEach(pub => {
       if (pub.track && pub.kind === 'video' && pub.source === window.LivekitClient.Track.Source.Camera) lkPlaceVideo(p, pub.track);
@@ -701,6 +737,7 @@ async function lkStart() {
       if (LKE.remoteScreen) { try { LKE.remoteScreen.removeTrack(track.mediaStreamTrack); } catch (e) {} }
     });
     room.on(LK.RoomEvent.Disconnected, () => { lkLog('disconnected'); setTimeout(() => { if (USE_LK && (!LKE.room || LKE.room.state === 'disconnected')) { LKE.room = null; lkStart(); } }, 2500); });
+    room.on(LK.RoomEvent.ConnectionQualityChanged, (q, p) => { try { setSig(lkQualityKey(p, room), q); } catch (e) {} });
     room.on(LK.RoomEvent.Reconnecting, () => lkLog('reconnecting'));
     room.on(LK.RoomEvent.Reconnected, () => lkLog('reconnected'));
     room.on(LK.RoomEvent.AudioPlaybackStatusChanged, () => { if (!room.canPlaybackAudio && typeof showSoundUnlock === 'function') showSoundUnlock(); });
@@ -2137,7 +2174,7 @@ function createVideoSlot(socketId, role, name) {
       document.getElementById('left-video').parentElement.appendChild(vid);
     }
     const lbl = document.getElementById('left-label'); lbl.textContent = ''; lbl.style.zIndex = '3';
-    const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) { nameAbove.textContent = `Teacher ${name || ''}`; nameAbove.style.display = 'block'; }
+    const nameAbove = document.getElementById('teacher-name-above'); if (nameAbove) { document.getElementById('teacher-name-text').textContent = name || ''; nameAbove.style.display = 'flex'; }
   } else if (!IS_TEACHER && role === 'student') {
     // Students now see other students
     showStudentSlot(socketId, name);
@@ -2248,7 +2285,8 @@ function showStudentSlot(socketId, name, isBirthday) {
     lbl.title = 'Click to toggle drawing permission';
     lbl.onclick = () => toggleDrawByName(curSid(identity), name || 'Student', lbl);
   }
-  wrap.appendChild(slot); wrap.appendChild(lbl);
+  const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(sigNode(identity));
+  wrap.appendChild(slot); wrap.appendChild(nameRow);
   if (IS_TEACHER) {
     const ctrls = document.createElement('div');
     ctrls.className = 'student-controls-row';
@@ -2290,7 +2328,8 @@ function setupOwnSlot() {
     box.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video>`;
     const lbl = document.createElement('div');
     lbl.className = 'student-label-below'; lbl.textContent = `${MY_NAME} (You)`;
-    wrap.appendChild(box); wrap.appendChild(lbl);
+    const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(sigNode(MY_NAME));
+    wrap.appendChild(box); wrap.appendChild(nameRow);
     document.getElementById('right-panel').appendChild(wrap);
     document.getElementById('self-slot-video').srcObject = localStream;
     studentSlots['__self__'] = '__self__';
