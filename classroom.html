@@ -75,7 +75,7 @@
     body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
     @media (max-width: 700px) { body.student-view #left-panel { width: 96px; padding: 10px 4px 4px; } }
     body.student-view #left-panel { width: 132px; padding: 6px; }
-    body.student-view #left-panel { padding-top: 28px !important; }
+    body.student-view #left-panel { padding-top: 6px !important; }
     body:not(.student-view) #left-panel { padding-top: 6px !important; }
     #class-timer { display: none !important; }
     #stu-clock { display: flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 9px; border-radius: 17px; background: #37474f; }
@@ -92,7 +92,7 @@
     @keyframes fsflash { 0%, 100% { background: #e53935; box-shadow: 0 0 0 0 rgba(229,57,53,0.7); } 50% { background: #7f1d1d; box-shadow: 0 0 12px 3px rgba(229,57,53,0.9); } }
     #celebrate-menu-btn { font-size: 0.72rem !important; }
     body.student-view #left-panel { position: relative; }
-    body.student-view #teacher-frame { margin: 0; }
+    body.student-view #teacher-frame { margin: auto 0; }
     body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
     body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
@@ -4917,6 +4917,8 @@ function fitLayout() {
   }
   L.style.width = Math.floor(lw) + 'px'; R.style.width = Math.floor(rw) + 'px'; R.classList.toggle('compact', rw < 140);
   wrap.style.flex = 'none'; wrap.style.width = Math.floor(bw) + 'px'; wrap.style.height = Math.floor(bh) + 'px'; wrap.style.margin = '0 auto';
+  // student view: the teacher frame is centered beside the board, so the column's free space ends where the board ends
+  if (document.body.classList.contains('student-view')) L.style.paddingBottom = Math.max(0, Math.round(window.innerHeight - (top.getBoundingClientRect().bottom + Math.floor(bh)))) + 'px'; else L.style.paddingBottom = '';
 }
 function scaleCanvas() {
   const wrap = document.getElementById('whiteboard-wrap');
