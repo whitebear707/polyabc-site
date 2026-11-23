@@ -28,6 +28,22 @@
     .sig[data-q="good"] i:nth-child(-n+3) { background: #b2ff59; }
     .sig[data-q="poor"] i:nth-child(-n+2) { background: #ffb300; }
     .sig[data-q="lost"] i:nth-child(1) { background: #ff5252; }
+    .stu-frame { border: 3px solid #2e7d32; background: #2e7d32; border-radius: 10px; overflow: hidden; }
+    .stu-frame.off { border-color: #e53935; background: #e53935; }
+    .stu-head { display: flex; align-items: center; gap: 4px; padding: 2px 5px; min-height: 22px; font-size: 0.72rem; font-weight: 800; color: #fff; }
+    .stu-head .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; text-align: left; padding: 0; font-size: 0.72rem; font-weight: 800; }
+    .stu-head .cnt { flex: 0 0 auto; color: #ffd740; font-size: 0.68rem; font-weight: 900; }
+    .stu-icos { position: absolute; right: 3px; bottom: 3px; z-index: 6; display: flex; gap: 3px; }
+    .stu-icos .ico { width: 20px; height: 20px; border-radius: 6px; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.72rem; user-select: none; }
+    .stu-head .stu-dot, .stu-head .sig-abs { position: static; transform: none; flex: 0 0 auto; }
+    .stu-head .stu-dot { width: 11px; height: 11px; }
+    .stu-frame .student-box, .stu-frame { }
+    .stu-frame .student-box { border-radius: 0; aspect-ratio: 16/10; }
+    #right-panel.compact .stu-head { gap: 3px; padding: 1px 4px; min-height: 18px; }
+    #right-panel.compact .stu-head .nm { font-size: 0.64rem; }
+    #right-panel.compact .stu-icos .ico { width: 17px; height: 17px; font-size: 0.62rem; border-radius: 5px; }
+    #right-panel.compact .stu-head .cnt { font-size: 0.6rem; }
+    #right-panel.compact .sig { height: 11px; } #right-panel.compact .sig i { width: 2px; }
     .stu-dot { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); z-index: 2; }
     .stu-dot:not([data-c]) { display: none; }
     .stu-dot.pick { cursor: pointer; }
@@ -82,7 +98,7 @@
     #teacher-only { display: none; gap: 8px; }
     #left-tools .tool-btn { width: 100%; padding: 6px 4px; font-size: 0.85rem; font-weight: 800; border-radius: 10px; text-align: center; line-height: 1.2; }
 
-    #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 12px; gap: 10px; border-left: 2px solid #0f3460; overflow-y: auto; }
+    #right-panel { width: 180px; flex-shrink: 0; background: #16213e; display: flex; flex-direction: column; padding: 8px; gap: 5px; border-left: 2px solid #0f3460; overflow-y: auto; }
     #right-panel-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; text-align: center; }
     .student-wrap { display: flex; flex-direction: column; gap: 2px; width: 100%; }
     .student-box { position: relative; background: #0f3460; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; width: 100%; }
@@ -399,6 +415,7 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
+      <img id="board-logo" src="LOGO.png" alt="" style="position:absolute;right:10px;bottom:8px;height:9%;max-height:64px;opacity:0.4;pointer-events:none;z-index:30;"/>
       <video id="screenshare-video" autoplay playsinline style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:10;"></video>
     </div>
     <div id="toolbar">
@@ -1593,7 +1610,7 @@ function connectSocket() {
     if (color && name) dotsApply(name, color);
     const id = getIdentity(socketId);
     if (counts) { rewardCounts[socketId] = { ...counts }; updateRewardCounter(socketId); }
-    const lbl = document.getElementById('lbl-' + id); if (lbl) lbl.style.background = canDraw === false ? '#e53935' : '#2e7d32';
+    setDrawState(id, canDraw !== false);
     const db = document.getElementById('draw-btn-' + socketId);
     if (db) { db.style.background = canDraw === false ? '#e53935' : '#2e7d32'; db.textContent = `${canDraw === false ? '🚫' : '✏️'} ${name || 'Student'}`; }
     if (!window._studentDrawStates) window._studentDrawStates = new Map();
@@ -2288,7 +2305,7 @@ function showStudentSlot(socketId, name, isBirthday) {
   const identity = name || socketId; // stable key — survives reconnects
   if (IS_TEACHER) setTimeout(() => {   // give the student a pen color (a returning student keeps theirs)
     ensureStudentColor(identity);
-    if (_allDrawOff) { const l = document.getElementById('lbl-' + identity); if (l) l.style.background = '#e53935'; if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: curSid(identity), canDraw: false }); }
+    if (_allDrawOff) { setDrawState(identity, false); if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: curSid(identity), canDraw: false }); }
   }, 1800);
 
   // If slot already exists for this identity, just update socketId mapping and return
@@ -2319,8 +2336,7 @@ function showStudentSlot(socketId, name, isBirthday) {
   const slot = document.createElement('div');
   slot.className = 'student-box'; slot.id = `slot-${identity}`;
   slot.innerHTML = `<video id="vimg-${identity}" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;${IS_TEACHER?'cursor:pointer;':''}"></video>
-    ${IS_TEACHER ? `<div id="spk-${identity}" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🔊</div>
-    <div id="micask-${identity}" title="Can't hear this student? Open the microphone chooser on their screen" style="position:absolute;bottom:4px;left:30px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🎙️</div>` : ''}`;
+    ${IS_TEACHER ? `<div id="micask-${identity}" title="Can't hear this student? Open the microphone chooser on their screen" style="position:absolute;bottom:4px;left:4px;z-index:5;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;">🎙️</div>` : ''}`;
   if (IS_TEACHER) {
     slot.style.cursor = 'pointer';
     slot.addEventListener('click', (e) => {
@@ -2333,20 +2349,26 @@ function showStudentSlot(socketId, name, isBirthday) {
       mk.style.background = '#2e7d32'; setTimeout(() => { mk.style.background = 'rgba(0,0,0,0.5)'; }, 1500);
       showMicToast(`🎙️ Microphone chooser opened on ${name || 'the student'}'s screen.`);
     });
-    const spk = slot.querySelector(`#spk-${identity}`);
-    if (spk) spk.addEventListener('click', (e) => { e.stopPropagation(); toggleStudentMicOverlay(curSid(identity)); });
   }
   const lbl = document.createElement('div');
-  lbl.className = 'student-label-below';
+  lbl.className = 'student-label-below nm';
   lbl.id = `lbl-${identity}`;
   lbl.textContent = name || 'Student';
+  const frame = document.createElement('div'); frame.className = 'stu-frame'; frame.id = `frame-${identity}`; frame.dataset.draw = 'on';
+  const head = document.createElement('div'); head.className = 'stu-head';
+  const mkIco = (id, txt, title, fn) => { const e = document.createElement('span'); e.className = 'ico'; e.id = id; e.textContent = txt; e.title = title; e.onclick = (ev) => { ev.stopPropagation(); fn(); }; return e; };
+  const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.id = `cnt-${identity}`;
+  head.appendChild(dotNode(identity)); head.appendChild(lbl); head.appendChild(cnt); head.appendChild(sigNode(identity));
   if (IS_TEACHER) {
-    lbl.style.cssText = 'cursor:pointer;background:#2e7d32;color:white;border-radius:8px;padding:2px 6px;font-size:0.75rem;font-weight:700;text-align:center;margin-top:2px;';
-    lbl.title = 'Click to toggle drawing permission';
+    lbl.style.cursor = 'pointer'; lbl.title = 'Click to allow / stop drawing';
     lbl.onclick = () => toggleDrawByName(curSid(identity), name || 'Student', lbl);
+    const icos = document.createElement('div'); icos.className = 'stu-icos';
+    icos.appendChild(mkIco(`cam-${identity}`, '📷', 'Turn this student\'s camera on / off', () => toggleStudentCamClick(curSid(identity))));
+    icos.appendChild(mkIco(`spk-${identity}`, '🔊', 'Mute / unmute this student', () => toggleStudentMicOverlay(curSid(identity))));
+    icos.appendChild(mkIco(`draw-${identity}`, '🖱️', 'Allow / stop drawing for this student', () => toggleDrawByName(curSid(identity), name || 'Student', lbl)));
+    slot.appendChild(icos);
   }
-  const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(dotNode(identity)); nameRow.appendChild(sigNode(identity));
-  wrap.appendChild(slot); wrap.appendChild(nameRow);
+  frame.appendChild(head); frame.appendChild(slot); wrap.appendChild(frame);
   document.getElementById('right-panel').appendChild(wrap);
   studentSlots[socketId] = identity;
 
@@ -2381,9 +2403,11 @@ function setupOwnSlot() {
     box.className = 'student-box';
     box.innerHTML = `<video autoplay muted playsinline id="self-slot-video"></video>`;
     const lbl = document.createElement('div');
-    lbl.className = 'student-label-below'; lbl.textContent = `${MY_NAME} (You)`;
-    const nameRow = document.createElement('div'); nameRow.style.position = 'relative'; nameRow.appendChild(lbl); nameRow.appendChild(dotNode(MY_NAME)); nameRow.appendChild(sigNode(MY_NAME));
-    wrap.appendChild(box); wrap.appendChild(nameRow);
+    lbl.className = 'student-label-below nm'; lbl.textContent = `${MY_NAME} (You)`;
+    const frame = document.createElement('div'); frame.className = 'stu-frame'; const head = document.createElement('div'); head.className = 'stu-head';
+    const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.id = 'cnt-self';
+    head.appendChild(dotNode(MY_NAME)); head.appendChild(lbl); head.appendChild(cnt); head.appendChild(sigNode(MY_NAME));
+    frame.appendChild(head); frame.appendChild(box); wrap.appendChild(frame);
     document.getElementById('right-panel').appendChild(wrap);
     document.getElementById('self-slot-video').srcObject = localStream;
     studentSlots['__self__'] = '__self__';
@@ -2395,20 +2419,10 @@ function setupOwnSlot() {
 // Updates the star/trophy/medal tally shown under the student's own video tile
 function updateOwnStarCounter(counts) {
   window._myStarCounts = counts; // cache in case slot-self isn't built yet
-  const wrap = document.getElementById('slot-self');
-  if (!wrap) return;
-  let counter = wrap.querySelector('.star-counter');
-  if (!counter) {
-    counter = document.createElement('div');
-    counter.className = 'star-counter';
-    counter.style.cssText = 'text-align:center;font-size:0.72rem;font-weight:700;margin-top:2px;color:#ffd740;';
-    wrap.appendChild(counter);
-  }
-  const parts = [];
-  if (counts.star   > 0) parts.push(counts.star   + 'x⭐');
-  if (counts.trophy > 0) parts.push(counts.trophy + 'x🏆');
-  if (counts.medal  > 0) parts.push(counts.medal  + 'x🥇');
-  counter.textContent = parts.join(' ');
+  const el = document.getElementById('cnt-self'); if (!el) return;
+  const total = (counts.star || 0) + (counts.trophy || 0) + (counts.medal || 0);
+  el.textContent = total > 0 ? '+' + total : '';
+  el.title = [counts.star > 0 ? counts.star + 'x⭐' : '', counts.trophy > 0 ? counts.trophy + 'x🏆' : '', counts.medal > 0 ? counts.medal + 'x🥇' : ''].filter(Boolean).join(' ');
 }
 
 function removeRemote(socketId) {
@@ -2804,7 +2818,7 @@ function _hBtn(label, fn, color) { return `<button onclick="${fn}" style="displa
 function _hSet(title, html) { document.getElementById('help-title').textContent = title; document.getElementById('help-body').innerHTML = html; }
 function openHelp() { if (!IS_TEACHER) return; _help = { kind: null, students: null, busy: false }; helpHome(); document.getElementById('help-modal').style.display = 'flex'; }
 function closeHelp() { document.getElementById('help-modal').style.display = 'none'; }
-function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a') + _hBtn('🎙️ Microphone', 'closeHelp();openMicPicker()', '#37474f')); }
+function helpHome() { _hSet('Help', _hBtn('🧑‍🎓 Student Help', 'helpStudentMenu()') + _hBtn('🛠️ Technical Help', "helpPick('tech_help')", '#6a1b9a')); }
 function helpStudentMenu() { _hSet('Student Help', _hBtn('🚫 Student not here', "helpPick('student_absent')", '#e65100') + _hBtn('⚠️ Student having problems', "helpPick('student_problem')", '#f9a825') + _hBtn('🔊 Audio problems (guided test)', "helpPick('audio_test')", '#00838f') + '<button onclick="helpHome()" style="margin-top:6px;border:none;background:none;color:#555;cursor:pointer;">← Back</button>'); }
 async function helpPick(kind) {
   _help.kind = kind;
@@ -3259,7 +3273,18 @@ function toggleCam() {
   if (window._socket) window._socket.emit('teacher-cam', { room: ROOM, camOn: myCamOn });
 }
 
+function setDrawState(identity, canDraw) {
+  const f = document.getElementById('frame-' + identity); if (!f) return;
+  f.classList.toggle('off', !canDraw); f.dataset.draw = canDraw ? 'on' : 'off';
+  const d = document.getElementById('draw-' + identity); if (d) d.textContent = canDraw ? '🖱️' : '🚫';
+}
 function toggleDrawByName(socketId, name, lbl) {
+  const idn = getIdentity(socketId), fr = document.getElementById('frame-' + idn);
+  const canDraw = !fr || fr.dataset.draw === 'off';
+  setDrawState(idn, canDraw);
+  if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw });
+}
+function _oldToggleDrawByName(socketId, name, lbl) {
   const isGreen = lbl.style.background.includes('46, 125, 50') || lbl.style.background === 'rgb(46, 125, 50)' || lbl.style.background === '#2e7d32';
   const canDraw = !isGreen; // if currently green (allowed), disable; if red (disabled), enable
   lbl.style.background = canDraw ? '#2e7d32' : '#e53935';
@@ -3275,8 +3300,7 @@ function toggleDrawAll() {
   const btn = document.getElementById('draw-all-btn'); btn.classList.toggle('off', _allDrawOff); btn.title = _allDrawOff ? 'Drawing is OFF for all students (click to allow)' : 'Allow / stop drawing for ALL students';
   Object.keys(studentSlots).forEach(socketId => {
     if (socketId === '__self__') return;
-    const idn = getIdentity(socketId), lbl = document.getElementById('lbl-' + idn);
-    if (lbl) lbl.style.background = _allDrawOff ? '#e53935' : '#2e7d32';
+    setDrawState(getIdentity(socketId), !_allDrawOff);
     if (window._socket) window._socket.emit('toggle-student-draw', { room: ROOM, targetId: socketId, canDraw: !_allDrawOff });
   });
 }
@@ -3289,7 +3313,7 @@ function toggleMuteAll() {
     if (socketId === '__self__') return;
     if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: _allMuted });
     const spk = document.getElementById(`spk-${getIdentity(socketId)}`);
-    if (spk) { spk.textContent = _allMuted ? '🔇' : '🔊'; spk.style.background = _allMuted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)'; }
+    if (spk) { spk.textContent = _allMuted ? '🔇' : '🔊'; spk.style.background = _allMuted ? 'rgba(0,0,0,0.75)' : ''; }
   });
 }
 
@@ -3303,6 +3327,7 @@ function toggleCamAll() {
     if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: !_allCamOff });
     const vid = document.getElementById(`vimg-${getIdentity(socketId)}`);
     if (vid) vid.dataset.camOff = String(_allCamOff);
+    const ci = document.getElementById('cam-' + getIdentity(socketId)); if (ci) ci.textContent = _allCamOff ? '🚫' : '📷';
     updateStudentMonkey(socketId);
   });
 }
@@ -3332,6 +3357,7 @@ function toggleStudentCamClick(socketId) {
   const camOff = vid?.dataset?.camOff === 'true';
   const newCamOn = camOff;
   if (vid) vid.dataset.camOff = String(!newCamOn);
+  const ci = document.getElementById('cam-' + getIdentity(socketId)); if (ci) ci.textContent = newCamOn ? '📷' : '🚫';
   if (window._socket) window._socket.emit('toggle-student-cam', { room: ROOM, targetId: socketId, camOn: newCamOn });
   updateStudentMonkey(socketId);
 }
@@ -3342,7 +3368,7 @@ function toggleStudentMicOverlay(socketId) {
   const isMuted = spk.textContent === '🔇';
   const newMuted = !isMuted;
   spk.textContent = newMuted ? '🔇' : '🔊';
-  spk.style.background = newMuted ? 'rgba(229,57,53,0.85)' : 'rgba(0,0,0,0.5)';
+  spk.style.background = newMuted ? 'rgba(0,0,0,0.75)' : '';
   if (window._socket) window._socket.emit('mute-student', { room: ROOM, targetId: socketId, mute: newMuted });
   updateStudentMonkey(socketId);
 }
@@ -3429,21 +3455,11 @@ function giveStar(socketId, name) {
 }
 
 function updateRewardCounter(socketId) {
-  const wrap = document.getElementById(`wrap-${getIdentity(socketId)}`);
-  if (!wrap) return;
-  let counter = wrap.querySelector('.star-counter');
-  if (!counter) {
-    counter = document.createElement('div');
-    counter.className = 'star-counter';
-    counter.style.cssText = 'text-align:center;font-size:0.72rem;font-weight:700;margin-top:2px;';
-    wrap.appendChild(counter);
-  }
-  const c = rewardCounts[socketId] || { star:0, trophy:0, medal:0 };
-  const parts = [];
-  if (c.star > 0)   parts.push(`${c.star}x⭐`);
-  if (c.trophy > 0) parts.push(`${c.trophy}x🏆`);
-  if (c.medal > 0)  parts.push(`${c.medal}x🥇`);
-  counter.textContent = parts.join(' ');
+  const el = document.getElementById(`cnt-${getIdentity(socketId)}`); if (!el) return;
+  const c = rewardCounts[socketId] || { star: 0, trophy: 0, medal: 0 };
+  const total = (c.star || 0) + (c.trophy || 0) + (c.medal || 0);
+  el.textContent = total > 0 ? '+' + total : '';
+  el.title = [c.star > 0 ? c.star + 'x⭐' : '', c.trophy > 0 ? c.trophy + 'x🏆' : '', c.medal > 0 ? c.medal + 'x🥇' : ''].filter(Boolean).join(' ');
 }
 
 function playTadaSound() {
@@ -4796,18 +4812,21 @@ function fitLayout() {
   const cb = document.getElementById('student-chat-bar'), cbh = cb && cb.offsetParent ? cb.offsetHeight : 0;
   const availH = window.innerHeight - top.offsetHeight - tb.offsetHeight - cbh;
   if (availH < 80) return;
-  const RATIO = CANVAS_W / CANVAS_H, totalCenter = window.innerWidth - bl - br, wantW = availH * RATIO;
-  let lw = bl, rw = br, bw, bh;
-  if (totalCenter >= wantW) {                                   // spare width: students get bigger, then the left column
-    bw = wantW; bh = availH; let extra = totalCenter - bw;
-    const addR = Math.min(extra, br * 1.4); rw += addR; extra -= addR;
-    const addL = Math.min(extra, bl * 1.0); lw += addL;
+  const RATIO = CANVAS_W / CANVAS_H;
+  // Student column: wide enough for a framed 4:3 tile, small enough that 6 tiles fit on top of each other
+  const tileW = ((window.innerHeight - top.offsetHeight - 40) / 6 - 37) / 0.625 + 6;
+  const MINR = 112;
+  let lw = bl, rw = br >= 120 ? Math.max(MINR, Math.min(190, tileW + 16)) : br;
+  const totalCenter = window.innerWidth - lw - rw, wantW = availH * RATIO;
+  let bw, bh;
+  if (totalCenter >= wantW) {                                   // spare width: the left column (teacher video) grows, then margins
+    bw = wantW; bh = availH; lw += Math.min(totalCenter - bw, bl * 1.4);
   } else {                                                      // not enough width: slim the side columns a little
-    const need = wantW - totalCenter, give = Math.min(need, (bl + br) * 0.1);
-    lw -= give * bl / (bl + br); rw -= give * br / (bl + br);
-    bw = Math.min(totalCenter + give, wantW); bh = bw / RATIO;
+    const need = wantW - totalCenter, giveR = Math.min(need, Math.max(0, rw - MINR)), giveL = Math.min(need - giveR, bl * 0.1);
+    rw -= giveR; lw -= giveL;
+    bw = Math.min(totalCenter + giveR + giveL, wantW); bh = bw / RATIO;
   }
-  L.style.width = Math.floor(lw) + 'px'; R.style.width = Math.floor(rw) + 'px';
+  L.style.width = Math.floor(lw) + 'px'; R.style.width = Math.floor(rw) + 'px'; R.classList.toggle('compact', rw < 140);
   wrap.style.flex = 'none'; wrap.style.width = Math.floor(bw) + 'px'; wrap.style.height = Math.floor(bh) + 'px'; wrap.style.margin = '0 auto';
 }
 function scaleCanvas() {
