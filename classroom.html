@@ -451,10 +451,15 @@
   <div id="center-panel">
     <div id="whiteboard-wrap">
       <canvas id="whiteboard-canvas"></canvas>
+      <div id="lesson-audio-note" style="display:none;position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:6;background:rgba(21,101,192,0.92);color:#fff;border-radius:18px;padding:6px 16px;font:900 0.95rem Nunito,sans-serif;pointer-events:none;">🔊 Escucha el audio</div>
       <div id="lesson-nav" style="display:none;position:absolute;left:10px;bottom:8px;z-index:6;align-items:center;gap:6px;background:rgba(15,23,42,0.88);color:#fff;border-radius:22px;padding:5px 8px;font:800 0.85rem Nunito,sans-serif;">
         <button onclick="lessonStep(-1)" title="Previous slide (←)" style="border:none;background:#37474f;color:#fff;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;">◀</button>
         <span id="lesson-nav-label" style="min-width:92px;text-align:center;">A0 · L1 · 1/1</span>
         <button onclick="lessonStep(1)" title="Next slide (→)" style="border:none;background:#2e7d32;color:#fff;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;">▶</button>
+        <span id="lesson-audio-ctl" style="display:none;align-items:center;gap:4px;">
+          <button id="lesson-audio-btn" onclick="lessonAudioToggle()" style="border:none;background:#1565c0;color:#fff;border-radius:14px;height:30px;padding:0 12px;font:800 0.8rem Nunito,sans-serif;cursor:pointer;">🔊 Play</button>
+          <button onclick="lessonAudioReplay()" title="Play again from the start" style="border:none;background:#37474f;color:#fff;border-radius:50%;width:30px;height:30px;font-size:0.95rem;cursor:pointer;">↺</button>
+        </span>
         <button onclick="openLessonPicker()" title="Choose another lesson" style="border:none;background:#37474f;color:#fff;border-radius:14px;height:30px;padding:0 10px;font:800 0.78rem Nunito,sans-serif;cursor:pointer;">📖</button>
         <button onclick="closeLesson()" title="Close lesson" style="border:none;background:#c62828;color:#fff;border-radius:50%;width:30px;height:30px;font-size:0.9rem;cursor:pointer;">✕</button>
       </div>
@@ -1845,6 +1850,7 @@ function connectSocket() {
   });
 
   socket.on('whiteboard-path', ({ path }) => { if (!canvas) return; suppressSync = true; fabric.util.enlivenObjects([path], (objs) => { objs.forEach(o => canvas.add(o)); canvas.renderAll(); suppressSync = false; }); });
+  socket.on('lesson-audio', (d) => { if (window.__lessonAudioHandler) window.__lessonAudioHandler(d); });
   socket.on('whiteboard-sync', ({ json }) => { if (!canvas) return; suppressSync = true; canvas.loadFromJSON(json, () => { relockSlides(); canvas.renderAll(); suppressSync = false; }); });
   socket.on('clear-all', () => {
     if (!canvas) return;
@@ -5205,7 +5211,7 @@ async function openLessonPicker() {
   const go = ov.querySelector('#lp-open'); go.disabled = false; go.style.opacity = 1;
   go.onclick = async () => {
     const L = ov.querySelector('#lp-level').value, n = +ov.querySelector('#lp-lesson').value; go.textContent = 'Loading…'; go.disabled = true;
-    try { await startLesson(L, n, idx[L][n].slideNumbers); ov.remove(); } catch (e) { go.textContent = 'Open lesson'; go.disabled = false; alert('Could not load that lesson. Try again.'); }
+    try { await startLesson(L, n, idx[L][n].slideNumbers, idx[L][n].audio); ov.remove(); } catch (e) { go.textContent = 'Open lesson'; go.disabled = false; alert('Could not load that lesson. Try again.'); }
   };
 }
 async function lessonImageDataUrl(level, lesson, slide) {
@@ -5219,9 +5225,9 @@ async function lessonImageDataUrl(level, lesson, slide) {
   while (url.length > 650000 && q > 0.45) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }   // stay well under the socket limit
   return { url, w: c.width, h: c.height };
 }
-async function startLesson(level, lesson, slides) {
+async function startLesson(level, lesson, slides, audioList) {
   const first = await lessonImageDataUrl(level, lesson, slides[0]);   // fail early, before touching the board
-  LESSON = { level, lesson, slides, idx: -1, notes: {}, preload: { [slides[0]]: first } };
+  LESSON = { level, lesson, slides, audio: audioList || [], idx: -1, notes: {}, preload: { [slides[0]]: first } };
   await showLessonSlide(0);
   const b = document.getElementById('lesson-menu-btn'); if (b) b.textContent = `📖 ${level} · L${lesson} ▸`;
   document.getElementById('lesson-nav').style.display = 'flex';
@@ -5235,6 +5241,7 @@ async function showLessonSlide(i) {
   const num = LESSON.slides[i];
   let img = LESSON.preload[num]; if (!img) { img = await lessonImageDataUrl(LESSON.level, LESSON.lesson, num); LESSON.preload[num] = img; }
   lessonSaveNotes();
+  lessonAudioStop();
   LESSON.idx = i;
   suppressSync = true;
   canvas.clear(); canvas.backgroundColor = '#ffffff';
@@ -5246,6 +5253,8 @@ async function showLessonSlide(i) {
   if (notes && notes.length) await new Promise(res => fabric.util.enlivenObjects(notes, objs => { objs.forEach(o => canvas.add(o)); res(); }));
   canvas.renderAll(); suppressSync = false;
   if (window._socket) window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) });
+  const hasAud = LESSON.audio.includes(num), ac = document.getElementById('lesson-audio-ctl'); if (ac) ac.style.display = hasAud ? 'flex' : 'none';
+  if (hasAud && window._socket) window._socket.emit('lesson-audio', { room: ROOM, level: LESSON.level, lesson: LESSON.lesson, slide: num, action: 'prep' });
   const lbl = document.getElementById('lesson-nav-label'); if (lbl) lbl.textContent = `${LESSON.level} · L${LESSON.lesson} · ${i + 1}/${LESSON.slides.length}`;
   // warm up the next slide so ▶ is instant
   const nx = LESSON.slides[i + 1]; if (nx && !LESSON.preload[nx]) lessonImageDataUrl(LESSON.level, LESSON.lesson, nx).then(x => { if (LESSON) LESSON.preload[nx] = x; }).catch(() => {});
@@ -5258,7 +5267,7 @@ async function lessonStep(d) {
 function closeLesson() {
   if (!LESSON) return;
   if (!confirm('Close the lesson? The slide and what you drew on it will be removed from the board.')) return;
-  LESSON = null; suppressSync = true; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
+  lessonAudioStop(); LESSON = null; suppressSync = true; canvas.clear(); canvas.backgroundColor = '#ffffff'; canvas.renderAll(); suppressSync = false;
   if (window._socket) { window._socket.emit('clear-all', { room: ROOM }); window._socket.emit('whiteboard-sync', { room: ROOM, json: canvas.toJSON(['data']) }); }
   document.getElementById('lesson-nav').style.display = 'none';
   const b = document.getElementById('lesson-menu-btn'); if (b) b.textContent = '📚 Lesson ▸';
@@ -5268,6 +5277,66 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' || e.key === 'PageDown') { lessonStep(1); e.preventDefault(); }
   if (e.key === 'ArrowLeft' || e.key === 'PageUp') { lessonStep(-1); e.preventDefault(); }
 });
+
+// ── 🔊 Lesson audio: the teacher plays / pauses; every device plays the file itself ──
+const LAUD = { el: null, key: '', urls: {}, primed: false };
+function lessonAudioEl() { if (!LAUD.el) { LAUD.el = new Audio(); LAUD.el.preload = 'auto'; } return LAUD.el; }
+// phones only allow sound after a tap: use the first tap on the page to unlock the player
+function lessonAudioPrime() {
+  if (LAUD.primed) return; LAUD.primed = true;
+  try { const a = lessonAudioEl(); a.muted = true; a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAABErAAABAAgAZGF0YQAAAAA='; const p = a.play(); (p && p.then ? p : Promise.resolve()).then(() => { a.pause(); a.muted = false; }).catch(() => { a.muted = false; }); } catch (e) {}
+}
+document.addEventListener('pointerdown', lessonAudioPrime, { once: true });
+async function lessonAudioLoad(level, lesson, slide) {
+  const key = `${level}_${lesson}_${slide}`;
+  if (!LAUD.urls[key]) {
+    const r = await fetch(`${SERVER_URL}/lessons/${level}/${lesson}/${slide}/audio`, { headers: { Authorization: `Bearer ${MY_TOKEN}` } });
+    if (!r.ok) throw new Error('audio');
+    LAUD.urls[key] = URL.createObjectURL(await r.blob());
+  }
+  const a = lessonAudioEl();
+  if (LAUD.key !== key) { a.pause(); a.muted = false; a.src = LAUD.urls[key]; LAUD.key = key; }
+  return a;
+}
+function lessonAudioNote(on) { const n = document.getElementById('lesson-audio-note'); if (n) n.style.display = on && !IS_TEACHER ? 'block' : 'none'; }
+function lessonAudioBtn() {
+  const b = document.getElementById('lesson-audio-btn'); if (!b) return;
+  const a = LAUD.el, playing = a && !a.paused && !a.ended && LAUD.key === lessonAudioKey();
+  b.textContent = playing ? '⏸ Pause' : '🔊 Play'; b.style.background = playing ? '#e65100' : '#1565c0';
+}
+function lessonAudioKey() { return LESSON ? `${LESSON.level}_${LESSON.lesson}_${LESSON.slides[LESSON.idx]}` : ''; }
+function lessonAudioSend(action, t) { if (window._socket && LESSON) window._socket.emit('lesson-audio', { room: ROOM, level: LESSON.level, lesson: LESSON.lesson, slide: LESSON.slides[LESSON.idx], action, t: t || 0 }); }
+async function lessonAudioToggle() {
+  if (!LESSON || !LESSON.audio.includes(LESSON.slides[LESSON.idx])) return;
+  try {
+    const a = await lessonAudioLoad(LESSON.level, LESSON.lesson, LESSON.slides[LESSON.idx]);
+    if (!a.paused && !a.ended) { a.pause(); lessonAudioSend('pause', a.currentTime); }
+    else { if (a.ended) a.currentTime = 0; await a.play(); lessonAudioSend('play', a.currentTime); a.onended = lessonAudioBtn; }
+  } catch (e) { alert('Could not play the audio. Try again.'); }
+  lessonAudioBtn();
+}
+async function lessonAudioReplay() {
+  if (!LESSON || !LESSON.audio.includes(LESSON.slides[LESSON.idx])) return;
+  try { const a = await lessonAudioLoad(LESSON.level, LESSON.lesson, LESSON.slides[LESSON.idx]); a.currentTime = 0; await a.play(); lessonAudioSend('play', 0); a.onended = lessonAudioBtn; } catch (e) {}
+  lessonAudioBtn();
+}
+function lessonAudioStop() {
+  if (LAUD.el && !LAUD.el.paused) { LAUD.el.pause(); }
+  if (IS_TEACHER && LESSON && LAUD.key) lessonAudioSend('stop', 0);
+  lessonAudioNote(false); lessonAudioBtn();
+}
+// students / spectators: follow the teacher
+if (!IS_TEACHER) window.__lessonAudioHandler = async (d) => {
+  try {
+    if (d.action === 'prep') { lessonAudioLoad(d.level, d.lesson, d.slide).catch(() => {}); return; }
+    if (d.action === 'stop' || d.action === 'pause') { if (LAUD.el) LAUD.el.pause(); lessonAudioNote(false); return; }
+    if (d.action === 'play') {
+      const a = await lessonAudioLoad(d.level, d.lesson, d.slide);
+      try { a.currentTime = d.t || 0; } catch (e) {}
+      await a.play(); lessonAudioNote(true); a.onended = () => lessonAudioNote(false); a.onpause = () => lessonAudioNote(false);
+    }
+  } catch (e) { /* if the phone blocks sound until a tap, the next tap unlocks it */ }
+};
 
 function uploadImage(event) {
   if (!IS_TEACHER) return;
