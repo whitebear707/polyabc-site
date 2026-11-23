@@ -1604,8 +1604,9 @@ function connectSocket() {
         <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
         <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
         <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
-        <a href="login.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+        <a href="student-greeting.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Volver / Back</a>
       </div>`;
+      setTimeout(() => { window.location.href = 'student-greeting.html'; }, 5000);
     }
   });
   socket.on('star-given', ({ name, emoji, type, counts }) => {
@@ -1746,8 +1747,9 @@ function connectSocket() {
         <img src="LOGO.png" style="height:120px;margin-bottom:30px;"/>
         <p style="font-size:2rem;font-weight:900;color:#a0c4ff;margin-bottom:16px;">Class has ended!</p>
         <p style="font-size:1.3rem;color:#888;margin-bottom:40px;">See you next time! Bye Bye 👋</p>
-        <a href="login.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Back to Home</a>
+        <a href="student-greeting.html" style="background:#1a73e8;color:white;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:700;text-decoration:none;">← Volver / Back</a>
       </div>`;
+      setTimeout(() => { window.location.href = 'student-greeting.html'; }, 5000);
     }
   });
 
@@ -4078,8 +4080,26 @@ async function teacherEndClass() {
   Promise.all([new Promise(r => setTimeout(r, 2000)), finishRecording().catch(() => {})]).then(() => {
     if (captureInterval) clearInterval(captureInterval);
     if (window._socket) window._socket.disconnect();
-    window.location.href = 'greeting.html';
+    nextClassUrl().then(u => { window.location.href = u || 'greeting.html'; });
   });
+}
+// Back-to-back classes: once this class is saved, go straight into the teacher's next class in this room
+// if it starts within 20 minutes (or is already running). Otherwise the normal greeting page.
+async function nextClassUrl() {
+  try {
+    const a0 = window._curAssign; if (!a0 || ROOM === '0') return null;
+    const res = await Promise.race([fetch(`${SERVER_URL}/assignments?room=${ROOM}`).then(r => r.json()), new Promise(r => setTimeout(() => r(null), 4000))]);
+    if (!Array.isArray(res)) return null;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const nowMx = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false });
+    const now = t2m(nowMx), cur = t2m(a0.time);
+    const next = res.filter(a => a.date === today && a.sessionId && a.sessionId !== SESSION_ID && t2m(a.time) > cur)
+      .sort((x, y) => t2m(x.time) - t2m(y.time))[0];
+    if (!next) return null;
+    const sm = t2m(next.time), em = sm + getDuration(next.classType);
+    if (now >= sm - 20 && now < em) return `classroom.html?room=${encodeURIComponent(ROOM)}&sessionId=${encodeURIComponent(next.sessionId)}`;
+  } catch (e) {}
+  return null;
 }
 
 // ── WebRTC Screenshare (peer-to-peer, zero server bandwidth) ──
@@ -5188,6 +5208,7 @@ function recordingGate() {
         document.getElementById('rec-deny').onclick = async () => {
           document.getElementById('rec-deny').disabled = true;
           await Promise.race([log(false), new Promise(r => setTimeout(r, 2500))]);
+          try { sessionStorage.setItem('noAutoEnter', '1'); } catch (e) {}
           window.location.href = IS_TEACHER ? 'greeting.html' : 'student-greeting.html';
           resolve(false);
         };

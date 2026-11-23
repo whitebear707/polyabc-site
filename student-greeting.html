@@ -118,7 +118,10 @@
       if (!todayA.length) return null;
       const nowMins = nowGDLMins();
       let best = null, bestDiff = Infinity;
-      for (const a of todayA) {
+      // prefer a class that has not ended yet (back-to-back classes), else the closest one
+      const durOf = a => (a.classType === 'Trial' ? 15 : (parseInt((String(a.classType||'').match(/(\d+)\s*min/i)||[])[1],10) || 30));
+      const notEnded = todayA.filter(a => { const [h, m] = a.time.split(':').map(Number); return nowMins < h * 60 + m + durOf(a); });
+      for (const a of (notEnded.length ? notEnded : todayA)) {
         const [hh, mm] = a.time.split(':').map(Number);
         const diff = Math.abs(nowMins - (hh * 60 + mm));
         if (diff < bestDiff && diff <= 90) { bestDiff = diff; best = a; }
@@ -145,7 +148,14 @@
     postLobby('lobby-opened');
     const cached = _sessionId && localStorage.getItem(`nettest_${_sessionId}`);
     if (cached) { _netResult = JSON.parse(cached); unlockEnterBtn(_netResult); }
+    else if (_sessionId && _sessionTime && inClassWindow()) { _autoTest = true; openNetTest(); }   // run the speed test by itself, like the teacher page
   }
+  // From 30 min before the class until it ends
+  function inClassWindow() {
+    const [hh, mm] = _sessionTime.split(':').map(Number), st = hh * 60 + mm, n = nowGDLMins();
+    return n >= st - 30 && n < st + 60;
+  }
+  let _autoTest = false;
   init();
 
   function unlockEnterBtn(result) {
@@ -247,6 +257,21 @@
       });
     } catch (e) { return true; }
   }
+
+  // If the class is open, go in by themselves: right after the speed test, or after 60 s even if the test hangs or the button fails.
+  let _entering = false; const _pageAt = Date.now();
+  function autoForward() {
+    if (_entering || !_classOpen) return;
+    let denied = false; try { denied = sessionStorage.getItem('noAutoEnter') === '1'; } catch (e) {}
+    if (denied) return;
+    const testDone = !!_netResult, waited = Date.now() - _pageAt > 60000;
+    if (!testDone && !waited) return;
+    _entering = true;
+    const bar = document.getElementById('nudge-bar');
+    bar.style.display = 'block'; bar.innerHTML = '🚀 Entrando a tu clase… / Entering your class…';
+    setTimeout(proceedToClass, 1200);
+  }
+  setInterval(autoForward, 1500);
 
   function proceedToClass() {
     postLobby('enter-clicked');
