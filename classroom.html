@@ -68,6 +68,7 @@
     .chat-msg .msg-name { font-size:0.75rem; font-weight:800; color:#a0c4ff; margin-bottom:2px; }
     .chat-msg .msg-text { font-size:0.9rem; color:#e0e0e0; }
     .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
+    body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
     #student-chat-bar { display:none; background:#16213e; border-top:2px solid #0f3460; padding:8px 12px; gap:8px; align-items:center; flex-shrink:0; }
     #student-chat-input { flex:1; background:#0f3460; border:none; border-radius:8px; padding:8px 12px; color:white; font-family:Nunito,sans-serif; font-size:0.9rem; outline:none; }
     #student-chat-input::placeholder { color:#555; }
@@ -438,9 +439,13 @@
       <button id="sharepip-btn" class="tool-btn" onclick="openFloatWindow(false)" style="background:#3949ab;display:none;" title="A small window that stays on top of your other tabs with your students' cameras">📌 Floating window</button>
     </div>
     <div id="student-chat-bar">
-      <input id="student-chat-input" type="text" placeholder="✉️ Message teacher privately..." maxlength="200"
+      <input id="student-chat-input" type="text" placeholder="✉️ Mensaje privado a tu maestro…" maxlength="200" style="flex:0 1 330px;min-width:0;"
         onkeydown="if(event.key==='Enter')sendStudentMessage()"/>
-      <button onclick="sendStudentMessage()" style="background:#1a73e8;border:none;color:white;padding:8px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;">Send</button>
+      <button onclick="sendStudentMessage()" style="background:#1a73e8;border:none;color:white;padding:8px 14px;border-radius:8px;font-family:Nunito,sans-serif;font-weight:700;cursor:pointer;white-space:nowrap;">Enviar</button>
+      <div style="width:2px;height:28px;background:#0f3460;margin:0 6px;"></div>
+      <button class="tool-btn selected" id="stool-draw" onclick="setTool('draw')" title="Lápiz" style="font-size:1.15rem;padding:6px 14px;">✏️</button>
+      <button class="tool-btn" id="stool-erase" onclick="setTool('erase')" title="Borrador" style="font-size:1.15rem;padding:6px 14px;">🧽</button>
+      <button class="tool-btn" id="stool-text" onclick="setTool('text')" title="Texto" style="font-size:1.15rem;padding:6px 14px;">🔤</button>
     </div>
   </div>
 
@@ -689,6 +694,7 @@ if (IS_TEACHER) {
 } else {
   document.getElementById('my-controls').style.display = 'none';
   document.getElementById('student-chat-bar').style.display = IS_SPECTATOR ? 'none' : 'flex';
+  if (!IS_SPECTATOR) document.body.classList.add('student-view');
 }
 
 const capCanvas = document.createElement('canvas');
@@ -2037,7 +2043,7 @@ function showChatCooldownNotice(secsLeft) {
   const input = document.getElementById('student-chat-input');
   if (!input) return;
   const placeholder = input.placeholder;
-  input.placeholder = `Wait ${secsLeft}s before sending another message`;
+  input.placeholder = `Espera ${secsLeft}s para enviar otro mensaje`;
   input.style.borderColor = '#e53935';
   setTimeout(() => { input.placeholder = placeholder; input.style.borderColor = ''; }, 1500);
 }
@@ -2472,6 +2478,10 @@ async function loadTodayAssignment() {
   } else {
     const leaveBtn = document.getElementById('leave-btn');
     if (leaveBtn) leaveBtn.style.display = 'none';
+    if (!IS_SPECTATOR) { // students: the gear (microphone / webcam) in Spanish; no Help button
+      document.getElementById('teacher-topbtns').style.display = 'flex'; const hb = document.getElementById('help-btn'); if (hb) hb.style.display = 'none';
+      document.querySelectorAll('#pop-gear button').forEach(b => { b.textContent = /Micro/.test(b.textContent) ? '🎙️ Micrófono' : '📷 Cámara'; });
+    }
     checkStudentAccess();
   }
   } catch(e) {}
@@ -4388,11 +4398,11 @@ async function ssCheck() {
 }
 // Student: one tap redoes every link with the teacher (sound, camera and the shared screen)
 function reconnectMedia() {
-  if (USE_LK) { lkReconnect(); const b = document.getElementById('reconnect-btn'); if (b) { b.textContent = '⏳ Reconnecting…'; b.disabled = true; setTimeout(() => { b.textContent = "🔄 Can't see or hear?"; b.disabled = false; }, 4000); } return; }
+  if (USE_LK) { lkReconnect(); const b = document.getElementById('reconnect-btn'); if (b) { b.textContent = '⏳ Reconectando…'; b.disabled = true; setTimeout(() => { b.textContent = "🔄 ¿No ves o no oyes?"; b.disabled = false; }, 4000); } return; }
   const s = window._socket; if (!s) return;
   const tsid = Object.keys(remoteRoles).find(k => remoteRoles[k] === 'teacher');
   const btn = document.getElementById('reconnect-btn');
-  if (btn) { btn.textContent = '⏳ Reconnecting…'; btn.disabled = true; setTimeout(() => { btn.textContent = "🔄 Can't see or hear?"; btn.disabled = false; }, 8000); }
+  if (btn) { btn.textContent = '⏳ Reconectando…'; btn.disabled = true; setTimeout(() => { btn.textContent = "🔄 ¿No ves o no oyes?"; btn.disabled = false; }, 8000); }
   if (!tsid) return;
   if (window.reportPageError) reportPageError('student pressed Reconnect', 'reconnect');
   audioTries[tsid] = 0; videoTries[tsid] = 0;
@@ -4402,7 +4412,7 @@ function reconnectMedia() {
 }
 function addReconnectButton() {
   if (IS_TEACHER || IS_SPECTATOR || document.getElementById('reconnect-btn')) return;
-  const b = document.createElement('button'); b.id = 'reconnect-btn'; b.textContent = "🔄 Can't see or hear?";
+  const b = document.createElement('button'); b.id = 'reconnect-btn'; b.textContent = "🔄 ¿No ves o no oyes?";
   b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;background:#1a73e8;color:#fff;border:none;border-radius:22px;padding:9px 16px;font-family:Nunito,sans-serif;font-weight:900;font-size:0.85rem;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,0.35);opacity:0.92;';
   b.onclick = reconnectMedia; document.body.appendChild(b);
 }
@@ -4944,6 +4954,7 @@ function setTool(tool) {
   currentTool = tool;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById(`tool-${tool}`)?.classList.add('selected');
+  document.getElementById(`stool-${tool}`)?.classList.add('selected');
   const cmb = document.getElementById('canvas-menu-btn');
   if (cmb && CANVAS_TOOL_ICON[tool]) { cmb.textContent = CANVAS_TOOL_ICON[tool] + ' Canvas ▸'; cmb.classList.add('selected'); }
   if (tool === 'draw') { canvas.isDrawingMode = true; canvas.freeDrawingBrush = new fabric.PencilBrush(canvas); canvas.freeDrawingBrush.color = document.getElementById('color-picker').value; canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value); }
@@ -5393,9 +5404,9 @@ async function openCamPicker() {
   const ov = document.createElement('div'); ov.id = 'cam-picker';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Nunito,sans-serif;';
   ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.4);">
-    <div style="font-size:1.25rem;font-weight:900;color:#1a1a2e;">📷 Choose your webcam</div>
+    <div style="font-size:1.25rem;font-weight:900;color:#1a1a2e;">📷 Choose your webcam / Elige tu cámara</div>
     <div id="cp-list" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;">Loading…</div>
-    <div style="display:flex;justify-content:flex-end;"><button id="cp-close" style="border:none;background:#888;color:#fff;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">Close</button></div></div>`;
+    <div style="display:flex;justify-content:flex-end;"><button id="cp-close" style="border:none;background:#888;color:#fff;border-radius:10px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">Close / Cerrar</button></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('#cp-close').onclick = () => ov.remove();
   const list = ov.querySelector('#cp-list');
@@ -5408,7 +5419,7 @@ async function openCamPicker() {
     row.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:2px solid ${using ? '#2e7d32' : '#e0e0e0'};background:${using ? '#e8f5e9' : '#fafafa'};`;
     row.innerHTML = `<div style="flex:1;min-width:0;font-weight:800;font-size:0.9rem;color:#1a1a2e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(d.label || 'Webcam')}</div>`;
     const b = document.createElement('button'); b.style.cssText = `border:none;border-radius:10px;padding:8px 12px;font-weight:900;cursor:pointer;font-family:inherit;white-space:nowrap;${using ? 'background:#c8e6c9;color:#1b5e20;' : 'background:#1a73e8;color:#fff;'}`;
-    b.textContent = using ? '✓ In use' : 'Use this';
+    b.textContent = using ? '✓ In use / En uso' : 'Use this / Usar';
     b.onclick = async () => { b.disabled = true; b.textContent = '…'; try { await switchCam(d.deviceId); ov.remove(); } catch (e) { b.disabled = false; b.textContent = '⚠️ Try again'; } };
     row.appendChild(b); list.appendChild(row);
   });
