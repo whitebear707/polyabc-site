@@ -69,15 +69,19 @@
     .chat-msg .msg-text { font-size:0.9rem; color:#e0e0e0; }
     .chat-msg .msg-time { font-size:0.7rem; color:#555; margin-top:2px; }
     body.student-view #toolbar, body.student-view #left-tools { display: none !important; }
-    #stu-clock { display: none; }
     @media (max-width: 700px) { body.student-view #left-panel { width: 96px; padding: 10px 4px 4px; } }
     body.student-view #left-panel { width: 132px; padding: 22px 6px 6px; }
-    body.student-view #class-timer { display: none !important; }
+    #class-timer { display: none !important; }
+    #stu-clock { display: flex; align-items: center; justify-content: center; padding: 0 0 2px; }
+    body:not(.student-view) #left-panel { width: 176px; padding: 10px 8px; }
+    #celebrate-menu-btn { font-size: 0.85rem !important; }
+    body.student-view #left-panel { position: relative; }
+    body.student-view #stu-clock { position: absolute; top: 22px; left: 0; right: 0; }
+    body.student-view #teacher-frame { margin: auto 0; transform: translateY(-28px); }
     body.student-view #teacher-frame { border: 3px solid #4fc3f7; background: #4fc3f7; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     body.student-view #teacher-frame .teacher-border { border: 0; border-radius: 0; }
     body.student-view #teacher-name-above { background: #4fc3f7; color: #06324a !important; padding: 3px 2px 4px !important; font-size: 0.8rem !important; }
-    body.student-view #stu-clock { display: flex; align-items: center; justify-content: center; padding: 0 0 2px; }
-    #stu-clock .ring { position: relative; width: 62px; height: 62px; }
+        #stu-clock .ring { position: relative; width: 62px; height: 62px; }
     #stu-clock svg { width: 62px; height: 62px; transform: rotate(-90deg); }
     #stu-clock .bg { fill: #0a1c30; stroke: rgba(255,255,255,0.14); stroke-width: 6; }
     #stu-clock .fg { fill: none; stroke: #69f0ae; stroke-width: 6; stroke-linecap: round; transition: stroke 0.6s, stroke-dashoffset 0.9s linear; }
@@ -4880,7 +4884,7 @@ function fitLayout() {
   let bw, bh;
   const stuV = document.body.classList.contains('student-view');
   if (totalCenter >= wantW) {                                   // spare width: the left column (teacher video) grows, then margins
-    bw = wantW; bh = availH; if (!stuV) lw += Math.min(totalCenter - bw, bl * 1.4);
+    bw = wantW; bh = availH; 
   } else {                                                      // not enough width: slim the side columns a little
     const need = wantW - totalCenter, giveR = Math.min(need, Math.max(0, rw - MINR)), giveL = Math.min(need - giveR, bl * 0.1);
     rw -= giveR; lw -= giveL;
