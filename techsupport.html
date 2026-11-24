@@ -156,6 +156,7 @@
       <span class="muted">Classes open right now. Pick one to watch.</span>
       <button class="btn-ghost" id="rooms-refresh">Refresh</button>
     </div>
+    <div id="tt-card" style="background:#fff;border:1px solid #d0d7e2;border-radius:12px;padding:12px;margin-bottom:12px;"></div>
     <div id="rooms-list"></div>
   </section>
 
@@ -270,6 +271,7 @@ async function api(path, opts) {
 
 async function loadRooms() {
   const box = document.getElementById('rooms-list');
+  if (!document.getElementById('tt-room')) renderTestCard();
   try {
     const r = await api('/techsupport/rooms'); const d = await r.json();
     const rooms = d.rooms || [];
@@ -277,9 +279,34 @@ async function loadRooms() {
     box.innerHTML = rooms.map(x => `
       <div class="card row">
         <div><b>Class ${esc(x.room)}</b><div class="muted">Teacher: ${esc(x.teacherName || '—')}</div></div>
-        <button class="btn-blue" onclick="watchRoom('${esc(x.room)}')">Watch</button>
+        <button class="btn-blue" onclick="watchRoom('${esc(x.room)}')">Watch</button> <button class="btn-blue" style="background:#2e7d32;" onclick="testAsStudent('${esc(x.room)}')">🎓 Test as student</button>
       </div>`).join('');
   } catch (e) { if (e.message !== 'auth') box.innerHTML = '<div class="card" style="color:var(--red);">Could not load classes. Try Refresh.</div>'; }
+}
+// 🎓 Tech test class: put a teacher's room in test mode (no attendance / pay / reports), then join her class as the test student
+async function renderTestCard() {
+  const box = document.getElementById('tt-card'); if (!box) return;
+  try {
+    if (!_board) { const r = await api('/techsupport/board'); _board = await r.json(); }
+    const rooms = Object.entries((_board && _board.teacherOf) || {}).filter(([room, t]) => t).sort((a, b) => a[1].localeCompare(b[1]));
+    box.innerHTML = `<div style="font-weight:800;margin-bottom:6px;">🎓 Tech test class</div>
+      <div class="muted" style="margin-bottom:8px;">Test a teacher's connection as her student. Nothing is recorded: no attendance, pay or reports.</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;"><select id="tt-room" style="padding:8px;border-radius:8px;border:1px solid #c5cfdf;min-width:200px;">${rooms.map(([room, t]) => `<option value="${esc(room)}">${esc(t)} · Salón ${esc(room)}</option>`).join('')}</select>
+      <button class="btn-blue sm" style="background:#2e7d32;" onclick="startTechTest(true)">Start test class</button>
+      <button class="btn-ghost sm" onclick="startTechTest(false)">Stop</button></div>
+      <div id="tt-msg" class="muted" style="margin-top:8px;"></div>`;
+  } catch (e) { box.innerHTML = '<div class="muted">Could not load teachers.</div>'; }
+}
+async function startTechTest(on) {
+  const room = document.getElementById('tt-room').value, msg = document.getElementById('tt-msg');
+  const name = document.getElementById('tt-room').selectedOptions[0].textContent;
+  try {
+    const r = await fetch(SERVER_URL + '/techsupport/test-class', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + techToken }, body: JSON.stringify({ room, on }) });
+    const d = await r.json();
+    if (!d.success) { msg.style.color = '#c62828'; msg.textContent = d.error || 'Could not do that'; return; }
+    msg.style.color = on ? '#2e7d32' : '';
+    msg.textContent = on ? `✅ Test mode ON for ${name} (stays on until the class is ended, or 3 hours). Ask her to log in and open her class, then press 🎓 Test as student below.` : `Test mode turned off for ${name}.`;
+  } catch (e) { msg.style.color = '#c62828'; msg.textContent = 'Could not reach the server.'; }
 }
 // Join the teacher's class as the tech "test student": visible 1v1 participant, not in attendance, with a live connection-quality panel
 async function testAsStudent(room) {

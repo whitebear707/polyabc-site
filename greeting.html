@@ -199,6 +199,8 @@
 
   async function getActiveSessionId() {
     try {
+      // Tech support is running a test class for this room: no booked class needed, nothing is recorded
+      try { const tr = await fetch(`${SERVER_URL}/teacher/tech-test?room=${encodeURIComponent(room)}`, { headers: { Authorization: `Bearer ${token}` } }); const td = await tr.json(); if (td && td.active) { window._techTestOn = true; return 'techtest-' + room; } } catch (e) {}
       const res = await fetch(`${SERVER_URL}/assignments?room=${room}`, { headers: { Authorization: `Bearer ${token}` } });
       const assignments = await res.json();
       if (!assignments.length) return null;
@@ -226,6 +228,7 @@
     checkNewAssignments();
     checkReviewRequests();
     _sessionId = await getActiveSessionId();
+    if (window._techTestOn) { const b = document.createElement('div'); b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#2e7d32;color:#fff;text-align:center;padding:8px;font-weight:800;font-family:Nunito,sans-serif;'; b.textContent = '🎓 Tech test class with Support — nothing is recorded'; document.body.appendChild(b); }
 
     const speedBtn = document.getElementById('speed-btn');
 

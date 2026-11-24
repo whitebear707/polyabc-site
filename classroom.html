@@ -2689,7 +2689,7 @@ function checkTeacherRoomLock() {
   if (!openBtn) return;
 
   // Junta (room 0): no class schedule — the host opens it whenever they are ready
-  if (ROOM === '0') {
+  if (ROOM === '0' || String(SESSION_ID || '').startsWith('techtest-')) {   // meeting, or a tech support test class: no schedule needed
     openBtn.disabled = false; openBtn.style.opacity = '1'; openBtn.title = '';
     setBtnLabel(openBtn, classIsOpen ? '🔒 Close Class' : '🔓 Open Class');
     syncOpenClassBtnVisibility();
