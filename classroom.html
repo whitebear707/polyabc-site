@@ -888,6 +888,33 @@ function lkRefreshTiles() {
       if (pub.track && pub.kind === 'video' && pub.source === window.LivekitClient.Track.Source.Camera) lkPlaceVideo(p, pub.track);
     });
   });
+  if (!IS_TEACHER) lkScreenWatchdog(room);
+}
+// Student side: if the teacher is sharing but the picture on my screen is dead (track replaced after a reconnect,
+// player stalled, subscription dropped), rebuild it instead of staying on a blank board.
+function lkScreenWatchdog(room) {
+  try {
+    const LK = window.LivekitClient;
+    let vpub = null, apub = null;
+    room.remoteParticipants.forEach(p => p.trackPublications.forEach(pub => {
+      if (pub.source === LK.Track.Source.ScreenShare) vpub = pub;
+      else if (pub.source === LK.Track.Source.ScreenShareAudio) apub = pub;
+    }));
+    if (!vpub) return;
+    if (!vpub.isSubscribed) { if (vpub.setSubscribed) vpub.setSubscribed(true); return; }
+    if (apub && !apub.isSubscribed && apub.setSubscribed) apub.setSubscribed(true);
+    const mst = vpub.track && vpub.track.mediaStreamTrack; if (!mst) return;
+    const vid = document.getElementById('screenshare-vid');
+    const cur = vid && vid.srcObject;
+    const ok = cur && cur.getVideoTracks().some(t => t === mst && t.readyState === 'live');
+    if (!ok) {
+      const st = new MediaStream([mst]);
+      if (apub && apub.track && apub.track.mediaStreamTrack) st.addTrack(apub.track.mediaStreamTrack);
+      LKE.remoteScreen = st;
+      lkLog('screen share re-attached');
+      showScreenBehindCanvas(st, false);
+    } else if (vid.paused) { vid.play().catch(() => {}); }
+  } catch (e) {}
 }
 function lkShowScreen(track) {
   if (!LKE.remoteScreen) LKE.remoteScreen = new MediaStream();
@@ -914,6 +941,7 @@ async function lkStart() {
     });
     room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub) => {
       lkRemoveFor(track);
+      if (pub && pub.source === window.LivekitClient.Track.Source.ScreenShare) LKE.remoteScreen = null;   // next share starts with a fresh stream
       if (LKE.remoteScreen) { try { LKE.remoteScreen.removeTrack(track.mediaStreamTrack); } catch (e) {} }
     });
     room.on(LK.RoomEvent.Disconnected, () => { lkLog('disconnected'); setTimeout(() => { if (USE_LK && (!LKE.room || LKE.room.state === 'disconnected')) { LKE.room = null; lkStart(); } }, 2500); });
