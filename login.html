@@ -209,7 +209,7 @@
     <div class="error-msg" id="join-error">Salón o contraseña incorrectos. Intenta de nuevo.</div>
 
     <label for="room-input">Número de salón</label>
-    <input type="text" id="room-input" placeholder="p. ej. 10" maxlength="10"/>
+    <input type="text" id="room-input" placeholder="p. ej. 10" maxlength="10" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'')"/>
     <div style="font-size:0.72rem;color:#888;margin-top:-6px;margin-bottom:8px;">🎓 ¿Alumno nuevo? Revisa tu número de salón en el Panel de padres (100 o 101)</div>
 
     <label for="pass-input">Contraseña</label>
