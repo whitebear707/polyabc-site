@@ -1682,6 +1682,13 @@ function connectSocket() {
     if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST }); }
   });
 
+  // Safety net: the "class opened" signal is sent once. If a student misses it (server restart, reconnect, bad timing)
+  // they would sit on the waiting screen forever, so while waiting, knock again every 6 s.
+  if (!IS_TEACHER && !IS_SPECTATOR) setInterval(() => {
+    const ws = document.getElementById('waiting-screen');
+    if (ws && ws.style.display !== 'none' && socket.connected) socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST });
+  }, 6000);
+
   socket.on('spot-available', () => {
     if (!IS_TEACHER) { const ws = document.getElementById('waiting-screen'); if (ws && ws.style.display !== 'none') socket.emit('join-room', { room: ROOM, token: MY_TOKEN, sessionId: SESSION_ID, networkTest: NET_TEST }); }
   });
