@@ -300,7 +300,7 @@ function trServerMsg(m) {
     const SERVER_URL = "https://polyabc-server.onrender.com";
 
     async function joinClass() {
-      const room = document.getElementById('room-input').value.trim();
+      let room = document.getElementById('room-input').value.trim();
       const pass = document.getElementById('pass-input').value.trim();
 
       if (!room || !pass) {
@@ -321,12 +321,20 @@ function trServerMsg(m) {
       window._loginCountdown = countdown;
 
       try {
-        const res = await fetch(`${SERVER_URL}/validate-room`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ room, password: pass })
-        });
-        const data = await res.json();
+        const tryRoom = async (r) => {
+          const res = await fetch(`${SERVER_URL}/validate-room`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room: r, password: pass })
+          });
+          return res.json();
+        };
+        let data = await tryRoom(room);
+        // Forgiving room field: "salon8", "Salón 8", "sala 8", "#8" -> 8
+        if (!data.success && data.message === 'Room not found') {
+          const digits = room.replace(/\D/g, '');
+          if (digits && digits !== room) { const d2 = await tryRoom(digits); if (d2.success || d2.message !== 'Room not found') { data = d2; room = digits; document.getElementById('room-input').value = digits; } }
+        }
         clearInterval(window._loginCountdown);
 
         if (data.success) {
