@@ -434,6 +434,7 @@
   <div style="display:flex;gap:8px;align-items:center;">
 
     <div id="teacher-topbtns" style="display:none;gap:8px;align-items:center;">
+      <span id="lb-chip" title="" style="display:none;background:#e65100;color:#fff;border-radius:17px;height:34px;line-height:34px;padding:0 12px;font:900 0.78rem Nunito,sans-serif;white-space:nowrap;">📶 Low bandwidth</span>
       <button id="gear-btn" onclick="togglePop('pop-gear',this,'down')" title="Microphone and webcam" style="background:#37474f;color:#fff;border:none;height:34px;padding:0 12px;border-radius:17px;font-size:1.05rem;cursor:pointer;">⚙️</button>
       <button id="help-btn" onclick="openHelp()" style="background:#c62828;color:#fff;border:none;height:34px;padding:0 14px;border-radius:17px;font-family:Nunito,sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;">☰ Help</button>
     </div>
@@ -534,6 +535,7 @@
 <div id="pop-gear" class="pop-menu col">
   <button class="tool-btn" style="background:#37474f;" onclick="closePops();openMicPicker()">🎙️ Microphone</button>
   <button class="tool-btn" style="background:#37474f;" onclick="closePops();openCamPicker()">📷 Webcam</button>
+  <button class="tool-btn" id="lb-gear-btn" style="background:#37474f;" onclick="closePops();lbCycle()">📶 Low bandwidth: Auto</button>
 </div>
 <div id="pop-reward" class="pop-menu col">
   <button class="reaction-btn" style="font-size:1rem;font-weight:800;color:white;font-family:Nunito,sans-serif;text-align:left;" onclick="pickReward('star')">⭐ Star</button>
@@ -714,6 +716,7 @@ function openStudentColorPicker(identity, anchor) {
 }
 function lkPollQuality() {
   const room = LKE.room; if (!room || room.state === 'disconnected') return;
+  try { lbWatch(room.localParticipant.connectionQuality); } catch (e) {}
   try { setSig(lkQualityKey(room.localParticipant, room), room.localParticipant.connectionQuality); room.remoteParticipants.forEach(p => setSig(lkQualityKey(p, room), p.connectionQuality)); } catch (e) {}
 }
 
@@ -816,6 +819,66 @@ function lkPlaceAudio(p, track) {
 function lkRemoveFor(track) {
   document.querySelectorAll('audio[data-lk="1"]').forEach(a => { if (a.id.endsWith('-' + track.sid)) a.remove(); });
 }
+// ── 📶 Low bandwidth mode (like Zoom): smaller picture out and in when the connection is weak ──
+// Starts by itself when the speed test said "slow", or when the live signal stays poor; comes back by itself when it recovers.
+// Manual: gear menu → Low bandwidth: Auto → On → Off.
+const LB = { low: false, pref: 'auto', forced: false, bad: 0, good: 0, orig: null };   // pref: auto | on | off
+const LB_TXT = IS_TEACHER ? { chip: '📶 Low bandwidth', tip: 'Your connection is weak, so your video is smaller to keep the class smooth.', auto: '📶 Low bandwidth: Auto', on: '📶 Low bandwidth: On', off: '📶 Low bandwidth: Off' }
+  : { chip: '📶 Bajo consumo', tip: 'Tu conexión es débil: el video es más pequeño para que la clase no se trabe.', auto: '📶 Bajo consumo: Auto', on: '📶 Bajo consumo: Sí', off: '📶 Bajo consumo: No' };
+function lbRefreshUI() {
+  const chip = document.getElementById('lb-chip'), g = document.getElementById('lb-gear-btn');
+  if (chip) { chip.style.display = LB.low ? 'inline-block' : 'none'; chip.textContent = LB_TXT.chip; chip.title = LB_TXT.tip; }
+  if (g) g.textContent = LB_TXT[LB.pref];
+}
+function lbCycle() {
+  LB.pref = LB.pref === 'auto' ? 'on' : LB.pref === 'on' ? 'off' : 'auto'; LB.bad = LB.good = 0;
+  if (LB.pref === 'on') lkSetLow(true); else if (LB.pref === 'off') lkSetLow(false); else lkSetLow(LB.forced);
+  lbRefreshUI();
+}
+function lbInit() {
+  try { const r = JSON.parse(localStorage.getItem(`nettest_${SESSION_ID}`) || 'null'); if (r && r.slow) { LB.forced = true; } } catch (e) {}
+  if (LB.forced && LB.pref !== 'off') lkSetLow(true); else lkSetLow(LB.low);   // re-apply after a reconnect
+  lbRefreshUI();
+}
+// called every 2 s with the live quality of my own connection
+function lbWatch(q) {
+  if (LB.pref !== 'auto' || LB.forced) return;
+  const poor = q === 'poor' || q === 'lost';
+  if (poor) { LB.bad++; LB.good = 0; } else if (q === 'excellent' || q === 'good') { LB.good++; LB.bad = 0; } else { LB.bad = 0; }
+  if (!LB.low && LB.bad >= 4) lkSetLow(true);            // ~8 s of poor signal
+  else if (LB.low && LB.good >= 30) lkSetLow(false);     // ~1 min of good signal
+}
+async function lkSetLow(low) {
+  LB.low = !!low; lbRefreshUI();
+  const room = LKE.room; if (!room || room.state !== 'connected') return;
+  const LK = window.LivekitClient;
+  // 1) what I send: smaller picture, fewer frames, lower bitrate (voice is never touched)
+  try {
+    const pub = LKE.pubs.video, tr = pub && pub.track, mst = tr && tr.mediaStreamTrack;
+    if (mst) {
+      await mst.applyConstraints(low ? { width: { ideal: 240 }, height: { ideal: 135 }, frameRate: { ideal: 12 } } : CAM_VIDEO).catch(() => {});
+      const snd = tr.sender;
+      if (snd) {
+        const prm = snd.getParameters(); if (!LB.orig) LB.orig = (prm.encodings || []).map(e => e.maxBitrate);
+        (prm.encodings || []).forEach((e, i) => { e.maxBitrate = low ? (IS_TEACHER ? ({ q: 50000, h: 110000, f: 180000 }[e.rid] || 180000) : 90000) : LB.orig[i]; });
+        await snd.setParameters(prm).catch(() => {});
+      }
+    }
+  } catch (e) { console.warn('[lb] send side:', e.message); }
+  // 2) what I receive: students take the teacher's smallest picture
+  try {
+    if (!IS_TEACHER && LK) room.remoteParticipants.forEach(p => p.trackPublications.forEach(pub => {
+      if (pub.kind === 'video' && pub.source === LK.Track.Source.Camera && pub.setVideoQuality) pub.setVideoQuality(low ? LK.VideoQuality.LOW : LK.VideoQuality.HIGH);
+    }));
+  } catch (e) { console.warn('[lb] receive side:', e.message); }
+  // 3) screen share (teacher): lighter too
+  try {
+    const sp = LKE.pubs.screen, snd = sp && sp.track && sp.track.sender;
+    if (snd) { const prm = snd.getParameters(); (prm.encodings || []).forEach(e => { e.maxBitrate = low ? 1200000 : 3000000; e.maxFramerate = low ? 10 : 15; }); await snd.setParameters(prm).catch(() => {}); }
+  } catch (e) {}
+  lkLog(low ? 'low bandwidth mode ON' : 'low bandwidth mode OFF');
+}
+
 // Every 2 s: make sure every remote camera is shown in its tile (tiles can appear after the picture arrives)
 function lkRefreshTiles() {
   const room = LKE.room; if (!room) return;
@@ -847,7 +910,7 @@ async function lkStart() {
       if (track.kind === 'audio') {
         if (pub.source === LK.Track.Source.ScreenShareAudio) lkShowScreen(track); else lkPlaceAudio(p, track);
       } else if (pub.source === LK.Track.Source.ScreenShare) lkShowScreen(track);
-      else lkPlaceVideo(p, track);
+      else { lkPlaceVideo(p, track); if (LB.low && !IS_TEACHER && pub.setVideoQuality) { try { pub.setVideoQuality(LK.VideoQuality.LOW); } catch (e) {} } }
     });
     room.on(LK.RoomEvent.TrackUnsubscribed, (track, pub) => {
       lkRemoveFor(track);
@@ -866,6 +929,7 @@ async function lkStart() {
       if (vt) LKE.pubs.video = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.Camera, simulcast: IS_TEACHER, videoEncoding: IS_TEACHER ? { maxBitrate: 700000, maxFramerate: 24 } : { maxBitrate: 250000, maxFramerate: 15 } });
     }
     if (IS_TEACHER && isSharing && screenStream) lkPublishScreen();
+    lbInit();
     clearInterval(LKE.tick); LKE.tick = setInterval(lkRefreshTiles, 2000);
     LKE.err = 0;
   } catch (e) {
@@ -881,7 +945,7 @@ async function lkPublishScreen() {
   try {
     await lkUnpublishScreen();
     const vt = screenStream.getVideoTracks()[0], at = screenStream.getAudioTracks()[0];
-    if (vt) { try { vt.contentHint = 'detail'; } catch (e) {} LKE.pubs.screen = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.ScreenShare, simulcast: false, videoEncoding: { maxBitrate: 3000000, maxFramerate: 15 }, degradationPreference: 'maintain-resolution' }); }
+    if (vt) { try { vt.contentHint = 'detail'; } catch (e) {} LKE.pubs.screen = await room.localParticipant.publishTrack(new LK.LocalVideoTrack(vt), { source: LK.Track.Source.ScreenShare, simulcast: false, videoEncoding: { maxBitrate: LB.low ? 1200000 : 3000000, maxFramerate: LB.low ? 10 : 15 }, degradationPreference: 'maintain-resolution' }); }
     if (at) LKE.pubs.screenAudio = await room.localParticipant.publishTrack(new LK.LocalAudioTrack(at), { source: LK.Track.Source.ScreenShareAudio });
   } catch (e) { console.warn('[lk] screen publish failed:', e.message); if (window.reportPageError) reportPageError('video engine screen: ' + e.message, 'livekit'); }
 }
@@ -2526,7 +2590,8 @@ async function loadTodayAssignment() {
     if (leaveBtn) leaveBtn.style.display = 'none';
     if (!IS_SPECTATOR) { // students: the gear (microphone / webcam) in Spanish; no Help button
       document.getElementById('teacher-topbtns').style.display = 'flex'; const hb = document.getElementById('help-btn'); if (hb) hb.style.display = 'none';
-      document.querySelectorAll('#pop-gear button').forEach(b => { b.textContent = /Micro/.test(b.textContent) ? '🎙️ Micrófono' : '📷 Cámara'; });
+      document.querySelectorAll('#pop-gear button:not(#lb-gear-btn)').forEach(b => { b.textContent = /Micro/.test(b.textContent) ? '🎙️ Micrófono' : '📷 Cámara'; });
+      lbRefreshUI();
     }
     checkStudentAccess();
   }

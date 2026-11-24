@@ -313,6 +313,25 @@ let _lastWaitingCount = 0;
     runNetTest();
   }
 
+
+  // Real speed (Cloudflare's test endpoints): a short download and upload; null if the network blocks it
+  async function measureSpeed() {
+    const out = { down: null, up: null };
+    try {
+      const c = new AbortController(), to = setTimeout(() => c.abort(), 10000), t0 = performance.now();
+      const r = await fetch('https://speed.cloudflare.com/__down?bytes=2000000&_=' + Date.now(), { cache: 'no-store', signal: c.signal });
+      const b = await r.arrayBuffer(); clearTimeout(to);
+      out.down = +(b.byteLength * 8 / ((performance.now() - t0) / 1000) / 1e6).toFixed(1);
+    } catch (e) { if (e && e.name === 'AbortError') out.down = 1; }   // did not finish in 10 s = under ~1.6 Mbps
+    try {
+      const c = new AbortController(), to = setTimeout(() => c.abort(), 10000), t0 = performance.now();
+      await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: new Uint8Array(1000000), cache: 'no-store', signal: c.signal });
+      clearTimeout(to);
+      out.up = +(1000000 * 8 / ((performance.now() - t0) / 1000) / 1e6).toFixed(1);
+    } catch (e) { if (e && e.name === 'AbortError') out.up = 0.5; }   // did not finish in 10 s = under ~0.8 Mbps
+    return out;
+  }
+
   async function runNetTest() {
     document.getElementById('net-title').textContent = '📡 Testing your connection...';
     document.getElementById('net-verdict').style.display = 'none';
@@ -320,7 +339,7 @@ let _lastWaitingCount = 0;
     document.getElementById('net-enter-btn').style.display = 'none';
     ['m-ping','m-jitter','m-loss'].forEach(id => document.getElementById(id).textContent = '—');
 
-    const times = []; let failed = 0; const total = 50;
+    const times = []; let failed = 0; const total = 80;
     for (let i = 0; i < total; i++) {
       try {
         const s = performance.now();
@@ -341,6 +360,8 @@ let _lastWaitingCount = 0;
     document.getElementById('m-jitter').textContent = jitter;
     document.getElementById('m-loss').textContent   = packetLoss;
 
+    document.getElementById('net-title').textContent = '📡 Measuring speed...';
+    const sp = await measureSpeed();
     let quality, emoji, label, color;
     if (avgPing < 150 && jitter < 80 && packetLoss === 0) {
       quality = 'good'; emoji = '🟢'; label = 'Great Connection'; color = '#00c853';
@@ -350,6 +371,15 @@ let _lastWaitingCount = 0;
       quality = 'poor'; emoji = '🔴'; label = 'Poor Connection — You may experience significant issues during class. Please check your internet.'; color = '#e53935';
     }
 
+
+    // slow = poor signal, or too little speed for video (upload matters most)
+    const slow = quality === 'poor' || (sp.up != null && sp.up < 2) || (sp.down != null && sp.down < 3);
+    if (slow) {
+      quality = quality === 'good' || quality === 'fair' ? 'fair' : quality; emoji = '🟠'; color = '#ff9100';
+      label = '⚠️ Your connection is slow. Please check your internet. Your class will start in low-bandwidth mode (smaller video so it stays smooth).';
+    }
+    const spLine = document.getElementById('net-speed-line') || (() => { const d = document.createElement('div'); d.id = 'net-speed-line'; d.style.cssText = 'font-weight:800;font-size:0.9rem;color:#cfd8dc;margin:0 0 14px;'; document.getElementById('net-verdict-label').after(d); return d; })();
+    spLine.textContent = (sp.down != null || sp.up != null) ? `⬇ ${sp.down != null ? sp.down : '?'} Mbps · ⬆ ${sp.up != null ? sp.up : '?'} Mbps` : '';
     document.getElementById('net-verdict').textContent = emoji;
     document.getElementById('net-verdict').style.display = 'block';
     const lbl = document.getElementById('net-verdict-label');
@@ -359,7 +389,7 @@ let _lastWaitingCount = 0;
     document.getElementById('net-title').textContent = '✅ Test complete';
     document.getElementById('net-enter-btn').style.display = 'block';
 
-    const result = { avgPing, jitter, packetLoss, quality, testedAt: new Date().toISOString() };
+    const result = { avgPing, jitter, packetLoss, quality, downMbps: sp.down, upMbps: sp.up, slow, testedAt: new Date().toISOString() };
     _netResult = result;
     if (_sessionId) {
       localStorage.setItem(`nettest_${_sessionId}`, JSON.stringify(result));
