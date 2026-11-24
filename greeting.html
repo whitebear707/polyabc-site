@@ -316,19 +316,33 @@ let _lastWaitingCount = 0;
 
   // Real speed (Cloudflare's test endpoints): a short download and upload; null if the network blocks it
   async function measureSpeed() {
+    // A blocked or failed test (warm-up fails) gives null = unknown and NEVER counts as slow. Only a real measurement, or a transfer that started fine and then crawled, counts.
     const out = { down: null, up: null };
-    try {
-      const c = new AbortController(), to = setTimeout(() => c.abort(), 10000), t0 = performance.now();
-      const r = await fetch('https://speed.cloudflare.com/__down?bytes=2000000&_=' + Date.now(), { cache: 'no-store', signal: c.signal });
-      const b = await r.arrayBuffer(); clearTimeout(to);
-      out.down = +(b.byteLength * 8 / ((performance.now() - t0) / 1000) / 1e6).toFixed(1);
-    } catch (e) { if (e && e.name === 'AbortError') out.down = 1; }   // did not finish in 10 s = under ~1.6 Mbps
-    try {
-      const c = new AbortController(), to = setTimeout(() => c.abort(), 10000), t0 = performance.now();
-      await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: new Uint8Array(1000000), cache: 'no-store', signal: c.signal });
-      clearTimeout(to);
-      out.up = +(1000000 * 8 / ((performance.now() - t0) / 1000) / 1e6).toFixed(1);
-    } catch (e) { if (e && e.name === 'AbortError') out.up = 0.5; }   // did not finish in 10 s = under ~0.8 Mbps
+    const timed = async (fn) => { const c = new AbortController(), to = setTimeout(() => c.abort(), 12000); try { return await fn(c.signal); } finally { clearTimeout(to); } };
+    const down = async () => {
+      await timed(s => fetch('https://speed.cloudflare.com/__down?bytes=1000&_=' + Date.now(), { cache: 'no-store', signal: s }).then(r => r.arrayBuffer()));   // warm-up: open the connection first
+      try {
+        return await timed(async s => {
+          const t0 = performance.now();
+          const r = await fetch('https://speed.cloudflare.com/__down?bytes=4000000&_=' + Date.now(), { cache: 'no-store', signal: s });
+          const b = await r.arrayBuffer();
+          return b.byteLength * 8 / ((performance.now() - t0) / 1000) / 1e6;
+        });
+      } catch (e) { if (e && e.name === 'AbortError') return 1; throw e; }   // connection worked (warm-up passed) but 4 MB took over 12 s = under ~2.7 Mbps
+    };
+    const up = async () => {
+      const post = (n, s) => fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: new Uint8Array(n), cache: 'no-store', signal: s });
+      await timed(s => post(1000, s));   // warm-up: gets the cross-site permission check and the connection out of the way
+      try {
+        return await timed(async s => {
+          const t0 = performance.now();
+          await post(2000000, s);
+          return 2000000 * 8 / ((performance.now() - t0) / 1000) / 1e6;
+        });
+      } catch (e) { if (e && e.name === 'AbortError') return 0.5; throw e; }   // connection worked but 2 MB took over 12 s = under ~1.3 Mbps
+    };
+    for (let k = 0; k < 2; k++) { try { const v = await down(); out.down = +Math.max(out.down || 0, v).toFixed(1); if (out.down >= 5) break; } catch (e) {} }
+    for (let k = 0; k < 2; k++) { try { const v = await up(); out.up = +Math.max(out.up || 0, v).toFixed(1); if (out.up >= 3) break; } catch (e) {} }
     return out;
   }
 
