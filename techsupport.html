@@ -281,6 +281,16 @@ async function loadRooms() {
       </div>`).join('');
   } catch (e) { if (e.message !== 'auth') box.innerHTML = '<div class="card" style="color:var(--red);">Could not load classes. Try Refresh.</div>'; }
 }
+// Join the teacher's class as the tech "test student": visible 1v1 participant, not in attendance, with a live connection-quality panel
+async function testAsStudent(room) {
+  try {
+    const r = await fetch(SERVER_URL + '/techsupport/test-student-token', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + techToken }, body: JSON.stringify({ room }) });
+    const d = await r.json();
+    if (!d.success) return alert('Could not start the test: ' + (d.error || 'error'));
+    localStorage.setItem('techStudentToken', d.token);
+    window.open('classroom.html?room=' + encodeURIComponent(room) + '&tt=1', '_blank');
+  } catch (e) { alert('Could not start the test.'); }
+}
 function watchRoom(room) {
   window.location.href = 'classroom.html?room=' + encodeURIComponent(room) + '&it=1';
 }
@@ -655,7 +665,7 @@ function tileHtml(c, st, L) {
     <div class="row" style="margin-top:8px;">
       <span class="muted">${rec}</span>
       <span style="display:flex;gap:6px;">
-        ${L && L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(c.room)}')">👁 Watch</button>` : ''}
+        ${L && L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(c.room)}')">👁 Watch</button> <button class="btn-blue sm" style="background:#2e7d32;" onclick="testAsStudent('${esc(c.room)}')">🎓 Test as student</button>` : ''}
         ${st.section === 'now' || (L && (L.users.length || L.waiting.length)) ? `<button class="btn-ghost sm" onclick="toggleDetails('${esc(c.id)}')">${open ? 'Hide' : 'People'}</button>` : ''}
       </span>
     </div>
@@ -743,7 +753,7 @@ function renderBoard() {
   document.getElementById('bd-grn').textContent = '🟢 ' + cnt('green');
   const unschedHtml = unscheduled.map(([room, L]) => `<div class="tile yellow"><div class="t-head"><span>Salón ${esc(room)}</span><span class="muted">not on today's schedule</span></div>
     <div class="t-status">${L.open ? 'Class open' : 'People connected'} · ${L.users.filter(u => u.role === 'student').length} students</div>
-    <div class="row" style="margin-top:8px;"><span class="muted">👩‍🏫 ${esc(_board.teacherOf[room] || '')}</span>${L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(room)}')">👁 Watch</button>` : ''}</div></div>`).join('');
+    <div class="row" style="margin-top:8px;"><span class="muted">👩‍🏫 ${esc(_board.teacherOf[room] || '')}</span>${L.open ? `<button class="btn-blue sm" onclick="watchRoom('${esc(room)}')">👁 Watch</button> <button class="btn-blue sm" style="background:#2e7d32;" onclick="testAsStudent('${esc(room)}')">🎓 Test as student</button>` : ''}</div></div>`).join('');
   document.getElementById('bd-now').innerHTML = `<h3 style="margin:6px 0;">Now</h3>` + ((now.length || unscheduled.length) ? `<div class="grid">${now.map(x => tileHtml(x.c, x.st, x.L)).join('')}${unschedHtml}</div>` : '<div class="card muted">No classes running right now.</div>');
   document.getElementById('bd-next').innerHTML = next.length ? `<h3 style="margin:14px 0 6px;">Coming up</h3><div class="grid">${next.map(x => tileHtml(x.c, x.st, x.L)).join('')}</div>` : '';
   document.getElementById('bd-done').innerHTML = done.length ? `<h3 style="margin:14px 0 6px;">Finished today</h3><div class="grid">${done.map(x => tileHtml(x.c, x.st, x.L)).join('')}</div>` : '';

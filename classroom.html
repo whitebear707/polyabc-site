@@ -652,7 +652,9 @@ const SESSION_ID   = params.get('sessionId') || null; // Unique ID for this clas
 const NET_TEST     = SESSION_ID ? (() => { try { const c = localStorage.getItem(`nettest_${SESSION_ID}`); return c ? JSON.parse(c) : null; } catch(e) { return null; } })() : null;
 // Tech support opens a class with ?it=1 using its own login (techToken), so it is never treated as admin/teacher
 const TECH_MODE    = params.get('it') === '1' && !!localStorage.getItem('techToken');
-const IS_TEACHER   = !TECH_MODE && !!localStorage.getItem('adminToken');
+// Tech support's test student (?tt=1): sits in a teacher's class as a student to measure her connection. Own token key, so the tech's other logins are untouched.
+const TEST_STUDENT = params.get('tt') === '1' && !!localStorage.getItem('techStudentToken');
+const IS_TEACHER   = !TECH_MODE && !TEST_STUDENT && !!localStorage.getItem('adminToken');
 // School rule: teachers can't give classes from a phone (tablets and computers are fine; meetings are not classes)
 const IS_PHONE     = !/iPad|Tablet/i.test(navigator.userAgent) && (/iPhone|iPod|Android.*Mobile|Mobi/i.test(navigator.userAgent) || (Math.min(screen.width, screen.height) < 500 && navigator.maxTouchPoints > 0));
 if (IS_TEACHER && IS_PHONE && (new URLSearchParams(location.search).get('room') || '') !== '0') {
@@ -661,8 +663,8 @@ if (IS_TEACHER && IS_PHONE && (new URLSearchParams(location.search).get('room') 
     + '<br><br><a href="schedule.html" style="color:#1a73e8;">Go to my teacher panel</a></div></div>';
   throw new Error('Teachers cannot give classes from a phone');
 }
-const MY_TOKEN     = TECH_MODE ? (localStorage.getItem('techToken') || '') : (localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '');
-const MY_NAME      = IS_TEACHER ? 'Teacher' : (localStorage.getItem('studentName') || 'Student');
+const MY_TOKEN     = TEST_STUDENT ? localStorage.getItem('techStudentToken') : TECH_MODE ? (localStorage.getItem('techToken') || '') : (localStorage.getItem('adminToken') || localStorage.getItem('studentToken') || '');
+const MY_NAME      = IS_TEACHER ? 'Teacher' : TEST_STUDENT ? 'Soporte Técnico' : (localStorage.getItem('studentName') || 'Student');
 // SPECTATOR: watch-only login (admin-created). The server decides what it may do; this only shapes the page.
 const MY_TOKEN_ROLE = (() => { try { return JSON.parse(atob(MY_TOKEN.split('.')[0])).role; } catch (e) { return null; } })();
 const IS_SPECTATOR = !IS_TEACHER && (MY_TOKEN_ROLE === 'spectator' || MY_TOKEN_ROLE === 'spectator_it' || MY_TOKEN_ROLE === 'techsupport');
@@ -1025,6 +1027,23 @@ function lkDeepText(pcsStats, prev, dt) {
   }
   return L.join('\n');
 }
+// Test student: one plain verdict on how the teacher's picture and voice reach me (running totals over the test)
+const TST = { n: 0, lost0: null, maxJit: 0, minFps: 99, frz: 0, kbps: [] };
+function lkTestVerdict(body) {
+  const v = /RECEIVE video: (\d+)x(\d+) @ (\d+) fps, (\d+|\?) kbps, lost (\d+), freezes (\d+) \([\d.]+ s\), dropped \d+, jitter (\d+) ms/.exec(body);
+  const a = /RECEIVE audio: lost (\d+), jitter (\d+) ms/.exec(body);
+  const rtt = /rtt (\d+) ms/.exec(body);
+  if (!v) return 'TEST · waiting for the teacher\'s video…';
+  const fps = +v[3], kb = v[4] === '?' ? null : +v[4], lost = +v[5], frz = +v[6], jit = Math.max(+v[7], a ? +a[2] : 0), alost = a ? +a[1] : 0;
+  TST.n++; if (TST.lost0 == null) TST.lost0 = lost; TST.maxJit = Math.max(TST.maxJit, jit); if (fps > 0) TST.minFps = Math.min(TST.minFps, fps); TST.frz = frz; if (kb != null) TST.kbps.push(kb);
+  const avgKb = TST.kbps.length ? Math.round(TST.kbps.reduce((x, y) => x + y, 0) / TST.kbps.length) : 0;
+  const lostNow = lost - TST.lost0;
+  const bad = lostNow > 50 || TST.frz > 3 || TST.maxJit > 60 || TST.minFps < 10, warn = lostNow > 10 || TST.frz > 0 || TST.maxJit > 30 || TST.minFps < 18;
+  const verdict = bad ? '🔴 POOR' : warn ? '🟡 FAIR' : '🟢 GOOD';
+  return `TEST ${verdict} · teacher → me · ${Math.round(TST.n * 2)} s measured\n` +
+    `delay ${rtt ? rtt[1] : '?'} ms · jitter ${jit} ms (worst ${TST.maxJit}) · packets lost ${lostNow} (audio ${alost}) · freezes ${TST.frz}\n` +
+    `video ${fps} fps (lowest ${TST.minFps === 99 ? '-' : TST.minFps}) · ${kb == null ? '?' : kb} kbps now, ${avgKb} avg`;
+}
 (function lkDebugPanel() {
   if (!USE_LK) return;
   let el = null, timer = null; const prev = {}; let last = Date.now();
@@ -1035,14 +1054,17 @@ function lkDeepText(pcsStats, prev, dt) {
     const sts = []; for (const pc of pcs) { try { sts.push(await pc.getStats()); } catch (e) {} }
     const now = Date.now(), dt = Math.max(1, (now - last) / 1000); last = now;
     const hidden = document.visibilityState === 'hidden' ? '   [THIS TAB IS HIDDEN]' : '';
-    el.textContent = `new system · ${room ? room.state : 'no room'} · people ${room ? room.remoteParticipants.size : 0}${hidden}\n` + (sts.length ? lkDeepText(sts, prev, dt) : 'no stats yet');
+    const body = sts.length ? lkDeepText(sts, prev, dt) : 'no stats yet';
+    el.textContent = (TEST_STUDENT ? lkTestVerdict(body) + '\n\n' : '') + `new system · ${room ? room.state : 'no room'} · people ${room ? room.remoteParticipants.size : 0}${hidden}\n` + body;
   }
   function toggle() {
     if (el) { el.remove(); el = null; clearInterval(timer); return; }
     el = document.createElement('pre');
-    el.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;max-width:94vw;margin:0;padding:8px 10px;background:rgba(0,0,0,.82);color:#9fffb0;font:11px/1.35 ui-monospace,Consolas,monospace;border-radius:8px;white-space:pre-wrap;pointer-events:none;';
+    el.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;max-width:94vw;margin:0;padding:8px 10px;background:rgba(0,0,0,.82);color:#9fffb0;font:' + (TEST_STUDENT ? '13px/1.4' : '11px/1.35') + ' ui-monospace,Consolas,monospace;border-radius:8px;white-space:pre-wrap;pointer-events:none;';
     document.body.appendChild(el); last = Date.now(); timer = setInterval(tick, 2000); tick();
   }
+  // The test student always sees the panel (opens once the video engine is up)
+  if (TEST_STUDENT) { const iv = setInterval(() => { if (LKE.room && LKE.room.state === 'connected') { clearInterval(iv); if (!el) toggle(); } }, 1000); }
   document.addEventListener('keydown', e => {
     if (!(e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) return;
     e.preventDefault(); toggle();
