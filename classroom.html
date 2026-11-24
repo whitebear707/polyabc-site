@@ -1028,21 +1028,27 @@ function lkDeepText(pcsStats, prev, dt) {
   return L.join('\n');
 }
 // Test student: one plain verdict on how the teacher's picture and voice reach me (running totals over the test)
-const TST = { n: 0, lost0: null, maxJit: 0, minFps: 99, frz: 0, kbps: [] };
-function lkTestVerdict(body) {
-  const v = /RECEIVE video: (\d+)x(\d+) @ (\d+) fps, (\d+|\?) kbps, lost (\d+), freezes (\d+) \([\d.]+ s\), dropped \d+, jitter (\d+) ms/.exec(body);
-  const a = /RECEIVE audio: lost (\d+), jitter (\d+) ms/.exec(body);
+const TST = { n: 0, lost0: null, frz0: 0, maxJit: 0, minFps: 99, frz: 0, kbps: [] };
+function lkTestVerdict(body, hiddenOverride) {
+  const hidden = hiddenOverride != null ? hiddenOverride : document.hidden;
   const rtt = /rtt (\d+) ms/.exec(body);
-  if (!v) return 'TEST · waiting for the teacher\'s video…';
-  const fps = +v[3], kb = v[4] === '?' ? null : +v[4], lost = +v[5], frz = +v[6], jit = Math.max(+v[7], a ? +a[2] : 0), alost = a ? +a[1] : 0;
-  TST.n++; if (TST.lost0 == null) TST.lost0 = lost; TST.maxJit = Math.max(TST.maxJit, jit); if (fps > 0) TST.minFps = Math.min(TST.minFps, fps); TST.frz = frz; if (kb != null) TST.kbps.push(kb);
+  // The teacher's CAMERA only: a shared screen (big picture, often 0 fps because nothing moves) is not a quality problem
+  const vids = [...body.matchAll(/RECEIVE video: (\d+)x(\d+) @ (\d+) fps, (\d+|\?) kbps, lost (\d+), freezes (\d+) \([\d.]+ s\), dropped \d+, jitter (\d+) ms/g)]
+    .map(m => ({ w: +m[1], fps: +m[3], kb: m[4] === '?' ? null : +m[4], lost: +m[5], frz: +m[6], jit: +m[7] })).filter(v => v.w <= 1000).sort((x, y) => y.w - x.w);
+  const auds = [...body.matchAll(/RECEIVE audio: lost (\d+), jitter (\d+) ms/g)].map(m => ({ lost: +m[1], jit: +m[2] }));
+  const v = vids[0];
+  if (!v) return 'TEST · waiting for the teacher\'s camera…';
+  if (hidden) return 'TEST ⏸ PAUSED · this tab is in the background, so the browser slows the video and the numbers would be wrong.\nKeep this tab open and in front while you test.';
+  const jit = Math.max(v.jit, ...auds.map(a => a.jit)), alost = auds.reduce((x, a) => x + a.lost, 0);
+  if (TST.lost0 == null) { TST.lost0 = v.lost; TST.frz0 = v.frz; }
+  TST.n++; TST.maxJit = Math.max(TST.maxJit, jit); if (v.fps > 0) TST.minFps = Math.min(TST.minFps, v.fps); if (v.kb != null && v.kb > 0) TST.kbps.push(v.kb);
   const avgKb = TST.kbps.length ? Math.round(TST.kbps.reduce((x, y) => x + y, 0) / TST.kbps.length) : 0;
-  const lostNow = lost - TST.lost0;
-  const bad = lostNow > 50 || TST.frz > 3 || TST.maxJit > 60 || TST.minFps < 10, warn = lostNow > 10 || TST.frz > 0 || TST.maxJit > 30 || TST.minFps < 18;
+  const lostNow = v.lost - TST.lost0, frz = v.frz - TST.frz0;
+  const bad = lostNow > 50 || frz > 3 || TST.maxJit > 60 || TST.minFps < 10, warn = lostNow > 10 || frz > 0 || TST.maxJit > 30 || TST.minFps < 18;
   const verdict = bad ? '🔴 POOR' : warn ? '🟡 FAIR' : '🟢 GOOD';
-  return `TEST ${verdict} · teacher → me · ${Math.round(TST.n * 2)} s measured\n` +
-    `delay ${rtt ? rtt[1] : '?'} ms · jitter ${jit} ms (worst ${TST.maxJit}) · packets lost ${lostNow} (audio ${alost}) · freezes ${TST.frz}\n` +
-    `video ${fps} fps (lowest ${TST.minFps === 99 ? '-' : TST.minFps}) · ${kb == null ? '?' : kb} kbps now, ${avgKb} avg`;
+  return `TEST ${verdict} · teacher → me · ${Math.round(TST.n * 2)} s measured (only while this tab is visible)\n` +
+    `delay ${rtt ? rtt[1] : '?'} ms · jitter ${jit} ms (worst ${TST.maxJit}) · packets lost ${lostNow} (audio ${alost}) · freezes ${frz}\n` +
+    `camera ${v.fps} fps (lowest ${TST.minFps === 99 ? '-' : TST.minFps}) · ${v.kb == null ? '?' : v.kb} kbps now, ${avgKb} avg`;
 }
 (function lkDebugPanel() {
   if (!USE_LK) return;
